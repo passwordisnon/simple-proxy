@@ -15,12 +15,12 @@ const MAIN=(()=>{
     const go=()=>{SAVE.nick=i.value.trim().slice(0,24)||'Gast';persist();w.close();GAME.onAvatarChanged();UI.toast('Hallo '+SAVE.nick+'!');SND.jingle('j_success')};i.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter')go()});w.foot.append(btn('Los geht\'s','primary',go));setTimeout(()=>i.focus(),50)}
   /* ---------- Cy-Phone ---------- */
   function phone(){const v=el('div','veil');const ph=el('div','phone');const d=new Date();const head=el('div','ph');head.append(el('span',null,String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')),el('span',null,'Cy-Phone'),el('span',null,fmt(SAVE.money)+' T'));
-    const apps=el('div','apps');const A=(ic,n,bg,fn)=>{const b=el('button','app-i');b.type='button';const i=el('b',null,ic);i.style.background=bg;b.append(i,document.createTextNode(n));b.onclick=()=>{close();SND.play('select');fn()};apps.append(b)};
+    const apps=el('div','apps');const A=(ic,n,bg,fn)=>{const b=el('button','app-i');b.type='button';const i=el('b');i.innerHTML=ICON(ic);i.style.background=bg;b.append(i,document.createTextNode(n));b.onclick=()=>{close();SND.play('select');fn()};apps.append(b)};
     const close=()=>{v.remove();openWinsPop()};
-    A('🧬','Labor','#C6A9FF',()=>setTab('lab'));A('🎒','Tasche','#FFD35C',()=>ACT.bag());A('📖','Lexikon','#7FDCE6',()=>ACT.lexikon());
-    A('🎨','Designs','#FF8FB1',designsApp);A('🏠','Hausbau','#FFB27A',()=>houseBuilder());A('👥','Freund:innen','#A6EBC3',()=>SOCIAL.playersWin());
-    A('💬','Chat','#8FD3FF',()=>SOCIAL.toggleChat(true));A('😊','Emotes','#FFE27A',()=>ACT.emoteMenu());A('🗺️','Karte','#9FD86A',mapApp);
-    A('🌍','Bewohner:innen','#FFC9A8',residentsApp);A('🏫','Klasse','#D9B5F2',teacherApp);A('⚙️','Einstellungen','#DDD3C4',settingsApp);
+    A('dna','Labor','#C6A9FF',()=>setTab('lab'));A('bag','Tasche','#FFD35C',()=>ACT.bag());A('book','Lexikon','#7FDCE6',()=>ACT.lexikon());A('paw','Tiere','#A6EBC3',()=>FAUNA.lexikon());
+    A('palette','Designs','#FF8FB1',designsApp);A('house','Hausbau','#FFB27A',()=>houseBuilder());A('people','Freund:innen','#A6EBC3',()=>SOCIAL.playersWin());
+    A('chat','Chat','#8FD3FF',()=>SOCIAL.toggleChat(true));A('smile','Emotes','#FFE27A',()=>ACT.emoteMenu());A('map','Karte','#9FD86A',mapApp);
+    A('globe','Bewohner:innen','#FFC9A8',residentsApp);A('school','Klasse','#D9B5F2',teacherApp);A('gear','Einstellungen','#DDD3C4',settingsApp);
     ph.append(head,apps);v.append(ph);v.addEventListener('pointerdown',e=>{if(e.target===v)close()});document.body.append(v);SND.play('open');
     const kd=e=>{if(e.key==='Escape'||e.key==='Tab'){e.preventDefault();close();removeEventListener('keydown',kd,true)}};addEventListener('keydown',kd,true);function openWinsPop(){removeEventListener('keydown',kd,true)}}
   $('hbPhone').onclick=phone;$('hbBag').onclick=()=>ACT.bag();$('hbEmote').onclick=()=>ACT.emoteMenu();
@@ -34,7 +34,7 @@ const MAIN=(()=>{
     const me=GAME.me;if(me){const[a,b,r]=toXY(me.p);if(r<=1){x.fillStyle='#F0556E';x.beginPath();x.arc(a,b,8,0,TAU);x.fill();x.strokeStyle='#fff';x.lineWidth=3;x.stroke()}}
     w.body.append(el('p','sub','Blick von oben auf die Nordseite des Planeten. Rot: du.'))}
   function residentsApp(){const w=UI.win('Bewohner:innen',{size:'narrow'});const gr=el('div','grid');allCreatures().forEach(d=>{const c=el('button','card');c.type='button';c.append(UI.creatureThumb(d),el('span',null,d.name||'Namenlos'),el('span','sub',d.group||''));
-      const fr=SAVE.friendship[d.id]||0;if(fr)c.append(el('span','badge','💚'+Math.ceil(fr/10)));c.onclick=()=>{w.close();const e=GAME.ents.get(d.id);const ww=GAME.showCard(d);if(e&&GAME.mode==='outdoor'&&GAME.me){GAME.me.p.copy(GAME.W.near(e.p,.05));UI.toast('Zu '+(d.name||'Namenlos')+' gebeamt')}};gr.append(c)});w.body.append(gr)}
+      const fr=SAVE.friendship[d.id]||0;if(fr)c.append(el('span','badge','♥ '+Math.ceil(fr/10)));c.onclick=()=>{w.close();const e=GAME.ents.get(d.id);const ww=GAME.showCard(d);if(e&&GAME.mode==='outdoor'&&GAME.me){GAME.me.p.copy(GAME.W.near(e.p,.05));UI.toast('Zu '+(d.name||'Namenlos')+' gebeamt')}};gr.append(c)});w.body.append(gr)}
   function teacherApp(){const w=UI.win('Klasse & Codes',{size:'narrow'});w.body.append(el('p',null,'Für die Lehrperson am Beamer: Codes der Gruppen einschleusen, damit alle Cyborgs auf einem Planeten wohnen. Die Welt wird in diesem Browser gespeichert.'));
     w.foot.append(btn(GAME.overview?'Übersicht beenden':'Beamer-Übersicht','sea',()=>{w.close();if(GAME.mode==='outdoor')GAME.toggleOverview();else UI.toast('Geh zuerst nach draussen.')}),btn('Codes einschleusen','primary',()=>{w.close();importCodes()}),btn('Welt sichern',null,()=>{w.close();exportWorld()}),btn(showExamples?'Beispiele ausblenden':'Beispiele zeigen',null,()=>{showExamples=!showExamples;LS.set('cyborg-labor-beispiele',showExamples?'an':'aus');GAME.syncVillagers();w.close()}))}
   function importCodes(){const w=UI.win('Codes einschleusen',{size:'narrow'});w.body.append(el('p',null,'Fügt hier alle Codes ein, die ihr bekommen habt. Mehrere Codes dürfen einfach untereinander stehen.'));const ta=el('textarea');ta.id='importText';ta.rows=8;ta.placeholder='CYB2.eyJ2IjoyLCJpZCI6…';w.body.append(ta);const msg=el('p','sub');w.body.append(msg);

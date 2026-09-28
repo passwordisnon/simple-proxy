@@ -274,7 +274,8 @@ function outlineMat(col,lvl){lvl=lvl||4;const key=col.getHexString()+lvl;if(OUTL
 const outlineMatFor=(mat,lvl)=>outlineMat(outlineColorOf(mat),lvl||4);
 function outlineColorOf(mat){let c;if(mat.userData&&mat.userData.metal){c=new THREE.Color({gold:'#8a5a1a',copper:'#7a3a2a',holo:'#6a5a9a'}[mat.userData.metal]||'#5a5a78')}
   else if(mat.color){c=mat.map?new THREE.Color('#6a5a6a'):mat.color.clone()}else c=new THREE.Color('#5a4a6a');
-  const hsl={};c.getHSL(hsl);return new THREE.Color().setHSL(hsl.h,Math.min(1,hsl.s*.9+.1),Math.max(.1,hsl.l*.38))}
+  const hsl={};c.getHSL(hsl);const chroma=hsl.s*(1-Math.abs(2*hsl.l-1));/* fast weisse Farben: graue statt knallbunte Linie */
+  return new THREE.Color().setHSL(hsl.h,Math.min(1,chroma*.9+.1),Math.max(.1,hsl.l*.38))}
 function addOutlines(root,opt){opt=opt||{};const list=[];root.traverse(o=>{if(!o.isMesh||o.userData.noOutline||o.userData.hull||o.userData.furShell)return;const m=o.material;if(!m||Array.isArray(m))return;
     if(m.transparent||m.side===THREE.DoubleSide||m.userData.ghost||m.userData.glow||m.userData.flat||m.userData.glass||m.userData.outline)return;
     const t=o.geometry.type;if(t==='PlaneGeometry'||t==='ShapeGeometry'||t==='CircleGeometry'||t==='RingGeometry'||o.geometry.userData.openTube&&false)return;

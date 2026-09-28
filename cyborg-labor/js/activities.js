@@ -16,20 +16,22 @@ function designImg(d,size){const c=document.createElement('canvas');c.width=c.he
 
 /* ---------- Emotes ---------- */
 const EMOTES={
-  winken:{i:'👋',n:'Winken',pose:(e,t)=>{e.act=Math.max(e.act,.7)}},
-  tanzen:{i:'💃',n:'Tanzen',start:e=>{e.dance=6}},
-  freude:{i:'🎉',n:'Freude',start:e=>{e.jump=.9;GAME.W.fx(e.p,'konfetti',14)}},
-  herz:{i:'💚',n:'Herz',start:e=>GAME.W.fx(e.p,'herz',8)},
-  lachen:{i:'😂',n:'Lachen',pose:(e,t)=>{e.g.rotateZ(Math.sin(t*14)*.06)}},
-  staunen:{i:'❗',n:'Staunen',start:e=>{e.jump=.6}},
-  schlafen:{i:'💤',n:'Schlafen',pose:(e,t)=>{e.g.rotateZ(.25)}},
-  denken:{i:'💭',n:'Nachdenken',start:e=>GAME.say(e,pick(THOUGHTS)+' …',3)},
-  verbeugen:{i:'🙇',n:'Verbeugen',pose:(e,t)=>{e.g.rotateX(.45)}},
-  traurig:{i:'😢',n:'Traurig',pose:(e,t)=>{e.g.rotateX(.18)}},
-  drehen:{i:'🌀',n:'Pirouette',pose:(e,t)=>{e.g.rotateY(t*9)}},
-  kompost:{i:'🍂',n:'Kompostieren',start:e=>GAME.W.fx(e.p,'blatt',12)}
+  winken:{i:'wave',n:'Winken',pose:(e,t)=>{e.act=Math.max(e.act,.7)}},
+  tanzen:{i:'dance',n:'Tanzen',start:e=>{e.dance=6}},
+  freude:{i:'party',n:'Freude',start:e=>{e.jump=.9;GAME.W.fx(e.p,'konfetti',14)}},
+  herz:{i:'heart',n:'Herz',start:e=>GAME.W.fx(e.p,'herz',8)},
+  lachen:{i:'laugh',n:'Lachen',pose:(e,t)=>{e.g.rotateZ(Math.sin(t*14)*.06)}},
+  staunen:{i:'exclaim',n:'Staunen',start:e=>{e.jump=.6}},
+  schlafen:{i:'zzz',n:'Schlafen',pose:(e,t)=>{e.g.rotateZ(.25)}},
+  denken:{i:'think',n:'Nachdenken',start:e=>GAME.say(e,pick(THOUGHTS)+' …',3)},
+  verbeugen:{i:'bow',n:'Verbeugen',pose:(e,t)=>{e.g.rotateX(.45)}},
+  traurig:{i:'sad',n:'Traurig',pose:(e,t)=>{e.g.rotateX(.18)}},
+  drehen:{i:'spiral',n:'Pirouette',pose:(e,t)=>{e.g.rotateY(t*9)}},
+  wuetend:{i:'angry',n:'Wütend',pose:(e,t)=>{e.g.rotateZ(Math.sin(t*30)*.04)}},
+  idee:{i:'bulb',n:'Idee!',start:e=>{e.jump=.5;GAME.W.fx(e.p,'funke',8)}},
+  kompost:{i:'leaf',n:'Kompostieren',start:e=>GAME.W.fx(e.p,'blatt',12)}
 };
-function doEmote(e,id,silent){const E=EMOTES[id];if(!E||!e)return;e.emote=id;e.emoteT=3.2;GAME.say(e,E.i,2.6,true);E.start&&E.start(e);
+function doEmote(e,id,silent){const E=EMOTES[id];if(!E||!e)return;e.emote=id;e.emoteT=3.2;GAME.say(e,'icon:'+E.i,2.6,true);E.start&&E.start(e);
   if(e===GAME.me){SOCIAL.emote&&SOCIAL.emote(id);if(!silent)SND.play(id==='tanzen'||id==='freude'?'j_success':'pep',{vol:.5});
     /* Bewohner:innen in der Nähe reagieren */
     for(const o of GAME.ents.values()){if(o===e||o.kind==='peer'||o.inside!==e.inside)continue;if(e.inside||GAME.angle(o.p,e.p)*GAME.G.R<6){setTimeout(()=>{const r=id==='tanzen'?'tanzen':id==='winken'?'winken':id==='herz'?'herz':id==='traurig'?'herz':pick(['freude','winken','lachen']);doEmote(o,r,true);o.lookAt=e;o.stop=Math.max(o.stop,3)},300+Math.random()*700)}}}}
@@ -115,7 +117,7 @@ const ACT=(()=>{
     if(F.f&&F.phase!=='cast'){const to=F.p.clone().sub(F.shP);if(F.phase==='wait'&&to.length()>.0035)F.shP.addScaledVector(to.normalize(),dt*.0016*(F.t>1.2?1:0)+.00001).normalize();
       F.sh.position.copy(F.shP).multiplyScalar(sea-.12);F.sh.quaternion.setFromUnitVectors(new V3(0,0,1),F.shP);F.sh.lookAt(F.sh.position.clone().add(F.shP));F.sh.up.copy(F.shP);
       if(F.phase==='wait'&&to.length()<.006){F.nibT-=dt;if(F.nibT<=0){if(F.nib<1+Math.floor(Math.random()*3)){F.nib++;F.dipT=.35;F.nibT=.9+Math.random()*1.4;SND.play('plop',{vol:.35,rate:1.4})}
-        else{F.phase='bite';F.biteT=.95;SND.play('bite',{vol:.9});GAME.say(me,'❗',1,true);GAME.W.fx(F.p,'wasser',10,bobPos.clone())}}}}
+        else{F.phase='bite';F.biteT=.95;SND.play('bite',{vol:.9});GAME.say(me,'icon:exclaim',1,true);GAME.W.fx(F.p,'wasser',10,bobPos.clone())}}}}
     if(F.phase==='bite'){F.biteT-=dt;if(F.biteT<=0){endFish(false,'Er ist entkommen …')}}
     if(!F.f&&F.t>6)endFish(false,'Hier beisst heute nichts.')}
   function reelIn(){const F=fishing;if(!F)return;if(F.phase==='bite'){endFish(true)}else if(F.phase==='wait'&&F.nib>0){endFish(false,'Zu früh gezogen, der Fisch ist weg.')}else endFish(false,null)}
@@ -158,7 +160,7 @@ const ACT=(()=>{
     if(it.kind==='furn')box.foot.append(btn('Im Haus aufstellen','primary',()=>{box.close();w.close();UI.toast('Geh nach Hause und drück F für den Einrichten-Modus.')}));
     box.foot.append(btn('Fallen lassen','danger',()=>{bagTake(it.kind,it.id,1);box.close();w.close();bag()}),btn('Zurück',null,()=>box.close()))}
   /* ---------- Emote-Menü ---------- */
-  function emoteMenu(){const w=UI.win('Emotes',{size:'narrow',foot:false});const g=el('div','emotes');for(const[id,E]of Object.entries(EMOTES)){const b=el('button');b.type='button';b.append(document.createTextNode(E.i),el('span',null,E.n));b.onclick=()=>{w.close();doEmote(GAME.me,id)};g.append(b)}w.body.append(g)}
+  function emoteMenu(){const w=UI.win('Emotes',{size:'narrow',foot:false});const g=el('div','emotes');for(const[id,E]of Object.entries(EMOTES)){const b=el('button');b.type='button';b.append(iconEl(E.i),el('span',null,E.n));b.onclick=()=>{w.close();doEmote(GAME.me,id)};g.append(b)}w.body.append(g)}
   /* ---------- Lexikon ---------- */
   function lexikon(tab){tab=tab||'fish';const w=UI.win('Sammel-Lexikon',{size:'wide'});const tabs=el('div','ptabs');const body=el('div');w.body.append(tabs,body);
     const T=[['fish','Fische',FISH,'fish'],['bug','Insekten',BUGS,'bugs'],['relic','Fundstücke',RELICS,'relics']];

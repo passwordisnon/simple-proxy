@@ -99,7 +99,7 @@ const INTERIOR=(()=>{
   function framedPicture(des,size){const g=new THREE.Group();const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');x.imageSmoothingEnabled=false;const s=8;for(let i=0;i<1024;i++){x.fillStyle=des.pal[parseInt(des.px[i],16)];x.fillRect((i%32)*s,Math.floor(i/32)*s,s,s)}
     const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.magFilter=THREE.NearestFilter;P(g,G.bx(size+.18,size+.18,.08,.04),M.c('#C98C5A'),[0,0,.04]);const pic=P(g,G.pl(size,size),new THREE.MeshBasicMaterial({map:t}),[0,0,.085]);pic.userData.noOutline=true;addOutlines(g);return g}
   function furnAction(f,it,g){const pos={x:it.x,z:f.wall?-roomSize().D/2+.8:it.z};const A=(label,act)=>actions.push({x:pos.x,z:pos.z,r:1.4,label,act});
-    if(f.cat==='sitz')A('Hinsetzen',()=>{const me=GAME.me;me.ix=it.x;me.iz=it.z+.05;me.iyaw=-it.rot*PI/2;doEmote(me,'schlafen',true);me.emote=null;GAME.say(me,'😌',2,true);SND.play('soft')});
+    if(f.cat==='sitz')A('Hinsetzen',()=>{const me=GAME.me;me.ix=it.x;me.iz=it.z+.05;me.iyaw=-it.rot*PI/2;doEmote(me,'schlafen',true);me.emote=null;GAME.say(me,'icon:relax',2,true);SND.play('soft')});
     else if(f.cat==='bett')A('Schlafen',()=>{const me=GAME.me;doEmote(me,'schlafen');SND.play('cloth')});
     else if(f.cat==='licht')A('Licht an/aus',()=>{const l=scene.userData.lamp;l.intensity=l.intensity>.1?0:.45;SND.play('toggle')});
     else if(f.cat==='musik')A('Musik hören',()=>{SND.music(pick(['world','town','museum','shop']));SND.play('toggle')});

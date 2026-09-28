@@ -42,15 +42,29 @@ const SND=(()=>{
   function jingle(name){duck(2.8,.15);play(name,{vol:.9})}
   /* ---------- Animalese: jede Silbe ein kurzer gefilterter Ton ---------- */
   const VOW='aeiouäöüy';
+  const VOICES={
+    sanft:{wave:'triangle'},
+    robot:{wave:'square',q:6,glide:.02,formant:1.2,vol:.4},
+    tief:{wave:'sawtooth',formant:.6,q:3,sub:true,vol:.45,syl:1.15},
+    quiek:{wave:'sine',vib:18,vibAmt:.06,formant:1.6,glide:.3,syl:.85},
+    blubb:{wave:'sine',filter:'lowpass',formant:.7,q:8,glide:.5,vib:7,vibAmt:.1,vol:.7},
+    summ:{wave:'sawtooth',vib:45,vibAmt:.03,formant:1.3,q:4,vol:.35,syl:.9},
+    knarz:{wave:'square',formant:.8,q:1.5,glide:.08,vol:.35,sub:true,syl:1.1},
+    pieps:{wave:'sine',formant:2,glide:.35,range:18,tail:.6,syl:.8},
+    hall:{wave:'triangle',formant:.9,q:1.2,glide:.1,tail:1.4,vib:5,vibAmt:.02,syl:1.2}};
   function voice(text,o){if(!ctx||!st.on)return 0;o=o||{};const base=o.pitch||220;const sp=o.speed||1;let t=ctx.currentTime+.02;const clean=String(text).toLowerCase().replace(/[^a-zäöüß ?!.,]/g,'');
     const step=.062/sp;let n=0;
     for(let i=0;i<clean.length&&n<90;i++){const ch=clean[i];if(ch===' '){t+=step*.6;continue}if('.,!?'.includes(ch)){t+=step*2.2;continue}
       if(i%2===1&&!VOW.includes(ch))continue;n++;
-      const code=ch.charCodeAt(0);const semi=((code*7)%12)-4+(VOW.includes(ch)?3:0)+(clean.endsWith('?')&&i>clean.length-5?5:0);const f=base*Math.pow(2,semi/12)*(o.kind==='robot'?1:1);
-      const osc=ctx.createOscillator();osc.type=o.kind==='robot'?'square':o.kind==='tief'?'sawtooth':'triangle';osc.frequency.setValueAtTime(f*1.08,t);osc.frequency.exponentialRampToValueAtTime(f*.92,t+step*.9);
-      const bp=ctx.createBiquadFilter();bp.type='bandpass';bp.frequency.value=VOW.includes(ch)?900+((code*37)%900):1800;bp.Q.value=o.kind==='robot'?6:2.2;
-      const g=ctx.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.55,t+.008);g.gain.exponentialRampToValueAtTime(.001,t+step*.95);
-      osc.connect(bp);bp.connect(g);g.connect(voiceBus);osc.start(t);osc.stop(t+step);t+=step}
+      /* Stimmfarbe je Kopf: robot, tief, quiek, blubb, summ, knarz, sanft, pieps, hall; Stimmung hebt/senkt die Melodie */
+      const K=VOICES[o.kind]||VOICES.sanft;const mood=o.mood||0;
+      const code=ch.charCodeAt(0);const semi=((code*7)%(K.range||12))-4+(VOW.includes(ch)?3:0)+(clean.endsWith('?')&&i>clean.length-5?5:0)+mood*2;const f=base*Math.pow(2,semi/12);
+      const osc=ctx.createOscillator();osc.type=K.wave;const glide=K.glide??.16;osc.frequency.setValueAtTime(f*(1+glide/2),t);osc.frequency.exponentialRampToValueAtTime(f*(1-glide/2)*(mood<0?.9:1),t+step*.9);
+      if(K.vib){const l=ctx.createOscillator();l.frequency.value=K.vib;const lg=ctx.createGain();lg.gain.value=f*(K.vibAmt||.04);l.connect(lg);lg.connect(osc.frequency);l.start(t);l.stop(t+step)}
+      const bp=ctx.createBiquadFilter();bp.type=K.filter||'bandpass';bp.frequency.value=(VOW.includes(ch)?900+((code*37)%900):1800)*(K.formant||1);bp.Q.value=K.q||2.2;
+      const g=ctx.createGain();const vol=(K.vol||.55)*(o.vol||1);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.008);g.gain.exponentialRampToValueAtTime(.001,t+step*(K.tail||.95));
+      osc.connect(bp);bp.connect(g);g.connect(voiceBus);if(K.sub){const o2=ctx.createOscillator();o2.type='sine';o2.frequency.value=f*.5;const g2=ctx.createGain();g2.gain.setValueAtTime(0,t);g2.gain.linearRampToValueAtTime(vol*.5,t+.01);g2.gain.exponentialRampToValueAtTime(.001,t+step*.9);o2.connect(g2);g2.connect(voiceBus);o2.start(t);o2.stop(t+step)}
+      osc.start(t);osc.stop(t+step);t+=step*(K.syl||1)}
     return t-ctx.currentTime}
   /* ---------- Umgebung: Rauschen durch Filter ---------- */
   let noiseBuf=null;function noise(){if(noiseBuf)return noiseBuf;const n=ctx.sampleRate*3;noiseBuf=ctx.createBuffer(1,n,ctx.sampleRate);const d=noiseBuf.getChannelData(0);let b=0;for(let i=0;i<n;i++){const w=Math.random()*2-1;b=(b*.97+w*.03);d[i]=b*6}return noiseBuf}

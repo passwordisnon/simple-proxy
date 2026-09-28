@@ -34,15 +34,15 @@ const SOCIAL=(()=>{
   function spawnBots(pid){bots.forEach(b=>GAME.dropEnt(b.d.id));bots=[];const n=pid==='kompost'?5:3;const names=[...BOT_NAMES].sort(()=>Math.random()-.5);
     for(let i=0;i<n;i++){const d=randomCyborg(names[i],hashStr(names[i]+pid).length*97+i);const e=GAME.makeEnt(d,{kind:'bot',tag:'KI',p:GAME.W.near((pick(GAME.G.places.filter(x=>x.build))||{dir:new V3(0,1,0)}).dir,1)});e.bot={task:null,t:2+Math.random()*4};bots.push(e)}
     setTimeout(()=>{const b=pick(bots);if(b)addMsg('all',b.d.name,pick(BOT_CHAT.hello),'bot')},2500)}
-  function stepBots(dt){for(const e of bots){const B=e.bot;B.t-=dt;if(B.t>0||e.goal)continue;B.t=8+Math.random()*14;const r=Math.random();
-      if(r<.3){const shore=findShore(e.p);if(shore){e.goal={p:shore,then:()=>{e.stop=6;GAME.say(e,'🎣',5,true);setTimeout(()=>{if(Math.random()<.5&&FISH.length){const f=pick(FISH.filter(x=>x.planet===GAME.G.id)||FISH);if(f){const line=pick(BOT_CHAT.fish).replace('{f}',f.n);addMsg('all',e.d.name,line,'bot');GAME.say(e,'🐟!',2,true)}}},5000)}}}}
+  function stepBots(dt){for(const e of bots){const B=e.bot;B.t-=dt;if(B.t>0||e.goal||e.life)continue;B.t=8+Math.random()*14;const r=Math.random();
+      if(r<.3){const shore=findShore(e.p);if(shore){e.goal={p:shore,then:()=>{e.stop=6;GAME.say(e,'icon:rod',5,true);setTimeout(()=>{if(Math.random()<.5&&FISH.length){const f=pick(FISH.filter(x=>x.planet===GAME.G.id)||FISH);if(f){const line=pick(BOT_CHAT.fish).replace('{f}',f.n);addMsg('all',e.d.name,line,'bot');GAME.say(e,'icon:fish',2,true)}}},5000)}}}}
       else if(r<.45){const st=GAME.G.places.find(p=>p.id==='platz');if(st)e.goal={p:GAME.W.near(st.dir,.3),then:()=>{doEmote(e,pick(['tanzen','winken','freude','drehen']),true)}}}
       else if(r<.6){doEmote(e,pick(Object.keys(EMOTES)),true)}
       else{const pl=pick(GAME.G.places.filter(x=>x.build));if(pl)e.goal={p:GAME.W.near(pl.dir,.5)}}}
     botChatT-=dt;if(botChatT<=0&&bots.length){botChatT=25+Math.random()*50;const b=pick(bots);const line=pick(BOT_CHAT.general);addMsg('all',b.d.name,line,'bot');GAME.say(b,line,4)}}
   function findShore(p){for(let i=0;i<30;i++){const q=GAME.W.near(p,1.2+Math.random());const h=GAME.G.hAt(q);if(h>GAME.G.sea&&h<GAME.G.sea+.25)return q}return null}
   async function botTalk(e){const isFr=SAVE.friends.some(f=>f.pid===e.d.id);e.stop=4;e.lookAt=GAME.me;const voice=GAME.voiceFor(e.d);
-    const ch=await UI.talk(e.d.name+' (KI)',[pick(['hey! was geht?','hiii :)','oh hallo!','na, auch am sammeln?']),'Ich bin eine KI-Mitspielerin. Echte Leute siehst du mit grünem Online-Schild.'],{voice,color:'#8C6FE0',choices:[isFr?'Schon befreundet 💚':'Freund:in werden','Winken','Tschüss']});
+    const ch=await UI.talk(e.d.name+' (KI)',[pick(['hey! was geht?','hiii :)','oh hallo!','na, auch am sammeln?']),'Ich bin eine KI-Mitspielerin. Echte Leute siehst du mit grünem Online-Schild.'],{voice,color:'#8C6FE0',choices:[isFr?'Schon befreundet':'Freund:in werden','Winken','Tschüss']});
     if(ch===0&&!isFr){SAVE.friends.push({pid:e.d.id,nick:e.d.name,bot:true});persist();SND.play('j_success');doEmote(e,'herz',true);UI.toast(e.d.name+' ist jetzt deine Freundin/dein Freund (KI).');addMsg('fr','System',`${e.d.name} (KI) ist jetzt in deiner Freundesliste.`,'sys')}
     else if(ch===1){doEmote(GAME.me,'winken');setTimeout(()=>doEmote(e,'winken',true),400)}}
 
@@ -79,9 +79,9 @@ const SOCIAL=(()=>{
   function playersWin(){const w=UI.win('Freund:innen & Mitspielende',{size:'narrow'});const add=(title)=>w.body.append(el('b',null,title));
     add('Gerade hier');const list=el('div','grid');const rows=[];for(const s of peersSeen.values())rows.push({pid:s.pid,nick:s.nick,online:true});for(const b of bots)rows.push({pid:b.d.id,nick:b.d.name,bot:true,ent:b});
     if(!rows.length)w.body.append(el('p','empty','Niemand da.'));rows.forEach(r=>{const isF=SAVE.friends.some(f=>f.pid===r.pid);const c=el('div','card');c.append(el('span',null,r.nick),el('span','sub',r.bot?'KI-Mitspieler:in':'online'));
-      const b=btn(isF?'Befreundet 💚':'Freund:in werden','small'+(isF?'':' primary'),()=>{if(isF)return;SAVE.friends.push({pid:r.pid,nick:r.nick,bot:!!r.bot});persist();SND.play('j_success');UI.toast(r.nick+' hinzugefügt'+(r.bot?'':'. Sobald ihr euch beide hinzugefügt habt, geht der private Chat.'));w.close();playersWin()});c.append(b);list.append(c)});w.body.append(list);
+      const b=btn(isF?'Befreundet':'Freund:in werden','small'+(isF?'':' primary'),()=>{if(isF)return;SAVE.friends.push({pid:r.pid,nick:r.nick,bot:!!r.bot});persist();SND.play('j_success');UI.toast(r.nick+' hinzugefügt'+(r.bot?'':'. Sobald ihr euch beide hinzugefügt habt, geht der private Chat.'));w.close();playersWin()});c.append(b);list.append(c)});w.body.append(list);
     add('Deine Freundesliste');if(!SAVE.friends.length)w.body.append(el('p','empty','Noch leer.'));SAVE.friends.forEach(f=>{const row=el('div','row');row.style.alignItems='center';row.append(el('span',null,f.nick+(f.bot?' (KI)':'')),btn('Entfernen','small danger',()=>{SAVE.friends=SAVE.friends.filter(x=>x!==f);persist();w.close();playersWin()}));w.body.append(row)});
     w.body.append(el('p','note','Privater Chat: Tab «Freund:innen» im Chat. Der Chat ist für alle in eurer Klasse gedacht, bitte freundlich bleiben.'))}
-  function brag(kind,def){if(def.rarity>=4&&bots.length){const b=pick(bots);setTimeout(()=>{addMsg('all',b.d.name,pick(['whoa, gratuliere!','omg der ist selten!!','neid 👀','nice fang!']),'bot')},1500)}}
+  function brag(kind,def){if(def.rarity>=4&&bots.length){const b=pick(bots);setTimeout(()=>{addMsg('all',b.d.name,pick(['whoa, gratuliere!','omg der ist selten!!','neid!!','nice fang!']),'bot')},1500)}}
   return{connect,frame,stepPeer,toggleChat,botTalk,emote:emoteOut,publishArt,onlineArt,onPlanet,playersWin,brag,addMsg,get bots(){return bots}};
 })();

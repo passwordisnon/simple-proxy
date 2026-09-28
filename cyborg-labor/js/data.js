@@ -110,5 +110,5 @@ const BOT_CHAT={
   fish:['hab grad nen {f} gefangen lol','wo gibts den {f}?','der {f} ist so selten omg','angeln ist mein leben'],
   general:['wer kommt tanzen auf den dorfplatz?','mein haus hat jetzt ne pilzlampe','kiosk hat heute neue tapeten','hat jemand noch kirschen?','museum ist voll schön geworden',
     'schrott-mond ist nachts so hübsch','ich bau mir nen cyborg mit 4 flügeln','kompost > alles','wer will tauschen?','die rakete ist mega','gleich pause, bis später','ich hab ne floppy-disk ausgegraben xD'],
-  react:['haha','cool!','nice','ja voll','stimmt','omg ja','lol','👀','💚']
+  react:['haha','cool!','nice','ja voll','stimmt','omg ja','lol','krass','hihi']
 };
