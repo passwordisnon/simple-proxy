@@ -92,22 +92,6 @@ function bagTake(kind,id,n){n=n||1;const e=SAVE.bag.find(x=>x.kind===kind&&x.id=
 function bagCount(){return SAVE.bag.reduce((a,x)=>a+x.n,0)}
 function money(delta){SAVE.money=Math.max(0,SAVE.money+delta);persist();UI&&UI.hud&&UI.hud()}
 
-/* ---------- Planeten ---------- */
-const PLANETS={
-  kompost:{n:'Kompost-Planet',R:30,sea:-.18,music:'world',sky:['#9fd8ff','#ffe9c7'],fog:'#cfeaff',
-    ground:{low:'#F2D9A6',mid:'#8FD36B',high:'#6DB35A',peak:'#B9D87A',path:'#E8C88E'},water:'#5BC8E8',deep:'#3E9BD1',
-    scatter:[['eiche',26],['obstbaum',22],['tanne',12],['busch',28],['blumenbusch',16],['blume',90],['grasbuesche',60],['stein',16],['felsen',6],['riesenpilz',5],['baumstumpf',6],['schilf',14],['seerose',10],['treibholz',6],['muschel_deko',8]],
-    fruit:'apfel',shop:'kompost',desc:'Wiesen, Obstbäume, Teiche. Hier wohnt ihr.'},
-  schrott:{n:'Schrott-Mond',R:22,sea:-.1,music:'town',sky:['#b9a8e8','#ffd6c2'],fog:'#d9cdf2',
-    ground:{low:'#CBBBD9',mid:'#A89BC4',high:'#9282B0',peak:'#E2D8F0',path:'#D8C8A8'},water:'#6FE3C8',deep:'#3FB8A8',
-    scatter:[['kristallbaum',18],['antennenbaum',14],['schrotthaufen',14],['glühpilz',30],['kristallfels',16],['felsen',12],['stein',20],['busch',8],['kaktus',10],['grasbuesche',20]],
-    fruit:'birne',shop:'schrott',desc:'Kristalle, Kabelbäume, glühende Pilze.'},
-  korallen:{n:'Korallen-Welt',R:24,sea:.08,music:'shop',sky:['#8fe3ff','#fff2c8'],fog:'#c8f2ff',
-    ground:{low:'#FFE8B8',mid:'#F7DCA2',high:'#9BD86A',peak:'#7CC46A',path:'#FFF0CC'},water:'#4FD6E0',deep:'#2BA8D8',
-    scatter:[['palme',30],['koralle',24],['muschel_deko',18],['felsen',10],['felsbogen',3],['busch',10],['blume',30],['treibholz',10],['stein',10],['grasbuesche',14]],
-    fruit:'orange',shop:'korallen',desc:'Türkises Meer, Inseln, Palmen, Muscheln.'}
-};
-
 /* ---------- Dialoge der Bewohner:innen ---------- */
 const TALK={
   hello:['Oh, hallo {p}!','Na, {p}? Schön dich zu sehen!','Hey {p}! Ich hab dich schon von weitem erkannt.','{p}! Genau dich wollte ich treffen.','Grüezi {p}!'],

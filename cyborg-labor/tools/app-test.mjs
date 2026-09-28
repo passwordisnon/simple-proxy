@@ -30,8 +30,10 @@ for (const step of script.split(';').filter(Boolean)) {
   else if (cmd === 'walk') { await page.keyboard.down(a); await page.waitForTimeout(+b * 1000); await page.keyboard.up(a); }
   else if (cmd === 'click') { await page.click(a).catch(e => logs.push('click fail ' + a)); await page.waitForTimeout(+(b || 400)); }
   else if (cmd === 'eval') { const r = await page.evaluate(a.replace(/§/g, ':').replace(/¦/g, ';')).catch(e => 'ERR ' + e.message); logs.push('eval> ' + JSON.stringify(r)?.slice(0, 600)); }
+  else if (cmd === 'js') { const r = await page.evaluate(fs.readFileSync(a, 'utf8')).catch(e => 'ERR ' + e.message); logs.push('js> ' + JSON.stringify(r)?.slice(0, 1500)); if (b) await page.waitForTimeout(+b); }
   else if (cmd === 'type') { await page.keyboard.type(a); }
   else if (cmd === 'reload') { await page.reload(); await page.waitForTimeout(2500); }
+  else if (cmd === 'nick') { await page.evaluate(() => { const k='cyborg-labor-spiel-v3'; const v=JSON.parse(localStorage.getItem(k)||'{}'); v.nick='Testi'; localStorage.setItem(k, JSON.stringify(v)) }); await page.reload(); await page.waitForTimeout(2500); }
   else if (cmd === 'low') { await page.evaluate(() => localStorage.setItem('cyborg-labor-grafik', JSON.stringify('schnell'))); await page.reload(); await page.waitForTimeout(2500); }
 }
 const fps = await page.evaluate(() => new Promise(r => { let n = 0; const t = performance.now(); const f = () => { n++; if (performance.now() - t < 2000) requestAnimationFrame(f); else r(n / 2) }; requestAnimationFrame(f) }));

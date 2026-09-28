@@ -7,43 +7,6 @@ const REDUCE=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const CS=.55;              /* Kreatur-Massstab in der Welt (s=1 → ~1.7 hoch) */
 const UPV=new V3(0,1,0);
 
-/* ---------- Perlin-Rauschen 3D ---------- */
-function perlin3(seed){const p=new Uint8Array(512);const r=srand(seed*977+13);const a=[...Array(256).keys()];for(let i=255;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}for(let i=0;i<512;i++)p[i]=a[i&255];
-  const fade=t=>t*t*t*(t*(t*6-15)+10),lerp=(a,b,t)=>a+t*(b-a);const grad=(h,x,y,z)=>{const u=h<8?x:y,v=h<4?y:h===12||h===14?x:z;return((h&1)?-u:u)+((h&2)?-v:v)};
-  return(x,y,z)=>{const X=Math.floor(x)&255,Y=Math.floor(y)&255,Z=Math.floor(z)&255;x-=Math.floor(x);y-=Math.floor(y);z-=Math.floor(z);const u=fade(x),v=fade(y),w=fade(z);
-    const A=p[X]+Y,AA=p[A]+Z,AB=p[A+1]+Z,B=p[X+1]+Y,BA=p[B]+Z,BB=p[B+1]+Z;
-    return lerp(lerp(lerp(grad(p[AA]&15,x,y,z),grad(p[BA]&15,x-1,y,z),u),lerp(grad(p[AB]&15,x,y-1,z),grad(p[BB]&15,x-1,y-1,z),u),v),lerp(lerp(grad(p[AA+1]&15,x,y,z-1),grad(p[BA+1]&15,x-1,y,z-1),u),lerp(grad(p[AB+1]&15,x,y-1,z-1),grad(p[BB+1]&15,x-1,y-1,z-1),u),v),w)}}
-const sstep=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t)};
-function dirLL(lat,lon){const la=lat*PI/180,lo=lon*PI/180;return new V3(Math.cos(la)*Math.cos(lo),Math.sin(la),Math.cos(la)*Math.sin(lo)).normalize()}
-const angle=(a,b)=>Math.acos(Math.max(-1,Math.min(1,a.dot(b))));
-function tangentTo(p,v){return v.clone().sub(p.clone().multiplyScalar(v.dot(p))).normalize()}
-function distToArc(p,a,b){const n=new V3().crossVectors(a,b).normalize();const d=Math.asin(Math.max(-1,Math.min(1,p.dot(n))));const proj=p.clone().sub(n.clone().multiplyScalar(p.dot(n))).normalize();
-  const ab=angle(a,b);if(Math.abs(angle(a,proj)+angle(proj,b)-ab)<1e-3)return Math.abs(d);return Math.min(angle(p,a),angle(p,b))}
-
-/* ---------- Orte je Planet ---------- */
-const PLACES={
-  kompost:[
-    {id:'platz',n:'Dorfplatz',lat:90,lon:0,r:.2,h:.55,build:'plaza'},
-    {id:'museum',n:'Nationalmuseum',lat:66,lon:0,r:.17,h:.55,build:'museum'},
-    {id:'laden',n:'Kompost-Kiosk',lat:68,lon:74,r:.12,h:.55,build:'shop'},
-    {id:'studio',n:'Farbstudio',lat:67,lon:146,r:.1,h:.55,build:'studio'},
-    {id:'rakete',n:'Raketenstation',lat:66,lon:216,r:.11,h:.55,build:'rocket'},
-    {id:'haus',n:'Dein Haus',lat:65,lon:290,r:.12,h:.55,build:'house'},
-    {id:'teich',n:'Teich',lat:40,lon:110,r:.13,pond:true},
-    {id:'teich2',n:'Seerosen-Teich',lat:38,lon:250,r:.11,pond:true}],
-  schrott:[
-    {id:'platz',n:'Schrott-Platz',lat:90,lon:0,r:.24,h:.45,build:'plaza'},
-    {id:'laden',n:'Ersatzteil-Basar',lat:62,lon:40,r:.15,h:.45,build:'shop'},
-    {id:'rakete',n:'Raketenstation',lat:62,lon:200,r:.14,h:.45,build:'rocket'},
-    {id:'teich',n:'Kühlwasser-Becken',lat:35,lon:120,r:.2,pond:true},
-    {id:'teich2',n:'Leuchtbecken',lat:30,lon:300,r:.16,pond:true}],
-  korallen:[
-    {id:'platz',n:'Strandplatz',lat:90,lon:0,r:.26,h:.55,build:'plaza'},
-    {id:'laden',n:'Muschel-Laden',lat:64,lon:60,r:.15,h:.55,build:'shop'},
-    {id:'rakete',n:'Raketenstation',lat:64,lon:220,r:.15,h:.55,build:'rocket'},
-    {id:'insel',n:'Palmeninsel',lat:10,lon:140,r:.25,h:.4}]
-};
-
 const GAME=(()=>{
   const canvas=$('worldCanvas');const R=makeRenderer(canvas);R.shadowMap.type=THREE.PCFSoftShadowMap;
   const cam=new THREE.PerspectiveCamera(45,1,.1,900);
@@ -53,60 +16,26 @@ const GAME=(()=>{
   const G_={};                                   /* aktueller Planet */
   let planetId=SAVE.planet&&PLANETS[SAVE.planet]?SAVE.planet:'kompost';
 
-  /* ================= Terrain ================= */
-  function makeHeight(pid){const def=PLANETS[pid];const N=perlin3({kompost:1,schrott:2,korallen:3}[pid]);const places=PLACES[pid].map(pl=>Object.assign({dir:dirLL(pl.lat,pl.lon)},pl));
-    const R=def.R;const step=pid==='korallen'?.7:.95;
-    function raw(p){let h=.9*N(p.x*1.4+3,p.y*1.4,p.z*1.4)+.45*N(p.x*3.2,p.y*3.2+7,p.z*3.2)+.15*N(p.x*7,p.y*7,p.z*7+2);
-      if(pid==='kompost'){h+=.35-1.9*sstep(-.02,-.55,p.y)}
-      if(pid==='schrott'){h+=.25+.35*Math.abs(N(p.x*2.5,p.y*2.5,p.z*2.5))}
-      if(pid==='korallen'){h=.9*N(p.x*2.2,p.y*2.2,p.z*2.2)+.3*N(p.x*5,p.y*5,p.z*5)-.35+.9*sstep(.35,.85,p.y)}
-      return h*1.6}
-    function hAt(p){let h=raw(p);/* Terrassen */const k=h/step;const f=k-Math.floor(k);h=(Math.floor(k)+sstep(.38,.62,f))*step;
-      for(const pl of places){const d=angle(p,pl.dir);if(pl.pond){if(d<pl.r*1.3){const t=sstep(pl.r*1.3,pl.r*.55,d);h=h*(1-t)+(def.sea-.9)*t}}
-        else if(d<pl.r*1.5){const t=sstep(pl.r*1.5,pl.r,d);h=h*(1-t)+(pl.h??.5)*t}}
-      return h}
-    return{hAt,places,R,sea:def.sea}}
-
   /* ================= Aufbau Aussenwelt ================= */
   function buildOutdoor(pid){
-    const def=PLANETS[pid];const T=makeHeight(pid);const Rr=def.R;Object.assign(G_,{id:pid,def,hAt:T.hAt,places:T.places,R:Rr,sea:def.sea});
-    const sc=new THREE.Scene();sc.background=skyTex(def.sky[0],def.sky[1],pid);sc.fog=new THREE.Fog(def.fog,Rr*1.3,Rr*3.2);
+    const def=PLANETS[pid];const fns=makePlanetFns(pid);const Rr=def.R;Object.assign(G_,{id:pid,def,hAt:fns.hAt,biomeAt:fns.biomeAt,places:fns.places,R:Rr,sea:def.sea,paths:fns.roads,roadDist:fns.roadDist,fns});
+    const sc=new THREE.Scene();sc.background=skyTex(def.sky[0],def.sky[1],pid);sc.fog=new THREE.Fog(def.fog,Rr*.7,Rr*1.9);
     const hemi=new THREE.HemisphereLight('#dff1ff','#f0c9a8',.52);sc.add(hemi);
-    const sun=new THREE.DirectionalLight('#fff3de',1.0);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-18,right:18,top:18,bottom:-18,near:1,far:90});sun.shadow.bias=-.0006;sun.shadow.normalBias=.04;sc.add(sun);sc.add(sun.target);
+    const sun=new THREE.DirectionalLight('#fff3de',1.0);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-22,right:22,top:22,bottom:-22,near:1,far:110});sun.shadow.bias=-.0006;sun.shadow.normalBias=.04;sc.add(sun);sc.add(sun.target);
     const fill=new THREE.DirectionalLight('#c9d8ff',.18);sc.add(fill);
-    /* Planet */
-    const segW=HIGH?300:200,segH=HIGH?200:130;const g=new THREE.SphereGeometry(Rr,segW,segH);const pos=g.attributes.position;const col=[];const v=new V3();
-    const C=k=>new THREE.Color(def.ground[k]);const cLow=C('low'),cMid=C('mid'),cHigh=C('high'),cPeak=C('peak'),cPath=C('path'),cCliff=new THREE.Color(pid==='schrott'?'#8F7FAE':pid==='korallen'?'#D9B98A':'#B98A5E'),cDeepSand=new THREE.Color(pid==='schrott'?'#8FA8B8':'#E6C88E');
-    const paths=[];const pl0=T.places.find(p=>p.id==='platz');if(pl0)for(const p of T.places)if(p!==pl0&&!p.pond&&p.build)paths.push([pl0.dir,p.dir]);G_.paths=paths;
-    const hs=new Float32Array(pos.count);
-    for(let i=0;i<pos.count;i++){v.fromBufferAttribute(pos,i).normalize();const h=T.hAt(v);hs[i]=h;const p2=v.clone();v.multiplyScalar(Rr+h);pos.setXYZ(i,v.x,v.y,v.z);
-      let c;if(h<def.sea-.3)c=cDeepSand.clone();else if(h<def.sea+.35)c=cLow.clone();else{const t=Math.min(1,(h-def.sea-.35)/2.2);c=cMid.clone().lerp(cHigh,t);if(h>2.4)c.lerp(cPeak,Math.min(1,(h-2.4)/1.2))}
-      if(h>def.sea+.3){let pd=9;for(const[a,b]of paths)pd=Math.min(pd,distToArc(p2,a,b));if(pd<.045)c.lerp(cPath,sstep(.045,.028,pd));for(const pl of T.places)if(pl.build&&angle(p2,pl.dir)<pl.r*.8)c.lerp(cPath,.35*sstep(pl.r*.8,pl.r*.5,angle(p2,pl.dir)))}
-      const n=(Math.sin(p2.x*61+p2.z*37)*Math.sin(p2.y*53))*.025;c.offsetHSL(0,0,n);col.push(c.r,c.g,c.b)}
-    /* Klippen einfärben: Steigung aus Nachbarn */
-    g.computeVertexNormals();const nrm=g.attributes.normal;for(let i=0;i<pos.count;i++){v.fromBufferAttribute(pos,i).normalize();const n=new V3().fromBufferAttribute(nrm,i);const slope=1-n.dot(v);if(slope>.1&&hs[i]>def.sea-.2){const t=sstep(.1,.28,slope);col[i*3]+=(cCliff.r-col[i*3])*t;col[i*3+1]+=(cCliff.g-col[i*3+1])*t;col[i*3+2]+=(cCliff.b-col[i*3+2])*t}}
-    g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
-    const pm=cozy({vertexColors:true,rim:.12});const planet=new THREE.Mesh(g,pm);planet.receiveShadow=true;planet.name='planet';sc.add(planet);G_.planet=planet;
-    /* Wasser mit Uferschaum */
-    const wg=new THREE.SphereGeometry(Rr+def.sea,HIGH?220:150,HIGH?150:100);const wp=wg.attributes.position;const dep=new Float32Array(wp.count);
-    for(let i=0;i<wp.count;i++){v.fromBufferAttribute(wp,i).normalize();dep[i]=def.sea-T.hAt(v)}wg.setAttribute('depth',new THREE.BufferAttribute(dep,1));
-    const wu={uT:{value:0},uShallow:{value:new THREE.Color(def.water)},uDeep:{value:new THREE.Color(def.deep)},uFoam:{value:new THREE.Color('#ffffff')}};
-    const wm=new THREE.ShaderMaterial({uniforms:wu,transparent:true,vertexShader:`attribute float depth;varying float vD;varying vec3 vP;varying vec3 vN;varying vec3 vV;void main(){vD=depth;vP=position;vec4 mv=modelViewMatrix*vec4(position,1.);vV=-mv.xyz;vN=normalMatrix*normal;gl_Position=projectionMatrix*mv;}`,
-      fragmentShader:`uniform float uT;uniform vec3 uShallow,uDeep,uFoam;varying float vD;varying vec3 vP;varying vec3 vN;varying vec3 vV;
-      void main(){if(vD<-0.02)discard;float d=clamp(vD/1.6,0.,1.);vec3 c=mix(uShallow,uDeep,smoothstep(.15,.85,d));
-       float w=sin(vP.x*1.3+uT*1.1)*sin(vP.z*1.1-uT*.9)+sin(vP.y*1.7+uT*.7);float band=step(.93,fract(w*.5+uT*.05));c=mix(c,vec3(1.),band*.18*(1.-d));
-       float foam=1.-smoothstep(.0,.16+.05*sin(uT*2.+vP.x*3.+vP.z*2.),vD);float ring=step(.5,fract(vD*5.-uT*.45))*(1.-smoothstep(.1,.45,vD));c=mix(c,uFoam,max(foam,ring*.55));
-       float fr=pow(1.-clamp(dot(normalize(vN),normalize(vV)),0.,1.),3.);c+=fr*.18;gl_FragColor=vec4(c,mix(.82,.94,d));}`});
-    const water=new THREE.Mesh(wg,wm);water.renderOrder=2;sc.add(water);G_.waterU=wu;
+    const detail=Math.round(Rr*(HIGH?2.9:1.9));
+    const planet=buildTerrainMesh(fns,detail);sc.add(planet);G_.planet=planet;G_.hAt=makeSurface(planet,fns);G_.groundU=planet.material.userData.U;
+    const W_=buildWaterMesh(fns,Math.round(detail*.5));sc.add(W_.mesh);G_.water=W_.mesh;G_.waterU=W_.U;
     /* Atmosphäre */
-    const atm=new THREE.Mesh(new THREE.SphereGeometry(Rr*1.35,64,40),new THREE.ShaderMaterial({transparent:true,side:THREE.BackSide,depthWrite:false,uniforms:{c:{value:new THREE.Color(def.sky[0])}},
+    const atm=new THREE.Mesh(new THREE.SphereGeometry(Rr*1.35,64,40),new THREE.ShaderMaterial({transparent:true,side:THREE.BackSide,depthWrite:false,fog:false,uniforms:{c:{value:new THREE.Color(def.sky[0])}},
       vertexShader:'varying vec3 vN;varying vec3 vP;void main(){vN=normalize(normalMatrix*normal);vec4 mv=modelViewMatrix*vec4(position,1.0);vP=mv.xyz;gl_Position=projectionMatrix*mv;}',
       fragmentShader:'uniform vec3 c;varying vec3 vN;varying vec3 vP;void main(){float f=pow(1.0-abs(dot(normalize(-vP),vN)),2.4);gl_FragColor=vec4(mix(c,vec3(1.),.5),f*.55);}'}));sc.add(atm);
-    /* Sterne (nachts sichtbar) */
-    {const sg=new THREE.BufferGeometry();const sp=[];const r=srand(9);for(let i=0;i<900;i++){const p=new V3(r()*2-1,r()*2-1,r()*2-1).normalize().multiplyScalar(300+r()*100);sp.push(p.x,p.y,p.z)}sg.setAttribute('position',new THREE.Float32BufferAttribute(sp,3));
-      const st=new THREE.Points(sg,new THREE.PointsMaterial({color:'#fff6e0',size:1.6,transparent:true,opacity:0,fog:false}));sc.add(st);G_.stars=st}
-    Object.assign(G_,{scene:sc,sun,hemi,fill,water,obst:[],props:[],inter:[],lights:[],grass:null,clouds:[],ticks:[]});
-    buildGrass();buildPlaces();scatterNature();buildClouds();buildBall();
+    {const sg=new THREE.BufferGeometry();const sp=[];const r=srand(9);for(let i=0;i<1200;i++){const p=new V3(r()*2-1,r()*2-1,r()*2-1).normalize().multiplyScalar(400+r()*100);sp.push(p.x,p.y,p.z)}sg.setAttribute('position',new THREE.Float32BufferAttribute(sp,3));
+      const st=new THREE.Points(sg,new THREE.PointsMaterial({color:'#fff6e0',size:1.8,transparent:true,opacity:0,fog:false}));sc.add(st);G_.stars=st}
+    Object.assign(G_,{scene:sc,sun,hemi,fill,inter:[],lights:[],clouds:[],ticks:[],trees:[],rocks:[]});
+    SCATTER.reset(sc,Rr,M);
+    buildPlaces();scatterWorld();buildGrass();buildClouds();buildBall();buildWeather();SCATTER.finalize();
+    cam.far=Rr*6+500;cam.updateProjectionMatrix();
     comp=makeComposer(R,sc,cam);scene=sc;return sc}
 
   /* ---------- Hilfen Oberfläche ---------- */
@@ -127,81 +56,102 @@ const GAME=(()=>{
     if(d<.95&&me.speed>.2){const dir=tangentTo(b.p,b.p.clone().sub(me.p));if(isFinite(dir.x)){b.v.copy(dir.multiplyScalar(me.speed*1.35+1.5));SND.play('soft',{vol:.7,rate:1.3});W.fx(b.p,'stern',3)}}
     for(const e of ents.values()){if(e===me||e.kind==='peer')continue;const de=angle(b.p,e.p)*G_.R;if(de<.8&&b.v.length()>.5){const dir=tangentTo(b.p,b.p.clone().sub(e.p));if(isFinite(dir.x)){b.v.reflect(dir).multiplyScalar(.7);if(Math.random()<.5)say(e,pick(['Hey!','Uff!','Tor!','⚽']),1.5)}}}
     const sp=b.v.length();if(sp>.01){const dir=b.v.clone().normalize();const ang=sp*dt/G_.R;const axis=new V3().crossVectors(b.p,dir).normalize();const np=b.p.clone().applyAxisAngle(axis,ang).normalize();
-      let hit=false;for(const o of G_.obst){if(angle(np,o.p)*G_.R<o.r+b.r){hit=true;const n=tangentTo(np,np.clone().sub(o.p));b.v.reflect(n).multiplyScalar(.75);SND.play('soft',{vol:.4,rate:1.6});break}}
+      let hit=false;for(const o of obstAround(np,3)){if(angle(np,o.p)*G_.R<o.r+b.r){hit=true;const n=tangentTo(np,np.clone().sub(o.p));b.v.reflect(n).multiplyScalar(.75);SND.play('soft',{vol:.4,rate:1.6});break}}
       if(!hit){b.p.copy(np);b.v.applyAxisAngle(axis,ang);b.v.copy(tangentTo(b.p,b.v).multiplyScalar(sp))}
       b.g.rotateOnWorldAxis(axis,sp*dt/b.r);const slope=G_.hAt(b.p)<G_.sea?.985:.975;b.v.multiplyScalar(Math.pow(slope,dt*60))}
     const h=G_.hAt(b.p);b.g.position.copy(b.p).multiplyScalar(G_.R+Math.max(h,G_.sea-.1)+b.r*.95)}
-  /* ---------- Gras ---------- */
-  const grassU={value:0};
-  function buildGrass(){const def=G_.def;const N=HIGH?9000:3500;const geo=new THREE.ConeGeometry(.07,.26,4,1);geo.translate(0,.13,0);
-    const mat=new THREE.MeshToonMaterial({gradientMap:TOON_RAMP});mat.onBeforeCompile=s=>{s.uniforms.uT=grassU;s.vertexShader='uniform float uT;\n'+s.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\n float ph=instanceMatrix[3].x*.7+instanceMatrix[3].z*.5;transformed.x+=sin(uT*2.0+ph)*position.y*.35;transformed.z+=cos(uT*1.6+ph)*position.y*.2;')};
-    const im=new THREE.InstancedMesh(geo,mat,N);const m4=new THREE.Matrix4(),q=new THREE.Quaternion(),sc=new V3(),pos=new V3(),col=new THREE.Color();const r=srand(5);let k=0,tries=0;
-    const kor=G_.id==='korallen';const base=new THREE.Color(kor?def.ground.high:def.ground.mid),hi=new THREE.Color(kor?def.ground.peak:def.ground.high);const minH=kor?G_.sea+1.0:G_.sea+.4;const NN=G_.id==='schrott'?Math.round(N*.45):N;
-    while(k<NN&&tries<N*5){tries++;const p=new V3(r()*2-1,r()*2-1,r()*2-1).normalize();const h=G_.hAt(p);if(h<minH||nearPlace(p,1))continue;
-      q.setFromUnitVectors(UPV,p);q.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler((r()-.5)*.4,r()*TAU,(r()-.5)*.4)));const s=.7+r()*.8;sc.set(s,s*(.7+r()*.7),s);pos.copy(p).multiplyScalar(G_.R+h-.02);
-      m4.compose(pos,q,sc);im.setMatrixAt(k,m4);col.copy(base).lerp(hi,r()).offsetHSL((r()-.5)*.04,.05,.04+r()*.08);im.setColorAt(k,col);k++}
-    im.count=k;im.receiveShadow=true;G_.scene.add(im);G_.grass=im}
+  /* ---------- Gras: flauschige Büschel, je Chunk instanziert ---------- */
+  const grassU={value:0};let tuftGeo=null,tuftMat=null;
+  function buildGrass(){tuftGeo=tuftGeo||tuftGeometry();tuftMat=tuftMat||grassMaterial(grassU);const r=srand(5);const area=4*PI*G_.R*G_.R;const N=Math.round(area*(HIGH?.55:.22));
+    const per=new Map();const col=new THREE.Color(),tmp=new THREE.Color();
+    for(let i=0;i<N;i++){const p=new V3(r()*2-1,r()*2-1,r()*2-1).normalize();const h=G_.hAt(p);if(h<G_.sea+.15)continue;const b=BIOMES[G_.biomeAt(p,h)];if(!b.grass||r()>b.grassD)continue;if(G_.roadDist(p)<.02||nearPlace(p,.85))continue;
+      if(Math.abs(G_.hAt(p.clone().applyAxisAngle(UPV,.004))-h)>.25)continue;
+      const c=SCATTER.chunkOf(p);let a=per.get(c);if(!a)per.set(c,a=[]);col.set(b.grass).offsetHSL((r()-.5)*.03,(r()-.5)*.08,(r()-.5)*.08);a.push({p,s:.75+r()*.7,yaw:r()*TAU,c:col.clone()})}
+    const m4=new THREE.Matrix4(),q=new THREE.Quaternion(),q2=new THREE.Quaternion(),sv=new V3();
+    for(const[c,list]of per){const im=new THREE.InstancedMesh(tuftGeo,tuftMat,list.length);im.frustumCulled=false;im.receiveShadow=true;
+      list.forEach((t,i)=>{q.setFromUnitVectors(UPV,t.p);q2.setFromAxisAngle(UPV,t.yaw);q.multiply(q2);sv.set(t.s,t.s*(.8+t.s*.3),t.s);m4.compose(t.p.clone().multiplyScalar(G_.R+G_.hAt(t.p)-.02),q,sv);im.setMatrixAt(i,m4);im.setColorAt(i,t.c)});
+      G_.scene.add(im);SCATTER.chunks[c].meshes.push(im)}}
   /* ---------- Wolken ---------- */
-  function buildClouds(){const cm=M.c('#ffffff',{rim:.7});for(let i=0;i<10;i++){const g=new THREE.Group();const r=srand(40+i);QF=.6;range(4+i%3,(t,j)=>P(g,G.s(.9+r()*.7),cm,[(t-.5)*3,r()*.4,(r()-.5)*1.2],null,[1,.75,.9]));QF=1;g.traverse(o=>{if(o.isMesh){o.castShadow=true}});
+  function buildClouds(){const cm=M.c('#ffffff',{rim:.7});for(let i=0;i<10;i++){const g=new THREE.Group();const r=srand(40+i);QF=.6;range(4+i%3,(t,j)=>P(g,G.s(.9+r()*.7),cm,[(t-.5)*3,r()*.4,(r()-.5)*1.2],null,[1,.75,.9]));QF=1;g.traverse(o=>{if(o.isMesh){o.castShadow=true}});mergeGroup(g);
     const p=new V3(r()*2-1,r()*2-1,r()*2-1).normalize();const ax=new V3().crossVectors(p,new V3(r(),r(),r()).normalize()).normalize();G_.scene.add(g);G_.clouds.push({g,p,ax,sp:.008+r()*.01})}}
   function stepClouds(dt){for(const c of G_.clouds){c.p.applyAxisAngle(c.ax,c.sp*dt).normalize();c.g.position.copy(c.p).multiplyScalar(G_.R+9);c.g.quaternion.setFromUnitVectors(UPV,c.p)}}
 
-  /* ---------- Natur verstreuen (statisch zusammengeführt) ---------- */
-  const staticBatch=[];
-  function bakeStatic(sc){/* führt alle statischen Meshes je Material zu einem Mesh zusammen */
-    const byMat=new Map();for(const o of staticBatch){o.updateMatrixWorld(true);o.traverse(m=>{if(!m.isMesh||m.userData.hull)return;let geo=m.geometry.index?m.geometry.toNonIndexed():m.geometry.clone();
-      for(const k of Object.keys(geo.attributes))if(!['position','normal','uv'].includes(k))geo.deleteAttribute(k);if(!geo.attributes.uv)geo.setAttribute('uv',new THREE.Float32BufferAttribute(new Float32Array(geo.attributes.position.count*2),2));
-      geo.clearGroups();geo.applyMatrix4(m.matrixWorld);const key=m.material.uuid;if(!byMat.has(key))byMat.set(key,{mat:m.material,list:[],hull:!m.userData.noOutline&&m.children.some(c=>c.userData.hull),hullMat:(m.children.find(c=>c.userData.hull)||{}).material});byMat.get(key).list.push(geo)})}
-    for(const{mat,list,hull,hullMat}of byMat.values()){const merged=THREE.BufferGeometryUtils.mergeBufferGeometries(list,false);if(!merged)continue;const mesh=new THREE.Mesh(merged,mat);mesh.castShadow=HIGH;mesh.receiveShadow=true;sc.add(mesh);
-      if(hull&&hullMat){const h=new THREE.Mesh(merged,hullMat);h.userData.hull=true;sc.add(h)}list.forEach(g=>g.dispose())}
-    for(const o of staticBatch)disposeTree(o);staticBatch.length=0}
-  function makeNature(type,opt,seed){const n=NATURE[type];const g=new THREE.Group();QF=HIGH?.7:.5;try{if(n)n.b(g,M,opt||{},srand(seed||1));else P(g,G.s(.3),M.c('#7CC46A'),[0,.3,0])}catch(e){console.warn('Natur',type,e)}QF=1;addOutlines(g);return g}
-  function scatterNature(){const def=G_.def;const r=srand({kompost:11,schrott:22,korallen:33}[G_.id]);const fruitTypes={kompost:['apfel','kirsche','pfirsich','birne'],schrott:['birne'],korallen:['orange','kokosnuss']}[G_.id];
-    for(const[type,count]of def.scatter){let n=Math.round(count*(HIGH?1:.7));for(let i=0;i<n;i++){
-      const water=['seerose','schilf'].includes(type);const p=water?findPondEdge(r,type==='seerose'):randLand(r,type==='muschel_deko'||type==='treibholz'||type==='palme'?G_.sea+.05:G_.sea+.35,type==='muschel_deko'||type==='treibholz'?G_.sea+.5:99);if(!p||nearPlace(p))continue;
-      const info=NATURE[type]||{};const inter=['obstbaum','palme','eiche','tanne','kristallbaum','antennenbaum'].includes(type);
-      if(inter){const opt=type==='obstbaum'?{fruit:fruitTypes[i%fruitTypes.length]}:type==='palme'?{fruit:'kokosnuss'}:{};const fruitId=opt.fruit||{kristallbaum:'seeglas',antennenbaum:'schraube'}[type]||null;const g=makeNature(type,opt,i+1);g.traverse(o=>{if(o.isMesh){o.castShadow=HIGH;o.receiveShadow=true}});mergeTree(g);placeObj(g,p,r()*TAU,-.05);g.scale.setScalar(.9+r()*.3);G_.scene.add(g);
-        const tree={type,p,g,fruit:fruitId,hasFruit:!!(g.userData.fruits&&g.userData.fruits.length),shakeT:0,r:info.r||.6};G_.obst.push({p,r:tree.r});G_.props.push(tree);G_.inter.push({kind:'tree',ref:tree,p,r:1.6})}
-      else{const g=makeNature(type,type==='blume'?{color:pick(['#FF8FB8','#FFE27A','#FFFDF7','#C6A9FF','#FF7E6B','#7FDCE6']),kind:pick(['tulpe','rose','gaensebluemchen','kosmee','lilie'])}:{},i+7);
-        placeObj(g,p,r()*TAU,water&&type==='seerose'?(G_.sea-G_.hAt(p)):-.03);g.scale.setScalar(.85+r()*.35);if(water&&type==='seerose'){g.position.copy(p.clone().multiplyScalar(G_.R+G_.sea+.02))}staticBatch.push(g);if(info.cols){g.updateMatrixWorld(true);for(const[cx,cz,cr]of info.cols){const wp=g.localToWorld(new V3(cx,0,cz)).normalize();G_.obst.push({p:wp,r:cr*g.scale.x})}}else if(info.r&&info.r>.25)G_.obst.push({p,r:info.r})}}}
-    bakeStatic(G_.scene)}
-  /* Baum: Stamm+Krone zusammenführen, Früchte zu einem Mesh bündeln (ein-/ausblendbar) */
-  function mergeTree(g){const fr=g.userData.fruits||[];if(fr.length){const holder=new THREE.Group();g.add(holder);g.updateMatrixWorld(true);const inv=new THREE.Matrix4().copy(g.matrixWorld).invert();
-      fr.forEach(f=>{const m=new THREE.Matrix4().multiplyMatrices(inv,f.matrixWorld);f.parent.remove(f);m.decompose(f.position,f.quaternion,f.scale);holder.add(f)});mergeGroup(holder);g.userData.fruits=[holder];mergeGroup(g,[holder])}else mergeGroup(g)}
-  function findPondEdge(r,inWater){for(let i=0;i<60;i++){const p=new V3(r()*2-1,r()*2-1,r()*2-1).normalize();const h=G_.hAt(p);if(inWater?(h<G_.sea-.25&&h>G_.sea-1.2):(h>G_.sea-.1&&h<G_.sea+.25))return p}return null}
-
+  /* ---------- Natur verstreuen: Biome, ohne Überschneidungen ---------- */
+  function makeNature(type,opt,seed){const n=NATURE[type];const g=new THREE.Group();QF=HIGH?.7:.5;try{if(n)n.b(g,M,Object.assign({planet:G_.id},opt||{}),srand(seed||1));else P(g,G.s(.3),M.c('#7CC46A'),[0,.3,0])}catch(e){console.warn('Natur',type,e)}QF=1;addOutlines(g);if(!g.userData.tick)mergeGroup(g,g.userData.fruits);return g}
+  function addObst(p,r,ref){return SCATTER.obstAdd(p.clone().normalize().multiplyScalar(G_.R+G_.hAt(p)),r,ref)}
+  function obstAround(p,rad){return SCATTER.obstNear(p.clone().multiplyScalar(G_.R+G_.hAt(p)),rad||3)}
+  function flatAt(p,rad){const h=G_.hAt(p);const t1=tangentTo(p,new V3(1,0,0)),t2=new V3().crossVectors(p,t1);const a=rad/G_.R;let m=0;
+    for(const d of[t1,t2,t1.clone().negate(),t2.clone().negate()]){const q=p.clone().addScaledVector(d,a).normalize();m=Math.max(m,Math.abs(G_.hAt(q)-h))}return m}
+  const SIZE={big:1,mid:.55,small:.25,tiny:.08};
+  function scatterWorld(){const r=srand({kompost:11,schrott:22,korallen:33,frost:44,wueste:55,pilz:66}[G_.id]);const area=4*PI*G_.R*G_.R;const q=HIGH?1:.6;
+    const pickW=(list)=>{let s=0;for(const x of list)s+=x[1];let t=r()*s;for(const x of list){t-=x[1];if(t<=0)return x}return list[0]};
+    const passes=[['trees','treeD',2.4,.7,true,1.6],['rocks','rockD',1.5,.35,true,1.8],['deco','decoD',10,.06,false,2.6]];
+    for(const[key,dk,maxD,pad,solid,dens]of passes){const n=Math.round(area/100*maxD*q*dens);
+      for(let i=0;i<n;i++){const p=new V3(r()*2-1,r()*2-1,r()*2-1).normalize();const h=G_.hAt(p);const bid=G_.biomeAt(p,h);const B=BIOMES[bid];const list=B[key];if(!list||!list.length)continue;if(r()>(B[dk]||0)/maxD)continue;
+        const[type,,opt]=pickW(list);const info=NATURE[type]||{};const water=opt&&opt.water;
+        if(!water&&h<G_.sea+.12)continue;if(water&&(h>G_.sea-.1||h<G_.sea-1.2))continue;
+        const rad=Math.max(.12,info.r||(key==='deco'?.15:.4));if(nearPlace(p,1.05))continue;if(G_.roadDist(p)<(solid?.034:.022))continue;
+        const fl=flatAt(p,Math.max(.4,rad));if(fl>(key==='deco'?.3:.24))continue;
+        const wp=p.clone().multiplyScalar(G_.R+h);if(!SCATTER.occFree(wp,rad+pad))continue;
+        const sc=.85+r()*.35;const inst=SCATTER.add(type,opt||null,p,{yaw:r()*TAU,scale:sc,variant:Math.floor(r()*3),off:water?0:-.03-fl*.9});if(water)inst.water=true;
+        SCATTER.occAdd(wp,rad*sc+(solid?.15:0));
+        if(solid&&info.r){if(info.cols){for(const[cx,cz,cr]of info.cols){const lp=new V3(cx,0,cz).applyAxisAngle(UPV,inst.yaw).multiplyScalar(sc);const t1=tangentTo(p,new V3(0,0,1));const t2=new V3().crossVectors(p,t1);const pp=p.clone().addScaledVector(t1,lp.z/G_.R).addScaledVector(t2,lp.x/G_.R).normalize();addObst(pp,cr*sc)}}
+          else{const shake=info.shake||(inst.pr.hasFruit&&key==='trees');const ref=shake?{kind:'tree',inst,p,fruit:fruitIdFor(type,opt,inst),hasFruit:inst.pr.hasFruit,regrow:0}:(key==='rocks'&&info.r>.6?{kind:'rock',inst,p,hits:0}:null);
+            addObst(p,info.r*sc,ref);if(ref&&ref.kind==='tree')G_.trees.push(ref);if(ref&&ref.kind==='rock')G_.rocks.push(ref)}}}}}
+  function fruitIdFor(type,opt,inst){if(opt&&opt.fruit)return opt.fruit;const ids=inst.pr.fruitIds||[];const f=ids.find(x=>x&&x.startsWith('frucht_'));const k=f?f.slice(7):null;
+    const map={beere:'beeren',kristall:'seeglas',led:'schraube',kokosnuss:'kokosnuss',apfel:'apfel',birne:'birne',kirsche:'kirsche',pfirsich:'pfirsich',orange:'orange',kaktusfrucht:'kaktusfrucht',zapfen:'kiefernzapfen'};return map[k]||(ITEMS.some(i=>i.id===k)?k:null)}
+  /* ---------- Wetter: Schnee, Sporen, Sand, Blüten, Funken, Blasen ---------- */
+  function buildWeather(){const kind=G_.def.weather;const n=HIGH?700:300;const g=new THREE.BufferGeometry();const pos=new Float32Array(n*3);const r=srand(3);for(let i=0;i<n*3;i++)pos[i]=(r()-.5)*40;g.setAttribute('position',new THREE.BufferAttribute(pos,3));
+    const col={schnee:'#ffffff',sporen:'#B8FFE8',sand:'#F2CFA0',blueten:'#FFB8D8',funken:'#FFE27A',blasen:'#E8FAFF'}[kind]||'#fff';
+    const tex=ctex('wp-'+kind,32,32,(x,w,h)=>{const gr=x.createRadialGradient(16,16,1,16,16,15);gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.5,'rgba(255,255,255,.8)');gr.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=gr;x.fillRect(0,0,w,h)});
+    const m=new THREE.PointsMaterial({color:col,size:kind==='schnee'?.22:kind==='sand'?.12:.16,map:tex,transparent:true,depthWrite:false,opacity:.85,blending:kind==='sporen'||kind==='funken'?THREE.AdditiveBlending:THREE.NormalBlending});
+    const pts=new THREE.Points(g,m);pts.frustumCulled=false;G_.scene.add(pts);G_.weather={pts,kind,n}}
+  function stepWeather(dt,t){const W_=G_.weather;if(!W_||!me)return;const up=me.p;const a=W_.pts.geometry.attributes.position;const base=me.g.position;const k=W_.kind;
+    const fall=k==='schnee'?-1.2:k==='blueten'?-.6:k==='sand'?-.2:k==='blasen'?.8:k==='funken'?.6:.25;const side=k==='sand'?4:k==='blueten'?1:.4;
+    for(let i=0;i<W_.n;i++){let x=a.getX(i),y=a.getY(i),z=a.getZ(i);y+=fall*dt;x+=Math.sin(t*.7+i)*side*dt;z+=Math.cos(t*.5+i*1.3)*side*.5*dt;
+      if(y<-4)y+=16;if(y>12)y-=16;if(x>20)x-=40;if(x<-20)x+=40;if(z>20)z-=40;if(z<-20)z+=40;a.setXYZ(i,x,y,z)}a.needsUpdate=true;
+    W_.pts.position.copy(base);W_.pts.quaternion.setFromUnitVectors(UPV,up)}
   /* ---------- Gebäude & Orte ---------- */
   function buildPlaces(){for(const pl of G_.places){if(!pl.build)continue;const g=new THREE.Group();let obj=null;
-      try{
+      QF=HIGH?.7:.42;try{
         if(pl.build==='plaza')obj=buildPlaza(pl);
         else if(pl.build==='museum'&&window.buildMuseum)obj=buildMuseum(M);
         else if(pl.build==='shop'&&window.buildShop)obj=buildShop(G_.id,M);
         else if(pl.build==='studio'&&window.buildPaintStudio)obj=buildPaintStudio(M);
         else if(pl.build==='rocket'&&window.buildRocketPad)obj=buildRocketPad(M);
         else if(pl.build==='house'&&window.buildHouse){obj=buildHouse(SAVE.house.style,M);G_.houseObj=obj}
-      }catch(e){console.warn('Gebäude',pl.build,e)}
+      }catch(e){console.warn('Gebäude',pl.build,e)}QF=1;
       if(!obj){obj=new THREE.Group();P(obj,G.bx(3,2.4,3,.4),M.c('#FFE3B8'),[0,1.2,0]);P(obj,G.co(2.6,1.6),M.c('#F0556E'),[0,3.2,0])}
       if(pl.build!=='plaza')addOutlines(obj);obj.traverse(o=>{if(o.isMesh){o.castShadow=HIGH;o.receiveShadow=true}});smartMerge(obj);if(obj.userData.tick)G_.ticks.push(obj);g.add(obj);
       /* Gebäude zeigen zum Dorfplatz */
-      const plaza=G_.places.find(x=>x.id==='platz');let yaw=0;placeObj(g,pl.dir,0,-.02);
+      const plaza=G_.places.find(x=>x.id==='platz');let yaw=0;{/* Gebäude so tief setzen, dass auch der Rand auf dem gekrümmten Boden aufliegt */const rr=(obj.userData.r||2.2);const t1=tangentTo(pl.dir,new V3(1,0,0)),t2=new V3().crossVectors(pl.dir,t1);const hc=G_.R+G_.hAt(pl.dir);let lo=0;
+        for(let k=0;k<8;k++){const a=k/8*TAU;const q=pl.dir.clone().addScaledVector(t1,Math.cos(a)*rr/G_.R).addScaledVector(t2,Math.sin(a)*rr/G_.R).normalize();lo=Math.max(lo,hc-(G_.R+G_.hAt(q))*q.dot(pl.dir))}
+        placeObj(g,pl.dir,0,pl.build==='plaza'?-.02:-.02-Math.min(.6,lo))}
       if(plaza&&pl!==plaza){const toward=tangentTo(pl.dir,plaza.dir);g.up.copy(pl.dir);g.lookAt(g.position.clone().add(toward))}
-      G_.scene.add(g);pl.obj=g;const rad=(obj.userData.r||2.2);if(pl.build!=='plaza')G_.obst.push({p:pl.dir.clone(),r:rad});
-      const door=obj.userData.door?new V3(...obj.userData.door):new V3(0,0,rad+.8);const dw=g.localToWorld(door.clone());const dp=dw.clone().normalize();pl.doorP=dp;
-      const label={museum:'Museum betreten',shop:'Einkaufen',studio:'Malen',rocket:'Reisen',house:'Nach Hause'}[pl.build];if(label)G_.inter.push({kind:pl.build,place:pl,p:dp,r:1.5,label})}
+      G_.scene.add(g);pl.obj=g;const rad=(obj.userData.r||2.2);if(pl.build!=='plaza')addObst(pl.dir,rad);
+      g.updateMatrixWorld(true);if(pl.build==='plaza'){settleKids(obj);registerPlaza(obj)}
+      /* Türpunkt: vor der Tür, aber sicher ausserhalb der Kollision, damit man ihn erreicht */
+      const door=obj.userData.door?new V3(...obj.userData.door):new V3(0,0,rad+.8);door.y=0;const dl=Math.hypot(door.x,door.z)||1;const need=rad+.9;if(dl<need){door.x*=need/dl;door.z*=need/dl;if(!door.x&&!door.z)door.z=need}
+      const dw=g.localToWorld(door.clone());const dp=dw.clone().normalize();pl.doorP=dp;obj.traverse(o=>{if(o.isMesh)o.userData.place=pl})
+      const label={museum:'Museum betreten',shop:'Einkaufen',studio:'Malen',rocket:'Reisen',house:'Nach Hause'}[pl.build];if(label)G_.inter.push({kind:pl.build,place:pl,p:dp,r:2.2,label})}
     if(G_.id==='kompost'&&G_.houseObj){}
   }
+  /* Kinder einer flachen Gruppe einzeln auf die gekrümmte Oberfläche setzen (sonst schweben sie am Rand) */
+  function settleKids(g){g.updateMatrixWorld(true);const inv=new THREE.Quaternion();g.getWorldQuaternion(inv).invert();
+    for(const o of g.children){const w=g.localToWorld(o.position.clone());const d=w.clone().normalize();const t=g.worldToLocal(d.clone().multiplyScalar(G_.R+G_.hAt(d)-.02));o.position.copy(t);
+      const upL=d.clone().applyQuaternion(inv);const yaw=o.rotation.y;o.quaternion.setFromUnitVectors(UPV,upL);o.rotateY(yaw)}g.updateMatrixWorld(true)}
+  function registerPlaza(g){g.updateMatrixWorld(true);g.children.forEach(o=>{const L=o.userData._lbl;const c=g.localToWorld(o.position.clone()).normalize();addObst(c,(o.userData.r||.8));if(!L)return;
+      const wp=g.localToWorld(new V3(o.position.x,0,o.position.z).add(new V3(0,0,(o.userData.r||1)+.9).applyAxisAngle(UPV,o.rotation.y))).normalize();G_.inter.push({kind:L.kind,p:wp,r:2.2,label:L.label});o.traverse(m=>{if(m.isMesh)m.userData.place={build:L.kind,doorP:wp}})})}
   function buildPlaza(pl){const g=new THREE.Group();const fn=(f,...a)=>{try{return window[f]?window[f](...a):null}catch(e){console.warn(f,e);return null}};
     const add=(o,x,z,yaw,label,kind)=>{if(!o)return;addOutlines(o);o.position.set(x,0,z);o.rotation.y=yaw||0;g.add(o);if(label){const off=new V3(x,0,z+(o.userData.r||1)+.6);o.userData._lbl={label,kind,off}}};
     add(fn('buildFountain',M),0,0,0);add(fn('buildNoticeBoard',M),-3.4,-2.4,.5,'Anschlagbrett','board');add(fn('buildStage',M),3.6,-3.2,-.6,'Tanzfläche','stage');
     add(fn('buildBench',M),-3.6,2.6,2.4);add(fn('buildBench',M),3.2,3.0,-2.4);add(fn('buildStreetLamp',M),-1.8,3.6,0);add(fn('buildStreetLamp',M),2.2,-.4,0);add(fn('buildMailbox',M),-1.5,-3.8,.3,'Briefkasten','mail');
     add(fn('buildSignpost',M,G_.def.n),1.2,3.4,.2);g.children.forEach(o=>{smartMerge(o);if(o.userData.tick)G_.ticks.push(o)});
-    /* Interaktionen nach dem Platzieren registrieren */
-    setTimeout(()=>{g.children.forEach(o=>{const L=o.userData._lbl;if(!L)return;const wp=g.localToWorld(new V3(o.position.x,0,o.position.z+(o.userData.r||1)+.7));G_.inter.push({kind:L.kind,p:wp.normalize(),r:1.6,label:L.label});G_.obst.push({p:g.localToWorld(o.position.clone()).normalize(),r:(o.userData.r||.8)})})},0);
     return g}
 
   /* ================= Figuren ================= */
   const ents=new Map();const labelsEl=$('labels');
-  function makeEnt(d,o){o=o||{};const g=buildCreature(d,{q:o.q||(HIGH?.6:.45),noShadow:!HIGH,blob:false,fur:HIGH&&!!o.me,merge:true});g.scale.setScalar(CS);g.userData.wid=d.id;
+  function makeEnt(d,o){o=o||{};const g=buildCreature(d,{q:o.q||(HIGH?.5:.32),noShadow:!HIGH,blob:false,fur:HIGH&&!!o.me,merge:true});g.scale.setScalar(CS);g.userData.wid=d.id;
     const shadow=new THREE.Mesh(new THREE.CircleGeometry(.55,20),new THREE.MeshBasicMaterial({map:ctex('blob',128,128,(x,w,h)=>{const gr=x.createRadialGradient(64,64,4,64,64,62);gr.addColorStop(0,'rgba(60,40,90,.35)');gr.addColorStop(1,'rgba(60,40,90,0)');x.fillStyle=gr;x.fillRect(0,0,w,h)}),transparent:true,depthWrite:false}));
     const mv=moveFor(d);const abs=abilitiesFor(d);const cd={};abs.forEach(a=>cd[a]=2+Math.random()*(ABIL[a].cd||8)*2);
     const p=o.p||randLand(Math.random,G_.sea+.4,99)||new V3(0,1,0);const dir=tangentTo(p,new V3(Math.random()-.5,Math.random()-.5,Math.random()-.5));
@@ -269,7 +219,7 @@ const GAME=(()=>{
     const np=e.p.clone().applyAxisAngle(axis,ang).normalize();const h=G_.hAt(np);
     if(h<G_.sea-.3&&!e.water&&!e.fly){return false}
     /* Hindernisse */
-    for(const o of G_.obst){const d=angle(np,o.p)*G_.R;const minD=o.r+.35;if(d<minD){const away=tangentTo(o.p,np.clone().sub(o.p));if(!isFinite(away.x))continue;const pushA=(minD-d)/G_.R;np.applyAxisAngle(new V3().crossVectors(o.p,away).normalize(),pushA*1.02).normalize()}}
+    for(const o of obstAround(np,3)){const d=angle(np,o.p)*G_.R;const minD=o.r+.35;if(d<minD){const away=tangentTo(o.p,np.clone().sub(o.p));if(!isFinite(away.x))continue;const pushA=(minD-d)/G_.R;np.applyAxisAngle(new V3().crossVectors(o.p,away).normalize(),pushA*1.02).normalize()}}
     if(e.kind==='me'){for(const o of ents.values()){if(o===e||o.kind==='peer')continue;const d=angle(np,o.p)*G_.R;if(d<.7){const away=tangentTo(o.p,np.clone().sub(o.p));if(isFinite(away.x))np.applyAxisAngle(new V3().crossVectors(o.p,away).normalize(),(.7-d)/G_.R).normalize()}}}
     e.dir.applyAxisAngle(axis,ang);e.p.copy(np);e.dir.copy(tangentTo(e.p,e.dir));return true}
 
@@ -297,8 +247,9 @@ const GAME=(()=>{
     if(e.emote&&e.emoteT>0)EMOTES[e.emote]&&EMOTES[e.emote].pose&&EMOTES[e.emote].pose(e,t,dt);
     /* weiches Squash beim Laufen */
     const sq=moving&&!e.move.alt?1+Math.sin(t*10+e.phase)*.03:1+Math.sin(t*2+e.phase)*.012;e.g.scale.set(CS*(2-sq)*.5+CS*.5,CS*sq,CS*(2-sq)*.5+CS*.5);
-    const far=me&&e!==me&&angle(e.p,me.p)*G_.R>13;if(far!==e.far){e.far=far;setOutlines(e.g,!far&&HIGH)}
-    if(!far||((t*10|0)%3===0))e.g.userData.tick(t+e.phase,moving,e.act);
+    const dist=me&&e!==me?angle(e.p,me.p)*G_.R:0;const far=dist>13;if(far!==e.far){e.far=far;setOutlines(e.g,!far&&HIGH)}
+    const hide=!overview&&dist>(HIGH?40:30);e.g.visible=!hide;e.shadow.visible=!hide;
+    if(!hide&&!far||!hide&&((t*10|0)%3===0))e.g.userData.tick(t+e.phase,moving,e.act);
     e.shadow.position.copy(e.p).multiplyScalar(surfR(e.p,true)+.03);e.shadow.quaternion.setFromUnitVectors(new V3(0,0,1),e.p);const ss=Math.max(.4,1-alt*.25);e.shadow.scale.setScalar(ss);
     if(e.sayT>0){e.sayT-=dt;if(e.sayT<=0)e.bub.hidden=true}
     if(e.emoteT>0){e.emoteT-=dt;if(e.emoteT<=0)e.emote=null}}
@@ -308,13 +259,14 @@ const GAME=(()=>{
   function findTarget(){if(!me)return null;let best=null,bs=1e9;const fw=me.dir;
     const consider=(p,r,obj)=>{const d=angle(me.p,p)*G_.R;if(d>r)return;const to=tangentTo(me.p,p.clone().sub(me.p));const facing=isFinite(to.x)?to.dot(fw):1;const score=d-facing*.8+(obj.prio||0);if(score<bs){bs=score;best=obj}};
     for(const e of ents.values()){if(e===me||e.kind==='peer')continue;consider(e.p,2.4,{kind:'talk',ent:e,label:(e.kind==='bot'?'Winken: ':'Reden: ')+(e.d.name||'Namenlos'),prio:-.6})}
-    for(const it of G_.inter)consider(it.p,it.r+.4,Object.assign({},it,{label:it.label||(it.kind==='tree'?(it.ref.hasFruit?'Baum schütteln':'Baum schütteln'):it.kind)}));
+    for(const it of G_.inter)consider(it.p,it.r+.4,Object.assign({},it,{label:it.label||it.kind}));
+    for(const o of obstAround(me.p,4)){if(!o.ref)continue;if(o.ref.kind==='tree')consider(o.p,o.r+1.5,{kind:'tree',ref:o.ref,label:o.ref.hasFruit?'Baum schütteln (Früchte!)':'Baum schütteln'});else if(o.ref.kind==='rock')consider(o.p,o.r+1.4,{kind:'rock',ref:o.ref,label:'Mit der Schaufel auf den Stein hauen'})}
     for(const it of ACT.targets())consider(it.p,it.r||1.6,it);
     if(!best){const f=ACT.waterAhead(me);if(f)best={kind:'fish',label:'Angel auswerfen',p:f}}
     return best}
   function doAction(){if(!me||UI.anyOpen()||ACT.busy())return;const t=promptTarget;SND.init();
     if(!t){if(ACT.busy())return;me.emote='hop';me.jump=.9;return}
-    switch(t.kind){case 'talk':talkTo(t.ent);break;case 'tree':ACT.shake(t.ref);break;case 'fish':ACT.fish(t.p);break;
+    switch(t.kind){case 'talk':talkTo(t.ent);break;case 'tree':ACT.shake(t.ref);break;case 'rock':ACT.hitRock(t.ref);break;case 'fish':ACT.fish(t.p);break;
       case 'shop':SHOP.open(G_.id);break;case 'museum':INTERIOR.enter('museum');break;case 'house':INTERIOR.enter('house');break;case 'studio':PAINT.open();break;case 'rocket':travelMenu();break;
       case 'board':boardMenu();break;case 'stage':ACT.party();break;case 'mail':mailMenu();break;default:if(t.act)t.act()}}
   async function talkTo(e){if(e.kind==='bot'){SOCIAL.botTalk(e);return}e.talking=true;const old=e.dir.clone();e.lookAt=me;e.stop=99;me.dir.copy(tangentTo(me.p,e.p.clone().sub(me.p)));
@@ -389,6 +341,8 @@ const GAME=(()=>{
   function tap(e){const r=canvas.getBoundingClientRect();const m=new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height)*2+1);ray.setFromCamera(m,cam);
     if(mode==='interior'){INTERIOR.tap(ray,e);return}if(!me||UI.anyOpen())return;
     const hits=ray.intersectObjects([...ents.values()].filter(x=>x!==me).map(x=>x.g),true);if(hits.length){let o=hits[0].object;while(o&&!o.userData.wid)o=o.parent;const en=o&&ents.get(o.userData.wid);if(en){if(angle(en.p,me.p)*G_.R<3){promptTarget={kind:'talk',ent:en};doAction()}else tapTarget={p:en.p.clone(),then:()=>{promptTarget={kind:'talk',ent:en};doAction()}};return}}
+    const bh=ray.intersectObjects(G_.places.filter(p=>p.obj).map(p=>p.obj),true).find(h=>h.object.userData.place);
+    if(bh){const pl=bh.object.userData.place;const it=G_.inter.find(i=>i.place===pl||(pl.doorP&&i.p===pl.doorP));if(it){tapTarget={p:it.p.clone(),then:()=>{promptTarget=it;doAction()}};SND.play('select',{vol:.3});return}}
     const ph=ray.intersectObject(G_.planet,false);if(ph.length){const p=ph[0].point.clone().normalize();tapTarget={p};SND.play('select',{vol:.3})}}
   /* Joystick */
   {const joy=$('joy'),knob=joy.firstElementChild;let id=null,c0=null;joy.addEventListener('pointerdown',e=>{id=e.pointerId;joy.setPointerCapture(id);const r=joy.getBoundingClientRect();c0={x:r.left+r.width/2,y:r.top+r.height/2};input.joy={x:0,y:0};mv(e);SND.init()});
@@ -417,8 +371,8 @@ const GAME=(()=>{
     /* Figuren */
     for(const e of ents.values()){if(e===me||e.kind==='peer'){}else stepVillager(e,dt,t);if(e.kind==='peer')SOCIAL.stepPeer(e,dt)}
     const camP=cam.position.clone().normalize();for(const e of ents.values()){const vis=overview?e.p.dot(camP)>.1:e===me||(e.p.dot(camP)>.55&&angle(e.p,me?me.p:e.p)*G_.R<40);e.g.visible=vis;e.shadow.visible=vis;if(vis)poseEnt(e,dt,t)}
-    stepProps(dt,t);stepParts(dt);stepClouds(dt);stepBall(dt);stepLaunch(dt);for(const o of G_.ticks){try{o.userData.tick(t,false,0)}catch(e){}}ACT.frame(dt,t);SOCIAL.frame(dt,t);grassU.value=t;G_.waterU.uT.value=t;
-    ecoT-=dt;if(ecoT<=0){ecoT=1;ecoTick()}
+    stepProps(dt,t);stepParts(dt);stepClouds(dt);SCATTER.step(dt);stepWeather(dt,t);if(G_.groundU)G_.groundU.uT.value=t;SCATTER.update(overview?cam.position.clone().normalize():(me?me.p:UPV),t,HIGH);stepBall(dt);stepLaunch(dt);for(const o of G_.ticks){try{o.userData.tick(t,false,0)}catch(e){}}ACT.frame(dt,t);SOCIAL.frame(dt,t);grassU.value=t;G_.waterU.uT.value=t;
+    ecoT-=dt;if(ecoT<=0){ecoT=1;ecoTick()}grassU.value=t;
     /* Tageszeit (echte Uhr) */
     dayT-=dt;if(dayT<=0){dayT=5;dayLight()}
     /* Kamera */
@@ -435,8 +389,7 @@ const GAME=(()=>{
   function stepProps(dt,t){for(let i=W.props.length-1;i>=0;i--){const x=W.props[i];
       if(x.dying){x.dying+=dt*2;const s=Math.max(0,1-x.dying)*x.big;x.g.scale.setScalar(Math.max(.001,s));if(x.dying>=1){G_.scene.remove(x.g);disposeTree(x.g);W.props.splice(i,1)}continue}
       if(x.grow<1){x.grow=Math.min(1,x.grow+dt/x.growT)}const e=x.grow<1?1+Math.sin(x.grow*PI)*.25:1;const s=(x.decal?1:(.15+.85*x.grow))*x.big*e;x.g.scale.setScalar(s);
-      if(x.type==='mast'){x.g.traverse(o=>{if(o.userData.blink)o.visible=Math.sin(t*4)>0})}}
-    for(const tr of G_.props){if(tr.shakeT>0){tr.shakeT-=dt;tr.g.rotation.x=0;const a=Math.sin(tr.shakeT*40)*tr.shakeT*.12;tr.g.children.forEach(c=>{c.rotation.z=a;c.rotation.x=a*.5})}}}
+      if(x.type==='mast'){x.g.traverse(o=>{if(o.userData.blink)o.visible=Math.sin(t*4)>0})}}}
   function stepParts(dt){for(let i=parts.length-1;i>=0;i--){const q=parts[i];q.life-=dt;q.sp.position.addScaledVector(q.v,dt);if(q.grav)q.v.addScaledVector(q.n,q.grav*dt);q.sp.material.opacity=Math.min(1,q.life/q.max*2.2);if(q.life<=0){q.sc.remove(q.sp);q.sp.material.dispose();parts.splice(i,1)}}}
   function ecoTick(){if(G_.id!=='kompost')return;const live=W.props.filter(x=>!x.dying);const oils=live.filter(x=>x.type==='oel');
     for(let i=0;i<10;i++){const x=pick(live);if(!x)break;const REP={baum:[.03,3],blume:[.08,5],pilz:[.04,3],moos:[.02,4]}[x.type];if(REP&&x.grow>=1&&Math.random()<REP[0]&&live.filter(y=>y.type===x.type&&y.p.dot(x.p)>Math.cos(.12)).length<REP[1]&&!oils.some(o=>o.p.dot(x.p)>Math.cos(.1)))W.spawn(x.type,W.near(x.p,.12))}
@@ -461,6 +414,6 @@ const GAME=(()=>{
   async function init(){await loadPlanet(planetId);dayLight()}
   function onAvatarChanged(){if(!me||!scene)return;const p=me.p.clone(),dir=me.dir.clone();const inside=me.inside;const ix=me.ix,iz=me.iz;dropEnt('__me');me=makeEnt(avatarData(),{kind:'me',p,q:HIGH?.9:.6,me:true});me.dir.copy(dir);if(inside){INTERIOR.adopt(me);me.ix=ix;me.iz=iz}}
   function toggleOverview(){overview=overview?null:{az:Math.atan2(cam.position.z,cam.position.x)};if(!overview)camSnap=true;UI.toast(overview?'Beamer-Übersicht: alle Cyborgs auf einen Blick. Nochmals drücken zum Beenden.':'Zurück zur Spielfigur');return!!overview}
-  return{_load:loadPlanet,toggleOverview,get overview(){return!!overview},_joy:()=>input.joy,init,frame,resize,quality,travel,syncVillagers,onAvatarChanged,W,G:G_,ents,get me(){return me},get scene(){return scene},cam,R,say,makeEnt,dropEnt,moveEnt,onSurf,placeObj,angle,tangentTo,isLand,randLand,note,
+  return{addObst,obstAround,_load:loadPlanet,toggleOverview,get overview(){return!!overview},_joy:()=>input.joy,init,frame,resize,quality,travel,syncVillagers,onAvatarChanged,W,G:G_,ents,get me(){return me},get scene(){return scene},cam,R,say,makeEnt,dropEnt,moveEnt,onSurf,placeObj,angle,tangentTo,isLand,randLand,note,
     get mode(){return mode},set mode(v){mode=v},showCard,talkTo,voiceFor,fadeOut,parts,makeNature,nearPlace,get camF(){return camF},get night(){return G_.night||0}};
 })();

@@ -43,7 +43,7 @@ const ACT=(()=>{
   const GG=()=>GAME.G;
   /* ---------- Sammelobjekte in der Welt ---------- */
   function clearWorldStuff(){for(const x of[...pickups,...bugs,...digs]){if(x.g&&x.g.parent)x.g.parent.remove(x.g);if(x.g)disposeTree(x.g)}pickups=[];bugs=[];digs=[]}
-  function onPlanet(pid){clearWorldStuff();respawnT=0;spawnShells(8);spawnDigs(5);spawnBugs(10)}
+  function onPlanet(pid){clearWorldStuff();respawnT=0;spawnShells(8);spawnDigs(6);spawnBugs(12);setTimeout(()=>spawnLitter(18),500)}
   function mkObj(build,scale){const g=new THREE.Group();QF=.6;try{build(g)}catch(e){P(g,G.s(.3),M.c('#FFE27A'),[0,.3,0])}QF=1;addOutlines(g);mergeGroup(g);g.scale.setScalar(scale||1);g.traverse(o=>{if(o.isMesh)o.castShadow=HIGH});GAME.scene.add(g);return g}
   function spawnShells(n){const shells=ITEMS.filter(i=>['muschel','jakobsmuschel','schneckenhaus','sanddollar','koralle_stueck','seeglas'].includes(i.id));if(!shells.length)return;
     for(let i=0;i<n;i++){const p=beachSpot();if(!p)continue;const it=pick(shells);const g=mkObj(gg=>it.b(gg,M,{},srand(i)),.45);GAME.placeObj(g,p,Math.random()*TAU,-.02);pickups.push({kind:'item',id:it.id,p,g,label:it.n+' aufheben'})}}
@@ -51,9 +51,9 @@ const ACT=(()=>{
   function spawnDigs(n){for(let i=0;i<n;i++){const p=GAME.randLand(Math.random,GG().sea+.5);if(!p||GAME.nearPlace(p))continue;const g=mkObj(gg=>{const m=M.c('#8A5E42');both(s=>P(gg,G.bx(.55,.04,.12,.04),m,[0,.02,0],[0,s*PI/4,0]));P(gg,G.s(.08),m,[.28,.03,.1],null,[1,.3,1])},1);GAME.placeObj(g,p,Math.random()*TAU,0);digs.push({p,g})}}
   function bugPool(){const pid=GG().id;const nt=nightNow();return BUGS.filter(b=>(b.planet===pid||b.planet==='alle')&&(!b.time||b.time==='immer'||(b.time==='nacht')===nt))}
   function spawnBugs(n){const pool=bugPool();if(!pool.length)return;const me=GAME.me;for(let i=0;i<n;i++){const b=weighted(pool);let p=null,anchor=null;
-      if(b.where==='baum'&&GG().props.length){const tr=pick(GG().props);anchor=tr;p=tr.p.clone()}else if(b.where==='wasser'){p=beachSpot()}else{const base=me?me.p:new V3(0,1,0);p=GAME.W.near(base,1.4+Math.random()*2.4)}
+      if(b.where==='baum'&&GG().trees.length){const near=GG().trees.filter(t=>GAME.me&&GAME.angle(t.p,GAME.me.p)*GG().R<30);const tr=pick(near.length?near:GG().trees);anchor=tr;/* seitlich an den Stamm, nicht in die Luft */const side=GAME.tangentTo(tr.p,new V3().randomDirection());p=tr.p.clone().addScaledVector(side,.3*(tr.inst?tr.inst.scale:1)/GG().R).normalize()}else if(b.where==='wasser'){p=beachSpot()}else{const base=me?me.p:new V3(0,1,0);p=GAME.W.near(base,1.4+Math.random()*2.4)}
       if(!p)continue;const g=mkObj(gg=>b.b(gg,M,{},srand(i+2)),.32);const bug={def:b,p:p.clone(),home:p.clone(),g,anchor,ph:Math.random()*9,fly:['luft','blume','wasser'].includes(b.where),flee:0,alive:true};
-      GAME.placeObj(g,p,Math.random()*TAU,bug.fly?1.1:anchor?1.2:.05);bugs.push(bug)}}
+      GAME.placeObj(g,p,Math.random()*TAU,bug.fly?1.1:.05);bugs.push(bug)}}
   function targets(){const out=[];for(const x of pickups)out.push({kind:'pick',p:x.p,r:1.3,label:x.label,ref:x});for(const d of digs)out.push({kind:'dig',p:d.p,r:1.5,label:'Graben',act:()=>dig(d)});
     for(const b of bugs)if(b.alive)out.push({kind:'bug',p:b.p,r:2,label:'Netz schwingen',act:()=>swingNet(b)});
     for(const o of out)if(o.kind==='pick')o.act=()=>pickUp(o.ref);return out}
@@ -61,14 +61,24 @@ const ACT=(()=>{
   function pickUp(x){if(!bagAdd(x.kind,x.id)){UI.toast('Die Tasche ist voll. Verkauf etwas im Laden.');SND.play('error');return}SND.play('pickup');GAME.me.act=1;
     GAME.W.fx(x.p,'stern',5);x.g.parent&&x.g.parent.remove(x.g);disposeTree(x.g);pickups.splice(pickups.indexOf(x),1);UI.toast(itemName(x.kind,x.id)+' eingesteckt')}
   /* ---------- Baum schütteln ---------- */
-  function shake(tr){if(tr.shakeT>0)return;tr.shakeT=.9;SND.play('cloth',{vol:.8});SAVE.stats.shakes++;GAME.me.act=1;
-    setTimeout(()=>{if(tr.hasFruit&&tr.g.userData.fruits){tr.hasFruit=false;const fr=tr.fruit;tr.g.userData.fruits.forEach(f=>f.visible=false);tr.regrow=Date.now()+4*60*1000;
-        const it=findIn(ITEMS,fr);for(let i=0;i<3;i++){const p=GAME.W.near(tr.p,.08+Math.random()*.06);const g=mkObj(gg=>it?it.b(gg,M,{},srand(i)):P(gg,G.s(.3),M.c('#F0556E'),[0,.3,0]),.55);GAME.placeObj(g,p,0,-.02);const x={kind:'item',id:fr,p,g,label:(it?it.n:fr)+' aufheben'};pickups.push(x);g.userData.drop=0}
-        SND.play('soft',{vol:.8});GAME.W.fx(tr.p,'blatt',10)}
-      else{const r=Math.random();GAME.W.fx(tr.p,'blatt',8);
-        if(r<.12){SND.play('coins');const amt=pick([100,200,300]);money(amt);UI.toast(`${amt} Taler sind aus dem Baum gefallen!`)}
-        else if(r<.3){const it=findIn(ITEMS,'ast');if(it){const p=GAME.W.near(tr.p,.08);const g=mkObj(gg=>it.b(gg,M,{},srand(1)),.55);GAME.placeObj(g,p,0,-.02);pickups.push({kind:'item',id:'ast',p,g,label:'Ast aufheben'})}}
-        else if(r<.42){const pool=bugPool().filter(b=>b.where==='baum');if(pool.length){const b=weighted(pool);const p=GAME.W.near(tr.p,.06);const g=mkObj(gg=>b.b(gg,M,{},srand(1)),.32);GAME.placeObj(g,p,0,.05);bugs.push({def:b,p,home:p.clone(),g,ph:0,fly:false,flee:0,alive:true});UI.toast('Da ist etwas runtergefallen!')}}}},500)}
+  function shake(tr){if(tr.shaking)return;tr.shaking=true;setTimeout(()=>tr.shaking=false,900);SCATTER.shake(tr.inst);SND.play('cloth',{vol:.8});SAVE.stats.shakes++;GAME.me.act=1;
+    setTimeout(()=>{const top=GAME.onSurf(tr.p,2.2);if(tr.hasFruit&&tr.fruit){tr.hasFruit=false;SCATTER.setFruit(tr.inst,false);tr.regrow=Date.now()+4*60*1000;
+        const it=findIn(ITEMS,tr.fruit);const n=tr.fruit==='beeren'?2:3;for(let i=0;i<n;i++){const p=GAME.W.near(tr.p,.05+Math.random()*.05);const g=mkObj(gg=>it?it.b(gg,M,{},srand(i)):P(gg,G.s(.3),M.c('#F0556E'),[0,.3,0]),.55);GAME.placeObj(g,p,0,-.02);const x={kind:'item',id:tr.fruit,p,g,label:(it?it.n:tr.fruit)+' aufheben'};pickups.push(x);g.userData.drop=0}
+        SND.play('soft',{vol:.8});GAME.W.fx(tr.p,'blatt',10,top)}
+      else{const r=Math.random();GAME.W.fx(tr.p,'blatt',8,top);
+        if(r<.1){SND.play('coins');const amt=pick([100,200,300]);money(amt);UI.toast(`${amt} Taler sind aus dem Baum gefallen!`)}
+        else if(r<.32){const id=pick(['ast','ast','blatt_herbst','kiefernzapfen'].filter(x=>findIn(ITEMS,x)));const it=findIn(ITEMS,id);if(it){const p=GAME.W.near(tr.p,.05);const g=mkObj(gg=>it.b(gg,M,{},srand(1)),.55);GAME.placeObj(g,p,0,-.02);pickups.push({kind:'item',id,p,g,label:it.n+' aufheben'});g.userData.drop=0}}
+        else if(r<.45){const pool=bugPool().filter(b=>b.where==='baum');if(pool.length){const b=weighted(pool);const p=GAME.W.near(tr.p,.04);const g=mkObj(gg=>b.b(gg,M,{},srand(1)),.32);GAME.placeObj(g,p,0,.05);bugs.push({def:b,p,home:p.clone(),g,ph:0,fly:false,flee:0,alive:true});UI.toast('Da ist etwas runtergefallen!')}}}},500)}
+  /* ---------- Stein hauen (Tierdorf: Schaufel auf Felsen) ---------- */
+  function hitRock(rk){const day=Math.floor(Date.now()/864e5);if(rk.day!==day){rk.day=day;rk.hits=0}const me=GAME.me;me.act=1;SND.play('metal',{vol:.8});GAME.W.fx(rk.p,'staub',8,GAME.onSurf(rk.p,1));
+    if(rk.hits>=3){UI.toast('Aus diesem Stein kommt heute nichts mehr.');return}rk.hits++;const pid=GG().id;
+    const pool={frost:['eiskristall','stein_klein','kiesel'],wueste:['wuestenrose','stein_klein','kiesel'],schrott:['schraube','kabelrest','stein_klein'],pilz:['leuchtspore','stein_klein','kiesel']}[pid]||['stein_klein','kiesel','stein_klein'];
+    const id=pick(pool.filter(x=>findIn(ITEMS,x)));if(Math.random()<.15){money(100);SND.play('coins');UI.toast('100 Taler sprangen aus dem Stein!');return}
+    const it=findIn(ITEMS,id);if(!it)return;const p=GAME.W.near(rk.p,.06);const g=mkObj(gg=>it.b(gg,M,{},srand(rk.hits)),.5);GAME.placeObj(g,p,0,-.02);pickups.push({kind:'item',id,p,g,label:it.n+' aufheben'});g.userData.drop=0}
+  /* ---------- Sammelsachen je Biom (Äste, Steine, Unkraut, Pilze ...) ---------- */
+  function spawnLitter(n){const me=GAME.me;if(!me)return;for(let i=0;i<n;i++){const p=GAME.W.near(me.p,1+Math.random()*5);const h=GG().hAt(p);if(h<GG().sea+.1)continue;const B=BIOMES[GG().biomeAt(p,h)];if(!B||!B.litter)continue;
+      let s=0;B.litter.forEach(x=>s+=x[1]);let t=Math.random()*s;let id=B.litter[0][0];for(const x of B.litter){t-=x[1];if(t<=0){id=x[0];break}}const it=findIn(ITEMS,id);if(!it)continue;
+      const wp=p.clone().multiplyScalar(GG().R+h);if(!SCATTER.occFree(wp,.3))continue;const g=mkObj(gg=>it.b(gg,M,{},srand(i+3)),.5);GAME.placeObj(g,p,Math.random()*TAU,-.02);pickups.push({kind:'item',id,p,g,label:it.n+' aufheben',litter:true})}}
   /* ---------- Graben ---------- */
   function dig(d){busyState='dig';const me=GAME.me;me.act=1;SND.play('chop');GAME.W.fx(d.p,'staub',10);
     setTimeout(()=>{SND.play('chop');GAME.W.fx(d.p,'staub',10)},450);
@@ -129,10 +139,12 @@ const ACT=(()=>{
     for(const b of bugs){if(!b.alive)continue;b.ph+=dt;const run=me&&me.speed>5&&GAME.angle(me.p,b.p)*GG().R<4;if(run&&b.flee<=0&&(b.def.rarity||2)>=2){b.flee=4;GAME.W.fx(b.p,'staub',3)}
       if(b.flee>0){b.flee-=dt;const away=GAME.tangentTo(b.p,b.p.clone().sub(me.p));if(isFinite(away.x))b.p.applyAxisAngle(new V3().crossVectors(b.p,away).normalize(),dt*3/GG().R).normalize();if(b.flee<=0&&GAME.angle(b.p,me.p)*GG().R>18){b.p.copy(GAME.W.near(me.p,2))}}
       else if(b.fly){const wob=new V3(Math.sin(b.ph*1.3),Math.sin(b.ph*1.7)*.5,Math.cos(b.ph*1.1));b.p.copy(b.home.clone().add(GAME.tangentTo(b.home,wob).multiplyScalar(.04))).normalize()}
-      GAME.placeObj(b.g,b.p,b.ph*(b.fly?1.5:.3),b.fly?1.1+Math.sin(b.ph*3)*.25:b.anchor?1.2:.06);b.g.visible=!me||GAME.angle(b.p,me.p)*GG().R<30}
+      if(b.flee>0&&b.anchor)b.anchor=null;
+      if(b.anchor){/* klettert am Stamm: Bauch zum Stamm, Kopf nach oben */const out=GAME.tangentTo(b.p,b.p.clone().sub(b.anchor.p));b.g.position.copy(GAME.onSurf(b.p,.75+Math.sin(b.ph*.8)*.12));const zx=b.p,yx=out,xx=new V3().crossVectors(yx,zx);b.g.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(xx,yx,zx))}
+      else GAME.placeObj(b.g,b.p,b.ph*(b.fly?1.5:.3),b.fly?1.1+Math.sin(b.ph*3)*.25:.06);b.g.visible=!me||GAME.angle(b.p,me.p)*GG().R<30}
     /* gefallenes Obst hüpft kurz */for(const x of pickups){if(x.g.userData.drop!=null&&x.g.userData.drop<1){x.g.userData.drop+=dt*2.5;const u=x.g.userData.drop;x.g.position.copy(GAME.onSurf(x.p,Math.max(0,(1-u)*2.2*Math.abs(Math.cos(u*PI*1.5)))-.02))}}
-    /* Nachwachsen */respawnT-=dt;if(respawnT<=0){respawnT=45;if(bugs.length<8)spawnBugs(3);if(pickups.filter(p=>['muschel','jakobsmuschel','schneckenhaus','sanddollar','koralle_stueck','seeglas'].includes(p.id)).length<4)spawnShells(3);if(digs.length<3)spawnDigs(2);
-      for(const tr of GG().props){if(!tr.hasFruit&&tr.regrow&&Date.now()>tr.regrow&&tr.g.userData.fruits){tr.hasFruit=true;tr.g.userData.fruits.forEach(f=>f.visible=true)}}}}
+    /* Nachwachsen */respawnT-=dt;if(respawnT<=0){respawnT=45;if(bugs.length<8)spawnBugs(3);if(pickups.filter(p=>['muschel','jakobsmuschel','schneckenhaus','sanddollar','koralle_stueck','seeglas'].includes(p.id)).length<4)spawnShells(3);if(digs.length<3)spawnDigs(2);if(pickups.filter(p=>p.litter).length<14)spawnLitter(6);
+      for(const tr of GG().trees){if(!tr.hasFruit&&tr.regrow&&Date.now()>tr.regrow&&tr.inst.pr.hasFruit){tr.hasFruit=true;SCATTER.setFruit(tr.inst,true)}}}}
   /* Aktion während Angeln = Einholen */
   const origBusy=busy;
   /* ---------- Tasche ---------- */
@@ -156,7 +168,7 @@ const ACT=(()=>{
         if(SAVE.donated[key].includes(x.id))c.append(el('span','badge g','Museum'));
         c.onclick=()=>{if(!has)return;const b=UI.win(x.n,{size:'narrow'});const img=itemThumb(k,x.id);img.style.cssText='width:150px;height:150px;border-radius:16px;background:var(--seaL);align-self:center';b.body.append(img,el('p',null,x.fact||''),el('p','sub',`Gefangen: ${has}× · Wert ${fmt(x.price)} Taler`+(x.size?` · Grösse ${x.size}`:'')+(x.time&&x.time!=='immer'?` · nur ${x.time==='nacht'?'nachts':'tagsüber'}`:'')))};gr.append(c)});body.append(gr)}
     show(tab)}
-  return{targets,waterAhead,fish,shake,busy:()=>!!busyState,frame,onPlanet,bag,emoteMenu,lexikon,party:partyStart,reelIn,get fishing(){return fishing},showCatch};
+  return{targets,waterAhead,fish,shake,hitRock,spawnLitter,busy:()=>!!busyState,frame,onPlanet,bag,emoteMenu,lexikon,party:partyStart,reelIn,get fishing(){return fishing},showCatch};
 })();
 /* Aktionstaste beim Angeln holt ein */
 addEventListener('keydown',e=>{if(ACT.fishing&&(e.key==='e'||e.key==='E'||e.key===' '||e.key==='Enter')){e.preventDefault();e.stopImmediatePropagation();ACT.reelIn()}},true);

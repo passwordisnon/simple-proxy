@@ -847,4 +847,6 @@ IT('schraube',itMeta('Schraube','schrott','material',10),(g,m)=>{const q=grp(g,[
   P(q,G.cy(.09,.09,.62),m.steel(),[0,.04,0]);P(q,G.tu(range(Q(40),(t)=>{const a=t*TAU*7;return[Math.cos(a)*.1,-.26+t*.6,Math.sin(a)*.1]}),.02),m.steel());P(q,G.co(.09,.1),m.steel(),[0,-.31,0],[PI,0,0])});
 IT('kabelrest',itMeta('Kabelrest','schrott','material',15),(g,m)=>{P(g,G.tu(range(Q(30),(t)=>{const a=t*TAU*1.6;const r=.3-t*.08;return[Math.cos(a)*r,.07+t*.08,Math.sin(a)*r]}),.055),m.c('#FF7E6B',{gloss:.8}));const e=[.22*Math.cos(TAU*1.6),.15,.22*Math.sin(TAU*1.6)];
   P(g,G.bx(.16,.12,.2,.04),m.c('#FFFBF0',{gloss:1}),[.3,.07,0]);both(s=>bt(g,[.3+s*.04,.07,.1],[.3+s*.04,.07,.2],.015,m.steel()));range(3,(t,i)=>P(g,G.tu([[e[0],e[1],e[2]],[e[0]-.05+i*.05,e[1]+.08,e[2]-.06]],.012,.008),m.copper()))});
+/* Helfer für Erweiterungen (nature2.js) */
+window.NH={wrap,N,RR,RP,basis,orient,eye,eyes,droop,flatLeaf,leafShape,flowerShape,scallop,crysGeo,crysMat,crystal,trunk,cloud,onBlob,clamGeo,shellMat,spiralShell,shade,ROCK,decalMesh,blobPath,smoothBlob,markGlow,markBlink,fruit,oak,fruitTree,pine,shroom,glowShroomCluster,bush,blossom,flower,FLOWER_COL,coralBranch,stump,F,fishT,fishMeta,fishTex,FT,TAILS,DORSALS,fin2,B,bugMeta,legs,feelers,bugFace,wingPair,WING,wingTex,shellDome,butterfly,REL,relMeta,stoneM,settle,IT,itMeta};
 })();

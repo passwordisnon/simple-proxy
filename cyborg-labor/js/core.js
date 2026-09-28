@@ -23,7 +23,7 @@ const G={
   hs:(r)=>new THREE.SphereGeometry(r,Q(28),Q(10),0,TAU,0,PI/2),
   cy:(rt,rb,h,open)=>new THREE.CylinderGeometry(rt,rb,h,Q(24),1,!!open),
   co:(r,h)=>new THREE.ConeGeometry(r,h,Q(18)),
-  bx:(w,h,d,rad)=>rad?new THREE.RoundedBoxGeometry(w,h,d,Math.max(2,Q(4)),Math.min(rad,Math.min(w,h,d)/2-1e-3)):new THREE.BoxGeometry(w,h,d),
+  bx:(w,h,d,rad)=>rad?new THREE.RoundedBoxGeometry(w,h,d,Math.max(2,Math.round(4*QF)),Math.min(rad,Math.min(w,h,d)/2-1e-3)):new THREE.BoxGeometry(w,h,d),
   to:(R,t,arc)=>new THREE.TorusGeometry(R,t,Q(12),Q(40),arc||TAU),
   ca:(r,len)=>new THREE.CapsuleGeometry(r,Math.max(1e-3,len),Q(8),Q(18)),
   la:(pts,seg)=>new THREE.LatheGeometry(pts.map(p=>new THREE.Vector2(p[0],p[1])),seg||Q(32)),
@@ -34,7 +34,7 @@ const G={
   circ:(r)=>new THREE.CircleGeometry(r,Q(32)),
   ex:(shape,depth,bev)=>new THREE.ExtrudeGeometry(shape,{depth,bevelEnabled:!!bev,bevelThickness:bev||0,bevelSize:bev||0,bevelSegments:3,curveSegments:Q(16)}),
   /* weich extrudiert: dicke, gerundete 2D-Form (Flügel, Blätter, Flossen) */
-  puff:(shape,depth,bev)=>{bev=bev??depth*.45;const g=new THREE.ExtrudeGeometry(shape,{depth,bevelEnabled:true,bevelThickness:bev,bevelSize:bev,bevelSegments:Q(4),curveSegments:Q(18)});g.translate(0,0,-depth/2);g.computeVertexNormals();return g},
+  puff:(shape,depth,bev)=>{bev=bev??depth*.45;const g=new THREE.ExtrudeGeometry(shape,{depth,bevelEnabled:true,bevelThickness:bev,bevelSize:bev,bevelSegments:QF<.35?1:Math.max(2,Math.round(4*QF)),curveSegments:Math.max(3,Math.round(18*QF))});g.translate(0,0,-depth/2);g.computeVertexNormals();return g},
   sh:(shape)=>new THREE.ShapeGeometry(shape,Q(16)),
   tu:(pts,r1,r2,seg)=>tube(pts,r1,r2??r1,seg),
   blob:(r,amp,f,seed)=>blob(r,amp,f,seed),
@@ -260,11 +260,18 @@ function torsoMesh(g,shape,rr,y,mat){
 const OUTLINE_MATS={};const OUTLINE_SCALE={value:1};const OUTLINE_BASE=.0052;
 /* lvl 1..4: dünne Teile bekommen dünnere Linien */
 function outlineMat(col,lvl){lvl=lvl||4;const key=col.getHexString()+lvl;if(OUTLINE_MATS[key])return OUTLINE_MATS[key];
-  const m=new THREE.MeshBasicMaterial({color:col,side:THREE.BackSide});m.userData.keep=true;m.userData.outline=true;const w={value:OUTLINE_BASE*[0,.3,.5,.75,1][lvl]};
+  const m=new THREE.MeshBasicMaterial({color:col,side:THREE.BackSide});m.userData.keep=true;m.userData.outline=true;const w={value:OUTLINE_BASE*[0,.3,.5,.75,1][lvl]};m.userData.ow=w.value;
   m.onBeforeCompile=s=>{s.uniforms.uW=w;s.uniforms.uS=OUTLINE_SCALE;s.vertexShader='uniform float uW;uniform float uS;\n'+s.vertexShader.replace('#include <project_vertex>',
     `#include <project_vertex>
-     {vec3 nn=normalize(normalMatrix*normal);float d=max(0.5,-mvPosition.z);mvPosition.xyz+=nn*uW*uS*d;gl_Position=projectionMatrix*mvPosition;}`)};
+     {
+     #ifdef USE_INSTANCING
+       vec3 nn=normalize(normalMatrix*(mat3(instanceMatrix)*normal));
+     #else
+       vec3 nn=normalize(normalMatrix*normal);
+     #endif
+     float d=max(0.5,-mvPosition.z);mvPosition.xyz+=nn*uW*uS*d;gl_Position=projectionMatrix*mvPosition;}`)};
   m.customProgramCacheKey=()=>'outline';OUTLINE_MATS[key]=m;return m}
+const outlineMatFor=(mat,lvl)=>outlineMat(outlineColorOf(mat),lvl||4);
 function outlineColorOf(mat){let c;if(mat.userData&&mat.userData.metal){c=new THREE.Color({gold:'#8a5a1a',copper:'#7a3a2a',holo:'#6a5a9a'}[mat.userData.metal]||'#5a5a78')}
   else if(mat.color){c=mat.map?new THREE.Color('#6a5a6a'):mat.color.clone()}else c=new THREE.Color('#5a4a6a');
   const hsl={};c.getHSL(hsl);return new THREE.Color().setHSL(hsl.h,Math.min(1,hsl.s*.9+.1),Math.max(.1,hsl.l*.38))}
@@ -280,17 +287,42 @@ function setOutlines(root,on){root.traverse(o=>{if(o.userData.hull)o.visible=on}
 /* ---------- Zusammenführen (weniger Draw-Calls für statische Objekte) ----------
    Führt alle Meshes eines Objekts je Material zusammen (lokal zum Wurzelknoten), inkl. Outline-Hüllen.
    keep: Array von Meshes/Gruppen, die separat bleiben (z. B. Früchte, animierte Teile). */
+/* ---------- Vertex-Farben: viele einfarbige Toon-Materialien → ein Material (weniger Draw-Calls) ---------- */
+const VCM={};
+function vcMat(ds,gl){const k=(ds?'d':'')+(gl?'g':'');return VCM[k]||(VCM[k]=cozy({color:'#ffffff',vertexColors:true,side:ds?THREE.DoubleSide:THREE.FrontSide,rim:.4,gloss:gl?.6:0}))}
+function vcHull(){if(VCM.h)return VCM.h;const m=new THREE.MeshBasicMaterial({color:'#ffffff',vertexColors:true,side:THREE.BackSide});m.userData.keep=true;m.userData.outline=true;
+  m.onBeforeCompile=s=>{s.uniforms.uS=OUTLINE_SCALE;s.vertexShader='uniform float uS;attribute float ow;\n'+s.vertexShader.replace('#include <project_vertex>',
+    `#include <project_vertex>
+     {
+     #ifdef USE_INSTANCING
+       vec3 nn=normalize(normalMatrix*(mat3(instanceMatrix)*normal));
+     #else
+       vec3 nn=normalize(normalMatrix*normal);
+     #endif
+     float d=max(0.5,-mvPosition.z);mvPosition.xyz+=nn*ow*uS*d;gl_Position=projectionMatrix*mvPosition;}`)};
+  m.customProgramCacheKey=()=>'outlineVC';return VCM.h=m}
+function canBake(mt){return mt&&mt.isMeshToonMaterial&&!mt.map&&!mt.transparent&&!mt.vertexColors&&!mt.userData.noBake&&!(mt.emissive&&mt.emissive.getHex()&&mt.emissiveIntensity>0)}
+function paintGeo(geo,c,ow){const n=geo.attributes.position.count;const a=new Float32Array(n*3);for(let i=0;i<n;i++){a[i*3]=c.r;a[i*3+1]=c.g;a[i*3+2]=c.b}geo.setAttribute('color',new THREE.BufferAttribute(a,3));
+  if(ow!=null)geo.setAttribute('ow',new THREE.BufferAttribute(new Float32Array(n).fill(ow),1));return geo}
 function mergeGroup(root,keep){root.updateMatrixWorld(true);const inv=new THREE.Matrix4().copy(root.matrixWorld).invert();const keepSet=new Set();(keep||[]).forEach(k=>k&&k.traverse(o=>keepSet.add(o)));
-  const buckets=new Map();const victims=[];
+  const buckets=new Map();const victims=[];const WHITE=new THREE.Color(1,1,1);
   root.traverse(o=>{if(!o.isMesh||o.userData.hull||keepSet.has(o)||o.userData.noMerge)return;const hull=o.children.find(c=>c.userData.hull);
-    let geo=o.geometry.index?o.geometry.toNonIndexed():o.geometry.clone();for(const k of Object.keys(geo.attributes))if(!['position','normal','uv'].includes(k))geo.deleteAttribute(k);
-    if(!geo.attributes.uv)geo.setAttribute('uv',new THREE.Float32BufferAttribute(new Float32Array(geo.attributes.position.count*2),2));if(!geo.attributes.normal)geo.computeVertexNormals();geo.clearGroups();
-    geo.applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv,o.matrixWorld));const key=o.material.uuid+'|'+(hull?hull.material.uuid:'')+'|'+(o.castShadow?1:0);
-    if(!buckets.has(key))buckets.set(key,{mat:o.material,hull:hull&&hull.material,cast:o.castShadow,list:[]});buckets.get(key).list.push(geo);victims.push(o)});
+    const mt=o.material;const pre=mt.vertexColors&&o.geometry.attributes.color&&Object.values(VCM).includes(mt);/* schon gebacken (zweites Zusammenführen) */
+    const prep=(src,keepAttrs)=>{let geo=src.index?src.toNonIndexed():src.clone();for(const k of Object.keys(geo.attributes))if(!['position','normal','uv',...keepAttrs].includes(k))geo.deleteAttribute(k);
+      if(!geo.attributes.uv)geo.setAttribute('uv',new THREE.Float32BufferAttribute(new Float32Array(geo.attributes.position.count*2),2));if(!geo.attributes.normal)geo.computeVertexNormals();geo.clearGroups();
+      geo.applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv,o.matrixWorld));return geo};
+    const geo=prep(o.geometry,pre?['color']:[]);const bake=pre||canBake(mt);const ds=mt.side===THREE.DoubleSide,gl=mt.userData.gloss>0;
+    const key=bake?'VC'+(ds?'d':'')+(gl?'g':'')+'|'+(o.castShadow?1:0):mt.uuid+'|'+(hull?hull.material.uuid:'')+'|'+(o.castShadow?1:0);
+    if(!pre)paintGeo(geo,bake?mt.color:WHITE);
+    if(!buckets.has(key))buckets.set(key,{mat:bake?vcMat(ds,gl):mt,vc:bake,hull:!bake&&hull&&hull.material,cast:o.castShadow,list:[],hl:[]});
+    const b=buckets.get(key);b.list.push(geo);
+    if(bake&&hull){let hg;if(hull.material===VCM.h&&hull.geometry.attributes.ow)hg=prep(hull.geometry,['color','ow']);else{hg=geo.clone();paintGeo(hg,hull.material.color,hull.material.userData.ow??OUTLINE_BASE*.75)}b.hl.push(hg)}victims.push(o)});
   if(victims.length<3){return root}
   for(const o of victims){o.parent&&o.parent.remove(o)}
   for(const b of buckets.values()){const merged=THREE.BufferGeometryUtils.mergeBufferGeometries(b.list,false);b.list.forEach(g=>g.dispose());if(!merged)continue;
-    const m=new THREE.Mesh(merged,b.mat);m.castShadow=b.cast;m.receiveShadow=true;m.userData.merged=true;root.add(m);if(b.hull){const h=new THREE.Mesh(merged,b.hull);h.userData.hull=true;h.raycast=()=>{};m.add(h)}}
+    const m=new THREE.Mesh(merged,b.mat);m.castShadow=b.cast;m.receiveShadow=true;m.userData.merged=true;root.add(m);
+    if(b.vc&&b.hl.length){const hg=THREE.BufferGeometryUtils.mergeBufferGeometries(b.hl,false);b.hl.forEach(g=>g.dispose());if(hg){const h=new THREE.Mesh(hg,vcHull());h.userData.hull=true;h.raycast=()=>{};m.add(h)}}
+    else if(b.hull){const h=new THREE.Mesh(merged,b.hull);h.userData.hull=true;h.raycast=()=>{};m.add(h)}}
   /* leere Gruppen aufräumen */const empty=[];root.traverse(o=>{if(o!==root&&!o.isMesh&&o.children.length===0&&!keepSet.has(o))empty.push(o)});empty.forEach(o=>o.parent&&o.parent.remove(o));
   return root}
 
