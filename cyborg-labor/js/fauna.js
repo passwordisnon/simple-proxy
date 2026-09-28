@@ -232,12 +232,15 @@ const FAUNA=(()=>{
   function spawn(pid){clear();const r=srand(hashStr('fauna'+pid).length*977+7);let idx=0;
     for(const[key,sp]of Object.entries(S)){if(sp.planet!==pid)continue;let leader=null;
       for(let i=0;i<sp.count;i++){const p=sp.herd&&leader?findSpot(sp,r,leader,5)||findSpot(sp,r):findSpot(sp,r);if(!p)continue;if(!leader)leader=p;
-        const g=new THREE.Group();QF=HIGH?.5:.34;const inner=buildAnimal(sp.a,M_);QF=1;addOutlines(inner);try{mergeCreature(inner,[])}catch(e){}inner.traverse(o=>{if(o.isMesh){o.castShadow=HIGH;o.receiveShadow=false}});
-        inner.scale.setScalar(sp.size*.62);g.add(inner);V_().scene.add(g);
-        const shadow=new THREE.Mesh(new THREE.CircleGeometry(.45*sp.size,16),shadowMat());V_().scene.add(shadow);
-        const lbl=el('div','lbl animal');lbl.style.display='none';$('labels').append(lbl);
-        const id=pid+'-'+key+'-'+i;const a={id,key,sp,g,inner,shadow,lbl,p:p.clone(),home:p.clone(),dir:GAME.tangentTo(p,new V().randomDirection()),speed:0,goal:null,idle:1+r()*4,mode:'',modeT:0,phase:r()*10,dn:sp.names[(i+idx)%sp.names.length],fly:!!sp.fly,alt:0,flee:0,talking:false,heart:0};
-        lbl.textContent=nameOf(a);animals.push(a)}idx++}}
+        mk(key,sp,p,pid+'-'+key+'-'+i,sp.names[(i+idx)%sp.names.length],r())}idx++}
+    /* Haustier aus der Tierhandlung: kommt auf jeden Planeten mit */
+    if(SAVE.pet&&S[SAVE.pet.key]&&GAME.me){const sp=S[SAVE.pet.key];const t=GAME.tangentTo(GAME.me.p,new V(1,0,0));const p=GAME.me.p.clone().addScaledVector(t,1.5/V_().R).normalize();const a=mk(SAVE.pet.key,Object.assign({},sp,{shy:false,water:false,biomes:null}),p,'pet-'+SAVE.pet.key,SAVE.pet.name,.5);a.isPet=true;companion=a}}
+  function mk(key,sp,p,id,dn,ph){const g=new THREE.Group();QF=HIGH?.5:.34;const inner=buildAnimal(sp.a,M_);QF=1;addOutlines(inner);try{mergeCreature(inner,[])}catch(e){}inner.traverse(o=>{if(o.isMesh){o.castShadow=HIGH;o.receiveShadow=false}});
+    inner.scale.setScalar(sp.size*.62);g.add(inner);V_().scene.add(g);
+    const shadow=new THREE.Mesh(new THREE.CircleGeometry(.45*sp.size,16),shadowMat());V_().scene.add(shadow);
+    const lbl=el('div','lbl animal');lbl.style.display='none';$('labels').append(lbl);
+    const a={id,key,sp,g,inner,shadow,lbl,p:p.clone(),home:p.clone(),dir:GAME.tangentTo(p,new V().randomDirection()),speed:0,goal:null,idle:1+ph*4,mode:'',modeT:0,phase:ph*10,dn,fly:!!sp.fly,alt:0,flee:0,talking:false,heart:0};
+    lbl.textContent=nameOf(a);animals.push(a);return a}
   /* Bewegung auf der Kugel */
   function move(a,spd,dt){const G_=V_();const ang=spd*dt/G_.R;const ax=new V().crossVectors(a.p,a.dir).normalize();if(!isFinite(ax.x))return false;const np=a.p.clone().applyAxisAngle(ax,ang).normalize();
     if(!okAt(a.sp,np)&&!(a.mode==='follow'&&!a.sp.water))return false;

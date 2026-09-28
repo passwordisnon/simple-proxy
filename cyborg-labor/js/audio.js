@@ -34,7 +34,7 @@ const SND=(()=>{
     src.start();return src}
   function music(track){wantTrack=track;if(!ctx)return;if(track===curTrack)return;curTrack=track;const file=MUSIC[track]||track;
     const old=curMusic;if(old){const t=ctx.currentTime;old.g.gain.cancelScheduledValues(t);old.g.gain.setValueAtTime(old.g.gain.value,t);old.g.gain.linearRampToValueAtTime(0,t+1.6);setTimeout(()=>{try{old.src.stop()}catch(e){}},1800)}
-    curMusic=null;if(!track)return;
+    curMusic=null;if(!track||track==='stille')return;
     Promise.resolve(load(file)).then(b=>{if(!b||curTrack!==track)return;const src=ctx.createBufferSource();src.buffer=b;src.loop=true;const g=ctx.createGain();g.gain.value=0;src.connect(g);g.connect(musicBus);src.start();
       const t=ctx.currentTime;g.gain.linearRampToValueAtTime(1,t+2);curMusic={src,g}})}
   /* Musik kurz leiser (Jingles, Dialoge) */

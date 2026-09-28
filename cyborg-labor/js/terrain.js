@@ -118,48 +118,52 @@ const PLANETS={
 const PLACES={
   kompost:[
     {id:'platz',n:'Dorfplatz',lat:90,lon:0,r:.15,h:.9,build:'plaza'},
-    {id:'museum',n:'Nationalmuseum',lat:70,lon:0,r:.13,h:.9,build:'museum'},
-    {id:'laden',n:'Kompost-Kiosk',lat:71,lon:74,r:.09,h:.9,build:'shop'},
-    {id:'studio',n:'Farbstudio',lat:71,lon:146,r:.08,h:.9,build:'studio'},
-    {id:'rakete',n:'Raketenstation',lat:70,lon:216,r:.09,h:.9,build:'rocket'},
-    {id:'haus',n:'Dein Haus',lat:69,lon:290,r:.09,h:.9,build:'house'},
+    
+    
+    
+    
+    {id:'haus',n:'Dein Haus',lat:57,lon:300,r:.09,h:.9,build:'house'},
     {id:'teich',n:'Teich',lat:48,lon:110,r:.09,pond:true},
     {id:'teich2',n:'Seerosen-Teich',lat:44,lon:250,r:.08,pond:true},
     {id:'see',n:'Waldsee',lat:20,lon:20,r:.12,pond:true}],
   schrott:[
     {id:'platz',n:'Schrott-Platz',lat:90,lon:0,r:.18,h:.7,build:'plaza'},
-    {id:'laden',n:'Ersatzteil-Basar',lat:67,lon:40,r:.12,h:.7,build:'shop'},
-    {id:'rakete',n:'Raketenstation',lat:67,lon:200,r:.11,h:.7,build:'rocket'},
+    
+    
     {id:'teich',n:'Kühlwasser-Becken',lat:40,lon:120,r:.15,pond:true},
     {id:'teich2',n:'Leuchtbecken',lat:32,lon:300,r:.12,pond:true}],
   korallen:[
     {id:'platz',n:'Strandplatz',lat:90,lon:0,r:.18,h:.8,build:'plaza'},
-    {id:'laden',n:'Muschel-Laden',lat:68,lon:60,r:.12,h:.8,build:'shop'},
-    {id:'rakete',n:'Raketenstation',lat:68,lon:220,r:.12,h:.8,build:'rocket'},
+    
+    
     {id:'insel',n:'Palmeninsel',lat:15,lon:140,r:.2,h:.6}],
   frost:[
     {id:'platz',n:'Eisplatz',lat:90,lon:0,r:.18,h:.8,build:'plaza'},
-    {id:'laden',n:'Iglu-Laden',lat:67,lon:70,r:.11,h:.8,build:'shop'},
-    {id:'rakete',n:'Raketenstation',lat:67,lon:230,r:.11,h:.8,build:'rocket'},
+    
+    
     {id:'teich',n:'Eissee',lat:38,lon:150,r:.16,pond:true},
     {id:'teich2',n:'Polarsee',lat:25,lon:320,r:.12,pond:true}],
   wueste:[
     {id:'platz',n:'Basar-Platz',lat:90,lon:0,r:.18,h:1.0,build:'plaza'},
-    {id:'laden',n:'Oasen-Basar',lat:67,lon:50,r:.11,h:1.0,build:'shop'},
-    {id:'rakete',n:'Raketenstation',lat:67,lon:210,r:.11,h:1.0,build:'rocket'},
+    
+    
     {id:'teich',n:'Oase',lat:42,lon:130,r:.1,pond:true},
     {id:'teich2',n:'Palmen-Oase',lat:30,lon:300,r:.09,pond:true}],
   pilz:[
     {id:'platz',n:'Sporenplatz',lat:90,lon:0,r:.18,h:.7,build:'plaza'},
-    {id:'laden',n:'Sporen-Stübchen',lat:67,lon:80,r:.11,h:.7,build:'shop'},
-    {id:'rakete',n:'Raketenstation',lat:67,lon:240,r:.11,h:.7,build:'rocket'},
+    
+    
     {id:'teich',n:'Sporensee',lat:36,lon:160,r:.15,pond:true},
     {id:'teich2',n:'Moortümpel',lat:28,lon:20,r:.1,pond:true}]
 };
 
+/* Dorf-Ring: alle Gebäude dicht um den Platz, auf jedem Planeten */
+const TOWN_RING=[['museum','museum'],['laden','shop'],['bar','bar'],['studio','studio'],['rathaus','rathaus'],['garage','garage'],['pflanzen','pflanzen'],['rakete','rocket'],['tiere','tiere']];
+function townPlaces(pid){const R=PLANETS[pid].R;const pl=PLACES[pid].find(p=>p.build==='plaza');const h=pl?pl.h:.8;const d=15.5,lat=90-d/R*180/PI;const off={kompost:0,schrott:20,korallen:40,frost:10,wueste:30,pilz:50}[pid]||0;
+  return TOWN_RING.map(([id,build],i)=>({id,n:id,lat,lon:off+i*360/TOWN_RING.length,r:3.6/R,h,build}))}
 /* ================= Höhenfeld & Biome je Planet ================= */
 function makePlanetFns(pid,extra){const def=PLANETS[pid];const seed={kompost:1,schrott:2,korallen:3,frost:4,wueste:5,pilz:6}[pid];const N=perlin3(seed),N2=perlin3(seed+40),N3=perlin3(seed+80);
-  const places=PLACES[pid].map(pl=>Object.assign({dir:dirLL(pl.lat,pl.lon)},pl)).concat(extra||[]);const R=def.R,sea=def.sea,step=def.step;
+  const places=PLACES[pid].concat(townPlaces(pid)).map(pl=>Object.assign({dir:dirLL(pl.lat,pl.lon)},pl)).concat(extra||[]);const R=def.R,sea=def.sea,step=def.step;
   const fbm=(p,f,o)=>N(p.x*f+o,p.y*f,p.z*f)*.6+N(p.x*f*2.1,p.y*f*2.1+o,p.z*f*2.1)*.28+N(p.x*f*4.3,p.y*f*4.3,p.z*f*4.3+o)*.12;
   const plazaDir=places[0].dir;const roads=places.filter(p=>p.build&&p!==places[0]).map(p=>[plazaDir,p.dir]);
   function raw(p){let h=0;

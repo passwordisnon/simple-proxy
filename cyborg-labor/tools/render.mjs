@@ -11,7 +11,7 @@ await new Promise(r => srv.listen(0, r)); const port = srv.address().port;
 const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
 const page = await browser.newPage({ viewport: { width: 1360, height: 900 }, deviceScaleFactor: 1 });
 const logs = []; page.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') logs.push(m.text()) }); page.on('pageerror', e => logs.push('PAGEERROR ' + e.message));
-await page.goto(`http://localhost:${port}/tools/${slot.startsWith("gallery")?"gallery.html?":slot==="fauna"?"fauna.html?":"harness.html?slot="+slot+"&"}${extra}`);
+await page.goto(`http://localhost:${port}/tools/${slot.startsWith("gallery")?"gallery.html?":slot==="fauna"?"fauna.html?":slot==="town"?"town.html?":"harness.html?slot="+slot+"&"}${extra}`);
 await page.waitForFunction(() => window.__done, null, { timeout: 180000 });
 const res = await page.evaluate(() => window.__done);
 await page.waitForTimeout(300);

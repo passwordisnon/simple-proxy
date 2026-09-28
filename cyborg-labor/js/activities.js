@@ -5,7 +5,7 @@
    ===================================================================== */
 /* ---------- Gegenstände ---------- */
 const findIn=(arr,id)=>arr.find(x=>x.id===id);
-function itemDef(kind,id){return kind==='fish'?findIn(FISH,id):kind==='bug'?findIn(BUGS,id):kind==='relic'?findIn(RELICS,id):kind==='item'?findIn(ITEMS,id):kind==='furn'?findFurn(id):kind==='wall'?findIn(WALLPAPERS,id):kind==='floor'?findIn(FLOORS,id):kind==='design'?SAVE.designs.find(d=>d.id===id):null}
+function itemDef(kind,id){return kind==='fish'?findIn(FISH,id):kind==='bug'?findIn(BUGS,id):kind==='relic'?findIn(RELICS,id):kind==='item'?findIn(ITEMS,id):kind==='furn'?findFurn(id):kind==='wall'?findIn(WALLPAPERS,id):kind==='floor'?findIn(FLOORS,id):kind==='design'?SAVE.designs.find(d=>d.id===id):kind==='plant'&&typeof SEEDS!=='undefined'?findIn(SEEDS,id):null}
 function itemName(kind,id){const d=itemDef(kind,id);return d?(d.n||d.name||id):id}
 function itemPrice(kind,id){const d=itemDef(kind,id);if(!d)return 10;if(kind==='furn'||kind==='wall'||kind==='floor')return Math.round((d.price||100)/4);return d.price||50}
 function itemThumb(kind,id){const d=itemDef(kind,id);if(!d){return el('div','ph')}
@@ -60,7 +60,7 @@ const ACT=(()=>{
     for(const b of bugs)if(b.alive)out.push({kind:'bug',p:b.p,r:2,label:'Netz schwingen',act:()=>swingNet(b)});
     for(const o of out)if(o.kind==='pick')o.act=()=>pickUp(o.ref);return out}
   /* ---------- Aufheben ---------- */
-  function pickUp(x){if(!bagAdd(x.kind,x.id)){UI.toast('Die Tasche ist voll. Verkauf etwas im Laden.');SND.play('error');return}SND.play('pickup');GAME.me.act=1;
+  function pickUp(x){if(!bagAdd(x.kind,x.id)){UI.toast('Die Tasche ist voll. Verkauf etwas im Laden.');SND.play('error');return}if(x.litter)SAVE.stats.litter=(SAVE.stats.litter||0)+1;SND.play('pickup');GAME.me.act=1;
     GAME.W.fx(x.p,'stern',5);x.g.parent&&x.g.parent.remove(x.g);disposeTree(x.g);pickups.splice(pickups.indexOf(x),1);UI.toast(itemName(x.kind,x.id)+' eingesteckt')}
   /* ---------- Baum schütteln ---------- */
   function shake(tr){if(tr.shaking)return;tr.shaking=true;setTimeout(()=>tr.shaking=false,900);SCATTER.shake(tr.inst);SND.play('cloth',{vol:.8});SAVE.stats.shakes++;GAME.me.act=1;
@@ -157,6 +157,7 @@ const ACT=(()=>{
     w.foot.append(el('span','sub',`${fmt(SAVE.money)} Taler`),btn('Schliessen',null,()=>w.close()))}
   function itemMenu(it,w){const d=itemDef(it.kind,it.id);const box=UI.win(itemName(it.kind,it.id),{size:'narrow'});const top=el('div','row');const img=itemThumb(it.kind,it.id);img.style.cssText='width:120px;height:120px;flex:none;border-radius:16px;background:var(--seaL)';
     const info=el('div');if(d&&d.fact)info.append(el('p',null,d.fact));info.append(el('p','sub',`Verkaufswert ${fmt(itemPrice(it.kind,it.id))} Taler · du hast ${it.n}`));top.append(img,info);box.body.append(top);
+    if(it.kind==='plant')box.foot.append(btn('Hier einpflanzen','primary',()=>{box.close();w.close();BUILDINGS.plantHere(it.id)}));
     if(it.kind==='furn')box.foot.append(btn('Im Haus aufstellen','primary',()=>{box.close();w.close();UI.toast('Geh nach Hause und drück F für den Einrichten-Modus.')}));
     box.foot.append(btn('Fallen lassen','danger',()=>{bagTake(it.kind,it.id,1);box.close();w.close();bag()}),btn('Zurück',null,()=>box.close()))}
   /* ---------- Emote-Menü ---------- */

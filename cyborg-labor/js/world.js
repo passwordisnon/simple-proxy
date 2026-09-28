@@ -115,9 +115,7 @@ const GAME=(()=>{
   function buildPlaces(){for(const pl of G_.places){if(!pl.build)continue;const g=new THREE.Group();let obj=null;
       QF=HIGH?.7:.42;try{
         if(pl.build==='plaza')obj=buildPlaza(pl);
-        else if(pl.build==='museum'&&window.buildMuseum)obj=buildMuseum(M);
-        else if(pl.build==='shop'&&window.buildShop)obj=buildShop(G_.id,M);
-        else if(pl.build==='studio'&&window.buildPaintStudio)obj=buildPaintStudio(M);
+        else if(TOWN.kinds.includes(pl.build))obj=TOWN.build(pl.build,G_.id,M);
         else if(pl.build==='rocket'&&window.buildRocketPad)obj=buildRocketPad(M);
         else if(pl.build==='house'&&window.buildHouse){obj=buildHouse(SAVE.house.style,M);G_.houseObj=obj}
         else if(pl.build==='residence')obj=HOMES.build(pl,M);
@@ -134,7 +132,9 @@ const GAME=(()=>{
       /* Türpunkt: vor der Tür, aber sicher ausserhalb der Kollision, damit man ihn erreicht */
       const door=obj.userData.door?new V3(...obj.userData.door):new V3(0,0,rad+.8);door.y=0;const dl=Math.hypot(door.x,door.z)||1;const need=rad+.9;if(dl<need){door.x*=need/dl;door.z*=need/dl;if(!door.x&&!door.z)door.z=need}
       const dw=g.localToWorld(door.clone());const dp=dw.clone().normalize();pl.doorP=dp;obj.traverse(o=>{if(o.isMesh)o.userData.place=pl})
-      const label={museum:'Museum betreten',shop:'Einkaufen',studio:'Malen',rocket:'Reisen',house:'Nach Hause'}[pl.build];if(label)G_.inter.push({kind:pl.build,place:pl,p:dp,r:2.2,label});
+      const label={museum:'Museum betreten',shop:'Laden betreten',studio:'Malen',rocket:'Reisen',house:'Nach Hause'}[pl.build];if(label)G_.inter.push({kind:pl.build,place:pl,p:dp,r:2.2,label});
+      const nm=obj.userData.name||'';const ext={bar:['Jazz-Bar betreten',()=>BUILDINGS.enter('bar')],rathaus:['Rathaus betreten',()=>BUILDINGS.enter('rathaus')],garage:['Raketen-Garage',()=>BUILDINGS.garage()],pflanzen:['Gärtnerei',()=>BUILDINGS.plants()],tiere:['Tierhandlung',()=>BUILDINGS.pets()]}[pl.build];
+      if(ext)G_.inter.push({kind:pl.build,place:pl,p:dp,r:2.2,label:ext[0]+(nm?' · '+nm:''),act:ext[1]});
       if(pl.build==='residence')G_.inter.push({kind:'home',place:pl,p:dp,r:2,label:'Bei '+pl.whoName+' klingeln',act:()=>HOMES.knock(pl)})}
     if(G_.id==='kompost'&&G_.houseObj){}
   }
@@ -146,7 +146,7 @@ const GAME=(()=>{
       const wp=g.localToWorld(new V3(o.position.x,0,o.position.z).add(new V3(0,0,(o.userData.r||1)+.9).applyAxisAngle(UPV,o.rotation.y))).normalize();G_.inter.push({kind:L.kind,p:wp,r:2.2,label:L.label});o.traverse(m=>{if(m.isMesh)m.userData.place={build:L.kind,doorP:wp}})})}
   function buildPlaza(pl){const g=new THREE.Group();const fn=(f,...a)=>{try{return window[f]?window[f](...a):null}catch(e){console.warn(f,e);return null}};
     const add=(o,x,z,yaw,label,kind)=>{if(!o)return;addOutlines(o);o.position.set(x,0,z);o.rotation.y=yaw||0;g.add(o);if(label){const off=new V3(x,0,z+(o.userData.r||1)+.6);o.userData._lbl={label,kind,off}}};
-    add(fn('buildFountain',M),0,0,0);add(fn('buildNoticeBoard',M),-3.4,-2.4,.5,'Anschlagbrett','board');add(fn('buildStage',M),3.6,-3.2,-.6,'Tanzfläche','stage');
+    add(fn('buildFountain',M),0,0,0);add(fn('buildNoticeBoard',M),-3.4,-2.4,.5,'Anschlagbrett','board');
     add(fn('buildBench',M),-3.6,2.6,2.4);add(fn('buildBench',M),3.2,3.0,-2.4);add(fn('buildStreetLamp',M),-1.8,3.6,0);add(fn('buildStreetLamp',M),2.2,-.4,0);add(fn('buildMailbox',M),-1.5,-3.8,.3,'Briefkasten','mail');
     add(fn('buildSignpost',M,G_.def.n),1.2,3.4,.2);g.children.forEach(o=>{smartMerge(o);if(o.userData.tick)G_.ticks.push(o)});
     return g}
@@ -274,7 +274,7 @@ const GAME=(()=>{
   function doAction(){if(!me||UI.anyOpen()||ACT.busy())return;const t=promptTarget;SND.init();
     if(!t){if(ACT.busy())return;me.emote='hop';me.jump=.9;return}
     switch(t.kind){case 'talk':talkTo(t.ent);break;case 'tree':ACT.shake(t.ref);break;case 'rock':ACT.hitRock(t.ref);break;case 'fish':ACT.fish(t.p);break;
-      case 'shop':SHOP.open(G_.id);break;case 'museum':INTERIOR.enter('museum');break;case 'house':INTERIOR.enter('house');break;case 'studio':PAINT.open();break;case 'rocket':travelMenu();break;
+      case 'shop':BUILDINGS.enter('shop');break;case 'museum':INTERIOR.enter('museum');break;case 'house':INTERIOR.enter('house');break;case 'studio':PAINT.open();break;case 'rocket':travelMenu();break;
       case 'board':boardMenu();break;case 'stage':ACT.party();break;case 'mail':mailMenu();break;default:if(t.act)t.act()}}
   async function talkTo(e){if(e.kind==='bot'||e.kind==='villager'){await LIFE.interact(e);return}e.talking=true;const old=e.dir.clone();e.lookAt=me;e.stop=99;me.dir.copy(tangentTo(me.p,e.p.clone().sub(me.p)));
     const d=e.d;const nm=d.name||'Namenlos';const pn=SAVE.nick||S.name||'du';const fill=s=>s.replace('{p}',pn);const voice=voiceFor(d);SAVE.stats.talks++;
@@ -332,7 +332,7 @@ const GAME=(()=>{
   function fadeOut(fn){const f=$('fade');f.classList.add('on');setTimeout(async()=>{await fn();setTimeout(()=>f.classList.remove('on'),120)},380)}
   async function loadPlanet(pid){/* alte Szene abbauen */for(const id of[...ents.keys()])dropEnt(id);me=null;W.props.length=0;parts.length=0;
     if(scene){scene.traverse(o=>{if(o.geometry)o.geometry.dispose()});}
-    buildOutdoor(pid);spawnMe();syncVillagers();SOCIAL.onPlanet&&SOCIAL.onPlanet(pid);ACT.onPlanet&&ACT.onPlanet(pid);(typeof FAUNA!=='undefined')&&FAUNA.onPlanet(pid);seedEco();resize();$('clock').querySelector('span').textContent=G_.def.n}
+    buildOutdoor(pid);spawnMe();syncVillagers();SOCIAL.onPlanet&&SOCIAL.onPlanet(pid);ACT.onPlanet&&ACT.onPlanet(pid);try{BUILDINGS.onPlanet(pid)}catch(e){console.warn('Pflanzen',e)}(typeof FAUNA!=='undefined')&&FAUNA.onPlanet(pid);seedEco();resize();$('clock').querySelector('span').textContent=G_.def.n}
   function seedEco(){if(G_.id!=='kompost')return;const r=srand(77);const SEED={schrott:10,pilz:10,kristall:4,stumpf:5,oel:2};for(const[t,n]of Object.entries(SEED))for(let i=0;i<n;i++){const p=randLand(r,G_.sea+.4);if(!p||nearPlace(p))continue;const pr=W.spawn(t,p);if(pr){pr.grow=1;pr.g.scale.setScalar(1)}}}
   const cnt=types=>W.props.filter(x=>!x.dying&&types.includes(x.type)).length;
   function ecoHealth(){const plants=cnt(['baum','tanne','doppelbaum'])+cnt(['blume'])*.5+cnt(['pilz'])*.4+cnt(['moos'])*.3+20;const dirt=cnt(['oel'])*3+cnt(['schrott'])*1.2+cnt(['krater'])*2;return Math.max(0,Math.min(1.2,plants/(plants+dirt*2.2+1)*1.25))}
@@ -377,7 +377,7 @@ const GAME=(()=>{
       let mvv=cf.clone().multiplyScalar(iy).addScaledVector(cr,ix);let mag=Math.min(1,Math.hypot(ix,iy));
       if(mag<.1&&tapTarget&&!busy){const to=tangentTo(me.p,tapTarget.p.clone().sub(me.p));const dist=angle(me.p,tapTarget.p)*G_.R;if(dist<.8||!isFinite(to.x)){const f=tapTarget.then;tapTarget=null;f&&f()}else{mvv=to;mag=1}}else if(mag>.1)tapTarget=null;
       const run=keys['shift']||(input.joy&&Math.hypot(input.joy.x,input.joy.y)>.95);let spd=0;
-      if(mag>.1){mvv.normalize();me.dir.lerp(mvv,Math.min(1,dt*10)).normalize();me.dir.copy(tangentTo(me.p,me.dir));spd=(run?6.8:3.8)*Math.min(1.35,Math.max(.6,me.move.sp))*mag;if(!moveEnt(me,mvv,spd,dt)){spd=0}}
+      if(mag>.1){mvv.normalize();me.dir.lerp(mvv,Math.min(1,dt*10)).normalize();me.dir.copy(tangentTo(me.p,me.dir));spd=(run?6.8:3.8)*Math.min(1.35,Math.max(.6,me.move.sp))*mag*(me.boost>0?1.45:1);if(!moveEnt(me,mvv,spd,dt)){spd=0}}
       me.speed=spd;if(spd>0&&me.emote){me.emote=null;me.emoteT=0;me.dance=0}
       /* Schritte */
       if(spd>0&&!me.move.alt){stepT-=dt*spd*.55;if(stepT<=0){stepT=1;if(run&&Math.random()<.7)W.fx(me.p,'staub',2,onSurf(me.p,.15));const h=G_.hAt(me.p);if(h>G_.sea+.05)SND.play(h<G_.sea+.4?'step_grass':'step_grass',{vol:.28,jitter:.15});else SND.play('soft',{vol:.2,rate:1.4,jitter:.2})}}
@@ -386,6 +386,7 @@ const GAME=(()=>{
     for(const e of ents.values()){if(e===me||e.kind==='peer'){}else stepVillager(e,dt,t);if(e.kind==='peer')SOCIAL.stepPeer(e,dt)}
     const camP=cam.position.clone().normalize();for(const e of ents.values()){const vis=overview?e.p.dot(camP)>.1:e===me||(e.p.dot(camP)>.55&&angle(e.p,me?me.p:e.p)*G_.R<40);e.g.visible=vis;e.shadow.visible=vis;if(vis)poseEnt(e,dt,t)}
     stepProps(dt,t);stepParts(dt);stepClouds(dt);SCATTER.step(dt);stepWeather(dt,t);if(G_.groundU)G_.groundU.uT.value=t;SCATTER.update(overview?cam.position.clone().normalize():(me?me.p:UPV),t,HIGH);stepBall(dt);stepLaunch(dt);for(const o of G_.ticks){try{o.userData.tick(t,false,0)}catch(e){}}
+    if(me){if(me.boost>0)me.boost-=dt;if(me.glitter>0){me.glitter-=dt;if(Math.random()<dt*6)W.fx(me.p,'funke',1,me.g.position.clone().addScaledVector(me.p,.8+Math.random()*.6))}}
     if(me&&!overview){OCC.a.value.copy(cam.position);OCC.b.value.copy(me.g.position).addScaledVector(me.p,.9);OCC.on.value=1}else OCC.on.value=0;ACT.frame(dt,t);if((typeof FAUNA!=='undefined'))try{FAUNA.step(dt,t)}catch(e){console.warn('Fauna',e)}SOCIAL.frame(dt,t);grassU.value=t;G_.waterU.uT.value=t;
     ecoT-=dt;if(ecoT<=0){ecoT=1;ecoTick()}grassU.value=t;
     /* Tageszeit (echte Uhr) */

@@ -1018,6 +1018,7 @@ function buildBridge(m,len){len=Math.max(2,+len||4);const g=new THREE.Group();co
     const k=Math.max(3,Math.round(len/.8));for(let i=0;i<=k;i++){const x=-len/2+i*len/k;const y=deck(x);C(g,.05,.05,.62,dk,[x,y+.31,z*(Wb/2-.02)]);if(i===0||i===k)S(g,.09,m.gloss(PAL.coral),[x,y+.66,z*(Wb/2-.02)])}
     both(e=>C(g,.09,.1,.5,dk,[e*len/2,.12,z*(Wb/2-.1)]))});
   g.userData.len=len;g.userData.width=Wb;g.userData.deckY=deck;return finish(g,[-len/2-.5,0,0],0,'bridge')}
+window.FU={B,C,S,Wd,wallMat,roofMat,winAt,doorAt,signBoard,finish,signTex,decal,awning,crate,flagOn,scallop,shellRibs,starfish,archShape,tu,rtex,houseWin,houseDoor,glassM};
 Object.assign(window,{buildShop,buildMuseum,buildPaintStudio,buildRocketPad,buildNoticeBoard,buildStage,buildBench,buildStreetLamp,buildMailbox,buildSignpost,buildFountain,buildBridge,signTex});
 
 /* Test-Registry für die Galerie (nicht fürs Spiel nötig) */
