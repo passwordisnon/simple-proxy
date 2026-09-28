@@ -149,12 +149,12 @@ X('infusion','Infusionsständer','masch',(g,c)=>{const m=c.m,s=c.s*1.15,L=body(c
   range(4,(t,i)=>{const a=i*PI/2+PI/4,e=[Math.cos(a)*.22*s,.045*s,Math.sin(a)*.22*s];bt(St,[0,.09*s,0],e,.024*s,lm);P(St,G.s(.042*s),m.black(),[e[0],.042*s,e[2]])});
   bt(St,[-.16*s,hT,0],[.1*s,hT,0],.02*s,m.chrome());P(St,G.s(.034*s),lm,[0,hT+.02*s,0]);P(St,G.s(.028*s),m.chrome(),[.1*s,hT,0]);
   const Bg=grp(St,[-.14*s,hT,0]);P(Bg,G.to(.025*s,.01*s),m.chrome(),[0,-.02*s,0]);
-  const bag=grp(Bg,[0,-.2*s,0]);P(bag,G.puff(sshp([[-.1*s,-.14*s],[.1*s,-.14*s],[.11*s,.1*s],[0,.16*s],[-.11*s,.1*s]]),.05*s),m.c('#D6F2FF',{gloss:.9,rim:.7}));
+  const bag=grp(Bg,[0,-.27*s,0]);bag.scale.setScalar(1.5);P(bag,G.puff(sshp([[-.1*s,-.14*s],[.1*s,-.14*s],[.11*s,.1*s],[0,.16*s],[-.11*s,.1*s]]),.05*s),m.c('#D6F2FF',{gloss:.9,rim:.7}));
   P(bag,G.heart(.035*s,.014*s),m.gloss(PAL.strawberry),[0,.01*s,.05*s]);P(bag,G.bx(.14*s,.03*s,.02*s,.01*s),m.gloss(PAL.sky),[0,-.08*s,.045*s]);
-  P(Bg,G.ca(.026*s,.05*s),m.c('#F4FBFF',{rim:.8}),[0,-.4*s,0]);const drop=P(Bg,G.s(.013*s),m.gloss(PAL.sky),[0,-.4*s,0]);
-  const a=toW(Bg,new V3(0,-.44*s,0)),e=surf(c,L.chest-.1*s,2.1,0).p;
+  P(Bg,G.ca(.03*s,.06*s),m.c('#F4FBFF',{rim:.8}),[0,-.54*s,0]);const drop=P(Bg,G.s(.015*s),m.gloss(PAL.sky),[0,-.54*s,0]);
+  const a=toW(Bg,new V3(0,-.59*s,0)),e=surf(c,L.chest-.1*s,2.1,0).p;
   P(g,tu([a,a.clone().add(new V3(0,-.2*s,0)),new V3((a.x+e.x)/2,Math.min(a.y,e.y)-.18*s,(a.z+e.z)/2),e],.013*s),m.c('#EAF6FF',{rim:.8}));
-  c.an((t,w)=>{Bg.rotation.z=Math.sin(t*1.3)*(w?.08:.035);const u=(t*.9)%1;drop.position.y=(-.38-u*.04)*s;drop.scale.setScalar(u<.9?1:0)})});
+  c.an((t,w)=>{Bg.rotation.z=Math.sin(t*1.3)*(w?.08:.035);const u=(t*.9)%1;drop.position.y=(-.52-u*.05)*s;drop.scale.setScalar(u<.9?1:0)})});
 
 X('zahnspange','Zahnspange','masch',(g,c)=>{const m=c.m,s=c.s*1.45,H=c.H;const y=H.faceY-H.r*.42,z=H.front*.9,Rm=H.r*.55;
   const A=grp(g,[0,y,z-Rm]);const cols=[PAL.pink,PAL.sky,PAL.mint,PAL.lemon];
@@ -284,7 +284,7 @@ X('spinnennetz','Spinnennetz','tier',(g,c)=>{const m=c.m,s=c.s*1.4,L=body(c);con
   c.an((t,w,a)=>{const L2=(.13+.03*Math.sin(t*1.6))*s;Bd.position.y=-L2;th.scale.y=L2;Bd.rotation.y=Math.sin(t*.7)*.3;Bd.rotation.z=Math.sin(t*1.6+1)*.05})});
 
 X('tentakelbart','Tentakelbart','tier',(g,c)=>{const m=c.m,s=c.s*1.45,H=c.H;const y=H.faceY-H.r*.52,z=H.front*.82;const tm=m.gloss('#A77BD9'),sm=m.gloss(PAL.pink);
-  P(g,G.s(H.r*.3),tm,[0,y+.02*s,z-.03*s],null,[1.35,.45,.6]);const segs=[];
+  P(g,G.s(H.r*.26),tm,[0,y+.015*s,z-.035*s],null,[1.3,.42,.55]);const segs=[];
   range(5,(t,i)=>{const x=(t-.5)*H.r*.78;const R=grp(g,[x,y,z+.015*s-Math.abs(t-.5)*.1*s],[-.35,0,-(t-.5)*.9]);let par=R;const f=1-Math.abs(t-.5)*.45;
     const Ls=[.085,.08,.075,.065,.055].map(v=>v*s*f),Rs=[.048,.042,.035,.028,.021].map(v=>v*s);
     Ls.forEach((len,k)=>{const S=grp(par,[0,k?-Ls[k-1]:0,0]);P(S,G.ca(Rs[k],len),tm,[0,-len/2,0]);if(k===1||k===2)P(S,G.s(.016*s),sm,[0,-len*.5,Rs[k]*.85],null,[1,1,.5]);segs.push([S,i,k]);par=S})});
@@ -400,7 +400,7 @@ X('kuehlrippen','Kühlrippen','masch',(g,c)=>{const m=c.m,s=c.s*1.3,L=body(c);co
   const leds=range(3,(t,i)=>P(g,G.s(.024*s),m.glow(PAL.orange,1.8),[0,y0+(y1-y0)*(.2+t*.6),mz-.295*s],null,[1,1,.5]));
   c.an((t,w,a)=>{leds.forEach((l,i)=>l.scale.setScalar(.8+.35*Math.max(0,Math.sin(t*2.5-i))+a*.4));fins.forEach(([f,i])=>f.scale.x=1+Math.sin(t*2-i*.7)*.015)})});
 
-X('luefter','Lüfter','masch',(g,c)=>{const m=c.m,s=c.s*1.45,L=body(c);const M=mount(g,c,L.chest-.04*s,0,0,{flat:.85});
+X('luefter','Lüfter','masch',(g,c)=>{const m=c.m,s=c.s*1.45,L=body(c);const M=mount(g,c,L.chest-.12*c.s,0,0,{flat:.85});
   P(M,G.bx(.34*s,.34*s,.08*s,.07*s),m.gloss(PAL.white),[0,0,.03*s]);P(M,G.cy(.14*s,.14*s,.03*s),m.gloss(PAL.navy),[0,0,.06*s],[PI/2,0,0]);
   P(M,G.to(.145*s,.012*s),m.glow(PAL.aqua,1.6),[0,0,.075*s]);
   const F=grp(M,[0,0,.082*s]);const bl=sshp([[0,-.02],[.05,.03],[.12,.05],[.135,-.005],[.07,-.035]].map(p=>[p[0]*s,p[1]*s]));
@@ -497,7 +497,7 @@ X('umhang','Umhang','ding',(g,c)=>{const{s,m}=c,L=body(c);const S=shapeOf(c);con
 
 X('blasenhelm','Blasenhelm','ding',(g,c)=>{const{s,m}=c,H=c.H;const sx=Math.max(H.sideX||H.r,H.r),topC=Math.min(H.top,H.cy+H.r*1.45),bot=H.cy-H.r*.95;
   const rx=sx*1.16+.03*s,ry=(topC-bot)/2*1.14+.04*s,rz=Math.max(H.r,H.front)*1.2+.03*s,cy=(topC+bot)/2+.02*s;
-  P(g,G.s(1),m.glass('#DDF6FF'),[0,cy,0],null,[rx,ry,rz]);
+  P(g,G.s(1),m.glass('#C4EAFF'),[0,cy,0],null,[rx,ry,rz]);
   const glint=(d,sc)=>{d=new V3(...d).normalize();const p=new V3(d.x*rx,cy+d.y*ry,d.z*rz);const k=P(g,G.s(.05*s),m.flat('#ffffff'),[p.x,p.y,p.z],null,sc);k.quaternion.copy(basisQ(new V3(d.x/rx,d.y/ry,d.z/rz)));k.userData.noOutline=true};
   glint([-.45,.5,.75],[1.6,.55,.15]);glint([-.62,.2,.76],[.35,.35,.1]);glint([.5,-.3,.8],[.6,.25,.1]);
   const yc=cy-ry*.8,rc=Math.sqrt(1-.64);P(g,G.to(1,.065*s/Math.max(rx,rz)),m.gloss(PAL.white),[0,yc,0],[PI/2,0,0],[rx*rc,rz*rc,Math.max(rx,rz)]);
@@ -509,7 +509,7 @@ X('blasenhelm','Blasenhelm','ding',(g,c)=>{const{s,m}=c,H=c.H;const sx=Math.max(
 X('engelsfluegel','Engelsflügelchen','ding',(g,c)=>{const m=c.m,s=c.s*1.8,L=body(c);const M=mount(g,c,L.chest+.08*L.rT,PI,-.02*s,{flat:1});const k=1.25*s;
   const wing=sshp([[0,0],[.1,.2],[.26,.36],[.44,.42],[.52,.33],[.46,.2],[.5,.1],[.4,.02],[.42,-.07],[.3,-.1],[.28,-.19],[.14,-.16],[.03,-.08]].map(p=>[p[0]*k,p[1]*k]));
   const inner=sshp([[.05,.03],[.14,.18],[.26,.28],[.37,.3],[.39,.21],[.3,.1],[.31,.0],[.19,-.05],[.09,-.03]].map(p=>[p[0]*k,p[1]*k]));const W=[];
-  both(sg=>{const w=grp(M,[sg*.08*c.s,.02*s,.07*c.s]);const I=grp(w,[0,0,0]);I.scale.set(sg,1,1);P(I,G.puff(wing,.045*s),m.plush('#EEF0FF'));
+  both(sg=>{const w=grp(M,[sg*.08*c.s,.02*s,.07*c.s]);const I=grp(w,[0,0,0]);I.scale.set(sg,1,1);P(I,G.puff(wing,.045*s),m.plush('#FFF5FA'));
     both(z=>P(I,G.puff(inner,.02*s),m.plush('#FFD0E2'),[0,0,z*.035*s]));W.push([w,sg])});
   c.an((t,w,a)=>{const sp=a>0?7:w?4.5:2.2,amp=a>0?.5:w?.25:.12;W.forEach(([q,sg])=>{q.rotation.y=sg*(.35+Math.sin(t*sp)*amp);q.rotation.z=sg*(Math.sin(t*sp)*amp*.35)})})});
 

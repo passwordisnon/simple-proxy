@@ -391,7 +391,7 @@ K('kamerakopf','Kamerakopf','masch',(g,c)=>{const{hy,hr:r,m}=c;const bm=m.gloss(
   const fl=grp(g,[-r*.55,hy+Hh/2+r*.1,0]);P(fl,G.bx(r*.5,r*.28,r*.34,r*.1),cm);P(fl,G.bx(r*.4,r*.18,r*.02,r*.05),m.glow(PAL.lemon,1.2),[0,0,r*.17]);
   P(g,G.cy(r*.1,r*.1,r*.1),m.gloss(PAL.cherry),[r*.6,hy+Hh/2+r*.04,r*.1]);P(g,G.cy(r*.16,r*.16,r*.08),m.chrome(),[r*.2,hy+Hh/2+r*.03,-r*.15]);
   both(x=>P(g,G.to(r*.08,r*.03),m.chrome(),[x*W/2,hy+r*.35,0],[0,PI/2,0]));
-  const rec=P(g,G.s(r*.045),m.glow('#FF4A5A',1.6),[r*.78,hy+r*.3,fz]);c.an(t=>{rec.visible=(t%1.4)<.9;fl.children[1].visible=(t%4)>.12});
+  const rec=P(g,G.s(r*.045),m.glow('#FF4A5A',1.6),[r*.78,hy+r*.3,fz]);const flb=fl.children[1];c.an(t=>{rec.visible=(t%1.4)<.9;if(flb)flb.visible=(t%4)>.12});
   return face(c,{top:hy+Hh/2,front:fz+r*.005,faceY:hy+r*.18,sideX:W/2})});
 
 K('schuessel','Satellitenschüssel','masch',(g,c)=>{const{hy,hr:r,m}=c;const wm=m.gloss(PAL.white),sm=m.gloss(PAL.sky);

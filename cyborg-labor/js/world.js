@@ -136,8 +136,8 @@ const GAME=(()=>{
   function buildGrass(){const def=G_.def;const N=HIGH?9000:3500;const geo=new THREE.ConeGeometry(.07,.26,4,1);geo.translate(0,.13,0);
     const mat=new THREE.MeshToonMaterial({gradientMap:TOON_RAMP});mat.onBeforeCompile=s=>{s.uniforms.uT=grassU;s.vertexShader='uniform float uT;\n'+s.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\n float ph=instanceMatrix[3].x*.7+instanceMatrix[3].z*.5;transformed.x+=sin(uT*2.0+ph)*position.y*.35;transformed.z+=cos(uT*1.6+ph)*position.y*.2;')};
     const im=new THREE.InstancedMesh(geo,mat,N);const m4=new THREE.Matrix4(),q=new THREE.Quaternion(),sc=new V3(),pos=new V3(),col=new THREE.Color();const r=srand(5);let k=0,tries=0;
-    const base=new THREE.Color(def.ground.mid),hi=new THREE.Color(def.ground.high);
-    while(k<N&&tries<N*5){tries++;const p=new V3(r()*2-1,r()*2-1,r()*2-1).normalize();const h=G_.hAt(p);if(h<G_.sea+.4||nearPlace(p,1))continue;
+    const kor=G_.id==='korallen';const base=new THREE.Color(kor?def.ground.high:def.ground.mid),hi=new THREE.Color(kor?def.ground.peak:def.ground.high);const minH=kor?G_.sea+1.0:G_.sea+.4;const NN=G_.id==='schrott'?Math.round(N*.45):N;
+    while(k<NN&&tries<N*5){tries++;const p=new V3(r()*2-1,r()*2-1,r()*2-1).normalize();const h=G_.hAt(p);if(h<minH||nearPlace(p,1))continue;
       q.setFromUnitVectors(UPV,p);q.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler((r()-.5)*.4,r()*TAU,(r()-.5)*.4)));const s=.7+r()*.8;sc.set(s,s*(.7+r()*.7),s);pos.copy(p).multiplyScalar(G_.R+h-.02);
       m4.compose(pos,q,sc);im.setMatrixAt(k,m4);col.copy(base).lerp(hi,r()).offsetHSL((r()-.5)*.04,.05,.04+r()*.08);im.setColorAt(k,col);k++}
     im.count=k;im.receiveShadow=true;G_.scene.add(im);G_.grass=im}
@@ -159,11 +159,11 @@ const GAME=(()=>{
   function scatterNature(){const def=G_.def;const r=srand({kompost:11,schrott:22,korallen:33}[G_.id]);const fruitTypes={kompost:['apfel','kirsche','pfirsich','birne'],schrott:['birne'],korallen:['orange','kokosnuss']}[G_.id];
     for(const[type,count]of def.scatter){let n=Math.round(count*(HIGH?1:.7));for(let i=0;i<n;i++){
       const water=['seerose','schilf'].includes(type);const p=water?findPondEdge(r,type==='seerose'):randLand(r,type==='muschel_deko'||type==='treibholz'||type==='palme'?G_.sea+.05:G_.sea+.35,type==='muschel_deko'||type==='treibholz'?G_.sea+.5:99);if(!p||nearPlace(p))continue;
-      const info=NATURE[type]||{};const inter=type==='obstbaum'||type==='palme'||type==='eiche'||type==='tanne'||type==='kristallbaum';
-      if(inter){const opt=type==='obstbaum'?{fruit:fruitTypes[i%fruitTypes.length]}:type==='palme'?{fruit:'kokosnuss'}:{};const g=makeNature(type,opt,i+1);g.traverse(o=>{if(o.isMesh){o.castShadow=HIGH;o.receiveShadow=true}});mergeTree(g);placeObj(g,p,r()*TAU,-.05);g.scale.setScalar(.9+r()*.3);G_.scene.add(g);
-        const tree={type,p,g,fruit:opt.fruit||null,hasFruit:!!(g.userData.fruits&&g.userData.fruits.length),shakeT:0,r:info.r||.6};G_.obst.push({p,r:tree.r});G_.props.push(tree);G_.inter.push({kind:'tree',ref:tree,p,r:1.6})}
+      const info=NATURE[type]||{};const inter=['obstbaum','palme','eiche','tanne','kristallbaum','antennenbaum'].includes(type);
+      if(inter){const opt=type==='obstbaum'?{fruit:fruitTypes[i%fruitTypes.length]}:type==='palme'?{fruit:'kokosnuss'}:{};const fruitId=opt.fruit||{kristallbaum:'seeglas',antennenbaum:'schraube'}[type]||null;const g=makeNature(type,opt,i+1);g.traverse(o=>{if(o.isMesh){o.castShadow=HIGH;o.receiveShadow=true}});mergeTree(g);placeObj(g,p,r()*TAU,-.05);g.scale.setScalar(.9+r()*.3);G_.scene.add(g);
+        const tree={type,p,g,fruit:fruitId,hasFruit:!!(g.userData.fruits&&g.userData.fruits.length),shakeT:0,r:info.r||.6};G_.obst.push({p,r:tree.r});G_.props.push(tree);G_.inter.push({kind:'tree',ref:tree,p,r:1.6})}
       else{const g=makeNature(type,type==='blume'?{color:pick(['#FF8FB8','#FFE27A','#FFFDF7','#C6A9FF','#FF7E6B','#7FDCE6']),kind:pick(['tulpe','rose','gaensebluemchen','kosmee','lilie'])}:{},i+7);
-        placeObj(g,p,r()*TAU,water&&type==='seerose'?(G_.sea-G_.hAt(p)):-.03);g.scale.setScalar(.85+r()*.35);if(water&&type==='seerose'){g.position.copy(p.clone().multiplyScalar(G_.R+G_.sea+.02))}staticBatch.push(g);if(info.r&&info.r>.25)G_.obst.push({p,r:info.r})}}}
+        placeObj(g,p,r()*TAU,water&&type==='seerose'?(G_.sea-G_.hAt(p)):-.03);g.scale.setScalar(.85+r()*.35);if(water&&type==='seerose'){g.position.copy(p.clone().multiplyScalar(G_.R+G_.sea+.02))}staticBatch.push(g);if(info.cols){g.updateMatrixWorld(true);for(const[cx,cz,cr]of info.cols){const wp=g.localToWorld(new V3(cx,0,cz)).normalize();G_.obst.push({p:wp,r:cr*g.scale.x})}}else if(info.r&&info.r>.25)G_.obst.push({p,r:info.r})}}}
     bakeStatic(G_.scene)}
   /* Baum: Stamm+Krone zusammenführen, Früchte zu einem Mesh bündeln (ein-/ausblendbar) */
   function mergeTree(g){const fr=g.userData.fruits||[];if(fr.length){const holder=new THREE.Group();g.add(holder);g.updateMatrixWorld(true);const inv=new THREE.Matrix4().copy(g.matrixWorld).invert();
@@ -397,7 +397,7 @@ const GAME=(()=>{
   $('hbA').onclick=()=>{if(mode==='interior')INTERIOR.action();else doAction()};
 
   /* ================= Schleife ================= */
-  let stepT=0,dayT=0,ecoT=2,camSnap=true;
+  let stepT=0,dayT=0,ecoT=2,camSnap=true,overview=null;
   function frame(dt,t){if(!scene)return;
     if(mode==='interior'){INTERIOR.frame(dt,t);for(const e of ents.values())if(e.inside){poseInside(e,dt,t)}INTERIOR.render();labelsInterior();stepParts(dt);return}
     /* Spieler-Eingabe */
@@ -416,13 +416,14 @@ const GAME=(()=>{
       SAVE.lastPos={planet:G_.id,p:[+me.p.x.toFixed(4),+me.p.y.toFixed(4),+me.p.z.toFixed(4)]}}
     /* Figuren */
     for(const e of ents.values()){if(e===me||e.kind==='peer'){}else stepVillager(e,dt,t);if(e.kind==='peer')SOCIAL.stepPeer(e,dt)}
-    const camP=cam.position.clone().normalize();for(const e of ents.values()){const vis=e===me||(e.p.dot(camP)>.55&&angle(e.p,me?me.p:e.p)*G_.R<40);e.g.visible=vis;e.shadow.visible=vis;if(vis)poseEnt(e,dt,t)}
+    const camP=cam.position.clone().normalize();for(const e of ents.values()){const vis=overview?e.p.dot(camP)>.1:e===me||(e.p.dot(camP)>.55&&angle(e.p,me?me.p:e.p)*G_.R<40);e.g.visible=vis;e.shadow.visible=vis;if(vis)poseEnt(e,dt,t)}
     stepProps(dt,t);stepParts(dt);stepClouds(dt);stepBall(dt);stepLaunch(dt);for(const o of G_.ticks){try{o.userData.tick(t,false,0)}catch(e){}}ACT.frame(dt,t);SOCIAL.frame(dt,t);grassU.value=t;G_.waterU.uT.value=t;
     ecoT-=dt;if(ecoT<=0){ecoT=1;ecoTick()}
     /* Tageszeit (echte Uhr) */
     dayT-=dt;if(dayT<=0){dayT=5;dayLight()}
     /* Kamera */
-    if(me){const cf=camF.clone().applyAxisAngle(me.p,camYaw);const up=me.p;const target=me.g.position.clone().addScaledVector(up,1.1);
+    if(overview){overview.az+=dt*.06;const d=G_.R*3.1;const want=new V3(Math.cos(overview.az)*Math.cos(.5),Math.sin(.5),Math.sin(overview.az)*Math.cos(.5)).multiplyScalar(d);cam.position.lerp(want,Math.min(1,dt*2));cam.up.set(0,1,0);cam.lookAt(0,0,0)}
+    else if(me){const cf=camF.clone().applyAxisAngle(me.p,camYaw);const up=me.p;const target=me.g.position.clone().addScaledVector(up,1.1);
       const want=target.clone().addScaledVector(cf,-camDist*Math.cos(camPitch)).addScaledVector(up,camDist*Math.sin(camPitch)+.6);
       if(camSnap||cam.position.distanceTo(want)>30){cam.position.copy(want);cam.up.copy(up);camSnap=false}else{cam.position.lerp(want,Math.min(1,dt*6));cam.up.lerp(up,Math.min(1,dt*6))}cam.lookAt(target);
       /* Sonne folgt Spieler (Schatten) */const sp=me.p.clone();const sd=tangentTo(sp,new V3(.5,.2,.6)).multiplyScalar(.9).add(sp).normalize();G_.sun.position.copy(me.g.position).addScaledVector(sd,40).addScaledVector(sp,26);G_.sun.target.position.copy(me.g.position);G_.fill.position.copy(me.g.position).addScaledVector(sp,10).addScaledVector(sd,-15)
@@ -446,9 +447,9 @@ const GAME=(()=>{
     G_.sun.intensity=1-night*.6;G_.sun.color.set(dusk?'#ffd9b0':'#fff3de');G_.hemi.intensity=.52-night*.12;G_.hemi.color.set(night>.5?'#8f9cff':'#dff1ff');G_.stars.material.opacity=night;G_.scene.fog.color.set(night>.5?'#4b4a86':def.fog)}
   /* ---------- Namensschilder & Sprechblasen ---------- */
   const tV=new V3();
-  function labels(){const w=canvas.clientWidth,h=canvas.clientHeight;for(const e of ents.values()){const near=me&&(e===me||angle(e.p,me.p)*G_.R<16);const show=e.g.visible&&near;
+  function labels(){const w=canvas.clientWidth,h=canvas.clientHeight;const camN=cam.position.clone().normalize();for(const e of ents.values()){const near=overview?e.p.dot(camN)>.3:me&&(e===me||angle(e.p,me.p)*G_.R<16);const show=e.g.visible&&near;
       const top=tV.copy(e.g.position).addScaledVector(e.p,e.height+.3);top.project(cam);if(!show||top.z>1){e.lbl.style.display='none';e.bub.style.display='none';continue}
-      const x=(top.x+1)/2*w,y=(1-top.y)/2*h;const nameOn=e!==me&&(angle(e.p,me.p)*G_.R<7||e.kind!=='villager');e.lbl.style.display=nameOn?'':'none';e.lbl.style.left=x+'px';e.lbl.style.top=y+'px';
+      const x=(top.x+1)/2*w,y=(1-top.y)/2*h;const nameOn=overview?e.kind!=='bot':e!==me&&(angle(e.p,me.p)*G_.R<7||e.kind!=='villager');e.lbl.style.display=nameOn?'':'none';e.lbl.style.left=x+'px';e.lbl.style.top=y+'px';
       e.bub.style.display=e.bub.hidden?'none':'';e.bub.style.left=x+'px';e.bub.style.top=(y-(nameOn?24:4))+'px'}}
   function labelsInterior(){const w=canvas.clientWidth,h=canvas.clientHeight;for(const e of ents.values()){if(!e.inside){e.lbl.style.display='none';e.bub.style.display='none';continue}const top=tV.copy(e.g.position).add(new V3(0,e.height+.3,0)).project(INTERIOR.cam);
       const x=(top.x+1)/2*w,y=(1-top.y)/2*h;e.lbl.style.display=e===me?'none':'';e.lbl.style.left=x+'px';e.lbl.style.top=y+'px';e.bub.style.display=e.bub.hidden?'none':'';e.bub.style.left=x+'px';e.bub.style.top=(y-24)+'px'}}
@@ -459,6 +460,7 @@ const GAME=(()=>{
   function quality(){R.shadowMap.enabled=HIGH;if(scene)loadPlanet(G_.id)}
   async function init(){await loadPlanet(planetId);dayLight()}
   function onAvatarChanged(){if(!me||!scene)return;const p=me.p.clone(),dir=me.dir.clone();const inside=me.inside;const ix=me.ix,iz=me.iz;dropEnt('__me');me=makeEnt(avatarData(),{kind:'me',p,q:HIGH?.9:.6,me:true});me.dir.copy(dir);if(inside){INTERIOR.adopt(me);me.ix=ix;me.iz=iz}}
-  return{_joy:()=>input.joy,init,frame,resize,quality,travel,syncVillagers,onAvatarChanged,W,G:G_,ents,get me(){return me},get scene(){return scene},cam,R,say,makeEnt,dropEnt,moveEnt,onSurf,placeObj,angle,tangentTo,isLand,randLand,note,
+  function toggleOverview(){overview=overview?null:{az:Math.atan2(cam.position.z,cam.position.x)};if(!overview)camSnap=true;UI.toast(overview?'Beamer-Übersicht: alle Cyborgs auf einen Blick. Nochmals drücken zum Beenden.':'Zurück zur Spielfigur');return!!overview}
+  return{_load:loadPlanet,toggleOverview,get overview(){return!!overview},_joy:()=>input.joy,init,frame,resize,quality,travel,syncVillagers,onAvatarChanged,W,G:G_,ents,get me(){return me},get scene(){return scene},cam,R,say,makeEnt,dropEnt,moveEnt,onSurf,placeObj,angle,tangentTo,isLand,randLand,note,
     get mode(){return mode},set mode(v){mode=v},showCard,talkTo,voiceFor,fadeOut,parts,makeNature,nearPlace,get camF(){return camF},get night(){return G_.night||0}};
 })();

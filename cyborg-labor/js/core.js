@@ -298,7 +298,7 @@ function mergeGroup(root,keep){root.updateMatrixWorld(true);const inv=new THREE.
 /* Kreatur zusammenführen: animierte Knoten erkennen (Transform/Sichtbarkeit/Geometrie/Material ändert sich).
    Statische Meshes werden in ihren nächsten animierten Vorfahren (Anker) gemergt – so bleiben Animationen intakt. */
 function mergeCreature(g,extra){const objs=[];g.traverse(o=>{if(o!==g)objs.push(o)});const snap=()=>objs.map(o=>[o.position.x,o.position.y,o.position.z,o.quaternion.x,o.quaternion.y,o.quaternion.z,o.quaternion.w,o.scale.x,o.scale.y,o.scale.z,o.visible?1:0,o.material&&o.material.uuid,o.geometry&&o.geometry.attributes.position&&o.geometry.attributes.position.version].join(','));
-  const T=[[.37,false,0],[1.91,true,1],[3.3,false,.5],[5.2,true,0],[7.7,false,.9],[11.1,true,.3]];const shots=T.map(([t,w,a])=>{g.userData.tick(t,w,a);return snap()});
+  const T=[[.37,false,0],[1.91,true,1],[3.3,false,.5],[5.2,true,0],[7.7,false,.9],[11.1,true,.3],[.04,false,0],[4.05,true,0],[8.02,false,.2],[2.61,true,.6],[6.55,false,0]];const shots=T.map(([t,w,a])=>{g.userData.tick(t,w,a);return snap()});
   const dyn=new Set();objs.forEach((o,i)=>{if(shots.some(s=>s[i]!==shots[0][i]))dyn.add(o)});(extra||[]).forEach(o=>o&&dyn.add(o));
   /* Anker: Wurzel + animierte Nicht-Meshes; animierte Meshes bleiben einzeln */
   const anchors=[g,...[...dyn].filter(o=>!o.isMesh)];
@@ -339,7 +339,7 @@ function buildCreature(d,opt){
   if(opt.blob){const bm=new THREE.MeshBasicMaterial({map:ctex('blob',128,128,(x,w,h)=>{const gr=x.createRadialGradient(64,64,4,64,64,62);gr.addColorStop(0,'rgba(60,40,90,.35)');gr.addColorStop(.6,'rgba(60,40,90,.18)');gr.addColorStop(1,'rgba(60,40,90,0)');x.fillStyle=gr;x.fillRect(0,0,w,h)}),transparent:true,depthWrite:false});const bl=P(g,G.circ(r*1.7),bm,[0,.03,0],[-PI/2,0,0]);bl.castShadow=false;bl.receiveShadow=false;bl.userData.noOutline=true}
   g.updateMatrixWorld(true);const box=new THREE.Box3().setFromObject(only?focus:g);
   g.userData.height=box.max.y;g.userData.box=box;g.userData.focus=focus;
-  g.userData.tick=(t,w,a)=>{for(const f of an)f(t,w,a||0)};
+  g.userData.tick=(t,w,a)=>{for(let i=0;i<an.length;i++){try{an[i](t,w,a||0)}catch(e){an.splice(i--,1)}}};
   if(opt.merge&&!only){try{mergeCreature(g)}catch(e){console.warn('merge',e)}}
   return g;
 }
