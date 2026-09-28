@@ -18,12 +18,12 @@ const GAME=(()=>{
 
   /* ================= Aufbau Aussenwelt ================= */
   function buildOutdoor(pid){
-    const def=PLANETS[pid];const fns=makePlanetFns(pid);const Rr=def.R;Object.assign(G_,{id:pid,def,hAt:fns.hAt,biomeAt:fns.biomeAt,places:fns.places,R:Rr,sea:def.sea,paths:fns.roads,roadDist:fns.roadDist,fns});
+    const def=PLANETS[pid];let homeSpots=[];try{homeSpots=HOMES.spots(pid,makePlanetFns(pid))}catch(e){console.warn('Häuser',e)}const fns=makePlanetFns(pid,homeSpots);const Rr=def.R;Object.assign(G_,{id:pid,def,hAt:fns.hAt,biomeAt:fns.biomeAt,places:fns.places,R:Rr,sea:def.sea,paths:fns.roads,roadDist:fns.roadDist,fns});
     const sc=new THREE.Scene();sc.background=skyTex(def.sky[0],def.sky[1],pid);sc.fog=new THREE.Fog(def.fog,Rr*.7,Rr*1.9);
     const hemi=new THREE.HemisphereLight('#dff1ff','#f0c9a8',.52);sc.add(hemi);
     const sun=new THREE.DirectionalLight('#fff3de',1.0);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-22,right:22,top:22,bottom:-22,near:1,far:110});sun.shadow.bias=-.0006;sun.shadow.normalBias=.04;sc.add(sun);sc.add(sun.target);
     const fill=new THREE.DirectionalLight('#c9d8ff',.18);sc.add(fill);
-    const detail=Math.round(Rr*(HIGH?2.9:1.9));
+    const detail=Math.round(Rr*(HIGH?3.4:2.3));
     const planet=buildTerrainMesh(fns,detail);sc.add(planet);G_.planet=planet;G_.hAt=makeSurface(planet,fns);G_.groundU=planet.material.userData.U;
     const W_=buildWaterMesh(fns,Math.round(detail*.5));sc.add(W_.mesh);G_.water=W_.mesh;G_.waterU=W_.U;
     /* Atmosphäre */
@@ -120,6 +120,7 @@ const GAME=(()=>{
         else if(pl.build==='studio'&&window.buildPaintStudio)obj=buildPaintStudio(M);
         else if(pl.build==='rocket'&&window.buildRocketPad)obj=buildRocketPad(M);
         else if(pl.build==='house'&&window.buildHouse){obj=buildHouse(SAVE.house.style,M);G_.houseObj=obj}
+        else if(pl.build==='residence')obj=HOMES.build(pl,M);
       }catch(e){console.warn('Gebäude',pl.build,e)}QF=1;
       if(!obj){obj=new THREE.Group();P(obj,G.bx(3,2.4,3,.4),M.c('#FFE3B8'),[0,1.2,0]);P(obj,G.co(2.6,1.6),M.c('#F0556E'),[0,3.2,0])}
       if(pl.build!=='plaza')addOutlines(obj);obj.traverse(o=>{if(o.isMesh){o.castShadow=HIGH;o.receiveShadow=true}});smartMerge(obj);if(obj.userData.tick)G_.ticks.push(obj);g.add(obj);
@@ -133,7 +134,8 @@ const GAME=(()=>{
       /* Türpunkt: vor der Tür, aber sicher ausserhalb der Kollision, damit man ihn erreicht */
       const door=obj.userData.door?new V3(...obj.userData.door):new V3(0,0,rad+.8);door.y=0;const dl=Math.hypot(door.x,door.z)||1;const need=rad+.9;if(dl<need){door.x*=need/dl;door.z*=need/dl;if(!door.x&&!door.z)door.z=need}
       const dw=g.localToWorld(door.clone());const dp=dw.clone().normalize();pl.doorP=dp;obj.traverse(o=>{if(o.isMesh)o.userData.place=pl})
-      const label={museum:'Museum betreten',shop:'Einkaufen',studio:'Malen',rocket:'Reisen',house:'Nach Hause'}[pl.build];if(label)G_.inter.push({kind:pl.build,place:pl,p:dp,r:2.2,label})}
+      const label={museum:'Museum betreten',shop:'Einkaufen',studio:'Malen',rocket:'Reisen',house:'Nach Hause'}[pl.build];if(label)G_.inter.push({kind:pl.build,place:pl,p:dp,r:2.2,label});
+      if(pl.build==='residence')G_.inter.push({kind:'home',place:pl,p:dp,r:2,label:'Bei '+pl.whoName+' klingeln',act:()=>HOMES.knock(pl)})}
     if(G_.id==='kompost'&&G_.houseObj){}
   }
   /* Kinder einer flachen Gruppe einzeln auf die gekrümmte Oberfläche setzen (sonst schweben sie am Rand) */
@@ -165,7 +167,7 @@ const GAME=(()=>{
 
   /* ---------- Spieler ---------- */
   let me=null;const input={x:0,y:0,run:false,joy:null};let camYaw=0,camPitch=.42,camDist=10.5,camF=new V3(1,0,0);let tapTarget=null;
-  function avatarData(){const d=sanitize(JSON.parse(JSON.stringify(S)));d.id='__me';if(!d.name.trim())d.name=SAVE.nick||'Du';return d}
+  function avatarData(){const own=HOMES.avatar();const d=sanitize(own||JSON.parse(JSON.stringify(S)));d.id='__me';if(!d.name.trim())d.name=SAVE.nick||'Du';return d}
   function spawnMe(){if(me)dropEnt('__me');const start=SAVE.lastPos&&SAVE.lastPos.planet===G_.id?new V3(...SAVE.lastPos.p).normalize():(G_.places.find(p=>p.id==='platz')||{dir:new V3(0,1,0)}).dir.clone().applyAxisAngle(new V3(1,0,0),.13).normalize();
     me=makeEnt(avatarData(),{kind:'me',p:start,q:HIGH?.9:.6,me:true});me.lbl.textContent=me.d.name;camSnap=true;camF=tangentTo(me.p,new V3(0,0,-1));if(camF.lengthSq()<.5)camF=tangentTo(me.p,new V3(1,0,0))}
 
@@ -208,9 +210,9 @@ const GAME=(()=>{
   W.note=note;function note(txt){const d=el('div',null,txt);tickerEl.prepend(d);while(tickerEl.children.length>4)tickerEl.lastChild.remove();setTimeout(()=>d.remove(),7000)}
 
   /* ================= Bewohner:innen ================= */
-  function syncVillagers(){if(!scene)return;const want=new Map(allCreatures().map(d=>[d.id,d]));for(const[id,e]of[...ents])if(e.kind==='villager'&&!want.has(id))dropEnt(id);
-    if(G_.id!=='kompost'){for(const[id,e]of[...ents])if(e.kind==='villager')dropEnt(id);updPop();return}
-    const r=srand(3);for(const[id,d]of want)if(!ents.has(id)){const pl=pick(G_.places.filter(x=>x.build));const p=W.near(pl.dir,.25/K*1.2)||randLand(r);makeEnt(d,{kind:'villager',p})}updPop()}
+  function syncVillagers(){if(!scene)return;const want=new Map(HOMES.residents(G_.id).map(d=>[d.id,d]));for(const[id,e]of[...ents])if(e.kind==='villager'&&!want.has(id))dropEnt(id);
+    const r=srand(3);for(const[id,d]of want)if(!ents.has(id)){const home=G_.places.find(x=>x.who===id);const pl=home||pick(G_.places.filter(x=>x.build));const p=home&&home.doorP?home.doorP.clone():W.near(pl.dir,.25/K*1.2)||randLand(r);
+      const e=makeEnt(d,{kind:'villager',p});if(home){e.home=home.doorP.clone();e.homeP=home.doorP.clone();e.homePl=home}}updPop()}
   function updPop(){const n=[...ents.values()].filter(e=>e.kind==='villager').length;$('popCount').textContent=`${WORLD.length} eigene · ${n} wohnen hier`}
 
   /* ---------- Bewegung einer Figur ---------- */
@@ -252,7 +254,7 @@ const GAME=(()=>{
     /* weiches Squash beim Laufen */
     const sq=moving&&!e.move.alt?1+Math.sin(t*10+e.phase)*.03:1+Math.sin(t*2+e.phase)*.012;e.g.scale.set(CS*(2-sq)*.5+CS*.5,CS*sq,CS*(2-sq)*.5+CS*.5);
     const dist=me&&e!==me?angle(e.p,me.p)*G_.R:0;const far=dist>13;if(far!==e.far){e.far=far;setOutlines(e.g,!far&&HIGH)}
-    const hide=!overview&&dist>(HIGH?40:30);e.g.visible=!hide;e.shadow.visible=!hide;
+    const hide=e.inHome||!overview&&dist>(HIGH?40:30);e.g.visible=!hide;e.shadow.visible=!hide;
     if(!hide&&!far||!hide&&((t*10|0)%3===0))e.g.userData.tick(t+e.phase,moving,e.act);
     e.shadow.position.copy(e.p).multiplyScalar(surfR(e.p,true)+.03);e.shadow.quaternion.setFromUnitVectors(new V3(0,0,1),e.p);const ss=Math.max(.4,1-alt*.25);e.shadow.scale.setScalar(ss);
     if(e.sayT>0){e.sayT-=dt;if(e.sayT<=0)e.bub.hidden=true}
@@ -262,7 +264,7 @@ const GAME=(()=>{
   let promptTarget=null;
   function findTarget(){if(!me)return null;let best=null,bs=1e9;const fw=me.dir;
     const consider=(p,r,obj)=>{const d=angle(me.p,p)*G_.R;if(d>r)return;const to=tangentTo(me.p,p.clone().sub(me.p));const facing=isFinite(to.x)?to.dot(fw):1;const score=d-facing*.8+(obj.prio||0);if(score<bs){bs=score;best=obj}};
-    for(const e of ents.values()){if(e===me||e.kind==='peer')continue;consider(e.p,2.4,{kind:'talk',ent:e,label:(e.kind==='bot'?'Winken: ':'Reden: ')+(e.d.name||'Namenlos'),prio:-.6})}
+    for(const e of ents.values()){if(e===me||e.kind==='peer'||e.inHome)continue;consider(e.p,2.4,{kind:'talk',ent:e,label:(e.kind==='bot'?'Winken: ':'Reden: ')+(e.d.name||'Namenlos'),prio:-.6})}
     for(const it of G_.inter)consider(it.p,it.r+.4,Object.assign({},it,{label:it.label||it.kind}));
     for(const o of obstAround(me.p,4)){if(!o.ref)continue;if(o.ref.kind==='tree')consider(o.p,o.r+1.5,{kind:'tree',ref:o.ref,label:o.ref.hasFruit?'Baum schütteln (Früchte!)':'Baum schütteln'});else if(o.ref.kind==='rock')consider(o.p,o.r+1.4,{kind:'rock',ref:o.ref,label:'Mit der Schaufel auf den Stein hauen'})}
     for(const it of ACT.targets())consider(it.p,it.r||1.6,it);
@@ -364,7 +366,7 @@ const GAME=(()=>{
 
   /* ================= Schleife ================= */
   let stepT=0,dayT=0,ecoT=2,camSnap=true,overview=null;
-  function frame(dt,t){if(!scene)return;
+  function frame(dt,t){if(!scene)return;OCC.on.value=0;
     if(mode==='interior'){INTERIOR.frame(dt,t);for(const e of ents.values())if(e.inside){poseInside(e,dt,t)}INTERIOR.render();labelsInterior();stepParts(dt);return}
     /* Spieler-Eingabe */
     let ix=(keys['d']||keys['arrowright']?1:0)-(keys['a']||keys['arrowleft']?1:0),iy=(keys['w']||keys['arrowup']?1:0)-(keys['s']||keys['arrowdown']?1:0);
@@ -383,7 +385,8 @@ const GAME=(()=>{
     /* Figuren */
     for(const e of ents.values()){if(e===me||e.kind==='peer'){}else stepVillager(e,dt,t);if(e.kind==='peer')SOCIAL.stepPeer(e,dt)}
     const camP=cam.position.clone().normalize();for(const e of ents.values()){const vis=overview?e.p.dot(camP)>.1:e===me||(e.p.dot(camP)>.55&&angle(e.p,me?me.p:e.p)*G_.R<40);e.g.visible=vis;e.shadow.visible=vis;if(vis)poseEnt(e,dt,t)}
-    stepProps(dt,t);stepParts(dt);stepClouds(dt);SCATTER.step(dt);stepWeather(dt,t);if(G_.groundU)G_.groundU.uT.value=t;SCATTER.update(overview?cam.position.clone().normalize():(me?me.p:UPV),t,HIGH);stepBall(dt);stepLaunch(dt);for(const o of G_.ticks){try{o.userData.tick(t,false,0)}catch(e){}}ACT.frame(dt,t);if((typeof FAUNA!=='undefined'))try{FAUNA.step(dt,t)}catch(e){console.warn('Fauna',e)}SOCIAL.frame(dt,t);grassU.value=t;G_.waterU.uT.value=t;
+    stepProps(dt,t);stepParts(dt);stepClouds(dt);SCATTER.step(dt);stepWeather(dt,t);if(G_.groundU)G_.groundU.uT.value=t;SCATTER.update(overview?cam.position.clone().normalize():(me?me.p:UPV),t,HIGH);stepBall(dt);stepLaunch(dt);for(const o of G_.ticks){try{o.userData.tick(t,false,0)}catch(e){}}
+    if(me&&!overview){OCC.a.value.copy(cam.position);OCC.b.value.copy(me.g.position).addScaledVector(me.p,.9);OCC.on.value=1}else OCC.on.value=0;ACT.frame(dt,t);if((typeof FAUNA!=='undefined'))try{FAUNA.step(dt,t)}catch(e){console.warn('Fauna',e)}SOCIAL.frame(dt,t);grassU.value=t;G_.waterU.uT.value=t;
     ecoT-=dt;if(ecoT<=0){ecoT=1;ecoTick()}grassU.value=t;
     /* Tageszeit (echte Uhr) */
     dayT-=dt;if(dayT<=0){dayT=5;dayLight()}
@@ -397,7 +400,7 @@ const GAME=(()=>{
     /* Prompt */
     promptTarget=busy?null:findTarget();const pr=$('prompt');if(promptTarget&&!UI.anyOpen()){pr.hidden=false;pr.innerHTML='';const k=el('kbd',null,'E');pr.append(k,document.createTextNode(promptTarget.label));$('hbA').textContent=shortLabel(promptTarget)}else{pr.hidden=true;$('hbA').textContent='Hüpfen'}
     if(HIGH)comp.render();else R.render(scene,cam);labels()}
-  function shortLabel(t){return{talk:'Reden',tree:'Schütteln',fish:'Angeln',shop:'Laden',museum:'Museum',house:'Haus',studio:'Malen',rocket:'Reisen',board:'Lesen',stage:'Tanzen',mail:'Post',dig:'Graben',pick:'Nehmen',bug:'Fangen'}[t.kind]||'Aktion'}
+  function shortLabel(t){return{talk:'Reden',tree:'Schütteln',fish:'Angeln',shop:'Laden',museum:'Museum',house:'Haus',studio:'Malen',rocket:'Reisen',board:'Lesen',stage:'Tanzen',home:'Klingeln',animal:'Tier',mail:'Post',dig:'Graben',pick:'Nehmen',bug:'Fangen'}[t.kind]||'Aktion'}
   function stepProps(dt,t){for(let i=W.props.length-1;i>=0;i--){const x=W.props[i];
       if(x.dying){x.dying+=dt*2;const s=Math.max(0,1-x.dying)*x.big;x.g.scale.setScalar(Math.max(.001,s));if(x.dying>=1){G_.scene.remove(x.g);disposeTree(x.g);W.props.splice(i,1)}continue}
       if(x.grow<1){x.grow=Math.min(1,x.grow+dt/x.growT)}const e=x.grow<1?1+Math.sin(x.grow*PI)*.25:1;const s=(x.decal?1:(.15+.85*x.grow))*x.big*e;x.g.scale.setScalar(s);
@@ -406,7 +409,7 @@ const GAME=(()=>{
   function ecoTick(){if(G_.id!=='kompost')return;const live=W.props.filter(x=>!x.dying);const oils=live.filter(x=>x.type==='oel');
     for(let i=0;i<10;i++){const x=pick(live);if(!x)break;const REP={baum:[.03,3],blume:[.08,5],pilz:[.04,3],moos:[.02,4]}[x.type];if(REP&&x.grow>=1&&Math.random()<REP[0]&&live.filter(y=>y.type===x.type&&y.p.dot(x.p)>Math.cos(.12)).length<REP[1]&&!oils.some(o=>o.p.dot(x.p)>Math.cos(.1)))W.spawn(x.type,W.near(x.p,.12))}
     for(const o of oils)for(const x of live){if(x.p.dot(o.p)<Math.cos(.06))continue;if(['blume','pilz'].includes(x.type)&&Math.random()<.08)W.remove(x);if(x.type==='moos'&&Math.random()<.05){W.remove(o);note('Moos hat einen Ölfleck abgebaut');break}}}
-  function dayLight(){const d=new Date();const h=d.getHours()+d.getMinutes()/60;const hh=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');$('clock').querySelector('b').textContent=hh;
+  function dayLight(){const d=new Date();if(window.__hour!=null)d.setHours(window.__hour,0);const h=d.getHours()+d.getMinutes()/60;const hh=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');$('clock').querySelector('b').textContent=hh;
     const night=h<6||h>=21?1:h<7.5?1-(h-6)/1.5:h>19.5?(h-19.5)/1.5:0;const dusk=(h>17.5&&h<21)||(h>5.5&&h<8)?1:0;G_.night=night;
     const def=G_.def;G_.scene.background=night>.5?skyTex('#2B2F66','#6A5A9E','n'+G_.id):dusk&&night<.5?skyTex('#9FB4F0','#FFC9A8','d'+G_.id):skyTex(def.sky[0],def.sky[1],G_.id);
     G_.sun.intensity=1-night*.6;G_.sun.color.set(dusk?'#ffd9b0':'#fff3de');G_.hemi.intensity=.52-night*.12;G_.hemi.color.set(night>.5?'#8f9cff':'#dff1ff');G_.stars.material.opacity=night;G_.scene.fog.color.set(night>.5?'#4b4a86':def.fog)}

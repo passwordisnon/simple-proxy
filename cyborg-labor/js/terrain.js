@@ -158,8 +158,8 @@ const PLACES={
 };
 
 /* ================= Höhenfeld & Biome je Planet ================= */
-function makePlanetFns(pid){const def=PLANETS[pid];const seed={kompost:1,schrott:2,korallen:3,frost:4,wueste:5,pilz:6}[pid];const N=perlin3(seed),N2=perlin3(seed+40),N3=perlin3(seed+80);
-  const places=PLACES[pid].map(pl=>Object.assign({dir:dirLL(pl.lat,pl.lon)},pl));const R=def.R,sea=def.sea,step=def.step;
+function makePlanetFns(pid,extra){const def=PLANETS[pid];const seed={kompost:1,schrott:2,korallen:3,frost:4,wueste:5,pilz:6}[pid];const N=perlin3(seed),N2=perlin3(seed+40),N3=perlin3(seed+80);
+  const places=PLACES[pid].map(pl=>Object.assign({dir:dirLL(pl.lat,pl.lon)},pl)).concat(extra||[]);const R=def.R,sea=def.sea,step=def.step;
   const fbm=(p,f,o)=>N(p.x*f+o,p.y*f,p.z*f)*.6+N(p.x*f*2.1,p.y*f*2.1+o,p.z*f*2.1)*.28+N(p.x*f*4.3,p.y*f*4.3,p.z*f*4.3+o)*.12;
   const plazaDir=places[0].dir;const roads=places.filter(p=>p.build&&p!==places[0]).map(p=>[plazaDir,p.dir]);
   function raw(p){let h=0;
@@ -174,7 +174,7 @@ function makePlanetFns(pid){const def=PLANETS[pid];const seed={kompost:1,schrott
     return h}
   const terr=pid!=='frost'&&pid!=='wueste'?1:pid==='wueste'?.5:.35;
   function hAt(p){let h=raw(p);/* Terrassen im Tierdorf-Stil: flache Stufen, steile Kanten */
-    if(h>sea+.25){const k=(h-sea)/step;const f=k-Math.floor(k);const t=(Math.floor(k)+sstep(.43,.57,f))*step+sea;h=h*(1-terr)+t*terr}
+    if(h>sea+.25){const k=(h-sea)/step;const f=k-Math.floor(k);const t=(Math.floor(k)+sstep(.4,.6,f))*step+sea;h=h*(1-terr)+t*terr}
     for(const pl of places){const d=angle(p,pl.dir);if(pl.pond){if(d<pl.r*1.35){const t=sstep(pl.r*1.35,pl.r*.5,d);h=h*(1-t)+(sea-1.1)*t}}
       else if(d<pl.r*1.6){const t=sstep(pl.r*1.6,pl.r*1.05,d);h=h*(1-t)+(pl.h??.8)*t}}
     /* Wege sanft glätten */let rd=9;for(const[a,b]of roads)rd=Math.min(rd,distToArc(p,a,b));if(rd<.03){const t=sstep(.03,.012,rd);const hs=Math.max(sea+.3,Math.round((h-sea)/step)*step+sea);h=h*(1-t*.6)+hs*t*.6}
@@ -189,7 +189,7 @@ function makePlanetFns(pid){const def=PLANETS[pid];const seed={kompost:1,schrott
       case 'frost':if(nearPond||low)return'eisufer';if(T>.2)return'polarhuegel';if(M>-.05)return'tannenwald';return'schneefeld';
       case 'wueste':if(nearPond)return'oase';if(h>sea+2.6)return'canyon';if(M>.18)return'kakteenfeld';if(T<-.25)return'canyon';return'duenen';
       case 'pilz':if(nearPond||M>.3)return'sporensumpf';if(T>.15)return'moorwiese';return'pilzwald'}}
-  return{hAt,biomeAt,places,R,sea,roads,roadDist,def,pid}}
+  return{hAt,biomeAt,places,R,sea,roads,roadDist,def,pid,terr}}
 
 /* ================= Boden-Shader ================= */
 const GROUND_GLSL=`
@@ -202,22 +202,53 @@ float cells2(vec2 uv){vec2 g=floor(uv),f=fract(uv);float d=9.;for(int j=-1;j<=1;
 float tri(vec3 p,vec3 w,float s,float r){return dots2(p.yz*s,r)*w.x+dots2(p.xz*s,r)*w.y+dots2(p.xy*s,r)*w.z;}
 float triC(vec3 p,vec3 w,float s){return cells2(p.yz*s)*w.x+cells2(p.xz*s)*w.y+cells2(p.xy*s)*w.z;}
 `;
+/* Gemalte Boden-Texturen (grau um 50 %, werden mit der Biomfarbe multipliziert); kachelbar, mit Mipmaps */
+function groundTex(kind){const key='gt-'+kind;return ctex(key,512,512,(x,w,h)=>{const r=srand(kind.length*31+7);x.fillStyle='#808080';x.fillRect(0,0,w,h);
+  const wrap=(f)=>{for(const dx of[-w,0,w])for(const dy of[-h,0,h]){x.save();x.translate(dx,dy);f();x.restore()}};
+  /* weiche Flecken */for(let i=0;i<40;i++){const px=r()*w,py=r()*h,rad=30+r()*70,l=r()<.5;wrap(()=>{const g=x.createRadialGradient(px,py,0,px,py,rad);g.addColorStop(0,l?'rgba(150,150,150,.35)':'rgba(100,100,100,.3)');g.addColorStop(1,'rgba(128,128,128,0)');x.fillStyle=g;x.fillRect(px-rad,py-rad,rad*2,rad*2)})}
+  if(kind==='gras'){x.lineCap='round';for(let i=0;i<1500;i++){const px=r()*w,py=r()*h,L=7+r()*13,a=-PI/2+(r()-.5)*.9,cv=(r()-.5)*.6;const light=r()<.55;const c=light?150+r()*40:78+r()*30;
+      wrap(()=>{x.strokeStyle=`rgb(${c},${c},${c})`;x.lineWidth=1.6+r()*1.8;x.beginPath();x.moveTo(px,py);x.quadraticCurveTo(px+Math.cos(a+cv)*L*.5,py+Math.sin(a+cv)*L*.5,px+Math.cos(a)*L,py+Math.sin(a)*L);x.stroke()})}
+    for(let i=0;i<60;i++){const px=r()*w,py=r()*h;wrap(()=>{x.fillStyle='rgba(190,190,190,.8)';for(let k=0;k<3;k++){x.beginPath();x.arc(px+Math.cos(k*2.1)*3,py+Math.sin(k*2.1)*3,2.6,0,TAU);x.fill()}})}}
+  else if(kind==='sand'){for(let i=0;i<2600;i++){const px=r()*w,py=r()*h,c=r()<.5?160+r()*40:90+r()*25;x.fillStyle=`rgb(${c},${c},${c})`;x.beginPath();x.arc(px,py,.8+r()*1.6,0,TAU);x.fill()}
+    x.strokeStyle='rgba(105,105,105,.35)';x.lineWidth=3;for(let j=0;j<9;j++){x.beginPath();for(let i=0;i<=32;i++){const px=i*16,py=j*58+Math.sin(i*.5+j)*8;i?x.lineTo(px,py):x.moveTo(px,py)}x.stroke()}}
+  else if(kind==='schnee'){for(let i=0;i<50;i++){const px=r()*w,py=r()*h,rad=20+r()*40;wrap(()=>{x.fillStyle='rgba(150,150,150,.25)';x.beginPath();x.ellipse(px,py,rad,rad*.6,r()*3,0,TAU);x.fill()})}
+    for(let i=0;i<600;i++){x.fillStyle='rgba(200,200,200,.9)';x.fillRect(r()*w,r()*h,1.5,1.5)}}
+  else{for(let i=0;i<260;i++){const px=r()*w,py=r()*h,rad=4+r()*12,c=r()<.5?150:100;wrap(()=>{x.fillStyle=`rgba(${c},${c},${c},.7)`;x.beginPath();x.arc(px,py,rad,0,TAU);x.fill()})}}},{repeat:true})}
 function groundMaterial(fns){const def=fns.def;const m=new THREE.MeshToonMaterial({gradientMap:TOON_RAMP,vertexColors:true});
-  const U={uR:{value:fns.R},uSea:{value:fns.sea},uPath:{value:new THREE.Color(def.path||'#EBD2A0')},uT:{value:0}};m.userData.U=U;
+  const tx=k=>{const t=groundTex(k);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=8;t.encoding=THREE.LinearEncoding;t.needsUpdate=true;return t};
+  const U={uR:{value:fns.R},uSea:{value:fns.sea},uPath:{value:new THREE.Color(def.path||'#EBD2A0')},uT:{value:0},uStep:{value:def.step||1},uTerr:{value:fns.terr??1},tG:{value:tx('gras')},tS:{value:tx('sand')},tW:{value:tx('schnee')},tM:{value:tx('moos')}};m.userData.U=U;
   m.onBeforeCompile=s=>{Object.assign(s.uniforms,U);
-    s.vertexShader='attribute vec4 aMat;attribute vec4 aPat;varying vec4 vMat;varying vec4 vPat;varying vec3 vObj;\n'+s.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\n vMat=aMat;vPat=aPat;vObj=position;');
-    s.fragmentShader='uniform float uR;uniform float uSea;uniform vec3 uPath;uniform float uT;varying vec4 vMat;varying vec4 vPat;varying vec3 vObj;\n'+GROUND_GLSL+s.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
+    s.vertexShader='attribute vec4 aMat;attribute vec4 aPat;attribute vec3 aCl;varying vec4 vMat;varying vec4 vPat;varying vec3 vObj;varying vec3 vNo;varying vec3 vCl;\n'+s.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\n vMat=aMat;vPat=aPat;vObj=position;vNo=normal;vCl=aCl;');
+    s.fragmentShader='uniform float uR;uniform float uSea;uniform vec3 uPath;uniform float uT;uniform float uStep;uniform float uTerr;uniform sampler2D tG;uniform sampler2D tS;uniform sampler2D tW;uniform sampler2D tM;varying vec4 vMat;varying vec4 vPat;varying vec3 vObj;varying vec3 vNo;varying vec3 vCl;\n'+GROUND_GLSL+s.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
       {vec3 n=normalize(vObj);vec3 w=pow(abs(n),vec3(4.));w/=dot(w,vec3(1.));float hh=length(vObj)-uR;vec3 c=diffuseColor.rgb;
+       float fw=length(fwidth(vObj));/* Detail blendet mit Entfernung aus → kein Flimmern */float near=1.-smoothstep(.06,.35,fw);
        float big=vn(vObj*.16);float mid=vn(vObj*.7+3.);c*=.9+.2*big;
-       /* Gras: Tierdorf-Kreise */ float gd=tri(vObj,w,1.35,.2);float gs=tri(vObj+11.,w,3.1,.12);c=mix(c,c*(1.+.11*gd-.07*gs),vPat.x);
+       /* Gras: Tierdorf-Kreise + gemalte Halm-Striche */ float gd=tri(vObj,w,1.35,.2);float gs=tri(vObj+11.,w,3.1,.12);c=mix(c,c*(1.+.11*gd-.07*gs),vPat.x);
+       {vec2 q=(vObj.xz*w.y+vObj.yz*w.x+vObj.xy*w.z)*5.5;vec2 gi=floor(q);vec2 gf=fract(q)-.5;float r=h21(gi);vec2 o=vec2(r,h21(gi+2.7))-.5;vec2 d=gf-o*.5;
+        float blade=smoothstep(.09,.0,abs(d.x+d.y*.35*(r-.5)))*smoothstep(.3,.0,abs(d.y))*step(.25,r);c=mix(c,c*vec3(1.16,1.22,1.05),blade*vPat.x*near);
+        float bl2=smoothstep(.08,.0,abs(d.x*1.3-d.y*.3))*smoothstep(.22,.0,abs(d.y+.1))*step(.7,h21(gi+9.1));c=mix(c,c*vec3(.82,.88,.8),bl2*vPat.x*near);}
+       /* gemalte Texturen, dreiseitig projiziert */{float sc=.32;vec2 ax=vObj.yz*sc,ay=vObj.xz*sc,az=vObj.xy*sc;
+        vec3 tg=(texture2D(tG,ay).rgb*w.y+texture2D(tG,ax).rgb*w.x+texture2D(tG,az).rgb*w.z)*2.;
+        vec3 ts=(texture2D(tS,ay*1.3).rgb*w.y+texture2D(tS,ax*1.3).rgb*w.x+texture2D(tS,az*1.3).rgb*w.z)*2.;
+        vec3 tw=(texture2D(tW,ay).rgb*w.y+texture2D(tW,ax).rgb*w.x+texture2D(tW,az).rgb*w.z)*2.;
+        vec3 tm=(texture2D(tM,ay).rgb*w.y+texture2D(tM,ax).rgb*w.x+texture2D(tM,az).rgb*w.z)*2.;
+        c=mix(c,c*tg,vPat.x*.95);c=mix(c,c*ts,vPat.y*.8);c=mix(c,c*tw,vPat.z*.7);c=mix(c,c*tm,vPat.w*.85);}
+       /* helle Sonnenflecken und kühle Schattenflecken (Tierdorf-Look) */{float pa=vn(vObj*.38+7.);float pb=vn(vObj*.55-3.);c=mix(c,c*vec3(1.1,1.12,.94),smoothstep(.55,.7,pa)*vPat.x*.9);c=mix(c,c*vec3(.86,.94,1.02),smoothstep(.58,.72,pb)*vPat.x*.8);
+        float spk=tri(vObj+23.,w,7.,.07);c=mix(c,vec3(1.,.98,.86),spk*vPat.x*near*.35);}
        /* Sand: Sprenkel */ float sp=tri(vObj,w,6.,.1);float sp2=tri(vObj+5.,w,2.4,.14);c=mix(c,c*(1.-.09*sp+.05*sp2),vPat.y);
        /* Schnee: Glitzer */ float gl=tri(vObj+2.,w,5.,.07);c=mix(c,c+vec3(.16,.18,.22)*gl*(.6+.4*sin(uT*2.+dot(vObj,vec3(3.)))),vPat.z);c=mix(c,c*(.94+.1*mid),vPat.z);
        /* Moos/Staub: Flecken */ float bl=smoothstep(.45,.6,vn(vObj*1.1));c=mix(c,c*(.9+.14*bl),vPat.w);
        /* nasser Rand am Wasser */ c*=1.-.28*vMat.z;
-       /* Pflasterweg */ float cb=triC(vObj,w,2.2);vec3 pc=uPath*(.9+.14*vn(vObj*2.))*(1.-.35*smoothstep(.62,.8,cb));c=mix(c,pc,vMat.y);
-       /* Klippen: Gesteinsschichten */ float st=fract(hh*1.25+vn(vObj*.3)*.55);float band=smoothstep(.0,.05,st)*smoothstep(.36,.3,st);float crack=smoothstep(.035,.0,abs(st-.66));
-       float rk=triC(vObj,w,1.1);vec3 cc=vMat.w>0.?vec3(0.):c;cc=diffuseColor.rgb;cc=cc*(.86+.16*band)*(.92+.14*smoothstep(.2,.7,rk))*(1.-.22*crack);
-       c=mix(c,cc,vMat.x);
+       /* Pflasterweg */ float cb=triC(vObj,w,2.2);vec3 pc=uPath*(.9+.14*vn(vObj*2.))*(1.-.2*smoothstep(.72,.82,cb))*(1.+.06*(1.-smoothstep(.2,.5,cb)));c=mix(c,pc,vMat.y);
+       /* Klippen pro Pixel: Terrassen-Höhenlinie → scharfe, glatte Grasskante wie in Animal Crossing */
+       float slope=1.-dot(normalize(vNo),n);float lev=(hh-uSea)/uStep+(vn(vObj*1.3)-.5)*.07;float fr=fract(lev);
+       float ter=step(uSea+.28,hh)*smoothstep(.05,.14,slope)*uTerr;
+       float cliffT=smoothstep(.05,.1,fr)*smoothstep(.95,.9,fr)*ter;float cliff=clamp(max(cliffT,vMat.x*smoothstep(.2,.36,slope)*(1.-uTerr*.6)),0.,1.);
+       float lipDark=smoothstep(.86,.9,fr)*smoothstep(.93,.9,fr)*ter;float lipLight=smoothstep(.9,.93,fr)*smoothstep(.99,.96,fr)*ter;
+       float st=fract(hh*1.25+vn(vObj*.3)*.55);float band=smoothstep(.0,.05,st)*smoothstep(.36,.3,st);float crack=smoothstep(.035,.0,abs(st-.66));
+       float rk=triC(vObj,w,1.1);vec3 cc=vCl*(.86+.16*band)*(.92+.14*smoothstep(.2,.7,rk))*(1.-.22*crack*near);cc*=.82+.25*smoothstep(.1,.85,fr);
+       c=mix(c,cc,cliff);c*=1.-.35*lipDark;c=mix(c,c*1.12,lipLight*(1.-cliff));
+       /* Gras nicht neon: etwas entsättigen und abdunkeln, damit Details sichtbar bleiben */float lum=dot(c,vec3(.3,.59,.11));c=mix(vec3(lum),c,mix(1.,.78,vPat.x*(1.-cliff)))*mix(1.,.8,vPat.x*(1.-cliff));
        diffuseColor.rgb=c;}`)};
   m.customProgramCacheKey=()=>'ground';return m}
 
@@ -228,15 +259,18 @@ function buildTerrainMesh(fns,detail){const def=fns.def;const R=fns.R,sea=fns.se
   const v=new THREE.Vector3();const tmp=new THREE.Color(),tmp2=new THREE.Color();const PATI={gras:0,sand:1,schnee:2,moos:3,staub:3};
   for(let i=0;i<n;i++){v.fromBufferAttribute(pos,i).normalize();const h=fns.hAt(v);hs[i]=h;const b=fns.biomeAt(v,h);bio[i]=b;const B=BIOMES[b];
     const t=Math.max(0,Math.min(1,(h-sea)/4));tmp.set(B.g[0]).lerp(tmp2.set(B.g[1]),t);
-    if(h<sea-.2)tmp.set(def.bed||'#E6D2A0').lerp(tmp2.set(B.g[0]),.25);
+    if(h<sea-.2)tmp.set(def.bed||'#E6D2A0').lerp(tmp2.set(B.g[0]),.25);else tmp.offsetHSL(0,-.1,-.035);
     col[i*3]=tmp.r;col[i*3+1]=tmp.g;col[i*3+2]=tmp.b;const pi=h<sea+.05?1:PATI[B.pat];pat[i*4+pi]=1;
     const rd=fns.roadDist(v);mat[i*4+1]=h>sea+.2?sstep(.026,.016,rd):0;for(const pl of fns.places)if(pl.build){const d=angle(v,pl.dir);mat[i*4+1]=Math.max(mat[i*4+1],sstep(pl.r*.95,pl.r*.7,d)*(pl.build==='plaza'?1:.8))}
     mat[i*4+2]=h>sea-.1&&h<sea+.18?sstep(sea+.18,sea+.02,h):0;
     v.multiplyScalar(R+h);pos.setXYZ(i,v.x,v.y,v.z)}
   g.computeVertexNormals();const nr=g.attributes.normal;
   /* Klippen: Neigung gegenüber radial → Klippenfarbe */
+  /* Klippenfarbe separat: der Shader entscheidet pro Pixel (scharfe Terrassenkanten statt Vertex-Zickzack) */
+  const cl=new Float32Array(n*3);
   for(let i=0;i<n;i++){v.fromBufferAttribute(pos,i).normalize();const nn=new THREE.Vector3().fromBufferAttribute(nr,i);const slope=1-nn.dot(v);const c=sstep(.12,.3,slope)*(hs[i]>sea-.3?1:.4);mat[i*4]=c;
-    if(c>0){tmp.setRGB(col[i*3],col[i*3+1],col[i*3+2]).lerp(tmp2.set(BIOMES[bio[i]].cliff),c);col[i*3]=tmp.r;col[i*3+1]=tmp.g;col[i*3+2]=tmp.b;mat[i*4+1]*=1-c}}
+    tmp.set(BIOMES[bio[i]].cliff);cl[i*3]=tmp.r;cl[i*3+1]=tmp.g;cl[i*3+2]=tmp.b;if(c>0)mat[i*4+1]*=1-c}
+  g.setAttribute('aCl',new THREE.BufferAttribute(cl,3));
   g.setAttribute('color',new THREE.BufferAttribute(col,3));g.setAttribute('aMat',new THREE.BufferAttribute(mat,4));g.setAttribute('aPat',new THREE.BufferAttribute(pat,4));
   const mesh=new THREE.Mesh(g,groundMaterial(fns));mesh.receiveShadow=true;mesh.name='planet';return mesh}
 

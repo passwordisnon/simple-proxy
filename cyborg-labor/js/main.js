@@ -6,18 +6,17 @@ const MAIN=(()=>{
   let tab='lab';let worldReady=false;
   if(matchMedia('(pointer:coarse)').matches)document.body.classList.add('coarse');
   async function setTab(t){tab=t;const w=t==='world';document.body.classList.toggle('mode-world',w);$('lab').hidden=w;$('world').hidden=!w;$('tabLab').setAttribute('aria-selected',!w);$('tabWorld').setAttribute('aria-selected',w);SND.init();
-    if(w){if(!worldReady){worldReady=true;$('loading').style.opacity='1';$('loading').hidden=false;$('loading').querySelector('span').textContent='Der Planet wird gebaut …';await new Promise(r=>setTimeout(r,60));await GAME.init();SOCIAL.connect();$('loading').style.opacity='0';setTimeout(()=>$('loading').hidden=true,500);if(!SAVE.nick)askNick()}
+    if(w){if(!worldReady){worldReady=true;$('loading').style.opacity='1';$('loading').hidden=false;$('loading').querySelector('span').textContent='Der Planet wird gebaut …';await new Promise(r=>setTimeout(r,60));await GAME.init();SOCIAL.connect();$('loading').style.opacity='0';setTimeout(()=>$('loading').hidden=true,500);if(!SAVE.nick)askNick();TUT.startWorld()}
       GAME.resize();INTERIOR.resize();SND.music(GAME.mode==='interior'?(INTERIOR.kind==='museum'?'museum':'home'):GAME.G.def.music)}else{LAB.resize();SND.music('lab')}}
   $('tabLab').onclick=()=>setTab('lab');$('tabWorld').onclick=()=>setTab('world');$('btnPlay').onclick=()=>{SND.play('confirm');setTab('world')};
   function askNick(){const w=UI.win('Willkommen auf dem Kompost-Planeten!',{size:'narrow',dismiss:false});w.body.append(el('p',null,'Wie sollen dich die anderen nennen? Der Name steht über deinem Cyborg und im Chat.'));
     const i=el('input');i.type='text';i.id='nickIn';i.maxLength=24;i.value=S.name||'';i.placeholder='z. B. Moos-Mo';w.body.append(i);
-    w.body.append(el('p','sub','Steuerung: WASD oder Pfeile laufen, Shift rennt, E für Aktionen, Q/C dreht die Kamera. Am Handy: Joystick links, grüner Knopf rechts.'));
     const go=()=>{SAVE.nick=i.value.trim().slice(0,24)||'Gast';persist();w.close();GAME.onAvatarChanged();UI.toast('Hallo '+SAVE.nick+'!');SND.jingle('j_success')};i.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter')go()});w.foot.append(btn('Los geht\'s','primary',go));setTimeout(()=>i.focus(),50)}
   /* ---------- Cy-Phone ---------- */
-  function phone(){const v=el('div','veil');const ph=el('div','phone');const d=new Date();const head=el('div','ph');head.append(el('span',null,String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')),el('span',null,'Cy-Phone'),el('span',null,fmt(SAVE.money)+' T'));
+  function phone(){TUT.ev('phone');const v=el('div','veil');const ph=el('div','phone');const d=new Date();const head=el('div','ph');head.append(el('span',null,String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')),el('span',null,'Cy-Phone'),el('span',null,fmt(SAVE.money)+' T'));
     const apps=el('div','apps');const A=(ic,n,bg,fn)=>{const b=el('button','app-i');b.type='button';const i=el('b');i.innerHTML=ICON(ic);i.style.background=bg;b.append(i,document.createTextNode(n));b.onclick=()=>{close();SND.play('select');fn()};apps.append(b)};
     const close=()=>{v.remove();openWinsPop()};
-    A('dna','Labor','#C6A9FF',()=>setTab('lab'));A('bag','Tasche','#FFD35C',()=>ACT.bag());A('book','Lexikon','#7FDCE6',()=>ACT.lexikon());A('paw','Tiere','#A6EBC3',()=>FAUNA.lexikon());
+    A('dna','Labor','#C6A9FF',()=>setTab('lab'));A('bag','Tasche','#FFD35C',()=>ACT.bag());A('book','Lexikon','#7FDCE6',()=>ACT.lexikon());A('paw','Tiere','#A6EBC3',()=>FAUNA.lexikon());A('smile','Figuren','#FFC9A8',()=>HOMES.charsApp());
     A('palette','Designs','#FF8FB1',designsApp);A('house','Hausbau','#FFB27A',()=>houseBuilder());A('people','Freund:innen','#A6EBC3',()=>SOCIAL.playersWin());
     A('chat','Chat','#8FD3FF',()=>SOCIAL.toggleChat(true));A('smile','Emotes','#FFE27A',()=>ACT.emoteMenu());A('map','Karte','#9FD86A',mapApp);
     A('globe','Bewohner:innen','#FFC9A8',residentsApp);A('school','Klasse','#D9B5F2',teacherApp);A('gear','Einstellungen','#DDD3C4',settingsApp);

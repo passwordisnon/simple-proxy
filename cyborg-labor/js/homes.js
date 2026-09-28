@@ -1,0 +1,66 @@
+/* =====================================================================
+   CYBORG-LABOR · homes.js
+   Bewohner:innen und ihre Häuser: Jede Figur hat ein eigenes Haus im Stil
+   ihres Planeten (Iglu-Kuppel, Lehmhütte, Pilzhaus, Blechturm, Muschelhaus …),
+   mit Namensschild, Vorgarten, Weg zum Dorfplatz und Klingel.
+   Eigene Figuren: Man spielt eine davon, alle anderen leben als KI weiter.
+   ===================================================================== */
+const HOMES=(()=>{
+  const THEME={
+    kompost:{house:{shapes:['huette','spitz','rund'],walls:['holz','stein','moos'],wallCols:['#FFE3B8','#E8B784','#D9D2E3','#C8E8B0'],roofCols:['#F0556E','#8E6BD1','#E0876A','#6AA8F0'],win:['eckig','rund']},deco:['blumenbusch','busch','sonnenblume','lavendel'],fence:true},
+    schrott:{skins:['chrom','rost','patina','plastik','gold'],heads:['monitor','roehre','kamerakopf','router','toaster','mikrowelle','lautsprecher','ampel','birne'],names:['Blechbert','Zahnrad-Zora','Volta','Bit','Mutter Mona','Spule'],
+      house:{shapes:['turm','kuppel'],walls:['blech'],wallCols:['#B4CBE0','#C8C0E8','#A8D8D0'],roofCols:['#F7B84B','#FF8FB8','#56C6B6'],win:['bullauge']},deco:['schrotthaufen','antennenbaum','kristallfels']},
+    korallen:{skins:['koralle','schuppen','schleim','glas'],heads:['fisch','kugelfisch','oktopus','qualle','koralle','axolotl','hai','taucherhelm','seerose'],names:['Perla','Kiemen-Kim','Riffi','Muschelmax','Lagune Lu','Tang'],
+      house:{shapes:['rund','kuppel','huette'],walls:['lehm','holz'],wallCols:['#FFE3C8','#BFF0EC','#FFD2DA'],roofCols:['#FF8E7A','#4FD6E0','#F7B84B'],win:['rund','bullauge']},deco:['muschel_deko','kokospalme_klein','treibholz']},
+    frost:{skins:['fell','pluesch','glas','marmor'],heads:['eule','wolke','kristall','raumhelm','zapfen','katze','hirsch','mensch'],names:['Flöckchen','Eisbert','Polara','Frostine','Iglu-Ingo','Nordlicht'],
+      house:{shapes:['kuppel','spitz'],walls:['stein'],wallCols:['#F4F8FF','#E4ECFA','#DDEBFF'],roofCols:['#FFFFFF','#8FD0F0','#B7B4FF'],win:['rund']},deco:['schneehaufen','schneemann','schneetanne','schneebusch'],chimney:true},
+    wueste:{skins:['haut','holz','keramik','gold','schuppen'],heads:['kaktus','chamaeleon','statue','mond','globus','uhr','teekanne','vogel'],names:['Dattel-Dora','Sandro','Oase','Mirage','Kaktus-Karl','Düne'],
+      house:{shapes:['huette','kuppel'],walls:['lehm'],wallCols:['#F2D1A8','#EBB78A','#F7E0BC'],roofCols:['#D46A4C','#E0876A','#56C6B6'],win:['rund']},deco:['feigenkaktus','saguaro','wuestenstein','wuestenblume']},
+    pilz:{skins:['myzel','moos','schleim','kompost'],heads:['pilzhut','schnecke','moosball','bluete','kohl','gehirnglas','qualle','frosch'],names:['Sporella','Lamellix','Moosi','Glimmer','Hutzel','Myko'],
+      house:{shapes:['pilz','rund'],walls:['moos','lehm'],wallCols:['#F6EEDC','#DCC8F0','#C8F0D8'],roofCols:['#E8505B','#8E6BD1','#FF8FB8'],win:['rund']},deco:['leuchtpilzgruppe','pilzgruppe','sporenblume']}};
+  /* ---------- einheimische Bewohner:innen ---------- */
+  const natCache={};
+  function natives(pid){if(pid==='kompost')return[];if(natCache[pid])return natCache[pid];const T=THEME[pid];const r=srand(hashStr('nat'+pid).length*131+pid.length);const pk=a=>a[Math.floor(r()*a.length)];const out=[];
+    for(let i=0;i<5;i++){const legs=PARTS.beine.filter(p=>!['kabel','wurzeln','stamm','pilzstiel','blumentopf'].includes(p.id));
+      const d=sanitize({name:T.names[i%T.names.length],group:PLANETS[pid].n,body:{seg:1+Math.floor(r()*3),size:.9+r()*.3,skin:pk(T.skins),color:Math.floor(r()*SKIN_COLORS.length),shape:pk(TORSOS).id,pattern:pk(PATTERNS).id,color2:Math.floor(r()*SKIN_COLORS.length)},
+        parts:{kopf:pk(T.heads),augen:pk(PARTS.augen.filter(p=>p.k!=='none')).id,arme:pk(PARTS.arme).id,beine:pk(legs).id,extras:[pk(PARTS.extras).id]}});d.id='nat-'+pid+'-'+i;d.native=true;out.push(d)}
+    return natCache[pid]=out}
+  function activeId(){return SAVE.activeChar||null}
+  function residents(pid){if(pid==='kompost')return allCreatures().filter(d=>d.id!==activeId());return natives(pid)}
+  /* ---------- Bauplätze: vor dem Gelände-Aufbau wählen, damit der Boden flach wird ---------- */
+  function spots(pid,fns0){const list=residents(pid);const r=srand(hashStr('home'+pid).length*977+3);const out=[];const R=fns0.R;const taken=fns0.places.map(p=>p.dir);
+    for(const d of list){let best=null;for(let i=0;i<220&&!best;i++){const p=new THREE.Vector3(r()*2-1,r()*2-1,r()*2-1).normalize();const h=fns0.hAt(p);if(h<fns0.sea+.5)continue;
+        if(p.dot(fns0.places[0].dir)<Math.cos(1.25))continue;/* nicht zu weit vom Dorf */
+        if(taken.some(q=>q.angleTo(p)*R<(out.length<3?9:7.5)))continue;let flat=true;const t1=new THREE.Vector3().crossVectors(p,new THREE.Vector3(0,0,1)).normalize(),t2=new THREE.Vector3().crossVectors(p,t1);
+        for(const dd of[t1,t2,t1.clone().negate(),t2.clone().negate()]){const q=p.clone().addScaledVector(dd,3/R).normalize();if(Math.abs(fns0.hAt(q)-h)>1.3||fns0.hAt(q)<fns0.sea+.2)flat=false}if(!flat)continue;best=p}
+      if(!best)continue;taken.push(best);const h=fns0.hAt(best);const step=PLANETS[pid].step;const hh=Math.max(fns0.sea+.5,Math.round((h-fns0.sea)/step)*step+fns0.sea);
+      const lat=Math.asin(best.y)*180/PI,lon=Math.atan2(best.z,best.x)*180/PI;out.push({id:'home-'+d.id,n:'Haus von '+(d.name||'Namenlos'),dir:best,lat,lon,r:.075*46/R,h:hh,build:'residence',who:d.id,whoName:d.name||'Namenlos',style:styleFor(pid,d)})}
+    return out}
+  function styleFor(pid,d){const T=THEME[pid].house;const r=srand(parseInt(hashStr(d.id||d.name).slice(0,5),36));const pk=a=>a[Math.floor(r()*a.length)];
+    return{shape:pk(T.shapes),wall:pk(T.walls),wallCol:pk(T.wallCols),roofCol:pk(T.roofCols),doorCol:pk(['#7FB2E0','#F0556E','#FFD85A','#8A5A44','#56C6B6','#C6A9FF']),win:pk(T.win),chimney:!!THEME[pid].chimney||r()<.4,fence:!!THEME[pid].fence&&r()<.6,size:1,flag:false}}
+  /* ---------- Haus bauen (inkl. Namensschild, Briefkasten, Deko) ---------- */
+  function build(pl,M){const g=new THREE.Group();const h=buildHouse(pl.style,M);g.add(h);Object.assign(g.userData,{door:h.userData.door,r:h.userData.r||2.2,tick:h.userData.tick});
+    try{const sg=grp(g,[1.6,0,(h.userData.r||2.2)*.9]);bt(sg,[0,0,0],[0,.9,0],.05,M.c('#A0704C'));P(sg,G.bx(1.05,.36,.08,.05),M.c('#FFFBF0'),[0,1.0,0]);
+      const tx=ctex('nameplate-'+pl.who,256,90,(x,w,hh)=>{x.fillStyle='#FFFBF0';x.fillRect(0,0,w,hh);x.fillStyle='#5B4A3E';x.font='bold 34px "Nunito","Trebuchet MS",sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(pl.whoName.slice(0,14),w/2,hh/2+2)});
+      P(sg,G.pl(.98,.32),M.tex('np-'+pl.who,tx),[0,1.0,.045])}catch(e){}
+    const deco=THEME[GAME.G.id].deco;const r=srand(pl.who.length*7+3);for(let i=0;i<2;i++){const t=deco[Math.floor(r()*deco.length)];if(!NATURE[t])continue;const n=GAME.makeNature(t,{},i+3);const a=(i?-1:1)*(1.9+r()*.4);n.position.set(a,0,-.4-r()*.8);n.scale.setScalar(.8);g.add(n)}
+    return g}
+  /* ---------- Klingeln ---------- */
+  async function knock(pl){const e=GAME.ents.get(pl.who);SND.play('pep',{vol:.8});setTimeout(()=>SND.play('pep',{vol:.8,rate:1.2}),260);
+    if(!e){UI.toast('Niemand zu Hause.');return}
+    if(e.inHome){if(e.sleeping&&(new Date().getHours()>=22||new Date().getHours()<6)){await UI.talk(pl.whoName,['*schnarch* … zzz … (Durch die Tür hörst du leises Schnarchen. Komm lieber morgen wieder.)'],{voice:GAME.voiceFor(e.d)});return}
+      e.inHome=false;e.sleeping=false;if(e.life){e.life.act=null}e.p.copy(pl.doorP);GAME.say(e,'icon:wave',2,true);await new Promise(r=>setTimeout(r,500));await LIFE.interact(e);return}
+    const d=e.p.angleTo(pl.doorP)*GAME.G.R;UI.toast(pl.whoName+' ist nicht zu Hause'+(e.life?' – '+pl.whoName+' '+LIFE.status(e)+(d<60?' (ca. '+Math.round(d)+' m entfernt)':''):'')+'.',3600)}
+  /* ---------- Eigene Figuren wechseln ---------- */
+  function charsApp(){const w=UI.win('Meine Figuren',{size:'wide'});w.body.append(el('p',null,'Du spielst immer eine Figur. Alle anderen, die du im Labor in die Welt geschickt hast, leben als KI weiter: Sie haben Bedürfnisse, Hobbys, ein eigenes Haus und einen eigenen Tagesablauf. Du kannst jederzeit wechseln.'));
+    const gr=el('div','grid');const cur=activeId();
+    const card=(d,label,isCur,on)=>{const c=el('div','card');const im=UI.creatureThumb(d);c.append(im,el('b',null,d.name||'Namenlos'),el('span','sub',isCur?'Du spielst diese Figur':label));const b=btn(isCur?'Aktiv':'Spielen',isCur?'small':'small primary',isCur?null:on);b.disabled=isCur;c.append(b);gr.append(c)};
+    card(sanitize(JSON.parse(JSON.stringify(S))),'Labor-Entwurf',!cur,()=>{switchTo(null);w.close()});
+    for(const d of WORLD){const e=GAME.ents.get(d.id);card(d,e&&e.life?'KI: '+LIFE.status(e):'lebt als KI',cur===d.id,()=>{switchTo(d.id);w.close()})}
+    if(!WORLD.length)w.body.append(el('div','note','Noch keine weiteren Figuren. Baue im Labor eine neue und schicke sie in die Welt – dann kannst du hier zu ihr wechseln.'));w.body.append(gr)}
+  function switchTo(id){const me=GAME.me;const oldId=activeId();SAVE.activeChar=id;persist();const pos=me?me.p.clone():null;
+    GAME.onAvatarChanged();GAME.syncVillagers();if(oldId&&pos){const e=GAME.ents.get(oldId);if(e){e.p.copy(pos).applyAxisAngle(GAME.tangentTo(pos,new THREE.Vector3(1,0,0)),1.4/GAME.G.R).normalize();GAME.say(e,'Tschüss! Ich mach dann mal mein Ding.',3)}}
+    if(id&&me){const e2=GAME.ents.get(id);if(e2)GAME.dropEnt(id)}UI.toast('Du spielst jetzt '+(id?(WORLD.find(d=>d.id===id)||{}).name:'deinen Labor-Entwurf')+'.');SND.jingle('j_success')}
+  function avatar(){const id=activeId();if(!id)return null;const d=WORLD.find(x=>x.id===id);return d?JSON.parse(JSON.stringify(d)):null}
+  return{THEME,natives,residents,spots,build,knock,charsApp,switchTo,avatar,activeId}
+})();

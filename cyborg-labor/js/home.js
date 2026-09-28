@@ -10,7 +10,7 @@ const SHOPKEEPERS={
 const SHOP=(()=>{
   function stock(pid){const day=Math.floor(Date.now()/864e5);const r=srand(day*7+pid.length);const furn=FURN.filter(f=>f.planet===pid||f.planet==='alle');const pickN=(arr,n)=>{const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a.slice(0,n)};
     return{furn:pickN(furn,14),walls:pickN(WALLPAPERS.filter(w=>w.planet===pid||w.planet==='alle'||!w.planet),5),floors:pickN(FLOORS.filter(w=>w.planet===pid||w.planet==='alle'||!w.planet),5)}}
-  async function open(pid){const K=SHOPKEEPERS[pid];SND.music('shop');await UI.talk(K.n,[pick(K.greet)],{voice:{pitch:210,kind:pid==='schrott'?'robot':''},color:'var(--sea)'});
+  async function open(pid){TUT.ev('shop');const K=SHOPKEEPERS[pid];SND.music('shop');await UI.talk(K.n,[pick(K.greet)],{voice:{pitch:210,kind:pid==='schrott'?'robot':''},color:'var(--sea)'});
     const w=UI.win(K.n+' · '+({kompost:'Kompost-Kiosk',schrott:'Ersatzteil-Basar',korallen:'Muschel-Laden'}[pid]),{size:'wide',onClose:()=>SND.music(GAME.G.def.music)});
     const tabs=el('div','ptabs');const body=el('div');w.body.append(tabs,body);const mon=el('span','pill');w.foot.append(mon,btn('Tschüss',null,()=>w.close()));
     const upd=()=>{mon.textContent=fmt(SAVE.money)+' Taler';UI.hud()};upd();const S0=stock(pid);

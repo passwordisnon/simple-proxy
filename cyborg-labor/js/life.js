@@ -86,7 +86,8 @@ const LIFE=(()=>{
     essen:{n:'isst etwas',i:'food',ad:{hunger:65},dur:6,where:e=>{const tr=V_().trees.filter(t=>t.hasFruit).sort((a,b)=>a.p.angleTo(e.p)-b.p.angleTo(e.p))[0];return tr?nearU(tr.p,1.2):null},
       start:e=>{e.act=1},tick:(e,t)=>{e.act=.6+Math.sin(t*9)*.3},end:e=>logDay(e,'hat Obst gegessen')},
     picknick:{n:'macht Picknick',i:'food',ad:{hunger:40,comfort:25,social:10},dur:9,where:e=>place('plaza')?nearU(place('plaza').dir,5):null,end:e=>logDay(e,'hat auf dem Platz gepicknickt')},
-    schlafen:{n:'schläft',i:'zzz',ad:{energy:90,comfort:20},dur:24,night:2.5,where:e=>e.homeP?e.homeP.clone():nearU(e.home||e.p,3),start:e=>{e.sleeping=true},end:e=>{e.sleeping=false;moodlet(e,'energie',1.2,90,'ausgeschlafen');logDay(e,'hat ausgeschlafen')}},
+    schlafen:{n:'schläft',i:'zzz',ad:{energy:90,comfort:20},dur:24,night:2.5,where:e=>e.homeP?e.homeP.clone():nearU(e.home||e.p,3),start:e=>{e.sleeping=true;if(e.homeP&&dU(e.p,e.homeP)<3){e.inHome=true;GAME.W.fx(e.p,'staub',3)}},end:e=>{e.sleeping=false;e.inHome=false;moodlet(e,'energie',1.2,90,'ausgeschlafen');logDay(e,'hat ausgeschlafen')}},
+    zuhause:{n:'ist zu Hause',i:'house',ad:{comfort:60,energy:15,hygiene:30},dur:14,where:e=>e.homeP?e.homeP.clone():null,start:e=>{if(e.homeP&&dU(e.p,e.homeP)<3)e.inHome=true},end:e=>{e.inHome=false;logDay(e,'war zu Hause und hat aufgeräumt')}},
     nickerchen:{n:'macht ein Nickerchen',i:'zzz',ad:{energy:35,comfort:30},dur:10,where:e=>place('plaza')?nearU(place('plaza').dir,4):null,start:e=>{e.sleeping=true},end:e=>{e.sleeping=false;logDay(e,'hat ein Nickerchen gemacht')}},
     plaudern:{n:'plaudert',i:'chat',ad:{social:60,fun:10},dur:9,social:true},
     tanzen:{n:'tanzt',i:'dance',ad:{fun:55,energy:-10,social:10},dur:8,evening:1.5,where:e=>{const s=place('plaza');return s?nearU(s.dir,4):null},start:e=>{e.dance=8},tick:(e,t)=>{if(Math.random()<.02)GAME.W.fx(e.p,'note',2)},end:e=>{moodlet(e,'verspielt',1,60,'getanzt');logDay(e,'hat getanzt')}},
@@ -114,8 +115,8 @@ const LIFE=(()=>{
     const a=A[best];if(a.social){const o=partner(e);if(!o)return false;startSocial(e,o,best);return true}
     const p=a.where?a.where(e):null;if(!p)return false;L.act={k:best,a,t:a.dur,started:false};L.last=best;e.goal={p,then:()=>begin(e)};return true}
   function begin(e){const L=e.life;if(!L.act)return;L.act.started=true;e.stop=L.act.a.dur;L.act.t=L.act.a.dur;L.act.a.start&&L.act.a.start(e)}
-  function finish(e){const L=e.life;const a=L.act;if(!a)return;for(const n in a.a.ad)L.needs[n]=Math.max(0,Math.min(100,L.needs[n]+a.a.ad[n]));a.a.end&&a.a.end(e);L.act=null;e.stop=.5;e.dance=0;e.sleeping=false}
-  function partner(e){let best=null,bd=28;for(const o of GAME.ents.values()){if(o===e||!o.life||o.kind==='peer'||o.kind==='me'||o.talking||o.life.act||o.inside)continue;const d=dU(e.p,o.p);if(d<bd){bd=d;best=o}}return best}
+  function finish(e){const L=e.life;const a=L.act;if(!a)return;for(const n in a.a.ad)L.needs[n]=Math.max(0,Math.min(100,L.needs[n]+a.a.ad[n]));a.a.end&&a.a.end(e);L.act=null;e.stop=.5;e.dance=0;e.sleeping=false;e.inHome=false}
+  function partner(e){let best=null,bd=28;for(const o of GAME.ents.values()){if(o===e||!o.life||o.kind==='peer'||o.kind==='me'||o.talking||o.life.act||o.inside||o.inHome)continue;const d=dU(e.p,o.p);if(d<bd){bd=d;best=o}}return best}
   function startSocial(e,o,k){const mid=e.p.clone().add(o.p).normalize();const a=A[k];
     const pa=nearU(mid,.9),pb=nearU(mid,.9);e.life.act={k,a,t:a.dur+6,started:false,with:o};o.life.act={k,a,t:a.dur+6,started:false,with:e};e.life.last=k;
     e.goal={p:pa,then:()=>meet(e,o,k)};o.goal={p:pb,then:()=>meet(o,e,k)}}

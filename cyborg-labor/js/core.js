@@ -290,9 +290,23 @@ function setOutlines(root,on){root.traverse(o=>{if(o.userData.hull)o.visible=on}
    keep: Array von Meshes/Gruppen, die separat bleiben (z. B. Früchte, animierte Teile). */
 /* ---------- Vertex-Farben: viele einfarbige Toon-Materialien → ein Material (weniger Draw-Calls) ---------- */
 const VCM={};
-function vcMat(ds,gl){const k=(ds?'d':'')+(gl?'g':'');return VCM[k]||(VCM[k]=cozy({color:'#ffffff',vertexColors:true,side:ds?THREE.DoubleSide:THREE.FrontSide,rim:.4,gloss:gl?.6:0}))}
+/* Durchsicht: Was zwischen Kamera und Spielfigur steht, wird gerastert ausgeblendet (wie in Animal Crossing) */
+const OCC={a:{value:new THREE.Vector3()},b:{value:new THREE.Vector3()},on:{value:0}};
+function occInject(s){s.uniforms.uOcA=OCC.a;s.uniforms.uOcB=OCC.b;s.uniforms.uOcOn=OCC.on;
+  s.vertexShader='varying vec3 vOcW;\n'+s.vertexShader.replace('#include <project_vertex>',`#include <project_vertex>
+   #ifdef USE_INSTANCING
+   vOcW=(modelMatrix*instanceMatrix*vec4(transformed,1.)).xyz;
+   #else
+   vOcW=(modelMatrix*vec4(transformed,1.)).xyz;
+   #endif`);
+  s.fragmentShader='uniform vec3 uOcA;uniform vec3 uOcB;uniform float uOcOn;varying vec3 vOcW;\n'+s.fragmentShader.replace(/void main\(\) \{/,`void main() {
+   if(uOcOn>.5){vec3 ab=uOcB-uOcA;float L=length(ab);float t=clamp(dot(vOcW-uOcA,ab)/(L*L),0.,1.);float d=length(vOcW-(uOcA+ab*t));
+    if(t<1.-1.1/L&&d<1.7){float th=smoothstep(1.7,.7,d)*smoothstep(0.,.12,t);vec2 f=mod(floor(gl_FragCoord.xy),4.);
+     float b=mod(f.x*4.+f.y*11.,16.)/16.;if(b<th*.9)discard;}}`)}
+function vcMat(ds,gl){const k=(ds?'d':'')+(gl?'g':'');if(VCM[k])return VCM[k];const m=cozy({color:'#ffffff',vertexColors:true,side:ds?THREE.DoubleSide:THREE.FrontSide,rim:.4,gloss:gl?.6:0});
+  const prev=m.onBeforeCompile;m.onBeforeCompile=s=>{prev(s);occInject(s)};m.customProgramCacheKey=()=>'cozyVC';return VCM[k]=m}
 function vcHull(){if(VCM.h)return VCM.h;const m=new THREE.MeshBasicMaterial({color:'#ffffff',vertexColors:true,side:THREE.BackSide});m.userData.keep=true;m.userData.outline=true;
-  m.onBeforeCompile=s=>{s.uniforms.uS=OUTLINE_SCALE;s.vertexShader='uniform float uS;attribute float ow;\n'+s.vertexShader.replace('#include <project_vertex>',
+  m.onBeforeCompile=s=>{occInject(s);s.uniforms.uS=OUTLINE_SCALE;s.vertexShader='uniform float uS;attribute float ow;\n'+s.vertexShader.replace('#include <project_vertex>',
     `#include <project_vertex>
      {
      #ifdef USE_INSTANCING
