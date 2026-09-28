@@ -137,6 +137,12 @@ input[type=range]{width:100%;accent-color:var(--leaf)}
 .jam-k small{font-size:11px;opacity:.6}.jam-k.on{transform:translateY(3px);box-shadow:0 1px 0 #B8A888;background:linear-gradient(#FFE27A,#F7B84B)}
 .jam-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:center}.jam-row select{font:inherit;padding:6px 10px;border-radius:10px;border:0}
 @media (max-width:520px){.jam-k{height:60px}.jam-keys{gap:4px}}
+.rhud{position:absolute;top:140px;left:12px;z-index:5;background:var(--card,#FFFBF0);border-radius:14px;padding:6px 12px;display:flex;gap:8px;align-items:center;font-size:13px;color:#4A3F5E;box-shadow:0 3px 0 rgba(90,70,120,.18)}.rhud .ico{width:18px;height:18px;color:#56C6B6}.rhud .arrow{display:inline-flex;transition:transform .2s}.rhud .arrow .ico{color:#F0556E}
+.spacehud{position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:5;background:rgba(20,20,51,.8);color:#FFF4DC;border-radius:14px;padding:6px 14px;display:flex;gap:12px;font-size:13px}.spacehud .sp{color:#FFE27A;font-weight:800}
+.planetlbl{background:rgba(20,20,51,.75)!important;color:#FFF4DC!important}
+.garage{display:grid;grid-template-columns:minmax(220px,320px) 1fr;gap:16px}.gprev{display:flex;flex-direction:column;gap:8px}.gstats{display:grid;gap:4px;font-size:12.5px}.gopts h3{margin:8px 0 4px;font-size:14px}.chips{display:flex;flex-wrap:wrap;gap:6px}
+.swatch{width:30px;height:30px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1px rgba(90,70,120,.25);cursor:pointer}.swatch[aria-pressed=true]{box-shadow:0 0 0 3px #8C6FE0}
+@media (max-width:640px){.garage{grid-template-columns:1fr}}
 .btn:disabled{opacity:.42;cursor:not-allowed;box-shadow:none}.scat{margin:6px 0}.scat-h{font-weight:800;font-size:13px;color:#6E5A8E;margin-bottom:4px;display:flex;gap:6px;align-items:center}.scat-b{display:flex;flex-wrap:wrap;gap:6px}
 .lbl .dia{width:9px;height:9px;margin-right:6px;vertical-align:1px}
 @media (max-width:520px){.needs{grid-template-columns:1fr}}
@@ -409,5 +415,6 @@ input[type=range]{width:100%;accent-color:var(--leaf)}
 <script src="js/museum.js"></script>
 <script src="js/jazz.js"></script>
 <script src="js/buildings.js"></script>
+<script src="js/rocket.js"></script>
 <script src="js/social.js"></script>
 <script src="js/main.js"></script>

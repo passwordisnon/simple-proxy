@@ -116,7 +116,7 @@ const GAME=(()=>{
       QF=HIGH?.7:.42;try{
         if(pl.build==='plaza')obj=buildPlaza(pl);
         else if(TOWN.kinds.includes(pl.build))obj=TOWN.build(pl.build,G_.id,M);
-        else if(pl.build==='rocket'&&window.buildRocketPad)obj=buildRocketPad(M);
+        else if(pl.build==='rocket'&&window.buildRocketPad){obj=buildRocketPad(M);try{ROCKET.dress(obj.userData.rocket,M)}catch(e){console.warn('Rakete',e)}}
         else if(pl.build==='house'&&window.buildHouse){obj=buildHouse(SAVE.house.style,M);G_.houseObj=obj}
         else if(pl.build==='residence')obj=HOMES.build(pl,M);
       }catch(e){console.warn('Gebäude',pl.build,e)}QF=1;
@@ -269,9 +269,10 @@ const GAME=(()=>{
     for(const o of obstAround(me.p,4)){if(!o.ref)continue;if(o.ref.kind==='tree')consider(o.p,o.r+1.5,{kind:'tree',ref:o.ref,label:o.ref.hasFruit?'Baum schütteln (Früchte!)':'Baum schütteln'});else if(o.ref.kind==='rock')consider(o.p,o.r+1.4,{kind:'rock',ref:o.ref,label:'Mit der Schaufel auf den Stein hauen'})}
     for(const it of ACT.targets())consider(it.p,it.r||1.6,it);
     if((typeof FAUNA!=='undefined'))for(const it of FAUNA.targets())consider(it.p,it.r,it);
+    for(const it of REPAIR.targets())consider(it.p,it.r,it);
     if(!best){const f=ACT.waterAhead(me);if(f)best={kind:'fish',label:'Angel auswerfen',p:f}}
     return best}
-  function doAction(){if(!me||UI.anyOpen()||ACT.busy())return;const t=promptTarget;SND.init();
+  function doAction(){if(mode==='space'){if(!UI.anyOpen())SPACE.action();return}if(!me||UI.anyOpen()||ACT.busy())return;const t=promptTarget;SND.init();
     if(!t){if(ACT.busy())return;me.emote='hop';me.jump=.9;return}
     switch(t.kind){case 'talk':talkTo(t.ent);break;case 'tree':ACT.shake(t.ref);break;case 'rock':ACT.hitRock(t.ref);break;case 'fish':ACT.fish(t.p);break;
       case 'shop':BUILDINGS.enter('shop');break;case 'museum':INTERIOR.enter('museum');break;case 'house':INTERIOR.enter('house');break;case 'studio':PAINT.open();break;case 'rocket':travelMenu();break;
@@ -309,8 +310,10 @@ const GAME=(()=>{
     w.foot.append(btn('Schliessen',null,()=>w.close()))}
 
   /* ---------- Menüs an Orten ---------- */
-  function travelMenu(){const w=UI.win('Raketenstation',{size:'narrow'});w.body.append(el('p',null,'Wohin soll die Rakete fliegen? Jeder Planet hat eigene Fische, Insekten, Funde und einen eigenen Laden.'));
-    const gr=el('div','grid');for(const[id,p]of Object.entries(PLANETS)){const c=el('button','card'+(id===G_.id?' sel':''));c.type='button';const sw=el('div','ph');sw.style.background=`radial-gradient(circle at 40% 35%,#fff8 0 12%,transparent 13%),radial-gradient(circle,${p.ground.mid} 0 45%,${p.water} 46%)`;c.append(sw,el('span',null,p.n),el('span','sub',p.desc));
+  function travelMenu(){if(REPAIR.broken()){REPAIR.repairAt();return}const w=UI.win('Raketenstation',{size:'narrow'});
+    w.body.append(el('p',null,'Steig ein und flieg selbst durchs Sonnensystem – oder nimm den Autopiloten. Achtung: Auf neuen Planeten gibt es oft eine Bruchlandung!'));
+    w.foot.append(btn('Selbst fliegen','primary',()=>{w.close();travel('__space')}),btn('Rakete anpassen',null,()=>{w.close();ROCKET.customize()}));
+    w.body.append(el('h3',null,'Autopilot'));const gr=el('div','grid');for(const[id,p]of Object.entries(PLANETS)){const c=el('button','card'+(id===G_.id?' sel':''));c.type='button';const sw=el('div','ph');sw.style.background=`radial-gradient(circle at 40% 35%,#fff8 0 12%,transparent 13%),radial-gradient(circle,${p.col[0]} 0 45%,${p.col[1]} 46%)`;c.append(sw,el('span',null,p.n),el('span','sub',p.desc+((SAVE.visited||{})[id]?'':' · noch nie besucht')));
       c.onclick=()=>{w.close();if(id!==G_.id)travel(id);else UI.toast('Du bist schon hier.')};gr.append(c)}w.body.append(gr)}
   function boardMenu(){const w=UI.win('Anschlagbrett',{size:'narrow'});const n=allCreatures().length;
     w.body.append(el('p',null,`Auf dem Kompost-Planeten wohnen ${n} Cyborgs${showExamples?` (davon ${EXAMPLES.length} Beispiele)`:''}.`));
@@ -327,12 +330,17 @@ const GAME=(()=>{
     doTravel(pid)}
   let launchT=null;
   function stepLaunch(dt){const L=launchT;if(!L)return;L.t+=dt;L.rk.position.y=L.base+Math.max(0,L.t-.6)*Math.max(0,L.t-.6)*9;L.rk.rotation.y+=dt*2;const pl=G_.places.find(p=>p.build==='rocket');if(pl&&Math.random()<.8)W.fx(pl.dir,pick(['rauch','funke','dampf']),2,pl.obj.localToWorld(new V3(0,L.rk.position.y,0)));camDist=Math.min(22,camDist+dt*4);
-    if(L.t>2.6){launchT=null;L.rk.position.y=L.base;me.g.visible=true;me.shadow.visible=true;doTravel(L.pid)}}
-  function doTravel(pid){fadeOut(async()=>{SND.play('whoosh');planetId=pid;SAVE.planet=pid;persist();await loadPlanet(pid);SND.music(G_.def.music);UI.toast('Willkommen auf dem '+G_.def.n+'!')})}
+    if(L.t>2.6){launchT=null;L.rk.position.y=L.base;me.g.visible=true;me.shadow.visible=true;if(L.pid==='__space')fadeOut(()=>SPACE.enter(G_.id));else doTravel(L.pid)}}
+  function doTravel(pid){fadeOut(async()=>{SND.play('whoosh');await arrive(pid)})}
+  function landOn(pid){fadeOut(async()=>{mode='outdoor';SND.play('whoosh');await arrive(pid)})}
+  /* Ankunft: neben der Raketenstation; auf neuen Planeten (und manchmal sonst) gibt es eine Bruchlandung */
+  async function arrive(pid){planetId=pid;SAVE.planet=pid;const tp=townPlaces(pid).find(p=>p.id==='rakete');if(tp){const d=dirLL(tp.lat-4.5*46/PLANETS[pid].R,tp.lon);SAVE.lastPos={planet:pid,p:[d.x,d.y,d.z]}}
+    const first=!(SAVE.visited||{})[pid];SAVE.visited=Object.assign(SAVE.visited||{},{[pid]:true});persist();await loadPlanet(pid);SND.music(G_.def.music);UI.toast('Willkommen auf dem '+G_.def.n+'!');
+    if(!SAVE.rocketBroken&&(first&&pid!=='kompost'||Math.random()<.2))setTimeout(()=>REPAIR.crash(),900)}
   function fadeOut(fn){const f=$('fade');f.classList.add('on');setTimeout(async()=>{await fn();setTimeout(()=>f.classList.remove('on'),120)},380)}
   async function loadPlanet(pid){/* alte Szene abbauen */for(const id of[...ents.keys()])dropEnt(id);me=null;W.props.length=0;parts.length=0;
     if(scene){scene.traverse(o=>{if(o.geometry)o.geometry.dispose()});}
-    buildOutdoor(pid);spawnMe();syncVillagers();SOCIAL.onPlanet&&SOCIAL.onPlanet(pid);ACT.onPlanet&&ACT.onPlanet(pid);try{BUILDINGS.onPlanet(pid)}catch(e){console.warn('Pflanzen',e)}(typeof FAUNA!=='undefined')&&FAUNA.onPlanet(pid);seedEco();resize();$('clock').querySelector('span').textContent=G_.def.n}
+    buildOutdoor(pid);spawnMe();syncVillagers();SOCIAL.onPlanet&&SOCIAL.onPlanet(pid);ACT.onPlanet&&ACT.onPlanet(pid);try{BUILDINGS.onPlanet(pid)}catch(e){console.warn('Pflanzen',e)}(typeof FAUNA!=='undefined')&&FAUNA.onPlanet(pid);try{REPAIR.onPlanet(pid)}catch(e){console.warn(e)}seedEco();resize();$('clock').querySelector('span').textContent=G_.def.n}
   function seedEco(){if(G_.id!=='kompost')return;const r=srand(77);const SEED={schrott:10,pilz:10,kristall:4,stumpf:5,oel:2};for(const[t,n]of Object.entries(SEED))for(let i=0;i<n;i++){const p=randLand(r,G_.sea+.4);if(!p||nearPlace(p))continue;const pr=W.spawn(t,p);if(pr){pr.grow=1;pr.g.scale.setScalar(1)}}}
   const cnt=types=>W.props.filter(x=>!x.dying&&types.includes(x.type)).length;
   function ecoHealth(){const plants=cnt(['baum','tanne','doppelbaum'])+cnt(['blume'])*.5+cnt(['pilz'])*.4+cnt(['moos'])*.3+20;const dirt=cnt(['oel'])*3+cnt(['schrott'])*1.2+cnt(['krater'])*2;return Math.max(0,Math.min(1.2,plants/(plants+dirt*2.2+1)*1.25))}
@@ -366,7 +374,7 @@ const GAME=(()=>{
 
   /* ================= Schleife ================= */
   let stepT=0,dayT=0,ecoT=2,camSnap=true,overview=null;
-  function frame(dt,t){if(!scene)return;OCC.on.value=0;
+  function frame(dt,t){if(!scene)return;OCC.on.value=0;if(mode==='space'){SPACE.frame(dt,t);return}
     if(mode==='interior'){INTERIOR.frame(dt,t);for(const e of ents.values())if(e.inside){poseInside(e,dt,t)}INTERIOR.render();labelsInterior();stepParts(dt);return}
     /* Spieler-Eingabe */
     let ix=(keys['d']||keys['arrowright']?1:0)-(keys['a']||keys['arrowleft']?1:0),iy=(keys['w']||keys['arrowup']?1:0)-(keys['s']||keys['arrowdown']?1:0);
@@ -387,7 +395,7 @@ const GAME=(()=>{
     const camP=cam.position.clone().normalize();for(const e of ents.values()){const vis=overview?e.p.dot(camP)>.1:e===me||(e.p.dot(camP)>.55&&angle(e.p,me?me.p:e.p)*G_.R<40);e.g.visible=vis;e.shadow.visible=vis;if(vis)poseEnt(e,dt,t)}
     stepProps(dt,t);stepParts(dt);stepClouds(dt);SCATTER.step(dt);stepWeather(dt,t);if(G_.groundU)G_.groundU.uT.value=t;SCATTER.update(overview?cam.position.clone().normalize():(me?me.p:UPV),t,HIGH);stepBall(dt);stepLaunch(dt);for(const o of G_.ticks){try{o.userData.tick(t,false,0)}catch(e){}}
     if(me){if(me.boost>0)me.boost-=dt;if(me.glitter>0){me.glitter-=dt;if(Math.random()<dt*6)W.fx(me.p,'funke',1,me.g.position.clone().addScaledVector(me.p,.8+Math.random()*.6))}}
-    if(me&&!overview){OCC.a.value.copy(cam.position);OCC.b.value.copy(me.g.position).addScaledVector(me.p,.9);OCC.on.value=1}else OCC.on.value=0;ACT.frame(dt,t);if((typeof FAUNA!=='undefined'))try{FAUNA.step(dt,t)}catch(e){console.warn('Fauna',e)}SOCIAL.frame(dt,t);grassU.value=t;G_.waterU.uT.value=t;
+    if(me&&!overview){OCC.a.value.copy(cam.position);OCC.b.value.copy(me.g.position).addScaledVector(me.p,.9);OCC.on.value=1}else OCC.on.value=0;ACT.frame(dt,t);REPAIR.frame(dt,t);if((typeof FAUNA!=='undefined'))try{FAUNA.step(dt,t)}catch(e){console.warn('Fauna',e)}SOCIAL.frame(dt,t);grassU.value=t;G_.waterU.uT.value=t;
     ecoT-=dt;if(ecoT<=0){ecoT=1;ecoTick()}grassU.value=t;
     /* Tageszeit (echte Uhr) */
     dayT-=dt;if(dayT<=0){dayT=5;dayLight()}
@@ -425,11 +433,11 @@ const GAME=(()=>{
   function poseInside(e,dt,t){e.g.position.set(e.ix,0,e.iz);e.g.up.set(0,1,0);e.g.lookAt(e.ix+Math.sin(e.iyaw),0,e.iz+Math.cos(e.iyaw));const moving=e.speed>.1;const sq=moving?1+Math.sin(t*10)*.03:1+Math.sin(t*2)*.012;e.g.scale.set(CS,CS*sq,CS);
     if(e.dance>0){e.g.rotateY(Math.sin(t*6)*.6)}e.g.userData.tick(t+e.phase,moving,e.act);e.shadow.position.set(e.ix,.02,e.iz);e.shadow.quaternion.setFromUnitVectors(new V3(0,0,1),UPV);if(e.sayT>0){e.sayT-=dt;if(e.sayT<=0)e.bub.hidden=true}if(e.emoteT>0){e.emoteT-=dt;if(e.emoteT<=0)e.emote=null}}
 
-  function resize(){sizeView(R,cam,comp,$('world'))}
+  function resize(){sizeView(R,cam,comp,$('world'));if(mode==='space')SPACE.resize()}
   function quality(){R.shadowMap.enabled=HIGH;if(scene)loadPlanet(G_.id)}
   async function init(){await loadPlanet(planetId);dayLight()}
   function onAvatarChanged(){if(!me||!scene)return;const p=me.p.clone(),dir=me.dir.clone();const inside=me.inside;const ix=me.ix,iz=me.iz;dropEnt('__me');me=makeEnt(avatarData(),{kind:'me',p,q:HIGH?.9:.6,me:true});me.dir.copy(dir);if(inside){INTERIOR.adopt(me);me.ix=ix;me.iz=iz}}
   function toggleOverview(){overview=overview?null:{az:Math.atan2(cam.position.z,cam.position.x)};if(!overview)camSnap=true;UI.toast(overview?'Beamer-Übersicht: alle Cyborgs auf einen Blick. Nochmals drücken zum Beenden.':'Zurück zur Spielfigur');return!!overview}
-  return{addObst,obstAround,_load:loadPlanet,toggleOverview,get overview(){return!!overview},_joy:()=>input.joy,init,frame,resize,quality,travel,syncVillagers,onAvatarChanged,W,G:G_,ents,get me(){return me},get scene(){return scene},cam,R,say,makeEnt,dropEnt,moveEnt,onSurf,placeObj,angle,tangentTo,isLand,randLand,note,
+  return{addObst,obstAround,_load:loadPlanet,toggleOverview,get overview(){return!!overview},_joy:()=>input.joy,init,frame,resize,quality,travel,landOn,syncVillagers,onAvatarChanged,W,G:G_,ents,get me(){return me},get scene(){return scene},cam,R,say,makeEnt,dropEnt,moveEnt,onSurf,placeObj,angle,tangentTo,isLand,randLand,note,
     get mode(){return mode},set mode(v){mode=v},showCard,talkTo,voiceFor,fadeOut,parts,makeNature,nearPlace,get camF(){return camF},get night(){return G_.night||0}};
 })();
