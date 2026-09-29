@@ -252,8 +252,12 @@ const GAME=(()=>{
     e.speed=spd}
 
   /* ---------- Figur ins Bild setzen ---------- */
+  /* Blinzeln: alle paar Sekunden kurz die Augen zu (manchmal doppelt) */
+  function blink(e,t){const es=e.g.userData.eyes;if(!es||!es.length)return;if(e.blinkAt==null)e.blinkAt=t+1+Math.random()*4;let k=1;const d=t-e.blinkAt;
+    if(d>0){if(d<.14)k=1-Math.sin(d/.14*PI)*.92;else{e.blinkAt=t+(Math.random()<.15?.25:2.2+Math.random()*4.5)}}
+    if(e.sleeping)k=.08;for(const q of es)q.scale.y=k}
   /* Mund: bewegt sich beim Sprechen (Sprechblase oder Dialog) im Silbenrhythmus */
-  function animMouth(e,t){const ms=e.g.userData.mouths||[];const talking=(e.talking&&UI.typing)||(e.sayT>0&&!e.bub.classList.contains('emote'))||(e===me&&e.chatT>0);
+  function animMouth(e,t){blink(e,t);const ms=e.g.userData.mouths||[];const talking=(e.talking&&UI.typing)||(e.sayT>0&&!e.bub.classList.contains('emote'))||(e===me&&e.chatT>0);
     const k=talking?Math.max(0,Math.sin(t*15+e.phase))*.8+Math.max(0,Math.sin(t*23+e.phase*2))*.3:0;if(!ms.length){/* Köpfe ohne Mund (Schnabel, Bildschirm, Lautsprecher): sanftes Wippen im Sprechrhythmus */e.g.scale.y*=1+k*.035;e.g.scale.x*=1-k*.015;return}
     for(const q of ms){const u=q.userData;if(u.smile){if(u.open){u.open.visible=k>.08;u.open.scale.y=Math.max(.1,k)}continue}
       /* nach unten öffnen (nicht in die Nase wachsen) */q.scale.set(1+k*.12,1+k*.9,1);if(u.y0!=null)q.position.y=u.y0-k*.9*(u.w||0)*.55;if(u.open)u.open.visible=k>.25}}

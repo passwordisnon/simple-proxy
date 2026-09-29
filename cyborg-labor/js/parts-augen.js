@@ -40,7 +40,7 @@ function face(g,c){
     return{p:new V3(x,y,z),n:new V3(-sx,-sy,1).normalize(),mat:mt,miss:!!p.miss}};
   /* Gruppe auf die Fläche setzen: lokales +z = Flächennormale (gedämpft mit k) */
   const mount=(x,y,o)=>{o=o||{};const s=at(x,y,o.raw);const k=o.k??.85;const n=new V3(s.n.x*k,s.n.y*k,1).normalize();
-    const q=grp(g,[0,0,0]);q.position.copy(s.p).addScaledVector(n,(o.lift||0)*u);q.quaternion.setFromUnitVectors(ZV,n);if(o.roll)q.rotateZ(o.roll);q.userData.surf=s;return q};
+    const q=grp(g,[0,0,0]);q.position.copy(s.p).addScaledVector(n,(o.lift||0)*u);q.quaternion.setFromUnitVectors(ZV,n);if(o.roll)q.rotateZ(o.roll);q.userData.surf=s;q.userData.eye=true;return q};
   /* höchster Punkt des Kopfes über (x,z) */
   const top=(x,z)=>{for(const h of cast(new V3(x,H.top+u*2,z),new V3(0,-1,0),u*4)){const p=g.worldToLocal(h.point.clone());if(p.y<Y-u*.1)break;return p.y}return H.top-u*.08};
   /* Ring um den Kopf in Höhe y (Winkel von +z Richtung +x) */

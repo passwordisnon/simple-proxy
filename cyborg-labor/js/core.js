@@ -393,8 +393,8 @@ function buildCreature(d,opt){
   g.updateMatrixWorld(true);const box=new THREE.Box3().setFromObject(only?focus:g);
   g.userData.height=box.max.y;g.userData.box=box;g.userData.focus=focus;
   g.userData.tick=(t,w,a)=>{for(let i=0;i<an.length;i++){try{an[i](t,w,a||0)}catch(e){an.splice(i--,1)}}};
-  {const ms=[];g.traverse(o=>{if(o.userData.mouth)ms.push(o)});g.userData.mouths=ms}
-  if(opt.merge&&!only){try{mergeCreature(g,g.userData.mouths.concat(g.userData.mouths.map(q=>q.userData.open)))}catch(e){console.warn('merge',e)}}
+  {const ms=[],es=[];g.traverse(o=>{if(o.userData.mouth)ms.push(o);if(o.userData.eye)es.push(o)});g.userData.mouths=ms;g.userData.eyes=es}
+  if(opt.merge&&!only){try{mergeCreature(g,g.userData.mouths.concat(g.userData.mouths.map(q=>q.userData.open),g.userData.eyes))}catch(e){console.warn('merge',e)}}
   return g;
 }
 function disposeTree(o){o.traverse(c=>{if(c.geometry&&!c.userData.hull)c.geometry.dispose();if(c.material){(Array.isArray(c.material)?c.material:[c.material]).forEach(m=>{if(!m.userData.keep)m.dispose()})}})}
