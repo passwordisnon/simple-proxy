@@ -47,11 +47,11 @@ const CLINIC=(()=>{
     g.userData.tick=t=>{const k=Math.floor(t*30);if(k===last)return;last=k;draw(t)};draw(0);fin(g);return g}
   /* Vorhang an Deckenschiene mit Falten */
   /* open = Anteil der Schiene ohne Stoff; Stoff liegt gerafft am Anfang (-z) bzw. mit flip am Ende */
-  function curtain(M,len,H,open,flip){const g=new THREE.Group();P(g,G.bx(.07,.06,len+.1,.02),M.c(STEEL),[0,H-.06,0]);for(const e of[-1,1])P(g,G.cy(.02,.02,.14),M.c(STEEL),[0,H+.01,e*len/2]);
+  function curtain(M,len,H,open,flip,col,hemC){const g=new THREE.Group();P(g,G.bx(.07,.06,len+.1,.02),M.c(STEEL),[0,H-.06,0]);for(const e of[-1,1])P(g,G.cy(.02,.02,.14),M.c(STEEL),[0,H+.01,e*len/2]);
     const cl=len*(1-open);const n=Math.max(6,Math.round(cl*7));const hh=H-.5;const z0=(flip?1:-1)*(len/2-cl/2);
     const geo=new THREE.PlaneGeometry(cl,hh,n*8,6);const pos=geo.attributes.position;for(let i=0;i<pos.count;i++){const u=pos.getX(i),v=pos.getY(i)/hh+.5;const k=.09+.03*(1-v);pos.setZ(i,Math.sin((u/cl+.5)*n*TAU)*k);pos.setX(i,u*(1+.06*(1-v)))}geo.computeVertexNormals();
-    const cm=P(g,geo,M.dbl('#CFECE4',{rim:.4}),[0,hh/2+.3,z0],[0,PI/2,0]);
-    const hem=new THREE.PlaneGeometry(cl,.16,n*8,1);const hp=hem.attributes.position;for(let i=0;i<hp.count;i++){const u=hp.getX(i);hp.setZ(i,Math.sin((u/cl+.5)*n*TAU)*.1);hp.setX(i,u*1.06)}hem.computeVertexNormals();P(g,hem,M.dbl(MINT),[0,.36,z0],[0,PI/2,0]);
+    const cm=P(g,geo,M.dbl(col||'#CFECE4',{rim:.4}),[0,hh/2+.3,z0],[0,PI/2,0]);
+    const hem=new THREE.PlaneGeometry(cl,.16,n*8,1);const hp=hem.attributes.position;for(let i=0;i<hp.count;i++){const u=hp.getX(i);hp.setZ(i,Math.sin((u/cl+.5)*n*TAU)*.1);hp.setX(i,u*1.06)}hem.computeVertexNormals();P(g,hem,M.dbl(hemC||MINT),[0,.36,z0],[0,PI/2,0]);
     for(let i=0;i<=n*2;i++)P(g,G.to(.028,.007),M.chrome(),[0,H-.14,z0-cl/2+i*cl/(n*2)],[0,0,0]);return fin(g)}
   /* Medizinschrank: Glasvitrine oben, Türen unten, bunte Fläschchen */
   function cabinet(M,r){const g=new THREE.Group();const w=1.25,d=.45;P(g,G.bx(w,.9,d,.04),M.c(WHITE),[0,.47,0]);P(g,G.bx(w,1.05,d*.8,.04),M.c(WHITE),[0,1.46,-.04]);P(g,G.bx(w+.06,.06,d+.04,.03),M.c(MINT),[0,.93,0]);P(g,G.bx(w+.06,.06,d*.8+.04,.03),M.c(MINT),[0,2.0,-.04]);
