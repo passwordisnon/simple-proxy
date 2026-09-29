@@ -142,7 +142,7 @@ const TOWN=(()=>{
       at(L,Z,q=>{C(q,.25,.2,.12,m.c('#6AA8F0',{gloss:.6}),[0,.06,0]);C(q,.2,.2,.02,m.c('#8A5A44'),[0,.12,0]);for(let i=0;i<8;i++){const a=i/8*TAU;if(i===2)continue;C(q,.04,.04,.6,Wd(m,'#FFFBF0'),[Math.sin(a)*1,.3,Math.cos(a)*1-.3])}})}}
   function build(kind,pid,m){if(kind==='rocket')return null;
     /* Bausatz-Gebäude (einzigartig je Planet und Art, sauber geprüft) */
-    if(typeof HAUS!=='undefined'&&HAUS.ready&&kind!=='plaza'){try{const U=1.4;const res=HAUS.civic(pid,kind,{sagR:(GAME.G.R+.8)/U});const g=new THREE.Group();const w=new THREE.Group();w.rotation.y=PI;w.scale.setScalar(U);w.add(res.g);g.add(w);
+    if(typeof HAUS!=='undefined'&&HAUS.ready&&kind!=='plaza'){try{const U=1.9;const res=HAUS.civic(pid,kind,{sagR:(GAME.G.R+.8)/U});const g=new THREE.Group();const w=new THREE.Group();w.rotation.y=PI;w.scale.setScalar(U);w.add(res.g);g.add(w);
       const rot=(x,z)=>[-x*U,-z*U];const[dx,dz]=rot(res.door[0],res.door[1]);const nm=(NAMES[pid]||NAMES.kompost)[kind]||kind;
       if(res.sign){const[sx,sz]=rot(res.sign[0],res.sign[1]);yardSign(g,m,pid,kind,nm,sx,sz)}
       finish(g,[dx,0,dz],res.bodyR*U,kind,[]);Object.assign(g.userData,{name:nm,doorExact:true,obstR:.3,colliders:res.colliders.map(c=>[...rot(c[0],c[1]),c[2]*U]),style:res.style});return g}catch(e){console.warn('Bausatz-Gebäude',kind,e)}}QF=Math.min(QF||1,HIGH?.7:.45);const res=ARCH.forTown(pid,kind);if(!res)return null;const g=new THREE.Group();g.add(res.g);const ticks=[];if(res.g.userData.tick){const t0=res.g.userData.tick;ticks.push(t0)}

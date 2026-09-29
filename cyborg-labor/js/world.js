@@ -4,7 +4,7 @@
    Spielfigur (3rd person auf der Kugel), Bewohner:innen, Öko-Fähigkeiten.
    ===================================================================== */
 const REDUCE=matchMedia('(prefers-reduced-motion: reduce)').matches;
-const CS=.55;              /* Kreatur-Massstab in der Welt (s=1 → ~1.7 hoch) */
+const CS=.4;              /* Kreatur-Massstab in der Welt (s=1 → ~1.7 hoch) */
 const UPV=new V3(0,1,0);
 
 const GAME=(()=>{
@@ -167,7 +167,7 @@ const GAME=(()=>{
   function say(e,txt,sec,emote){if(!e)return;txt=String(txt);if(txt.startsWith('icon:')){e.bub.innerHTML=ICON(txt.slice(5));emote=true}else e.bub.textContent=txt;e.bub.classList.toggle('emote',!!emote);e.bub.hidden=false;e.sayT=sec||3.2}
 
   /* ---------- Spieler ---------- */
-  let me=null;const input={x:0,y:0,run:false,joy:null};let camYaw=0,camPitch=.42,camDist=10.5,camF=new V3(1,0,0);let tapTarget=null;
+  let me=null;const input={x:0,y:0,run:false,joy:null};let camYaw=0,camPitch=.42,camDist=8.5,camF=new V3(1,0,0);let tapTarget=null;
   function avatarData(){const own=HOMES.avatar();const d=sanitize(own||JSON.parse(JSON.stringify(S)));d.id='__me';if(!d.name.trim())d.name=SAVE.nick||'Du';return d}
   function spawnMe(){if(me)dropEnt('__me');const start=SAVE.lastPos&&SAVE.lastPos.planet===G_.id?new V3(...SAVE.lastPos.p).normalize():(G_.places.find(p=>p.id==='platz')||{dir:new V3(0,1,0)}).dir.clone().applyAxisAngle(new V3(1,0,0),.13).normalize();
     me=makeEnt(avatarData(),{kind:'me',p:start,q:HIGH?.9:.6,me:true});me.lbl.textContent=me.d.name;camSnap=true;camF=tangentTo(me.p,new V3(0,0,-1));if(camF.lengthSq()<.5)camF=tangentTo(me.p,new V3(1,0,0))}
@@ -367,7 +367,7 @@ const GAME=(()=>{
   {let drag=null,moved=0;canvas.addEventListener('pointerdown',e=>{SND.init();if(input.joy&&e.pointerType==='touch')return;drag={x:e.clientX,y:e.clientY,id:e.pointerId};moved=0;canvas.setPointerCapture(e.pointerId)});
    canvas.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;moved+=Math.abs(dx)+Math.abs(dy);drag.x=e.clientX;drag.y=e.clientY;if(mode==='interior'){INTERIOR.pointer&&INTERIOR.pointer(e,'move');if(!INTERIOR.deco)INTERIOR.rotate(dx);return}camYaw-=dx*.006;camPitch=Math.max(.12,Math.min(1.15,camPitch+dy*.004))});
    canvas.addEventListener('pointerup',e=>{if(!drag)return;const wasTap=moved<8;drag=null;if(wasTap)tap(e)});
-   canvas.addEventListener('wheel',e=>{e.preventDefault();if(mode==='interior'){INTERIOR.zoom(e.deltaY);return}camDist=Math.max(5,Math.min(22,camDist+e.deltaY*.01))},{passive:false})}
+   canvas.addEventListener('wheel',e=>{e.preventDefault();if(mode==='interior'){INTERIOR.zoom(e.deltaY);return}camDist=Math.max(3.5,Math.min(22,camDist+e.deltaY*.01))},{passive:false})}
   const ray=new THREE.Raycaster();
   function tap(e){const r=canvas.getBoundingClientRect();const m=new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height)*2+1);ray.setFromCamera(m,cam);
     if(mode==='interior'){INTERIOR.tap(ray,e);return}if(!me||UI.anyOpen())return;
