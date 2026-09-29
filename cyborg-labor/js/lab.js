@@ -6,6 +6,9 @@ let HIGH=!matchMedia('(pointer:coarse)').matches;{const q=LS.get('cyborg-labor-g
 function makeRenderer(canvas){const r=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});r.outputEncoding=THREE.sRGBEncoding;r.toneMapping=THREE.NoToneMapping;
   r.shadowMap.enabled=true;r.shadowMap.type=THREE.PCFSoftShadowMap;return r}
 function makeComposer(r,scene,cam){const rt=new THREE.WebGLRenderTarget(4,4,{type:THREE.HalfFloatType,samples:4});const c=new THREE.EffectComposer(r,rt);c.addPass(new THREE.RenderPass(scene,cam));
+  /* Schutz vor Flackern: einzelne NaN/Inf-Pixel (additive Partikel, Glühen) würde der Bloom über den ganzen Bildschirm verschmieren – vorher säubern und begrenzen */
+  c.addPass(new THREE.ShaderPass({uniforms:{tDiffuse:{value:null}},vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+    fragmentShader:'uniform sampler2D tDiffuse;varying vec2 vUv;void main(){vec4 c=texture2D(tDiffuse,vUv);\n#if __VERSION__>=300\nif(any(isnan(c))||any(isinf(c)))c=vec4(0.,0.,0.,1.);\n#endif\nc.rgb=clamp(c.rgb,0.,6.);c.a=clamp(c.a,0.,1.);gl_FragColor=c;}'}));
   const bloom=new THREE.UnrealBloomPass(new THREE.Vector2(256,256),.5,.5,1.0);c.addPass(bloom);c.addPass(new THREE.ShaderPass(THREE.CopyShader));c.bloom=bloom;return c}
 function skyTex(a,b,key){return ctex('sky'+a+b+(key||''),64,512,(x,w,h)=>{const g=x.createLinearGradient(0,0,0,h);g.addColorStop(0,a);g.addColorStop(.62,b);g.addColorStop(1,b);x.fillStyle=g;x.fillRect(0,0,w,h)})}
 function sizeView(R,cam,comp,elx){const w=elx.clientWidth,h=elx.clientHeight;if(!w||!h)return;const pr=Math.min(HIGH?2:1.25,devicePixelRatio);R.setPixelRatio(pr);R.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();if(comp){comp.setPixelRatio(pr);comp.setSize(w,h)}}

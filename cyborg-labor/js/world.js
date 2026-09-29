@@ -446,7 +446,8 @@ const GAME=(()=>{
   function dayLight(){const h=GAMETIME.hour();const hh=GAMETIME.str();$('clock').querySelector('b').textContent=hh;
     const night=h<6||h>=21?1:h<7.5?1-(h-6)/1.5:h>19.5?(h-19.5)/1.5:0;const dusk=(h>17.5&&h<21)||(h>5.5&&h<8)?1:0;G_.night=night;
     const def=G_.def;G_.scene.background=night>.5?skyTex('#2B2F66','#6A5A9E','n'+G_.id):dusk&&night<.5?skyTex('#9FB4F0','#FFC9A8','d'+G_.id):skyTex(def.sky[0],def.sky[1],G_.id);
-    G_.sunBase=1-night*.6;G_.sun.intensity=G_.sunBase;G_.sun.color.set(dusk?'#ffd9b0':'#fff3de');G_.hemiBase=.52-night*.12;G_.hemi.intensity=G_.hemiBase;G_.hemi.color.set(night>.5?'#8f9cff':'#dff1ff');G_.stars.material.opacity=night;G_.scene.fog.color.set(night>.5?'#4b4a86':def.fog)}
+    G_.sunBase=1-night*.6;G_.sun.color.set(dusk?'#ffd9b0':'#fff3de');G_.hemiBase=.52-night*.12;G_.hemi.color.set(night>.5?'#8f9cff':'#dff1ff');G_.stars.material.opacity=night;G_.fogBase=new THREE.Color(night>.5?'#4b4a86':def.fog);
+    /* Mit Wetter setzt WEATHER.frame Licht und Nebelfarbe jedes Bild aus diesen Basiswerten (sonst blinkt es einmal pro Sekunde hell auf) */if(typeof WEATHER==='undefined'){G_.sun.intensity=G_.sunBase;G_.hemi.intensity=G_.hemiBase;G_.scene.fog.color.copy(G_.fogBase)}}
   /* ---------- Namensschilder & Sprechblasen ---------- */
   const tV=new V3();
   function labels(){const w=canvas.clientWidth,h=canvas.clientHeight;const camN=cam.position.clone().normalize();for(const e of ents.values()){const near=overview?e.p.dot(camN)>.3:me&&(e===me||angle(e.p,me.p)*G_.R<16);const show=e.g.visible&&near;
