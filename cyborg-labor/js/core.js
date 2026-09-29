@@ -399,3 +399,13 @@ function disposeTree(o){o.traverse(c=>{if(c.geometry&&!c.userData.hull)c.geometr
 function cozyLights(scene,o){o=o||{};const hemi=new THREE.HemisphereLight(o.sky||'#cfe6ff',o.ground||'#f0c9a8',o.hemi??.5);scene.add(hemi);
   const sun=new THREE.DirectionalLight(o.sun||'#fff3de',o.sunI??1.0);sun.position.set(3.5,7,5);scene.add(sun);
   const fill=new THREE.DirectionalLight('#c9d8ff',.18);fill.position.set(-5,3,-3);scene.add(fill);return{hemi,sun,fill}}
+
+/* ---------- Spielzeit: eigener Tag-Nacht-Zyklus (1 Spielstunde = 1 echte Minute, ein Tag = 24 Minuten) ---------- */
+const GAMETIME=(()=>{const SPEED=60;/* Spielsekunden pro echte Sekunde */let base=null;
+  function t0(){if(base==null){let s=null;try{s=JSON.parse(localStorage.getItem('cyborg-labor-zeit')||'null')}catch(e){}base=s||{real:Date.now(),game:9*3600}}return base}
+  function secs(){if(window.__hour!=null)return window.__hour*3600;const b=t0();return (b.game+(Date.now()-b.real)/1000*SPEED)%86400}
+  function hour(){return secs()/3600}
+  function save(){try{localStorage.setItem('cyborg-labor-zeit',JSON.stringify({real:Date.now(),game:secs()}));base=null}catch(e){}}
+  function skip(toH){const b=t0();b.game=toH*3600;b.real=Date.now();save()}
+  const str=()=>{const s=secs();return String(Math.floor(s/3600)).padStart(2,'0')+':'+String(Math.floor(s/60)%60).padStart(2,'0')};
+  setInterval(save,15000);return{hour,str,skip,SPEED}})();

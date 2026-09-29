@@ -40,7 +40,7 @@ const ACT=(()=>{
   let busyState=null;const busy=()=>!!busyState;
   let pickups=[],bugs=[],digs=[];let respawnT=0;
   const M=makeMats({skin:'haut',color:0});
-  const nightNow=()=>{const h=new Date().getHours();return h<6||h>=19};
+  const nightNow=()=>{const h=GAMETIME.hour();return h<6||h>=19};
   function weighted(list){const w=list.map(x=>Math.pow(6-(x.rarity||2),2));let s=w.reduce((a,b)=>a+b,0);let r=Math.random()*s;for(let i=0;i<list.length;i++){r-=w[i];if(r<=0)return list[i]}return list[0]}
   const GG=()=>GAME.G;
   /* ---------- Sammelobjekte in der Welt ---------- */

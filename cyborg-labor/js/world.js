@@ -114,9 +114,9 @@ const GAME=(()=>{
   /* ---------- Gebäude & Orte ---------- */
   /* Wortsteine (fremde Ruinen): bringen je ein Wort der Planetensprache bei */
   function buildStones(){if(typeof LANG==='undefined'||!LANG.has(G_.id))return;const r=srand(hashStr('stones'+G_.id).length*313+7);const seen=SAVE.stones||{};let n=0;
-    for(let i=0;i<400&&n<7;i++){const p=randLand(r,G_.sea+.4);if(!p||nearPlace(p,1.6))continue;if(G_.places.some(pl=>pl.dir.angleTo(p)*G_.R<9))continue;const id=G_.id+'-st'+n;
-      const g=LANG.stoneModel(G_.id,M);addOutlines(g);placeObj(g,p,r()*TAU,-.05);G_.scene.add(g);G_.ticks.push(g);addObst(p,.8);const st={id,used:!!seen[id]};
-      G_.inter.push({kind:'stone',p,r:2,label:'Wortstein lesen',act:()=>LANG.stone(G_.id,st)});n++}}
+    for(let i=0;i<400&&n<7;i++){const p=randLand(r,G_.sea+.4);if(!p||nearPlace(p,2.2))continue;if(G_.places.some(pl=>pl.dir.angleTo(p)*G_.R<14))continue;if(Math.abs(G_.hAt(p)-G_.hAt(p.clone().addScaledVector(tangentTo(p,new V3(1,0,0)),4/G_.R).normalize()))>.8)continue;const id=G_.id+'-st'+n;
+      const g=LANG.stoneModel(G_.id,M);addOutlines(g);let ru=null;try{ru=LANG.ruin(G_.id,ARCH.hashNum(id),G_.R);g.add(ru.g)}catch(e){console.warn('Ruine',e)}placeObj(g,p,r()*TAU,-.05);G_.scene.add(g);G_.ticks.push(g);addObst(p,.8);g.updateMatrixWorld(true);if(ru)for(const c of ru.cols){addObst(g.localToWorld(new V3(c[0],0,c[1])).normalize(),c[2])}const st={id,used:!!seen[id]};
+      G_.inter.push({kind:'stone',p,r:2,label:'Wortstein lesen',act:()=>LANG.stone(G_.id,st)});G_.places.push({id,n:'Ruine',dir:p.clone(),r:6.5/G_.R});n++}}
   function buildPlaces(){for(const pl of G_.places){if(!pl.build)continue;const g=new THREE.Group();let obj=null;
       QF=HIGH?.7:.42;try{
         if(pl.build==='plaza')obj=buildPlaza(pl);
@@ -413,7 +413,7 @@ const GAME=(()=>{
     if(me&&!overview){OCC.a.value.copy(cam.position);OCC.b.value.copy(me.g.position).addScaledVector(me.p,.9);OCC.on.value=1}else OCC.on.value=0;ACT.frame(dt,t);REPAIR.frame(dt,t);if((typeof FAUNA!=='undefined'))try{FAUNA.step(dt,t)}catch(e){console.warn('Fauna',e)}SOCIAL.frame(dt,t);grassU.value=t;G_.waterU.uT.value=t;
     ecoT-=dt;if(ecoT<=0){ecoT=1;ecoTick()}grassU.value=t;
     /* Tageszeit (echte Uhr) */
-    dayT-=dt;if(dayT<=0){dayT=5;dayLight()}
+    dayT-=dt;if(dayT<=0){dayT=1;dayLight()}
     /* Kamera */
     if(overview){overview.az+=dt*.06;const d=G_.R*3.1;const want=new V3(Math.cos(overview.az)*Math.cos(.5),Math.sin(.5),Math.sin(overview.az)*Math.cos(.5)).multiplyScalar(d);cam.position.lerp(want,Math.min(1,dt*2));cam.up.set(0,1,0);cam.lookAt(0,0,0)}
     else if(me){const cf=camF.clone().applyAxisAngle(me.p,camYaw);const up=me.p;const target=me.g.position.clone().addScaledVector(up,1.1);
@@ -433,7 +433,7 @@ const GAME=(()=>{
   function ecoTick(){if(G_.id!=='kompost')return;const live=W.props.filter(x=>!x.dying);const oils=live.filter(x=>x.type==='oel');
     for(let i=0;i<10;i++){const x=pick(live);if(!x)break;const REP={baum:[.03,3],blume:[.08,5],pilz:[.04,3],moos:[.02,4]}[x.type];if(REP&&x.grow>=1&&Math.random()<REP[0]&&live.filter(y=>y.type===x.type&&y.p.dot(x.p)>Math.cos(.12)).length<REP[1]&&!oils.some(o=>o.p.dot(x.p)>Math.cos(.1)))W.spawn(x.type,W.near(x.p,.12))}
     for(const o of oils)for(const x of live){if(x.p.dot(o.p)<Math.cos(.06))continue;if(['blume','pilz'].includes(x.type)&&Math.random()<.08)W.remove(x);if(x.type==='moos'&&Math.random()<.05){W.remove(o);note('Moos hat einen Ölfleck abgebaut');break}}}
-  function dayLight(){const d=new Date();if(window.__hour!=null)d.setHours(window.__hour,0);const h=d.getHours()+d.getMinutes()/60;const hh=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');$('clock').querySelector('b').textContent=hh;
+  function dayLight(){const h=GAMETIME.hour();const hh=GAMETIME.str();$('clock').querySelector('b').textContent=hh;
     const night=h<6||h>=21?1:h<7.5?1-(h-6)/1.5:h>19.5?(h-19.5)/1.5:0;const dusk=(h>17.5&&h<21)||(h>5.5&&h<8)?1:0;G_.night=night;
     const def=G_.def;G_.scene.background=night>.5?skyTex('#2B2F66','#6A5A9E','n'+G_.id):dusk&&night<.5?skyTex('#9FB4F0','#FFC9A8','d'+G_.id):skyTex(def.sky[0],def.sky[1],G_.id);
     G_.sunBase=1-night*.6;G_.sun.intensity=G_.sunBase;G_.sun.color.set(dusk?'#ffd9b0':'#fff3de');G_.hemiBase=.52-night*.12;G_.hemi.intensity=G_.hemiBase;G_.hemi.color.set(night>.5?'#8f9cff':'#dff1ff');G_.stars.material.opacity=night;G_.scene.fog.color.set(night>.5?'#4b4a86':def.fog)}

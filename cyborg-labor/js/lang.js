@@ -67,5 +67,24 @@ const LANG=(()=>{
     const tx=ctex('stone-'+pid,128,256,(x,w,h)=>{x.fillStyle='rgba(0,0,0,0)';x.clearRect(0,0,w,h);for(let i=0;i<4;i++)glyph(x,pid,'st'+i,w/2,30+i*58,48)});
     const pl=new THREE.Mesh(new THREE.PlaneGeometry(.6,1.3),new THREE.MeshBasicMaterial({map:tx,transparent:true,color:st.glow,toneMapped:false,depthWrite:false}));pl.position.set(0,1.35,.26);pl.userData.noOutline=true;g.add(pl);const pl2=pl.clone();pl2.position.z=-.26;pl2.rotation.y=PI;g.add(pl2);
     const halo=P(g,G.s(.08),m.glow(st.glow,2),[0,2.7,0]);g.userData.tick=t=>{pl.material.opacity=.6+.4*Math.sin(t*2);/* pl2 teilt das Material */halo.position.y=2.7+Math.sin(t*1.5)*.08};return g}
-  return{STYLE,VOCAB,has,alien,garble,frac,learn,known,knows,bonus,signTex,read,stone,stoneModel,glyph}
+  /* Ruine um den Wortstein: Säulenring, Mauerreste, Trümmer, Altar, Statuenkopf (Kenney Graveyard/Castle/Nature) */
+  const RSTONE={schrott:'#8C93A8',korallen:'#E8D2BC',frost:'#C8D8F0',wueste:'#E0B888',pilz:'#A890C8'};
+  function ruin(pid,seed,R){const g=new THREE.Group();const cols=[];if(typeof KIT==='undefined')return{g,cols};const r=srand(seed%2147483646+1);const sc=RSTONE[pid]||'#A8A4B8';
+    const dk=(h,k)=>'#'+new THREE.Color(h).multiplyScalar(k).getHexString();
+    const pal={stone:sc,wall:sc,trim:dk(sc,1.08),sand:sc,sandD:dk(sc,.9),metal:dk(sc,.8),metalD:dk(sc,.65),dark:'#4a3f5e',plant:'#7CC46A',plantD:'#5AA85A',wood:'#9C7A5A',woodL:'#B08A66',wood2:'#7A5A44',roof:dk(sc,.85),roofB:dk(sc,.85),roof2:dk(sc,.85),light:STYLE[pid].glow,glass:STYLE[pid].glow,line:'#4a3a5e'};
+    const sag=(x,z)=>-(x*x+z*z)/(2*R);
+    const add=(pk,nm,x,z,ry,s,y0)=>{if(!KIT.has(pk,nm))return null;const m=KIT.mesh(pk,nm,pk==='nature'?pal:pal);m.position.set(x,(y0||0)+sag(x,z)-.04,z);m.rotation.y=ry||0;if(s!=null)typeof s==='number'?m.scale.setScalar(s):m.scale.set(...s);g.add(m);return m};
+    const N=6+Math.floor(r()*5),RR=3.1+r()*1.2,S=2.2;const broken=[];
+    for(let i=0;i<N;i++){const a=i/N*TAU+r()*.15;const x=Math.cos(a)*RR,z=Math.sin(a)*RR;const q=r();
+      if(q<.55){add('graveyard','column-large',x,z,r()*6,[S,S*(.55+r()*.6),S]);cols.push([x,z,.5])}
+      else if(q<.8){add('nature','statue_columnDamaged',x,z,r()*6,S*1.3);cols.push([x,z,.45])}
+      else{broken.push(i);add('graveyard','debris',x,z,r()*6,S*1.1)}}
+    /* Mauerreste zwischen zwei Säulen */for(let k=0;k<2;k++){const a=(Math.floor(r()*N)+.5)/N*TAU;const x=Math.cos(a)*(RR+.2),z=Math.sin(a)*(RR+.2);add('graveyard',r()<.6?'stone-wall-damaged':'stone-wall',x,z,-a+PI/2,[S*.9,S*.8,S*.9]);cols.push([x,z,.8])}
+    /* Altar vor dem Stein, Kerzen, Trümmer, Statuenkopf */add('graveyard','altar-stone',0,-1.5,0,S*.8);cols.push([0,-1.5,.6]);
+    for(const sx of[-.75,.75])add('graveyard','lantern-candle',sx,-1.55,0,S*.7,.49*S*.8);
+    for(let k=0;k<4;k++){const a=r()*TAU,d=1.5+r()*2.2;add('graveyard',r()<.5?'debris':'rocks',Math.cos(a)*d,Math.sin(a)*d,r()*6,S*(.5+r()*.4))}
+    if(r()<.7){const a=r()*TAU;const x=Math.cos(a)*(RR+1.6),z=Math.sin(a)*(RR+1.6);add('nature','statue_head',x,z,-a-PI/2,S*1.4);cols.push([x,z,.9])}
+    if(r()<.5){const a=r()*TAU;const x=Math.cos(a)*(RR+1.2),z=Math.sin(a)*(RR+1.2);add('nature','statue_obelisk',x,z,r()*6,S*1.5);cols.push([x,z,.4])}
+    return{g,cols}}
+  return{ruin,STYLE,VOCAB,has,alien,garble,frac,learn,known,knows,bonus,signTex,read,stone,stoneModel,glyph}
 })();

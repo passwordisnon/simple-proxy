@@ -66,7 +66,7 @@ const HOMES=(()=>{
   /* ---------- Klingeln ---------- */
   async function knock(pl){const e=GAME.ents.get(pl.who);SND.play('pep',{vol:.8});setTimeout(()=>SND.play('pep',{vol:.8,rate:1.2}),260);
     if(!e){UI.toast('Niemand zu Hause.');return}
-    if(e.inHome){if(e.sleeping&&(new Date().getHours()>=22||new Date().getHours()<6)){await UI.talk(pl.whoName,['*schnarch* … zzz … (Durch die Tür hörst du leises Schnarchen. Komm lieber morgen wieder.)'],{voice:GAME.voiceFor(e.d)});return}
+    if(e.inHome){if(e.sleeping&&(GAMETIME.hour()>=22||GAMETIME.hour()<6)){await UI.talk(pl.whoName,['*schnarch* … zzz … (Durch die Tür hörst du leises Schnarchen. Komm lieber morgen wieder.)'],{voice:GAME.voiceFor(e.d)});return}
       e.inHome=false;e.sleeping=false;if(e.life){e.life.act=null}e.p.copy(pl.doorP);GAME.say(e,'icon:wave',2,true);await new Promise(r=>setTimeout(r,500));await LIFE.interact(e);return}
     const d=e.p.angleTo(pl.doorP)*GAME.G.R;UI.toast(pl.whoName+' ist nicht zu Hause'+(e.life?' – '+pl.whoName+' '+LIFE.status(e)+(d<60?' (ca. '+Math.round(d)+' m entfernt)':''):'')+'.',3600)}
   /* ---------- Eigene Figuren wechseln ---------- */

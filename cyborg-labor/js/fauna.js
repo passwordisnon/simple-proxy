@@ -219,7 +219,7 @@ const FAUNA=(()=>{
   /* ================= Welt-Instanzen ================= */
   let animals=[],companion=null,game=null,M_=M;const V_=()=>GAME.G;
   const st=()=>{if(!SAVE.animals)SAVE.animals={};if(!SAVE.faunaSeen)SAVE.faunaSeen={};return SAVE.animals};
-  const isNight=()=>{const h=new Date().getHours();return h<6||h>=20};
+  const isNight=()=>{const h=GAMETIME.hour();return h<6||h>=20};
   function nameOf(a){return(st()[a.id]&&st()[a.id].name)||a.dn}
   function frOf(a){return(st()[a.id]&&st()[a.id].fr)||0}
   function rec(a){const s=st();return s[a.id]||(s[a.id]={fr:0})}

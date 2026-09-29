@@ -13,7 +13,7 @@ const MAIN=(()=>{
     const i=el('input');i.type='text';i.id='nickIn';i.maxLength=24;i.value=S.name||'';i.placeholder='z. B. Moos-Mo';w.body.append(i);
     const go=()=>{SAVE.nick=i.value.trim().slice(0,24)||'Gast';persist();w.close();GAME.onAvatarChanged();UI.toast('Hallo '+SAVE.nick+'!');SND.jingle('j_success')};i.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter')go()});w.foot.append(btn('Los geht\'s','primary',go));setTimeout(()=>i.focus(),50)}
   /* ---------- Cy-Phone ---------- */
-  function phone(){TUT.ev('phone');const v=el('div','veil');const ph=el('div','phone');const d=new Date();const head=el('div','ph');head.append(el('span',null,String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')),el('span',null,'Cy-Phone'),el('span',null,fmt(SAVE.money)+' T'));
+  function phone(){TUT.ev('phone');const v=el('div','veil');const ph=el('div','phone');const d=new Date();const head=el('div','ph');head.append(el('span',null,GAMETIME.str()),el('span',null,'Cy-Phone'),el('span',null,fmt(SAVE.money)+' T'));
     const apps=el('div','apps');const A=(ic,n,bg,fn)=>{const b=el('button','app-i');b.type='button';const i=el('b');i.innerHTML=ICON(ic);i.style.background=bg;b.append(i,document.createTextNode(n));b.onclick=()=>{close();SND.play('select');fn()};apps.append(b)};
     const close=()=>{v.remove();openWinsPop()};
     A('dna','Labor','#C6A9FF',()=>setTab('lab'));A('bag','Tasche','#FFD35C',()=>ACT.bag());A('book','Lexikon','#7FDCE6',()=>ACT.lexikon());A('paw','Tiere','#A6EBC3',()=>FAUNA.lexikon());A('smile','Figuren','#FFC9A8',()=>HOMES.charsApp());

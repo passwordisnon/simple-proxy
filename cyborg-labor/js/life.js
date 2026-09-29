@@ -59,7 +59,7 @@ const LIFE=(()=>{
   const V_=()=>GAME.G;const R=()=>GAME.G.R;
   const nearU=(p,dist)=>{for(let i=0;i<10;i++){const t=GAME.tangentTo(p,new V().randomDirection());const q=p.clone().addScaledVector(t,dist*(.4+Math.random()*.6)/R()).normalize();if(GAME.isLand(q)&&!(GAME.nearPlace&&GAME.nearPlace(q,.95)))return q}return p.clone()};
   const dU=(a,b)=>a.angleTo(b)*R();
-  const hour=()=>{const d=new Date();return d.getHours()+d.getMinutes()/60};
+  const hour=()=>GAMETIME.hour();
   /* ---------- Persönlichkeit aus der Figur ableiten (stabil je id) ---------- */
   function seedOf(d){return (parseInt(hashStr(String(d.id||d.name||'x')).slice(0,6),36)%2000000000)+1}
   function makeLife(e){const d=e.d;const r=srand(seedOf(d));const tk=Object.keys(TRAITS);const t1=tk[Math.floor(r()*tk.length)];let t2=tk[Math.floor(r()*tk.length)];if(t2===t1)t2=tk[(tk.indexOf(t1)+5)%tk.length];
@@ -73,7 +73,7 @@ const LIFE=(()=>{
   function addRel(e,n){if(n>0&&e.d.native&&typeof LANG!=='undefined')n*=LANG.bonus(GAME.G.id);SAVE.friendship[e.d.id]=Math.max(-50,Math.min(100,(SAVE.friendship[e.d.id]||0)+n));persist()}
   function relLabel(v){return v<-20?'Streit':v<5?'Bekannte':v<25?'Freundlich':v<50?'Befreundet':v<80?'Gute Freundschaft':'Beste Freundschaft'}
   function moodlet(e,emo,w,sec,why){const L=e.life;L.moodlets=L.moodlets.filter(m=>m.why!==why);L.moodlets.push({emo,w,t:sec,why})}
-  function logDay(e,txt){const L=e.life;const h=new Date();L.log.push(String(h.getHours()).padStart(2,'0')+':'+String(h.getMinutes()).padStart(2,'0')+' '+txt);if(L.log.length>12)L.log.shift();save(e)}
+  function logDay(e,txt){const L=e.life;L.log.push(GAMETIME.str()+' '+txt);if(L.log.length>12)L.log.shift();save(e)}
   /* ---------- Emotion bestimmen ---------- */
   function evalEmo(e){const L=e.life;const N=L.needs;const sc={};const add=(k,v)=>sc[k]=(sc[k]||0)+v;
     add('ausgeglichen',1);if(N.energy<22)add('muede',3-N.energy/11);if(N.hunger<20)add(has(L,'hitzkopf')?'wuetend':'angespannt',2.5-N.hunger/10);if(N.social<20)add('traurig',2.2-N.social/12);if(N.fun<20)add('gelangweilt',2.2-N.fun/12);if(N.hygiene<15)add('peinlich',1.6);

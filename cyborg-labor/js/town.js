@@ -103,7 +103,7 @@ const TOWN=(()=>{
       const ct=ctex('clockface',256,256,(x,w,h)=>{x.fillStyle='#FFFBF0';x.beginPath();x.arc(128,128,122,0,TAU);x.fill();x.fillStyle='#5B4A3E';for(let i=0;i<12;i++){const a=i/12*TAU;x.beginPath();x.arc(128+Math.cos(a)*96,128+Math.sin(a)*96,i%3?5:9,0,TAU);x.fill()}});
       const cf=grp(tw,[0,1.6+ty,.76]);P(cf,G.cy(.5,.5,.06),m.c(st.trim),[0,0,0],[PI/2,0,0]);P(cf,G.circ(.44),m.tex('clockface',ct),[0,0,.04]);const hh=P(cf,G.bx(.05,.28,.02,0),m.c(PAL.ink),[0,.1,.06]);const mh=P(cf,G.bx(.035,.38,.02,0),m.c(PAL.ink),[0,.15,.07]);
       const tt=grp(tw,[0,2.2+ty,0]);if(st.roof==='cap')P(tt,G.hs(1),m.c(b.rc,{gloss:.7}),[0,0,0],null,[1,.7,1]);else if(st.roof==='shell'||st.dome){P(tt,G.hs(.85),m.c(b.rc,{gloss:.5}),[0,0,0])}else P(tt,G.co(1.1,1.1,4),roofMat(m,b.rc,1,1),[0,.55,0],[0,PI/4,0]);
-      const fl=flagOn(tt,m,[0,st.roof==='cap'?.7:1,0],'#F0556E');g.userData.keep=[cf];const tk=[t=>{const d=new Date();hh.rotation.z=-(d.getHours()%12+d.getMinutes()/60)/12*TAU;mh.rotation.z=-d.getMinutes()/60*TAU},fl];
+      const fl=flagOn(tt,m,[0,st.roof==='cap'?.7:1,0],'#F0556E');g.userData.keep=[cf];const tk=[t=>{const h=GAMETIME.hour();hh.rotation.z=-(h%12)/12*TAU;mh.rotation.z=-(h%1)*TAU},fl];
       sign(g,m,st,pid,'rathaus','Rathaus',W,D,top-.5,{bd:'#F7B84B'});planetDeco(g,m,st,pid,W,D,b.r);return finish(g,[0,0,zf(D)+1.6],Math.max(W,D)*.62,'rathaus',tk)},
     garage(pid,m){const b=base(pid,'garage',m,[6,4.6,3.2]);const{g,st,W,D,top}=b;roof(g,m,st,W,D,top,b.rc);
       /* Rolltor */const rt=ctex('rolltor',128,256,(x,w,h)=>{for(let i=0;i<16;i++){x.fillStyle=i%2?'#e8e8e8':'#ffffff';x.fillRect(0,i*16,w,16);x.fillStyle='rgba(0,0,0,.15)';x.fillRect(0,i*16+14,w,2)}});

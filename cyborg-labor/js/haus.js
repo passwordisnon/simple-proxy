@@ -390,7 +390,7 @@ const HAUS=(()=>{
     const S=unit;const sign=H.sign?[(H.sign[0]-ctr.x)*S,(H.sign[1]-ctr.z)*S]:null;
     if(H.unit){H.g.scale.setScalar(H.unit)}return{g:H.g,unit,bodyR:bodyR*S,colliders:cols.map(c2=>[c2[0]*S,c2[1]*S,c2[2]*S]),sign,door:[c.door[0]*S,c.door[1]*S],size:c.size.clone().multiplyScalar(S),pal:H.pal,issues:H.issues,tries,style:(plan.fam||'town')+(H.style?'-'+H.style:'')+(plan.mushroom?'+pilzdach':'')+(plan.base?'+stelzen':'')+(H.round?(plan.fam==='pueblo'?'+kuppelturm':'+rundturm'):'')+(H.chim?'+kamin':'')+(H.balc&&!H.balcFailed?'+balkon':'')}}
   function center(g,door,body){const box=new THREE.Box3().setFromObject(g);const ctr=(body||box).getCenter(new V());ctr.y=0;g.children.forEach(c=>{c.position.x-=ctr.x;c.position.z-=ctr.z});return{ctr,door:[door[0]-ctr.x,door[1]-.5-ctr.z],size:box.getSize(new V())}}
-  const PACKS=['town','holiday','pirate','nature','survival','station','modular','castle','plat','space','furn','food'];let ready=false;
+  const PACKS=['town','holiday','pirate','nature','survival','station','modular','castle','plat','space','furn','food','graveyard'];let ready=false;
   function load(){return Promise.all(PACKS.map(p=>KIT.load(p))).then(()=>{ready=true;if(window.KITFURN)KITFURN.fix()})}
   return{build,civic,palette,THEMES,rng,REJ,load,PACKS,get ready(){return ready}}
 })();

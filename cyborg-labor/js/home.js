@@ -55,7 +55,7 @@ const INTERIOR=(()=>{
     /* Sockelleiste & Rahmen */const trim=M.c(o.trim||'#C98C5A');P(g,G.bx(W+.4,.18,.08,.03),trim,[0,.09,-D/2+.02]);both(s=>P(g,G.bx(.08,.18,D,.03),trim,[s*(W/2-.02),.09,0]));P(g,G.bx(W+.6,.25,.4,.08),trim,[0,H+.1,-D/2-.1]);
     /* Fenster mit Himmel je Tageszeit, Vorhängen, Fensterbank und Lichtfleck */if(o.windows!==false)roomWindows(g,W,D,H,o);
     /* Tür (vorne unten angedeutet als Fussmatte) */P(g,G.bx(1.4,.04,.8,.02),M.c('#F0556E'),[0,.02,D/2-.45]);colliders.length=0;return g}
-  function skyNow(){const d=new Date();if(window.__hour!=null)d.setHours(window.__hour,0);const h=d.getHours()+d.getMinutes()/60;
+  function skyNow(){const h=GAMETIME.hour();
     if(h<5.5||h>=21)return{k:'nacht',a:'#1B1F4A',b:'#3A3F7A',spill:0};if(h<7.5)return{k:'morgen',a:'#FFB8A0',b:'#FFE3C2',spill:.18};if(h>=18.5)return{k:'abend',a:'#6E5AB8',b:'#FF9E7A',spill:.14};return{k:'tag',a:'#8FD0FF',b:'#E8F6FF',spill:.26}}
   function roomWindows(g,W,D,H,o){const S=skyNow();const arch=o.winArch??(W>10);const ww=o.winW||1.15,wh=o.winH||(arch?1.5:1.25),y0=o.winY||(H*.42);
     const sky=ctex('winsky-'+S.k+(arch?'a':'r'),128,160,(x,w,h)=>{const gr=x.createLinearGradient(0,0,0,h);gr.addColorStop(0,S.a);gr.addColorStop(1,S.b);x.fillStyle=gr;x.fillRect(0,0,w,h);
@@ -130,7 +130,7 @@ const INTERIOR=(()=>{
     const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.magFilter=THREE.NearestFilter;P(g,G.bx(size+.18,size+.18,.08,.04),M.c('#C98C5A'),[0,0,.04]);const pic=P(g,G.pl(size,size),new THREE.MeshBasicMaterial({map:t}),[0,0,.085]);pic.userData.noOutline=true;addOutlines(g);return g}
   function furnAction(f,it,g){const pos={x:it.x,z:f.wall?-roomSize().D/2+.8:it.z};const A=(label,act)=>actions.push({x:pos.x,z:pos.z,r:1.4,label,act});
     if(f.cat==='sitz')A('Hinsetzen',()=>{const me=GAME.me;me.ix=it.x;me.iz=it.z+.05;me.iyaw=-it.rot*PI/2;doEmote(me,'schlafen',true);me.emote=null;GAME.say(me,'icon:relax',2,true);SND.play('soft')});
-    else if(f.cat==='bett')A('Schlafen',()=>{const me=GAME.me;doEmote(me,'schlafen');SND.play('cloth')});
+    else if(f.cat==='bett'){A('Schlafen',()=>{const me=GAME.me;doEmote(me,'schlafen');SND.play('cloth')});A('Bis zum Morgen schlafen',()=>{const h=GAMETIME.hour();if(h>6&&h<18){UI.toast('Es ist noch hell draussen – Nickerchen statt Nachtruhe.');return}GAME.fadeOut(()=>{GAMETIME.skip(7);UI.toast('Guten Morgen! Es ist 07:00.',2600)})})}
     else if(f.cat==='licht')A('Licht an/aus',()=>{const l=scene.userData.lamp;l.intensity=l.intensity>.1?0:.45;SND.play('toggle')});
     else if(f.cat==='musik')A('Musik hören',()=>{SND.music(pick(['world','town','museum','shop']));SND.play('toggle')});
     else if(f.cat==='technik'||f.cat==='spiel')A('Anschauen',()=>{GAME.say(GAME.me,pick(['Blink blink!','Piep!','Oh, schön.','Was das wohl kann?']),2);SND.play('pep')})}
