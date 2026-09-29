@@ -357,6 +357,10 @@ const GAME=(()=>{
     e.g.position.copy(e.p).multiplyScalar(G_.R+base+alt);e.g.up.copy(e.p);
     const look=e.lookAt&&e.stop>0?e.lookAt.g.position:e.g.position.clone().add(e.dir);e.g.lookAt(look);if(e.stop<=0)e.lookAt=null;
     if(e.dance>0){e.g.rotateY(Math.sin(t*6)*.6);e.g.position.addScaledVector(e.p,Math.abs(Math.sin(t*8))*.15)}
+    /* Klettern: steiler Hang voraus -> nach vorn lehnen, Arme greifen abwechselnd nach oben, ruckweises Hochziehen */
+    {let want=0;if(moving&&!e.boat&&!inWater&&!e.move.alt&&!e.fly){const q=e.p.clone().addScaledVector(e.dir,.7/G_.R).normalize();const gr=(G_.hAt(q)-h)/.7;if(gr>.6)want=Math.min(1,(gr-.6)*2.2)}
+      e.climb=(e.climb||0)+(want-(e.climb||0))*Math.min(1,dt*(want>(e.climb||0)?7:3));
+      if(e.climb>.04){const c=e.climb,ph=t*7+e.phase;e.g.rotateX(.4*c);e.g.rotateZ(Math.sin(ph)*.08*c);e.g.position.addScaledVector(e.p,Math.abs(Math.sin(ph))*.1*c);e.act=Math.max(e.act,c*(.6+.4*Math.sin(ph*2)))}}
     if(e.emote&&e.emoteT>0)EMOTES[e.emote]&&EMOTES[e.emote].pose&&EMOTES[e.emote].pose(e,t,dt);
     else if(e.life&&mode==='outdoor')LIFE.pose(e,t);
     /* weiches Squash beim Laufen */
@@ -501,7 +505,7 @@ const GAME=(()=>{
       let mvv=cf.clone().multiplyScalar(iy).addScaledVector(cr,ix);let mag=Math.min(1,Math.hypot(ix,iy));
       if(mag<.1&&tapTarget&&!busy){const to=tangentTo(me.p,tapTarget.p.clone().sub(me.p));const dist=angle(me.p,tapTarget.p)*G_.R;if(dist<.8||!isFinite(to.x)){const f=tapTarget.then;tapTarget=null;f&&f()}else{mvv=to;mag=1}}else if(mag>.1)tapTarget=null;
       const run=keys['shift']||(input.joy&&Math.hypot(input.joy.x,input.joy.y)>.95);let spd=0;
-      if(mag>.1){mvv.normalize();me.dir.lerp(mvv,Math.min(1,dt*10)).normalize();me.dir.copy(tangentTo(me.p,me.dir));spd=(me.boat?(run?7.5:5.2):(run?6.8:3.8)*Math.min(1.35,Math.max(.6,me.move.sp)))*mag*(me.boost>0?1.45:1);if(!moveEnt(me,mvv,spd,dt)){spd=0}}
+      if(mag>.1){mvv.normalize();me.dir.lerp(mvv,Math.min(1,dt*10)).normalize();me.dir.copy(tangentTo(me.p,me.dir));spd=(me.boat?(run?7.5:5.2):(run?6.8:3.8)*Math.min(1.35,Math.max(.6,me.move.sp)))*mag*(me.boost>0?1.45:1)*(1-.45*(me.climb||0));if(!moveEnt(me,mvv,spd,dt)){spd=0}}
       me.speed=spd;if(spd>0&&me.emote){me.emote=null;me.emoteT=0;me.dance=0}
       /* Schritte */
       if(spd>0&&!me.move.alt){stepT-=dt*spd*.55;if(stepT<=0){stepT=1;if(run&&Math.random()<.7)W.fx(me.p,'staub',2,onSurf(me.p,.15));const h=G_.hAt(me.p);if(h>G_.sea+.05)SND.play(h<G_.sea+.4?'step_grass':'step_grass',{vol:.28,jitter:.15});else SND.play('soft',{vol:.2,rate:1.4,jitter:.2})}}
@@ -518,14 +522,21 @@ const GAME=(()=>{
     /* Kamera */
     if(overview){overview.az+=dt*.06;const d=G_.R*3.1;const want=new V3(Math.cos(overview.az)*Math.cos(.5),Math.sin(.5),Math.sin(overview.az)*Math.cos(.5)).multiplyScalar(d);cam.position.lerp(want,Math.min(1,dt*2));cam.up.set(0,1,0);cam.lookAt(0,0,0)}
     else if(me){const cf=camF.clone().applyAxisAngle(me.p,camYaw);const up=me.p;const target=me.g.position.clone().addScaledVector(up,1.1);
-      const want=target.clone().addScaledVector(cf,-camDist*Math.cos(camPitch)).addScaledVector(up,camDist*Math.sin(camPitch)+.6);
-      if(camSnap||cam.position.distanceTo(want)>30){cam.position.copy(want);cam.up.copy(up);camSnap=false}else{cam.position.lerp(want,Math.min(1,dt*6));cam.up.lerp(up,Math.min(1,dt*6))}cam.lookAt(target);
+      const want0=target.clone().addScaledVector(cf,-camDist*Math.cos(camPitch)).addScaledVector(up,camDist*Math.sin(camPitch)+.6);const want=camCollide(target,want0,dt);const blocked=want.distanceTo(want0)>.2;
+      if(camSnap||cam.position.distanceTo(want)>30){cam.position.copy(want);cam.up.copy(up);camSnap=false}else{cam.position.lerp(want,Math.min(1,dt*(blocked?18:6)));cam.up.lerp(up,Math.min(1,dt*6))}cam.lookAt(target);
       /* Sonne folgt Spieler, steht aber je nach Tageszeit tief im Osten, hoch am Mittag, tief im Westen (lange Schatten am Morgen/Abend) */const sp=me.p.clone();const east=tangentTo(sp,new V3(.5,.2,.6));const north=new V3().crossVectors(sp,east).normalize();const el=G_.sunEl??.9,az=G_.sunAz??1.2;const sd=east.clone().multiplyScalar(Math.cos(az)*Math.cos(el)).addScaledVector(north,Math.sin(az)*Math.cos(el)*.35).addScaledVector(sp,Math.sin(el)).normalize();G_.sun.position.copy(me.g.position).addScaledVector(sd,60);G_.sun.target.position.copy(me.g.position);G_.fill.position.copy(me.g.position).addScaledVector(sp,10).addScaledVector(sd,-15)
       /* Ambiente */;const nearSea=G_.hAt(me.p)<G_.sea+.9?1:0;SND.ambience('meer',nearSea*.6);SND.ambience('wind',.25)}
     /* Prompt */
     promptTarget=busy||document.querySelector('.bubmenu')?null:findTarget();const pr=$('prompt');if(promptTarget&&!UI.anyOpen()){pr.hidden=false;pr.innerHTML='';const k=el('kbd',null,'E');pr.append(k,document.createTextNode(promptTarget.label));$('hbA').textContent=shortLabel(promptTarget)}else{pr.hidden=true;$('hbA').textContent='Hüpfen'}
     if(G_.lod)PLANETLOD.update(cam.position,HIGH?4:2.5);if(G_.stream)SCATTER.stream(overview?cam.position.clone().normalize():(me?me.p:UPV),HIGH?5:3);
     if(HIGH)comp.render();else R.render(scene,cam);labels()}
+  /* Kamera-Kollision: Strahl vom Kopf zur Wunschposition gegen nahe Gebäude; Kamera rückt vor die Wand (schnell rein, langsam wieder raus) und bleibt über dem Boden */
+  const _rc=new THREE.Raycaster();let camClip=99;
+  function camCollide(target,want,dt){const dir=want.clone().sub(target);const L=dir.length();if(L<.01)return want;dir.divideScalar(L);const objs=[];
+    for(const pl of G_.places){if(pl.obj&&me&&angle(pl.dir,me.p)*G_.R<(pl.build==='plaza'?40:28))objs.push(pl.obj)}
+    let d=L;if(objs.length){_rc.set(target,dir);_rc.camera=cam;_rc.far=L+.4;const hits=_rc.intersectObjects(objs,true);for(const h of hits){const o=h.object;if(o.userData.hull||!o.visible||o.userData.noCam)continue;d=Math.max(1.1,h.distance-.4);break}}
+    camClip=d>=L-.01?L:d<camClip?d:camClip+(d-camClip)*Math.min(1,dt*1.8);if(camClip>L)camClip=L;
+    const out=target.clone().addScaledVector(dir,Math.min(L,camClip));const cd=out.clone().normalize();const minR=G_.R+G_.hAt(cd)+.45;if(out.length()<minR)out.setLength(minR);return out}
   function shortLabel(t){return{talk:'Reden',tree:'Schütteln',fish:'Angeln',shop:'Laden',museum:'Museum',house:'Haus',studio:'Malen',rocket:'Reisen',board:'Lesen',stage:'Tanzen',home:'Klingeln',animal:'Tier',mail:'Post',dig:'Graben',pick:'Nehmen',bug:'Fangen'}[t.kind]||'Aktion'}
   function stepProps(dt,t){for(let i=W.props.length-1;i>=0;i--){const x=W.props[i];
       if(x.dying){x.dying+=dt*2;const s=Math.max(0,1-x.dying)*x.big;x.g.scale.setScalar(Math.max(.001,s));if(x.dying>=1){G_.scene.remove(x.g);disposeTree(x.g);W.props.splice(i,1)}continue}

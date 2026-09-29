@@ -33,6 +33,8 @@ for (const step of script.split(';').filter(Boolean)) {
   else if (cmd === 'js') { const r = await page.evaluate(fs.readFileSync(a, 'utf8')).catch(e => 'ERR ' + e.message); logs.push('js> ' + JSON.stringify(r)?.slice(0, 1500)); if (b) await page.waitForTimeout(+b); }
   else if (cmd === 'type') { await page.keyboard.type(a); }
   else if (cmd === 'reload') { await page.reload(); await page.waitForTimeout(2500); }
+  else if (cmd === 'down') { await page.keyboard.down(a); }
+  else if (cmd === 'up') { await page.keyboard.up(a); }
   else if (cmd === 'skip') { await page.evaluate(() => { const k='cyborg-labor-spiel-v3'; const v=JSON.parse(localStorage.getItem(k)||'{}'); v.story=Object.assign(v.story||{},{intro:true}); v.tutDone=true; localStorage.setItem(k, JSON.stringify(v)) }); await page.reload(); await page.waitForTimeout(2500); }
   else if (cmd === 'nick') { await page.evaluate(() => { const k='cyborg-labor-spiel-v3'; const v=JSON.parse(localStorage.getItem(k)||'{}'); v.nick='Testi'; localStorage.setItem(k, JSON.stringify(v)) }); await page.reload(); await page.waitForTimeout(2500); }
   else if (cmd === 'low') { await page.evaluate(() => localStorage.setItem('cyborg-labor-grafik', JSON.stringify('schnell'))); await page.reload(); await page.waitForTimeout(2500); }
