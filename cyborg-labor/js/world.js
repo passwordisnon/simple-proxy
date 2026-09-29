@@ -41,7 +41,7 @@ const GAME=(()=>{
     Object.assign(G_,{scene:sc,sun,hemi,fill,inter:[],lights:[],clouds:[],ticks:[],trees:[],rocks:[]});
     /* grosse Planeten: Natur wird in Chunks um den Spieler gestreamt */G_.stream=G_.lod&&(Rr>70||!!window.FORCE_STREAM);
     SCATTER.reset(sc,Rr,M,G_.stream?{fill:fillChunk,unload:unloadChunkRefs}:null);
-    buildPlaces();buildStones();try{buildDocks()}catch(e){console.warn('Stege',e)}scatterWorld();buildGrass();
+    buildPlaces();buildStones();try{buildDocks()}catch(e){console.warn('Stege',e)}try{buildCaves()}catch(e){console.warn('Höhlen',e)}scatterWorld();buildGrass();
     if(G_.stream){const lp=SAVE.lastPos&&SAVE.lastPos.planet===pid?new V3(...SAVE.lastPos.p).normalize():(fns.places.find(p=>p.build==='plaza')||{dir:UPV}).dir;SCATTER.stream(lp,0,true)}buildClouds();buildBall();if(typeof WEATHER!=='undefined')WEATHER.build(G_);else buildWeather();SCATTER.finalize();
     /* nach dem Aufbau: Höhe exakt aus der sichtbaren Kachel (Figuren stehen genau auf dem Boden) */if(G_.lod){const fh=fns.hAt;G_.hAt=p=>{const h=PLANETLOD.height(p);return h==null?fh(p):h}}
     cam.far=Rr*6+500;cam.updateProjectionMatrix();
@@ -167,6 +167,16 @@ const GAME=(()=>{
   function poseBoats(dt,t){for(const b of G_.boats||[]){const riding=me&&me.boat===b;const p=riding?me.p:b.p,dir=riding?me.dir:b.dir;const bob=Math.sin(t*1.6+b.p.x*9)*.05;
       b.g.position.copy(p).multiplyScalar(G_.R+G_.sea-.08+bob);b.g.up.copy(p);b.g.lookAt(b.g.position.clone().add(dir));b.g.rotateZ(Math.sin(t*1.2+b.p.z*7)*.04);
       const rowing=riding&&me.speed>.1;for(const[i,o]of b.g.userData.oars.entries()){const s=i?1:-1;o.rotation.y=rowing?Math.sin(t*5)*.6*s:.15*s;o.rotation.z=rowing?(Math.cos(t*5)*.18-.12)*s:-.2*s}}}
+  /* ---------- Höhlen: Felstore am Fuss von Hängen ---------- */
+  function buildCaves(){if(typeof CAVES==='undefined')return;const r=srand(hashStr('cave'+G_.id).length*211+9);const hx=G_.hExact||G_.hAt;const out=[];
+    for(let i=0;i<1400&&out.length<(G_.stream?5:3);i++){const p=randLand(r,G_.sea+.6,99,1,G_.stream?170:G_.R*1.5);if(!p||nearPlace(p,1.6))continue;if(out.some(q=>angle(q,p)*G_.R<28))continue;if(flatAt(p,1.1)>.35)continue;
+      const h=hx(p);let back=null,bd=0;for(let k=0;k<16;k++){const a=k/16*TAU;const t1=tangentTo(p,new V3(Math.cos(a),.17,Math.sin(a)));if(!isFinite(t1.x))continue;const q=p.clone().addScaledVector(t1,2.4/G_.R).normalize();const d=hx(q)-h;if(d>bd){bd=d;back=t1}}
+      if(!back||bd<1.1)continue;const front=back.clone().negate();{const q=p.clone().addScaledVector(front,2/G_.R).normalize();if(Math.abs(hx(q)-h)>.5||hx(q)<G_.sea+.2)continue}
+      out.push(p);const id=G_.id+'-hoehle'+out.length;const pos=p.clone().addScaledVector(back,.45/G_.R).normalize();
+      const g=CAVES.entrance(M,G_.id);placeObj(g,pos,0,-.04);faceTo(g,pos,front);g.traverse(o=>{if(o.isMesh){o.castShadow=HIGH;o.receiveShadow=true}});G_.scene.add(g);
+      const side=new V3().crossVectors(pos,front).normalize();for(const s of[-1,1])addObst(pos.clone().addScaledVector(side,s*1.15/G_.R).normalize(),.45);addObst(pos.clone().addScaledVector(back,.9/G_.R).normalize(),.9);
+      const seed=hashStr(id).length*7919+out.length*131+G_.id.length;G_.inter.push({kind:'cave',p:pos.clone().addScaledVector(front,1.2/G_.R).normalize(),r:1.6,label:'Höhle betreten',act:()=>CAVES.enter({seed,id})});
+      G_.places.push({id,n:'Höhle',dir:pos.clone(),r:3.6/G_.R})}}
   function buildPlaces(){for(const pl of G_.places){if(!pl.build)continue;const g=new THREE.Group();let obj=null;
       QF=HIGH?.7:.42;try{
         if(pl.build==='plaza')obj=buildPlaza(pl);
