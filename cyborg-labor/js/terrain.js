@@ -265,7 +265,7 @@ function buildTerrainMesh(fns,detail){const def=fns.def;const R=fns.R,sea=fns.se
     const t=Math.max(0,Math.min(1,(h-sea)/4));tmp.set(B.g[0]).lerp(tmp2.set(B.g[1]),t);
     if(h<sea-.2)tmp.set(def.bed||'#E6D2A0').lerp(tmp2.set(B.g[0]),.25);else tmp.offsetHSL(0,-.1,-.035);
     col[i*3]=tmp.r;col[i*3+1]=tmp.g;col[i*3+2]=tmp.b;const pi=h<sea+.05?1:PATI[B.pat];pat[i*4+pi]=1;
-    const rd=fns.roadDist(v);mat[i*4+1]=h>sea+.2?sstep(.026,.016,rd):0;for(const pl of fns.places)if(pl.build){const d=angle(v,pl.dir);mat[i*4+1]=Math.max(mat[i*4+1],sstep(pl.r*.95,pl.r*.7,d)*(pl.build==='plaza'?1:.8))}
+    const rd=fns.roadDist(v);mat[i*4+1]=h>sea+.2?sstep(.026,.016,rd):0;for(const pl of fns.places)if(pl.build&&pl.build!=='residence'){const d=angle(v,pl.dir);mat[i*4+1]=Math.max(mat[i*4+1],sstep(pl.r*.95,pl.r*.7,d)*(pl.build==='plaza'?1:.8))}
     mat[i*4+2]=h>sea-.1&&h<sea+.18?sstep(sea+.18,sea+.02,h):0;
     v.multiplyScalar(R+h);pos.setXYZ(i,v.x,v.y,v.z)}
   g.computeVertexNormals();const nr=g.attributes.normal;

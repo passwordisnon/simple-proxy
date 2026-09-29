@@ -1,0 +1,20 @@
+<!doctype html><html><head><meta charset="utf8"><title>kit</title>
+<style>body{margin:0;background:#f4ecff;font:11px sans-serif}#out{display:grid;grid-template-columns:repeat(8,166px);gap:4px;padding:4px}figure{margin:0;background:linear-gradient(#e8f6ff,#fff3e2);border-radius:8px;text-align:center}figure img{width:166px;height:150px;display:block}figcaption{padding:1px 0 3px;font-weight:bold;color:#3b3450;white-space:nowrap;overflow:hidden}</style>
+</head><body><div id="out"></div>
+<script src="vendor/three.min.js"></script>
+<script src="vendor/ex/RoundedBoxGeometry.js"></script>
+<script src="vendor/ex/BufferGeometryUtils.js"></script>
+<script src="../js/core.js"></script>
+<script src="../js/kit.js"></script>
+<script>
+(async()=>{const qs=new URLSearchParams(location.search);const errors=[];window.addEventListener('error',e=>errors.push(String(e.message)));
+const pack=qs.get('pack')||'town';const _f=window.fetch;window.fetch=(u,o)=>_f('../'+u,o);await KIT.load(pack);
+const W=300;const c=document.createElement('canvas');const r=new THREE.WebGLRenderer({canvas:c,antialias:true,alpha:true,preserveDrawingBuffer:true});r.setSize(W,W*150/166,false);r.outputEncoding=THREE.sRGBEncoding;
+const sc=new THREE.Scene();cozyLights(sc);const cam=new THREE.PerspectiveCamera(30,166/150,.01,100);
+let list=qs.get('k')?qs.get('k').split(','):KIT.names(pack);const from=+(qs.get('from')||0),n=+(qs.get('n')||64);list=list.slice(from,from+n);
+for(const k of list){let url='';try{const m=KIT.mesh(pack,k);sc.add(m);m.updateMatrixWorld(true);const box=new THREE.Box3().setFromObject(m);const ctr=box.getCenter(new THREE.Vector3()),sz=box.getSize(new THREE.Vector3());const rad=Math.max(sz.x,sz.y,sz.z)*.62+.05;
+  const dir=new THREE.Vector3(...(qs.get('dir')||'.7,.5,1').split(',').map(Number)).normalize();cam.position.copy(ctr).addScaledVector(dir,rad/Math.tan(15*Math.PI/180));cam.lookAt(ctr);cam.near=rad*.05;cam.far=rad*30;cam.updateProjectionMatrix();
+  /* Achsenkreuz: Ursprung */const ax=new THREE.AxesHelper(.3);sc.add(ax);r.render(sc,cam);url=c.toDataURL('image/png');sc.remove(m);sc.remove(ax)}catch(e){errors.push(k+': '+e.message)}
+  const f=document.createElement('figure');const im=new Image();im.src=url;const cap=document.createElement('figcaption');cap.textContent=k;f.append(im,cap);document.getElementById('out').append(f)}
+window.__done={errors,count:list.length,total:KIT.names(pack).length}})();
+</script></body></html>

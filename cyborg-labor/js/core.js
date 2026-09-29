@@ -325,7 +325,10 @@ function mergeGroup(root,keep){root.updateMatrixWorld(true);const inv=new THREE.
     const mt=o.material;const pre=mt.vertexColors&&o.geometry.attributes.color&&Object.values(VCM).includes(mt);/* schon gebacken (zweites Zusammenführen) */
     const prep=(src,keepAttrs)=>{let geo=src.index?src.toNonIndexed():src.clone();for(const k of Object.keys(geo.attributes))if(!['position','normal','uv',...keepAttrs].includes(k))geo.deleteAttribute(k);
       if(!geo.attributes.uv)geo.setAttribute('uv',new THREE.Float32BufferAttribute(new Float32Array(geo.attributes.position.count*2),2));if(!geo.attributes.normal)geo.computeVertexNormals();geo.clearGroups();
-      geo.applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv,o.matrixWorld));return geo};
+      const MX=new THREE.Matrix4().multiplyMatrices(inv,o.matrixWorld);geo.applyMatrix4(MX);
+      /* gespiegelte Teile: Dreiecksreihenfolge umdrehen, sonst kippen Aussenseite und Konturhülle */
+      if(MX.determinant()<0){for(const an of Object.keys(geo.attributes)){const at=geo.attributes[an],isz=at.itemSize,arr=at.array;for(let t=0;t<at.count;t+=3){for(let c=0;c<isz;c++){const i1=(t+1)*isz+c,i2=(t+2)*isz+c,tmp=arr[i1];arr[i1]=arr[i2];arr[i2]=tmp}}at.needsUpdate=true}}
+      return geo};
     const geo=prep(o.geometry,pre?['color']:[]);const bake=pre||canBake(mt);const ds=mt.side===THREE.DoubleSide,gl=mt.userData.gloss>0;
     const key=bake?'VC'+(ds?'d':'')+(gl?'g':'')+'|'+(o.castShadow?1:0):mt.uuid+'|'+(hull?hull.material.uuid:'')+'|'+(o.castShadow?1:0);
     if(!pre)paintGeo(geo,bake?mt.color:WHITE);

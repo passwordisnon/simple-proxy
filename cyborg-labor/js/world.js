@@ -127,10 +127,11 @@ const GAME=(()=>{
         for(let k=0;k<8;k++){const a=k/8*TAU;const q=pl.dir.clone().addScaledVector(t1,Math.cos(a)*rr/G_.R).addScaledVector(t2,Math.sin(a)*rr/G_.R).normalize();lo=Math.max(lo,hc-(G_.R+G_.hAt(q))*q.dot(pl.dir))}
         placeObj(g,pl.dir,0,pl.build==='plaza'?-.02:-.02-Math.min(.6,lo))}
       if(plaza&&pl!==plaza){const toward=tangentTo(pl.dir,plaza.dir);g.up.copy(pl.dir);g.lookAt(g.position.clone().add(toward))}
-      G_.scene.add(g);pl.obj=g;const rad=(obj.userData.r||2.2);if(pl.build!=='plaza')addObst(pl.dir,rad);
+      G_.scene.add(g);pl.obj=g;const rad=(obj.userData.r||2.2);if(pl.build!=='plaza')addObst(pl.dir,obj.userData.obstR??rad);
       g.updateMatrixWorld(true);if(pl.build==='plaza'){settleKids(obj);registerPlaza(obj)}
+      for(const c of(obj.userData.colliders||[])){const wp=g.localToWorld(new V3(c[0],0,c[1]));addObst(wp.normalize(),c[2])}
       /* Türpunkt: vor der Tür, aber sicher ausserhalb der Kollision, damit man ihn erreicht */
-      const door=obj.userData.door?new V3(...obj.userData.door):new V3(0,0,rad+.8);door.y=0;const dl=Math.hypot(door.x,door.z)||1;const need=rad+.9;if(dl<need){door.x*=need/dl;door.z*=need/dl;if(!door.x&&!door.z)door.z=need}
+      const door=obj.userData.door?new V3(...obj.userData.door):new V3(0,0,rad+.8);door.y=0;const dl=Math.hypot(door.x,door.z)||1;const need=obj.userData.doorExact?0:rad+.9;if(dl<need){door.x*=need/dl;door.z*=need/dl;if(!door.x&&!door.z)door.z=need}
       const dw=g.localToWorld(door.clone());const dp=dw.clone().normalize();pl.doorP=dp;obj.traverse(o=>{if(o.isMesh)o.userData.place=pl})
       const label={museum:'Museum betreten',shop:'Laden betreten',studio:'Malen',rocket:'Reisen',house:'Nach Hause'}[pl.build];if(label)G_.inter.push({kind:pl.build,place:pl,p:dp,r:2.2,label});
       const nm=obj.userData.name||'';const ext={bar:['Jazz-Bar betreten',()=>BUILDINGS.enter('bar')],rathaus:['Rathaus betreten',()=>BUILDINGS.enter('rathaus')],garage:['Raketen-Garage',()=>BUILDINGS.garage()],pflanzen:['Gärtnerei',()=>BUILDINGS.plants()],tiere:['Tierhandlung',()=>BUILDINGS.pets()]}[pl.build];
@@ -346,7 +347,7 @@ const GAME=(()=>{
     const first=!(SAVE.visited||{})[pid];SAVE.visited=Object.assign(SAVE.visited||{},{[pid]:true});persist();await loadPlanet(pid);SND.music(G_.def.music);UI.toast('Willkommen auf dem '+G_.def.n+'!');
     if(!SAVE.rocketBroken&&(first&&pid!=='kompost'||Math.random()<.2))setTimeout(()=>REPAIR.crash(),900)}
   function fadeOut(fn){const f=$('fade');f.classList.add('on');setTimeout(async()=>{await fn();setTimeout(()=>f.classList.remove('on'),120)},380)}
-  async function loadPlanet(pid){/* alte Szene abbauen */for(const id of[...ents.keys()])dropEnt(id);me=null;W.props.length=0;parts.length=0;
+  async function loadPlanet(pid){try{if(typeof HAUS!=='undefined'&&!HAUS.ready)await HAUS.load()}catch(e){console.warn('Bausätze',e)}/* alte Szene abbauen */for(const id of[...ents.keys()])dropEnt(id);me=null;W.props.length=0;parts.length=0;
     if(scene){scene.traverse(o=>{if(o.geometry)o.geometry.dispose()});}
     buildOutdoor(pid);spawnMe();syncVillagers();SOCIAL.onPlanet&&SOCIAL.onPlanet(pid);ACT.onPlanet&&ACT.onPlanet(pid);try{BUILDINGS.onPlanet(pid)}catch(e){console.warn('Pflanzen',e)}(typeof FAUNA!=='undefined')&&FAUNA.onPlanet(pid);try{REPAIR.onPlanet(pid)}catch(e){console.warn(e)}seedEco();resize();$('clock').querySelector('span').textContent=G_.def.n}
   function seedEco(){if(G_.id!=='kompost')return;const r=srand(77);const SEED={schrott:10,pilz:10,kristall:4,stumpf:5,oel:2};for(const[t,n]of Object.entries(SEED))for(let i=0;i<n;i++){const p=randLand(r,G_.sea+.4);if(!p||nearPlace(p))continue;const pr=W.spawn(t,p);if(pr){pr.grow=1;pr.g.scale.setScalar(1)}}}
@@ -446,6 +447,6 @@ const GAME=(()=>{
   async function init(){await loadPlanet(planetId);dayLight()}
   function onAvatarChanged(){if(!me||!scene)return;const p=me.p.clone(),dir=me.dir.clone();const inside=me.inside;const ix=me.ix,iz=me.iz;dropEnt('__me');me=makeEnt(avatarData(),{kind:'me',p,q:HIGH?.9:.6,me:true});me.dir.copy(dir);if(inside){INTERIOR.adopt(me);me.ix=ix;me.iz=iz}}
   function toggleOverview(){overview=overview?null:{az:Math.atan2(cam.position.z,cam.position.x)};if(!overview)camSnap=true;UI.toast(overview?'Beamer-Übersicht: alle Cyborgs auf einen Blick. Nochmals drücken zum Beenden.':'Zurück zur Spielfigur');return!!overview}
-  return{addObst,obstAround,_load:loadPlanet,toggleOverview,get overview(){return!!overview},_joy:()=>input.joy,init,frame,resize,quality,travel,landOn,syncVillagers,onAvatarChanged,W,G:G_,ents,get me(){return me},get scene(){return scene},cam,R,say,makeEnt,dropEnt,moveEnt,onSurf,placeObj,angle,tangentTo,isLand,randLand,note,
+  return{_aim:(tgt,dist,pitch)=>{if(!me)return;camF.copy(tangentTo(me.p,tgt.clone().sub(me.p)));camYaw=0;if(dist)camDist=dist;if(pitch!=null)camPitch=pitch},addObst,obstAround,_load:loadPlanet,toggleOverview,get overview(){return!!overview},_joy:()=>input.joy,init,frame,resize,quality,travel,landOn,syncVillagers,onAvatarChanged,W,G:G_,ents,get me(){return me},get scene(){return scene},cam,R,say,makeEnt,dropEnt,moveEnt,onSurf,placeObj,angle,tangentTo,isLand,randLand,note,
     get mode(){return mode},set mode(v){mode=v},showCard,talkTo,voiceFor,fadeOut,parts,makeNature,nearPlace,get camF(){return camF},get night(){return G_.night||0}};
 })();

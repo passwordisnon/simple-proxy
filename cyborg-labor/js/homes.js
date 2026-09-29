@@ -31,16 +31,24 @@ const HOMES=(()=>{
   function spots(pid,fns0){const list=residents(pid);const r=srand(hashStr('home'+pid).length*977+3);const out=[];const R=fns0.R;const taken=fns0.places.map(p=>p.dir);
     for(const d of list){let best=null;for(let i=0;i<220&&!best;i++){const p=new THREE.Vector3(r()*2-1,r()*2-1,r()*2-1).normalize();const h=fns0.hAt(p);if(h<fns0.sea+.5)continue;
         if(p.dot(fns0.places[0].dir)<Math.cos(1.25))continue;/* nicht zu weit vom Dorf */
-        if(taken.some(q=>q.angleTo(p)*R<(out.length<3?9:7.5)))continue;let flat=true;const t1=new THREE.Vector3().crossVectors(p,new THREE.Vector3(0,0,1)).normalize(),t2=new THREE.Vector3().crossVectors(p,t1);
-        for(const dd of[t1,t2,t1.clone().negate(),t2.clone().negate()]){const q=p.clone().addScaledVector(dd,3/R).normalize();if(Math.abs(fns0.hAt(q)-h)>1.3||fns0.hAt(q)<fns0.sea+.2)flat=false}if(!flat)continue;best=p}
+        if(taken.some(q=>q.angleTo(p)*R<(out.length<3?13.5:12.5)))continue;let flat=true;const t1=new THREE.Vector3().crossVectors(p,new THREE.Vector3(0,0,1)).normalize(),t2=new THREE.Vector3().crossVectors(p,t1);
+        for(const dd of[t1,t2,t1.clone().negate(),t2.clone().negate()]){const q=p.clone().addScaledVector(dd,4.5/R).normalize();if(Math.abs(fns0.hAt(q)-h)>1.3||fns0.hAt(q)<fns0.sea+.2)flat=false}if(!flat)continue;best=p}
       if(!best)continue;taken.push(best);const h=fns0.hAt(best);const step=PLANETS[pid].step;const hh=Math.max(fns0.sea+.5,Math.round((h-fns0.sea)/step)*step+fns0.sea);
-      const lat=Math.asin(best.y)*180/PI,lon=Math.atan2(best.z,best.x)*180/PI;out.push({id:'home-'+d.id,n:'Haus von '+(d.name||'Namenlos'),dir:best,lat,lon,r:.075*46/R,h:hh,build:'residence',who:d.id,whoName:d.name||'Namenlos',style:styleFor(pid,d)})}
+      const lat=Math.asin(best.y)*180/PI,lon=Math.atan2(best.z,best.x)*180/PI;out.push({id:'home-'+d.id,n:'Haus von '+(d.name||'Namenlos'),dir:best,lat,lon,r:5.8/R,h:hh,build:'residence',who:d.id,whoName:d.name||'Namenlos',style:styleFor(pid,d)})}
     return out}
   function styleFor(pid,d){const T=THEME[pid].house;const r=srand(parseInt(hashStr(d.id||d.name).slice(0,5),36));const pk=a=>a[Math.floor(r()*a.length)];
     return{shape:pk(T.shapes),wall:pk(T.walls),wallCol:pk(T.wallCols),roofCol:pk(T.roofCols),doorCol:pk(['#7FB2E0','#F0556E','#FFD85A','#8A5A44','#56C6B6','#C6A9FF']),win:pk(T.win),chimney:!!THEME[pid].chimney||r()<.4,fence:!!THEME[pid].fence&&r()<.6,size:1,flag:false}}
   /* ---------- Haus bauen (inkl. Namensschild, Briefkasten, Deko) ---------- */
   /* Einzigartiges Haus: Bauform aus dem Architektur-Generator (Planet + Samen), dazu Namensschild und Hobby-Ecke */
-  function build(pl,M){const g=new THREE.Group();const seed=ARCH.hashNum(pl.who+GAME.G.id);const res=ARCH.forHouse(GAME.G.id,seed);g.add(res.g);const[dx,dz]=res.door;Object.assign(g.userData,{door:[dx,0,dz],r:res.r,tick:res.g.userData.tick});
+  function build(pl,M){const g=new THREE.Group();const seed=ARCH.hashNum(pl.who+GAME.G.id);
+    /* Neue Häuser aus Bausätzen (einzigartig je Bewohner, sauber geprüft); Front zeigt zum Dorfplatz (+z) */
+    if(typeof HAUS!=='undefined'&&HAUS.ready){const U=1.45;const res=HAUS.build(GAME.G.id,seed,{sagR:(GAME.G.R+(pl.h||0))/U});const w=new THREE.Group();w.rotation.y=PI;w.scale.setScalar(U);w.add(res.g);g.add(w);
+      const rot=(x,z)=>[-x*U,-z*U];const[dx,dz]=rot(res.door[0],res.door[1]);Object.assign(g.userData,{door:[dx,0,dz],doorExact:true,obstR:.3,r:res.bodyR*U,colliders:res.colliders.map(c=>[...rot(c[0],c[1]),c[2]*U]),style:res.style});
+      if(res.sign){try{const[sx,sz]=rot(res.sign[0],res.sign[1]);const sg=grp(g,[sx,0,sz]);bt(sg,[0,0,0],[0,.9,0],.05,M.c('#A0704C'));P(sg,G.bx(1.05,.36,.08,.05),M.c('#FFFBF0'),[0,1.0,0]);
+        const tx=ctex('nameplate-'+pl.who,256,90,(x,w2,hh)=>{x.fillStyle='#FFFBF0';x.fillRect(0,0,w2,hh);x.fillStyle='#5B4A3E';x.font='bold 34px "Nunito","Trebuchet MS",sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(pl.whoName.slice(0,14),w2/2,hh/2+2)});
+        P(sg,G.pl(.98,.32),M.tex('np-'+pl.who,tx),[0,1.0,.045])}catch(e){}}
+      return g}
+    const res=ARCH.forHouse(GAME.G.id,seed);g.add(res.g);const[dx,dz]=res.door;Object.assign(g.userData,{door:[dx,0,dz],r:res.r,tick:res.g.userData.tick});
     try{const sg=grp(g,[dx+(dx>0?-1.5:1.5),0,dz-.3]);bt(sg,[0,0,0],[0,.9,0],.05,M.c('#A0704C'));P(sg,G.bx(1.05,.36,.08,.05),M.c('#FFFBF0'),[0,1.0,0]);
       const tx=ctex('nameplate-'+pl.who,256,90,(x,w,hh)=>{x.fillStyle='#FFFBF0';x.fillRect(0,0,w,hh);x.fillStyle='#5B4A3E';x.font='bold 34px "Nunito","Trebuchet MS",sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(pl.whoName.slice(0,14),w/2,hh/2+2)});
       P(sg,G.pl(.98,.32),M.tex('np-'+pl.who,tx),[0,1.0,.045])}catch(e){}

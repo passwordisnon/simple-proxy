@@ -1,0 +1,25 @@
+<!doctype html><html><head><meta charset="utf8"><title>haus</title>
+<style>body{margin:0;background:#f4ecff;font:11px sans-serif}#out{display:grid;grid-template-columns:repeat(2,676px);gap:4px;padding:4px}figure{margin:0;background:linear-gradient(#cfeaff,#fff3e2);border-radius:8px;text-align:center}figure img{width:336px;height:280px;display:inline-block}figcaption{padding:1px 0 3px;font-weight:bold;color:#3b3450}</style>
+</head><body><div id="out"></div>
+<script src="vendor/three.min.js"></script>
+<script src="vendor/ex/RoundedBoxGeometry.js"></script>
+<script src="vendor/ex/BufferGeometryUtils.js"></script>
+<script src="../js/core.js"></script>
+<script src="../js/kit.js"></script>
+<script src="../js/haus.js"></script>
+<script>
+(async()=>{const qs=new URLSearchParams(location.search);const errors=[];window.addEventListener('error',e=>errors.push(String(e.message)));
+const _f=window.fetch;window.fetch=(u,o)=>_f('../'+u,o);for(const p of (qs.get("packs")||"town,holiday,pirate,nature,survival,station,modular,castle,plat,space").split(","))await KIT.load(p);
+const BIG=!!qs.get('big');if(BIG){const st=document.createElement('style');st.textContent='#out{grid-template-columns:1fr!important}figure img{width:672px!important;height:560px!important}';document.head.append(st)}const c=document.createElement('canvas');const r=new THREE.WebGLRenderer({canvas:c,antialias:true,alpha:true,preserveDrawingBuffer:true});r.setSize(BIG?1344:672,BIG?1120:560,false);r.outputEncoding=THREE.sRGBEncoding;
+const sc=new THREE.Scene();cozyLights(sc);const cam=new THREE.PerspectiveCamera(30,336/280,.01,100);
+const ground=new THREE.Mesh(new THREE.CircleGeometry(6,48),cozy({color:'#9ED872'}));ground.rotation.x=-Math.PI/2;sc.add(ground);
+const pids=(qs.get('p')||'kompost').split(',');
+if(qs.get('stress')){const N=+qs.get('stress');const stats={};const t0=performance.now();for(const pid of pids){const S=stats[pid]={fail:0,tries:0,maxTries:0,styles:{},issues:{}};for(let i=0;i<N;i++){const res=HAUS.build(pid,1000+i*104729,{});S.tries+=res.tries;S.maxTries=Math.max(S.maxTries,res.tries);if(res.issues.length){S.fail++;for(const is of res.issues){const k=is.replace(/@.*/,'').slice(0,50);S.issues[k]=(S.issues[k]||0)+1}}const st=res.style.split(' ')[0];S.styles[st]=(S.styles[st]||0)+1}}
+  window.__done={errors,count:N*pids.length,total:N*pids.length,stats:{rej:HAUS.REJ,...stats},ms:Math.round(performance.now()-t0)};document.body.textContent=JSON.stringify(stats);return}const n=+(qs.get('n')||16),s0=+(qs.get('seed')||1);let cnt=0;
+for(const pid of pids)for(let i=0;i<n;i++){let url='',cap='';try{const res=HAUS.build(pid,s0+i*7919,{});const g=res.g;cap=pid+' #'+(s0+i*7919)+' '+res.style+' | Versuche '+(res.tries+1)+(res.issues.length?' | FEHLER: '+res.issues.slice(0,2).join('; '):' | ok');if(qs.get('merge'))mergeGroup(g);sc.add(g);g.updateMatrixWorld(true);
+  const box=new THREE.Box3().setFromObject(g);const ctr=box.getCenter(new THREE.Vector3()),sz=box.getSize(new THREE.Vector3());const rad=Math.max(sz.x,sz.y,sz.z)*.62+.05;
+  url=[];for(const dv of [[-.6,.5,-1],[.9,.45,.8]]){const dir=new THREE.Vector3(...dv).normalize();cam.position.copy(ctr).addScaledVector(dir,rad/Math.tan(15*Math.PI/180));cam.lookAt(ctr);cam.near=rad*.05;cam.far=rad*30;cam.updateProjectionMatrix();
+  r.render(sc,cam);url.push(c.toDataURL('image/png'))}sc.remove(g)}catch(e){errors.push(pid+i+': '+e.message+' '+e.stack.split('\n')[1])}cnt++;
+  const f=document.createElement('figure');for(const u of (Array.isArray(url)?url:[url])){const im=new Image();im.src=u;f.append(im)}const cp=document.createElement('figcaption');cp.textContent=cap;f.append(cp);document.getElementById('out').append(f)}
+window.__done={errors,count:cnt,total:cnt}})();
+</script></body></html>
