@@ -114,8 +114,8 @@ const GAME=(()=>{
   /* ---------- Gebäude & Orte ---------- */
   /* Wortsteine (fremde Ruinen): bringen je ein Wort der Planetensprache bei */
   function buildStones(){if(typeof LANG==='undefined'||!LANG.has(G_.id))return;const r=srand(hashStr('stones'+G_.id).length*313+7);const seen=SAVE.stones||{};let n=0;
-    for(let i=0;i<400&&n<7;i++){const p=randLand(r,G_.sea+.4);if(!p||nearPlace(p,2.2))continue;if(G_.places.some(pl=>pl.dir.angleTo(p)*G_.R<14))continue;if(Math.abs(G_.hAt(p)-G_.hAt(p.clone().addScaledVector(tangentTo(p,new V3(1,0,0)),4/G_.R).normalize()))>.8)continue;const id=G_.id+'-st'+n;
-      const g=LANG.stoneModel(G_.id,M);addOutlines(g);let ru=null;try{ru=LANG.ruin(G_.id,ARCH.hashNum(id),G_.R);g.add(ru.g)}catch(e){console.warn('Ruine',e)}placeObj(g,p,r()*TAU,-.05);G_.scene.add(g);G_.ticks.push(g);addObst(p,.8);g.updateMatrixWorld(true);if(ru)for(const c of ru.cols){addObst(g.localToWorld(new V3(c[0],0,c[1])).normalize(),c[2])}const st={id,used:!!seen[id]};
+    for(let i=0;i<400&&n<7;i++){const p=randLand(r,G_.sea+.4);if(!p||nearPlace(p,2.2))continue;if(G_.places.some(pl=>pl.dir.angleTo(p)*G_.R<14))continue;{const h0=G_.hAt(p),t1=tangentTo(p,new V3(1,0,0)),t2=new V3().crossVectors(p,t1);let bad=false;for(let k=0;k<8&&!bad;k++){const a2=k/8*TAU;const q=p.clone().addScaledVector(t1,Math.cos(a2)*5.5/G_.R).addScaledVector(t2,Math.sin(a2)*5.5/G_.R).normalize();if(Math.abs(G_.hAt(q)-h0)>.45)bad=true}if(bad)continue}const id=G_.id+'-st'+n;
+      const g=LANG.stoneModel(G_.id,M);addOutlines(g);let ru=null;try{ru=LANG.ruin(G_.id,ARCH.hashNum(id),G_.R);g.add(ru.g)}catch(e){console.warn('Ruine',e)}placeObj(g,p,r()*TAU,-.05);G_.scene.add(g);G_.ticks.push(g);addObst(p,.8);g.updateMatrixWorld(true);if(ru){/* jedes Ruinenteil auf den Boden darunter setzen */const h0=G_.hAt(p);for(const ch of ru.g.children){const d=ch.getWorldPosition(new V3()).normalize();ch.position.y+=G_.hAt(d)-h0}g.updateMatrixWorld(true);for(const c of ru.cols){addObst(g.localToWorld(new V3(c[0],0,c[1])).normalize(),c[2])}}const st={id,used:!!seen[id]};
       G_.inter.push({kind:'stone',p,r:2,label:'Wortstein lesen',act:()=>LANG.stone(G_.id,st)});G_.places.push({id,n:'Ruine',dir:p.clone(),r:6.5/G_.R});n++}}
   function buildPlaces(){for(const pl of G_.places){if(!pl.build)continue;const g=new THREE.Group();let obj=null;
       QF=HIGH?.7:.42;try{
@@ -251,6 +251,11 @@ const GAME=(()=>{
     e.speed=spd}
 
   /* ---------- Figur ins Bild setzen ---------- */
+  /* Mund: bewegt sich beim Sprechen (Sprechblase oder Dialog) im Silbenrhythmus */
+  function animMouth(e,t){const ms=e.g.userData.mouths||[];const talking=(e.talking&&UI.typing)||(e.sayT>0&&!e.bub.classList.contains('emote'))||(e===me&&e.chatT>0);
+    const k=talking?Math.max(0,Math.sin(t*15+e.phase))*.8+Math.max(0,Math.sin(t*23+e.phase*2))*.3:0;if(!ms.length){/* Köpfe ohne Mund (Schnabel, Bildschirm, Lautsprecher): sanftes Wippen im Sprechrhythmus */e.g.scale.y*=1+k*.035;e.g.scale.x*=1-k*.015;return}
+    for(const q of ms){const u=q.userData;if(u.smile){if(u.open){u.open.visible=k>.08;u.open.scale.y=Math.max(.1,k)}continue}
+      /* nach unten öffnen (nicht in die Nase wachsen) */q.scale.set(1+k*.12,1+k*.9,1);if(u.y0!=null)q.position.y=u.y0-k*.9*(u.w||0)*.55;if(u.open)u.open.visible=k>.25}}
   function poseEnt(e,dt,t){const h=G_.hAt(e.p);let base=h;const inWater=h<G_.sea;if(inWater)base=e.fly?G_.sea:G_.sea-.25;let alt=e.move.alt?e.move.alt*CS*1.1+Math.sin(t*1.5+e.phase)*.1:0;
     const moving=e.speed>.1;if(e.move.hop&&moving)alt+=Math.abs(Math.sin(t*5+e.phase))*e.move.hop*CS*1.2;if(e.jump>0)alt+=Math.sin((1-e.jump/.9)*PI)*.9;
     e.g.position.copy(e.p).multiplyScalar(G_.R+base+alt);e.g.up.copy(e.p);
@@ -259,7 +264,7 @@ const GAME=(()=>{
     if(e.emote&&e.emoteT>0)EMOTES[e.emote]&&EMOTES[e.emote].pose&&EMOTES[e.emote].pose(e,t,dt);
     else if(e.life&&mode==='outdoor')LIFE.pose(e,t);
     /* weiches Squash beim Laufen */
-    const sq=moving&&!e.move.alt?1+Math.sin(t*10+e.phase)*.03:1+Math.sin(t*2+e.phase)*.012;e.g.scale.set(CS*(2-sq)*.5+CS*.5,CS*sq,CS*(2-sq)*.5+CS*.5);
+    const sq=moving&&!e.move.alt?1+Math.sin(t*10+e.phase)*.03:1+Math.sin(t*2+e.phase)*.012;e.g.scale.set(CS*(2-sq)*.5+CS*.5,CS*sq,CS*(2-sq)*.5+CS*.5);animMouth(e,t);
     const dist=me&&e!==me?angle(e.p,me.p)*G_.R:0;const far=dist>13;if(far!==e.far){e.far=far;setOutlines(e.g,!far&&HIGH)}
     const hide=e.inHome||e.inBar||!overview&&dist>(HIGH?40:30);e.g.visible=!hide;e.shadow.visible=!hide;
     if(!hide&&!far||!hide&&((t*10|0)%3===0))e.g.userData.tick(t+e.phase,moving,e.act);
@@ -445,7 +450,7 @@ const GAME=(()=>{
       e.bub.style.display=e.bub.hidden?'none':'';e.bub.style.left=x+'px';e.bub.style.top=(y-(nameOn?24:4))+'px'}}
   function labelsInterior(){const w=canvas.clientWidth,h=canvas.clientHeight;for(const e of ents.values()){if(!e.inside){e.lbl.style.display='none';e.bub.style.display='none';continue}const top=tV.copy(e.g.position).add(new V3(0,e.height+.3,0)).project(INTERIOR.cam);
       const x=(top.x+1)/2*w,y=(1-top.y)/2*h;e.lbl.style.display=e===me?'none':'';e.lbl.style.left=x+'px';e.lbl.style.top=y+'px';e.bub.style.display=e.bub.hidden?'none':'';e.bub.style.left=x+'px';e.bub.style.top=(y-24)+'px'}}
-  function poseInside(e,dt,t){e.g.position.set(e.ix,0,e.iz);e.g.up.set(0,1,0);e.g.lookAt(e.ix+Math.sin(e.iyaw),0,e.iz+Math.cos(e.iyaw));const moving=e.speed>.1;const sq=moving?1+Math.sin(t*10)*.03:1+Math.sin(t*2)*.012;e.g.scale.set(CS,CS*sq,CS);
+  function poseInside(e,dt,t){e.g.position.set(e.ix,0,e.iz);e.g.up.set(0,1,0);e.g.lookAt(e.ix+Math.sin(e.iyaw),0,e.iz+Math.cos(e.iyaw));const moving=e.speed>.1;const sq=moving?1+Math.sin(t*10)*.03:1+Math.sin(t*2)*.012;e.g.scale.set(CS,CS*sq,CS);animMouth(e,t);
     if(e.dance>0){e.g.rotateY(Math.sin(t*6)*.6)}e.g.userData.tick(t+e.phase,moving,e.act);e.shadow.position.set(e.ix,.02,e.iz);e.shadow.quaternion.setFromUnitVectors(new V3(0,0,1),UPV);if(e.sayT>0){e.sayT-=dt;if(e.sayT<=0)e.bub.hidden=true}if(e.emoteT>0){e.emoteT-=dt;if(e.emoteT<=0)e.emote=null}}
 
   function resize(){sizeView(R,cam,comp,$('world'));if(mode==='space')SPACE.resize()}

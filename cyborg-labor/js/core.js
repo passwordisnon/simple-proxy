@@ -230,10 +230,13 @@ function cheeks(g,c,o){o=o||{};const H=c.H;const y=o.y??(H.faceY-H.r*.28),sp=o.s
   both(x=>{const m=P(g,G.s(H.r*.15),c.m.cheek(),[x*H.r*sp,y,z],[0,x*.55,0],[1.2,.7,.25]);m.userData.noOutline=true;m.castShadow=false})}
 /* Mund: 'smile' | 'open' | 'cat' | 'o' | 'beak' */
 function mouth(g,c,kind,o){o=o||{};const H=c.H,m=c.m;const y=o.y??(H.faceY-H.r*.42),z=H.front*(o.z??.94),w=H.r*(o.w??.16);
-  if(kind==='open'){P(g,G.s(w*1.1),m.c('#B8475F'),[0,y,z],null,[1.2,.9,.35]);P(g,G.s(w*.6),m.c(PAL.pink),[0,y-w*.35,z+w*.12],null,[1,.5,.3])}
-  else if(kind==='o'){P(g,G.to(w*.55,w*.18),m.c(PAL.ink),[0,y,z])}
-  else if(kind==='cat'){both(x=>P(g,G.to(w*.5,w*.13,PI),m.c(PAL.ink),[x*w*.5,y,z],[0,0,PI]))}
-  else{P(g,G.to(w,w*.16,PI*.8),m.c(PAL.ink),[0,y+w*.3,z],[0,0,PI+PI*.1])}}
+  /* Mund als eigene Gruppe: beim Sprechen öffnet er sich (sichtbarer Innenmund, Kiefer-Wippen) */
+  const q=new THREE.Group();q.position.set(0,y,z);q.userData.mouth=true;q.userData.y0=y;q.userData.w=w;g.add(q);
+  if(kind==='open'){P(q,G.s(w*1.1),m.c('#B8475F'),[0,0,0],null,[1.2,.9,.35]);P(q,G.s(w*.6),m.c(PAL.pink),[0,-w*.35,w*.12],null,[1,.5,.3])}
+  else if(kind==='o'){P(q,G.to(w*.55,w*.18),m.c(PAL.ink),[0,0,0])}
+  else if(kind==='cat'){both(x=>P(q,G.to(w*.5,w*.13,PI),m.c(PAL.ink),[x*w*.5,0,0],[0,0,PI]))}
+  else{P(q,G.to(w,w*.16,PI*.8),m.c(PAL.ink),[0,w*.3,0],[0,0,PI+PI*.1])}
+  const open=P(q,G.s(w*.95),m.c('#8A3048'),[0,-w*.12,w*.05],null,[1.05,.8,.3]);const tongue=P(open,G.s(w*.55),m.c(PAL.pink),[0,-w*.38,.25],null,[1,.55,.6]);open.visible=false;open.userData.noOutline=true;tongue.userData.noOutline=true;q.userData.open=open}
 
 /* ---------- Registry ---------- */
 const KIND={org:'organisch',tier:'tierisch',masch:'maschinell',pflanze:'pflanzlich',ding:'Objekt',none:'—'};
@@ -390,7 +393,8 @@ function buildCreature(d,opt){
   g.updateMatrixWorld(true);const box=new THREE.Box3().setFromObject(only?focus:g);
   g.userData.height=box.max.y;g.userData.box=box;g.userData.focus=focus;
   g.userData.tick=(t,w,a)=>{for(let i=0;i<an.length;i++){try{an[i](t,w,a||0)}catch(e){an.splice(i--,1)}}};
-  if(opt.merge&&!only){try{mergeCreature(g)}catch(e){console.warn('merge',e)}}
+  {const ms=[];g.traverse(o=>{if(o.userData.mouth)ms.push(o)});g.userData.mouths=ms}
+  if(opt.merge&&!only){try{mergeCreature(g,g.userData.mouths.concat(g.userData.mouths.map(q=>q.userData.open)))}catch(e){console.warn('merge',e)}}
   return g;
 }
 function disposeTree(o){o.traverse(c=>{if(c.geometry&&!c.userData.hull)c.geometry.dispose();if(c.material){(Array.isArray(c.material)?c.material:[c.material]).forEach(m=>{if(!m.userData.keep)m.dispose()})}})}

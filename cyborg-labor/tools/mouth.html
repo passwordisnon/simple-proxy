@@ -1,0 +1,12 @@
+<!doctype html><html><head><meta charset="utf8"><title>mouth</title><style>body{margin:0;background:#f4ecff}#out{display:grid;grid-template-columns:repeat(4,300px);gap:4px;padding:4px}img{width:300px;height:300px;background:#e8f6ff}</style></head><body><div id="out"></div>
+<script src="vendor/three.min.js"></script><script src="vendor/ex/RoundedBoxGeometry.js"></script><script src="vendor/ex/BufferGeometryUtils.js"></script>
+<script src="../js/core.js"></script><script src="../js/parts-kopf.js"></script><script src="../js/parts-augen.js"></script><script src="../js/parts-arme.js"></script><script src="../js/parts-beine.js"></script><script src="../js/parts-extras.js"></script><script src="../js/data.js"></script>
+<script>
+const errors=[];window.addEventListener('error',e=>errors.push(String(e.message)));
+const c=document.createElement('canvas');const r=new THREE.WebGLRenderer({canvas:c,antialias:true,alpha:true,preserveDrawingBuffer:true});r.setSize(300,300,false);r.outputEncoding=THREE.sRGBEncoding;
+const sc=new THREE.Scene();cozyLights(sc);const cam=new THREE.PerspectiveCamera(30,1,.01,100);let n=0;
+for(const head of ['mensch','katze','axolotl','fisch']){try{const d=sanitize(Object.assign(DEFAULT(),{parts:Object.assign(DEFAULT().parts,{kopf:head})}));const g=buildCreature(d,{merge:true});sc.add(g);g.updateMatrixWorld(true);
+  const box=new THREE.Box3().setFromObject(g);const top=box.max.y;for(const k of [0,1]){for(const q of g.userData.mouths||[]){const u=q.userData;if(u.smile){u.open.visible=!!k;u.open.scale.y=1}else{q.scale.set(1+k*.1,1+k*.9,1);if(u.y0!=null)q.position.y=u.y0-k*.9*u.w*.55;u.open.visible=!!k}}
+  cam.position.set(0,top*.78,top*1.1);cam.lookAt(0,top*.72,0);r.render(sc,cam);const im=new Image();im.src=c.toDataURL();document.getElementById('out').append(im);n++}sc.remove(g)}catch(e){errors.push(head+': '+e.message)}}
+window.__done={errors,count:n,total:n};
+</script></body></html>

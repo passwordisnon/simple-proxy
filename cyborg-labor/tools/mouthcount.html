@@ -1,0 +1,5 @@
+<!doctype html><html><head><meta charset="utf8"></head><body>
+<script src="vendor/three.min.js"></script><script src="vendor/ex/RoundedBoxGeometry.js"></script><script src="vendor/ex/BufferGeometryUtils.js"></script>
+<script src="../js/core.js"></script><script src="../js/parts-kopf.js"></script><script src="../js/parts-augen.js"></script><script src="../js/parts-arme.js"></script><script src="../js/parts-beine.js"></script><script src="../js/parts-extras.js"></script><script src="../js/data.js"></script>
+<script>const errors=[];const none=[];for(const p of PARTS.kopf){try{const d=DEFAULT();d.parts.kopf=p.id;const g=buildCreature(d,{});if(!(g.userData.mouths||[]).length)none.push(p.id)}catch(e){errors.push(p.id+e.message)}}
+errors.push('NOMOUTH('+none.length+'/'+PARTS.kopf.length+'): '+none.join(','));window.__done={errors,count:1,total:1}</script></body></html>

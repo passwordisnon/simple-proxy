@@ -28,7 +28,14 @@ function mouthOn(g,c,surf,kind,o){o=o||{};const H=c.H;const y=o.y??H.faceY-H.r*.
 function cheeksOn(g,c,surf,o){o=o||{};const H=c.H;const y=o.y??H.faceY-H.r*.28,sp=o.sp??.62;cheeks(g,c,{y,sp,z:(surf(sp*H.r,y)+H.r*.006)/H.front})}
 /* Linie (Mund, Naht) auf der Fläche */
 function lineOn(g,mat,surf,xy,rad,lift){const pts=xy.map(([x,y])=>[x,y,surf(x,y)+(lift??rad*.35)]);P(g,G.tu(pts,rad,rad),mat);P(g,G.s(rad),mat,pts[0]);P(g,G.s(rad),mat,pts[pts.length-1])}
-function smileLine(g,c,surf,y,w,bend,rad){const xy=range(11,t=>{const u=t*2-1;return[u*w,y+bend*u*u]});lineOn(g,c.m.c(PAL.ink),surf,xy,rad||c.hr*.028)}
+function smileLine(g,c,surf,y,w,bend,rad){const z0=surf(0,y);const q=new THREE.Group();q.position.set(0,y,z0);q.userData.mouth=true;g.add(q);
+  const xy=range(11,t=>{const u=t*2-1;return[u*w,bend*u*u]});lineOn(q,c.m.c(PAL.ink),(x,yy)=>surf(x,yy+y)-z0,xy,rad||c.hr*.028);
+  /* Sprechen: die Lächel-Linie öffnet sich nach unten zu einem D-förmigen Mund (Zunge innen) */
+  const sh=new THREE.Shape();const top=xy.map(([x,yy])=>[x,yy]);sh.moveTo(top[0][0],top[0][1]);for(const[x,yy]of top)sh.lineTo(x,yy);
+  const dep=w*.55;for(let k=0;k<=12;k++){const a=k/12*PI;sh.lineTo(Math.cos(a)*w,-Math.sin(a)*dep+bend*Math.cos(a)*Math.cos(a))}
+  const zf=(x,yy)=>surf(x,yy+y)-z0;const og=new THREE.ShapeGeometry(sh,Q(12));const op=og.attributes.position;for(let k=0;k<op.count;k++)op.setZ(k,zf(op.getX(k),op.getY(k)*.5)+.004);og.computeVertexNormals();
+  const open=new THREE.Mesh(og,c.m.c('#8A3048'));open.userData.noOutline=true;q.add(open);const tg=P(open,G.s(w*.34),c.m.c(PAL.pink),[0,-dep*.55,zf(0,-dep*.3)+.006],null,[1.3,.5,.25]);tg.userData.noOutline=true;
+  open.visible=false;q.userData.open=open;q.userData.smile=true}
 
 /* ---------- Formen ---------- */
 function almond(w,h,b){const s=new THREE.Shape();s.moveTo(0,0);s.quadraticCurveTo(w,h*(b??.45),0,h);s.quadraticCurveTo(-w,h*(b??.45),0,0);return s}

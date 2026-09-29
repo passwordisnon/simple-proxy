@@ -266,7 +266,8 @@ const HAUS=(()=>{
         if(K==='museum'){for(const ox of[-.45,.45])tryPut('attach',T,'pillar-stone',x+ox,0,z-1.05,0,[1,1.9+base,1])}
         else if(K==='shop'&&!isDoor){tryPut('attach',T,'overhang',E.x,base,E.z,E.ry)}
         else if(K==='bar'){tryPut('attach',T,'lantern',x+.45,base,z-.85,0,[.8,.8,.8])}
-        else if((K==='studio'||K==='pflanzen')&&!isDoor){tryPut('attach','nature',K==='pflanzen'?'pot_large':'flower_purpleA',x,base,z-.72,0,1.3);if(K==='pflanzen')tryPut('attach','nature','plant_bushSmall',x,base+.22,z-.72,0,1.6)}
+        else if((K==='studio'||K==='pflanzen')&&!isDoor&&Math.abs(x-door[0])===1){/* kleine, unregelmässige Gruppe neben der Tür statt einer Reihe */const side=Math.sign(x-door[0]);const n=K==='pflanzen'?3:2;
+          for(let k=0;k<n;k++){const px=x+side*(-.25+k*.28)+(r()-.5)*.12,pz=z-.62-(k%2)*.32-(r()*.1);const big=k===0;if(K==='pflanzen'){if(tryPut('attach','nature',big?'pot_large':'pot_small',px,base,pz,r()*6,big?1.25:1.4))tryPut('attach','nature',pick(r,['plant_bushSmall','flower_redA','flower_yellowA','plant_flatShort']),px,base+(big?.2:.15),pz,r()*6,big?1.5:1.2)}else tryPut('attach','nature',pick(r,['flower_purpleA','flower_redB','flower_yellowB']),px,base,pz,r()*6,1.3)}}
         else if(K==='rathaus'&&!isDoor&&fl(x,z)>1){tryPut('attach',T,r()<.5?'banner-red':'banner-green',E.x,base+1,E.z,E.ry)}}
       if(K==='museum'||K==='rathaus'){const xs2=fr.map(c=>c[0]);const zz=Math.min(...fr.map(c=>c[1]));for(let x=Math.min(...xs2);x<=Math.max(...xs2);x++)tryPut('path',T,'stairs-stone-round',x,0,zz-1.62,PI/2,[1,.25,1])}}
     /* Balkon */
