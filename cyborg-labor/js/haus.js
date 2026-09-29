@@ -264,7 +264,7 @@ const HAUS=(()=>{
     if(plan.civic&&H.F.edge!=='station'){const fr=H.cells.filter(([x,z])=>!fl(x,z-1)).sort((a,b)=>a[0]-b[0]);const K=plan.civic;
       for(const[x,z]of fr){const isDoor=x===door[0]&&z===door[1];const E=edgeT(x,z,'nz');
         if(K==='museum'){for(const ox of[-.45,.45])tryPut('attach',T,'pillar-stone',x+ox,0,z-1.05,0,[1,1.9+base,1])}
-        else if(K==='shop'&&!isDoor){tryPut('attach',T,'overhang',E.x,base,E.z,E.ry)}
+        else if((K==='shop'||K==='mode')&&!isDoor){tryPut('attach',T,'overhang',E.x,base,E.z,E.ry)}
         else if(K==='bar'){tryPut('attach',T,'lantern',x+.45,base,z-.85,0,[.8,.8,.8])}
         else if((K==='studio'||K==='pflanzen')&&!isDoor&&Math.abs(x-door[0])===1){/* kleine, unregelmässige Gruppe neben der Tür statt einer Reihe */const side=Math.sign(x-door[0]);const n=K==='pflanzen'?3:2;
           for(let k=0;k<n;k++){const px=x+side*(-.25+k*.28)+(r()-.5)*.12,pz=z-.62-(k%2)*.32-(r()*.1);const big=k===0;if(K==='pflanzen'){if(tryPut('attach','nature',big?'pot_large':'pot_small',px,base,pz,r()*6,big?1.25:1.4))tryPut('attach','nature',pick(r,['plant_bushSmall','flower_redA','flower_yellowA','plant_flatShort']),px,base+(big?.2:.15),pz,r()*6,big?1.5:1.2)}else tryPut('attach','nature',pick(r,['flower_purpleA','flower_redB','flower_yellowB']),px,base,pz,r()*6,1.3)}}
@@ -312,6 +312,7 @@ const HAUS=(()=>{
     rathaus:[['town','fountain-round',1,'f',0],['castle','flag-banner-long',1.3,'c',0],['castle','flag',1.6,'c',0],['castle','flag',1.6,'c',0],['town','pillar-stone',1,'d',0],['town','stall-bench',1,'f',PI/2]],
     garage:[['space','rover',1.6,'fs',0],['space','machine_generator',1.2,'s',PI/2],['space','barrels',1,'dc',0],['survival','workbench',1.8,'d',0]],
     pflanzen:[['nature','crops_cornStageC',1.3,'fs',0],['nature','pot_large',1.4,'d',0],['nature','flower_yellowA',1.4,'df',0],['nature','plant_bushLarge',1.5,'cs',0],['nature','crop_pumpkin',1.3,'f',0]],
+    mode:[['town','stall-bench',1,'df',PI/2],['nature','pot_large',1.3,'d',0],['nature','flower_redA',1.4,'d',0],['nature','plant_bushDetailed',1.4,'c',0],['town','lantern',1,'c',0]],
     praxis:[['town','stall-bench',1,'df',PI/2],['nature','pot_large',1.3,'d',0],['nature','plant_bushDetailed',1.4,'c',0],['town','lantern',1,'c',0]],
     tiere:[['town','fence-curved',1,'f',0],['nature','log_stack',1.3,'s',0],['town','cart',1,'s',0],['pirate','barrel',.33,'d',0],['nature','stump_round',1.4,'f',0]]};
   function yard(H,pid,plan){const{tryPut,begin,rollback,commit,edgeT,r,door,base,minX,maxX,minZ,maxZ,cellFl}=H;const T='town';
@@ -370,6 +371,7 @@ const HAUS=(()=>{
     if(plan.fam==='mush')Object.assign(plan,{big:1,stack:kind==='rathaus'||kind==='museum'});
     else if(plan.fam!=='pueblo')plan.fp=Object.assign({},base.fp||{},{dims:[[3,2],[3,3],[4,2],[2,3]],tall:.85,maxFl:3,noWings:false,tower:kind==='rathaus'||kind==='museum'?1:.15,towerExtra:kind==='rathaus'?1:0});
     else plan.big=1;
+    if(kind==='mode')plan.pal={wall:'#FFF4EA',sand:'#FFF4EA',sandD:'#F4E2D4',roof:'#E88CB0',roofB:'#E88CB0',roof2:'#D8708E',trim:'#FFFFFF',wood:'#F2D6C8',woodL:'#F8E4DA',wood2:'#D8B8A8'},plan.mushPal={cap:'#F2A0C0',stem:'#FFF6EE'};
     if(kind==='praxis')plan.pal={wall:'#F7FBFA',sand:'#F7FBFA',sandD:'#E6F0EE',roof:'#7FCFC0',roofB:'#7FCFC0',roof2:'#6CC4B4',trim:'#FFFFFF',wood:'#D4E6E2',woodL:'#E2EFEC',wood2:'#BCD4CF'},plan.mushPal={cap:'#7FCFC0',stem:'#FBFDFD'};
     return build(pid,opt.seed||hashS(pid+kind),Object.assign({},opt,{plan}))}
   /* Praxis: seitlich abstehendes, leuchtendes Apothekenkreuz neben der Tür (Platz wird gegen alle Bauteile geprüft) */
@@ -409,7 +411,7 @@ const HAUS=(()=>{
     const S=unit;const sign=H.sign?[(H.sign[0]-ctr.x)*S,(H.sign[1]-ctr.z)*S]:null;
     if(H.unit){H.g.scale.setScalar(H.unit)}return{g:H.g,unit,bodyR:bodyR*S,colliders:cols.map(c2=>[c2[0]*S,c2[1]*S,c2[2]*S]),sign,door:[c.door[0]*S,c.door[1]*S],size:c.size.clone().multiplyScalar(S),pal:H.pal,issues:H.issues,tries,style:(plan.fam||'town')+(H.style?'-'+H.style:'')+(plan.mushroom?'+pilzdach':'')+(plan.base?'+stelzen':'')+(H.round?(plan.fam==='pueblo'?'+kuppelturm':'+rundturm'):'')+(H.chim?'+kamin':'')+(H.balc&&!H.balcFailed?'+balkon':'')}}
   function center(g,door,body){const box=new THREE.Box3().setFromObject(g);const ctr=(body||box).getCenter(new V());ctr.y=0;g.children.forEach(c=>{c.position.x-=ctr.x;c.position.z-=ctr.z});return{ctr,door:[door[0]-ctr.x,door[1]-.5-ctr.z],size:box.getSize(new V())}}
-  const PACKS=['town','holiday','pirate','nature','survival','station','modular','castle','plat','space','furn','food','graveyard','resto'];let ready=false;
+  const PACKS=['town','holiday','pirate','nature','survival','station','modular','castle','plat','space','furn','food','graveyard','resto','market'];let ready=false;
   function load(){return Promise.all(PACKS.map(p=>KIT.load(p))).then(()=>{ready=true;if(window.KITFURN)KITFURN.fix()})}
   return{build,civic,palette,THEMES,rng,REJ,load,PACKS,get ready(){return ready}}
 })();

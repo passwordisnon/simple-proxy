@@ -25,7 +25,7 @@ const MAIN=(()=>{
     const close=()=>{if(!phoneEl)return;removeEventListener('keydown',kd,true);clearInterval(tick);ph.classList.add('down');SND.play('close',{vol:.5});const x=ph;setTimeout(()=>x.remove(),260);phoneEl=null};
     const go=fn=>{SND.play('select');close();setTimeout(fn,120)};
     A('bag','Tasche','#FFD35C',()=>ACT.bag());A('book','Lexikon','#7FDCE6',()=>ACT.lexikon());A('paw','Tiere','#A6EBC3',()=>FAUNA.lexikon());A('rocket','Reisen','#FFC9A8',()=>UI.toast('Zur Rakete am Dorfrand gehen, um zu reisen.',3000));
-    A('palette','Designs','#FF8FB1',designsApp);A('house','Hausbau','#FFB27A',()=>houseBuilder());A('people','Freunde','#A6EBC3',()=>SOCIAL.playersWin());
+    A('star','Kleider','#F2A8C4',()=>BOUTIQUE.wardrobe());A('palette','Designs','#FF8FB1',designsApp);A('house','Hausbau','#FFB27A',()=>houseBuilder());A('people','Freunde','#A6EBC3',()=>SOCIAL.playersWin());
     A('chat','Chat','#8FD3FF',()=>SOCIAL.toggleChat(true));A('wave','Emotes','#FFE27A',()=>ACT.emoteMenu());A('map','Karte','#9FD86A',mapApp);
     A('globe','Bewohner','#FFC9A8',residentsApp);A('school','Klasse','#D9B5F2',teacherApp);A('gear','Optionen','#DDD3C4',settingsApp);
     const dock=el('div','ph-home');dock.title='Wegstecken';dock.onclick=close;

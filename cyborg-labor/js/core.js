@@ -275,6 +275,13 @@ function torsoBody(g,shape,ys,rs,mat){
     /* etwas flacher von vorn nach hinten, kleiner Bauch vorn */z*=.9;if(z>0){const bel={teddy:.16,birne:.08,ei:.06,kugel:.05,mochi:.06,glocke:.03}[shape]||0;z+=bel*r0*Math.max(0,Math.cos(t*PI*.9-(-.35)))*Math.min(1,z/(r0*.5))}
     if(shape==='bohne'){z+=.15*r0*(1-t*t)-.05*r0}
     pos.setXYZ(i,x,y,z)}geo.computeVertexNormals();P(g,geo,mat,[0,0,0])}
+/* Kleidungs-Hülle: folgt exakt der Rumpfform (inkl. Bauch), zwischen zwei Höhen, etwas grösser; flare weitet unten (Rock) */
+function torsoShell(g,shape,ys,rs,mat,o){o=o||{};const grow=o.grow||1.05,add=o.add??.012;if(shape==='kiste'){const y0=o.from,y1=o.to;const rr=rs[0];const m=P(g,G.bx(rr*1.8*grow+add*2,Math.max(.02,y1-y0),rr*1.6*grow+add*2,rr*.5),mat,[0,(y0+y1)/2,0]);return m}
+  const I=torsoInfo(shape,ys,rs);const y0=Math.max(I.lo,o.from),y1=Math.min(I.hi,o.to);const N=Math.max(12,Math.round(30*QF));const pts=[];
+  for(let k=0;k<=N;k++){const u=k/N;const y=y0+(y1-y0)*u;let r=I.R(y)*grow+add;if(o.flare)r*=1+o.flare*Math.pow(1-u,2);pts.push([Math.max(.01,r),y])}
+  const geo=new THREE.LatheGeometry(pts.map(p=>new THREE.Vector2(p[0],p[1])),Q(40),-PI/2);const pos=geo.attributes.position;const mid=(I.lo+I.hi)/2,hh=(I.hi-I.lo)/2,r0=rs[0];
+  for(let i=0;i<pos.count;i++){let x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i);const t=(y-mid)/hh;z*=.9;if(z>0){const bel={teddy:.16,birne:.08,ei:.06,kugel:.05,mochi:.06,glocke:.03}[shape]||0;z+=bel*r0*grow*Math.max(0,Math.cos(t*PI*.9+.35))*Math.min(1,z/(r0*.5))}if(shape==='bohne'){z+=.15*r0*(1-t*t)-.05*r0}pos.setXYZ(i,x,y,z)}
+  geo.computeVertexNormals();return P(g,geo,mat,[0,0,0])}
 /* alte Einzelform (für Vorschau-Symbole u. Ä.) */
 function torsoMesh(g,shape,rr,y,mat){const gg=new THREE.Group();torsoBody(gg,shape,[0],[rr],mat);gg.position.y=y;g.add(gg);return gg}
 
@@ -398,7 +405,7 @@ function buildCreature(d,opt){
   const TI=d.body.shape==='kiste'?null:torsoInfo(d.body.shape,ys,rs);
   const topY=TI?TI.hi-rs[n-1]*.06:ys[n-1]+rs[n-1]*.95;
   const hr=.58*s;
-  const shY0=ys[n-1]+.22*rs[n-1],c={s,r,n,ys,rs,y0,topY,midY:ys[Math.floor((n-1)/2)],belly:ys[0],shX:TI?Math.max(rs[n-1]*.55,TI.R(shY0)*.97):rs[n-1]*.9,shY:shY0,hipX:rs[0]*.45,R:TI?TI.R:null,hr,hy:topY+hr*.82,
+  const shY0=ys[n-1]+.22*rs[n-1],c={s,r,n,ys,rs,y0,topY,midY:ys[Math.floor((n-1)/2)],belly:ys[0],shX:TI?Math.max(rs[n-1]*.55,TI.R(shY0)*.97):rs[n-1]*.9,shY:shY0,hipX:rs[0]*.45,R:TI?TI.R:null,tlo:TI?TI.lo:ys[0]-rs[0]*.95,thi:TI?TI.hi:ys[n-1]+rs[n-1]*.95,hr,hy:topY+hr*.82,
     an:f=>an.push(f),body:d.body,m:realM,PAL};
   const focus=new THREE.Group();g.add(focus);
   const bodyMat=only?ghostM.skin():realM.skin();
@@ -415,6 +422,7 @@ function buildCreature(d,opt){
   if(!only||only==='arme')run('arme',d.parts.arme,only?focus:g);
   if(!only||only==='beine')run('beine',d.parts.beine,only?focus:g);
   if(!only||only==='extras')for(const x of d.parts.extras||[])run('extras',x,only?focus:g);
+  /* Kleidung (Hut, Oberteil, Hals, Gesicht) */if(!only&&d.clothes&&typeof CLOTHES!=='undefined'){try{CLOTHES.dress(g,c,d)}catch(e){console.warn('Kleidung',e)}}
   g.traverse(o=>{if(o.isMesh){o.castShadow=!opt.noShadow;o.receiveShadow=!opt.noShadow}});
   if(!only&&FURSKINS[d.body.skin]&&opt.fur!==false)addFur(g,realM.skin(),d.body,s,QF);
   if(opt.outline!==false)addOutlines(only?focus:g,{min:opt.outlineMin});

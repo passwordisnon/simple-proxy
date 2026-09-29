@@ -2,7 +2,7 @@
 """Keeps only the kit pieces haus.js/kit users reference (literal names + generated wall/cabin/station names)."""
 import json, re, os, sys
 SRC = sys.argv[1] if len(sys.argv) > 1 else 'assets/kits'
-src = ''.join(open(f).read() for f in ['js/haus.js'] + [f for f in ['js/town.js', 'js/home.js', 'js/buildings.js', 'js/kitfurn.js', 'js/lang.js', 'js/story.js', 'js/clinic.js'] if os.path.exists(f)])
+src = ''.join(open(f).read() for f in ['js/haus.js'] + [f for f in ['js/town.js', 'js/home.js', 'js/buildings.js', 'js/kitfurn.js', 'js/lang.js', 'js/story.js', 'js/clinic.js', 'js/boutique.js'] if os.path.exists(f)])
 lits = set(re.findall(r"'([a-zA-Z0-9_\-]+)'", src))
 kinds = {'door','window-shutters','window-glass','window-round','window-small','window-stone','detail-cross','detail-diagonal','detail-horizontal'}
 keep = {

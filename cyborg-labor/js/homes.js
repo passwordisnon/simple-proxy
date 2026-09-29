@@ -7,7 +7,7 @@
    ===================================================================== */
 const HOMES=(()=>{
   const THEME={
-    kompost:{house:{shapes:['huette','spitz','rund'],walls:['holz','stein','moos'],wallCols:['#FFE3B8','#E8B784','#D9D2E3','#C8E8B0'],roofCols:['#F0556E','#8E6BD1','#E0876A','#6AA8F0'],win:['eckig','rund']},deco:['blumenbusch','busch','sonnenblume','lavendel'],fence:true},
+    kompost:{skins:['fell','pluesch','haut','holz','moos','keramik'],heads:['axolotl','katze','frosch','hirsch','eule','mensch','bluete','schnecke','vogel','kohl','pilzhut','moosball'],names:['Moosi','Kompott','Humus-Hanna','Wurmi','Kleeblatt','Beete','Radieschen','Sonni','Blümchen','Laubi'],house:{shapes:['huette','spitz','rund'],walls:['holz','stein','moos'],wallCols:['#FFE3B8','#E8B784','#D9D2E3','#C8E8B0'],roofCols:['#F0556E','#8E6BD1','#E0876A','#6AA8F0'],win:['eckig','rund']},deco:['blumenbusch','busch','sonnenblume','lavendel'],fence:true},
     schrott:{skins:['chrom','rost','patina','plastik','gold'],heads:['monitor','roehre','kamerakopf','router','toaster','mikrowelle','lautsprecher','ampel','birne'],names:['Blechbert','Zahnrad-Zora','Volta','Bit','Mutter Mona','Spule'],
       house:{shapes:['turm','kuppel'],walls:['blech'],wallCols:['#B4CBE0','#C8C0E8','#A8D8D0'],roofCols:['#F7B84B','#FF8FB8','#56C6B6'],win:['bullauge']},deco:['schrotthaufen','antennenbaum','kristallfels']},
     korallen:{skins:['koralle','schuppen','schleim','glas'],heads:['fisch','kugelfisch','oktopus','qualle','koralle','axolotl','hai','taucherhelm','seerose'],names:['Perla','Kiemen-Kim','Riffi','Muschelmax','Lagune Lu','Tang'],
@@ -20,16 +20,17 @@ const HOMES=(()=>{
       house:{shapes:['pilz','rund'],walls:['moos','lehm'],wallCols:['#F6EEDC','#DCC8F0','#C8F0D8'],roofCols:['#E8505B','#8E6BD1','#FF8FB8'],win:['rund']},deco:['leuchtpilzgruppe','pilzgruppe','sporenblume']}};
   /* ---------- einheimische Bewohner:innen ---------- */
   const natCache={};
-  function natives(pid){if(pid==='kompost')return[];if(natCache[pid])return natCache[pid];const T=THEME[pid];const r=srand(hashStr('nat'+pid).length*131+pid.length);const pk=a=>a[Math.floor(r()*a.length)];const out=[];
-    for(let i=0;i<5;i++){const legs=PARTS.beine.filter(p=>!['kabel','wurzeln','stamm','pilzstiel','blumentopf'].includes(p.id));
-      const d=sanitize({name:T.names[i%T.names.length],group:PLANETS[pid].n,body:{seg:1+Math.floor(r()*3),size:.9+r()*.3,skin:pk(T.skins),color:Math.floor(r()*SKIN_COLORS.length),shape:pk(TORSOS).id,pattern:pk(PATTERNS).id,color2:Math.floor(r()*SKIN_COLORS.length)},
+  /* mindestens 20 Bewohner:innen je Planet (auf Kompost zusammen mit den eigenen Figuren) */const SYL=['Bi','Lu','Mo','Pi','Ra','Fi','Nu','Ko','Za','Wi','Ti','Mel','Pom','Zu','Fla','Kri'];const SYL2=['ppel','mmel','xi','nja','bo','lo','schka','ri','mo','dle','ffi','ks'];
+  function natives(pid,need){const key=pid+':'+(need??20);if(natCache[key])return natCache[key];const T=THEME[pid];const r=srand(hashStr('nat'+pid).length*131+pid.length);const pk=a=>a[Math.floor(r()*a.length)];const out=[];
+    const N=need??20;const used=new Set();for(let i=0;i<N;i++){const legs=PARTS.beine.filter(p=>!['kabel','wurzeln','stamm','pilzstiel','blumentopf'].includes(p.id));
+      let nm=i<T.names.length?T.names[i]:pk(SYL)+pk(SYL2);while(used.has(nm))nm=pk(SYL)+pk(SYL2)+(used.size>60?i:'');used.add(nm);const d=sanitize({clothes:typeof CLOTHES!=='undefined'?CLOTHES.random(r,pid):null,name:nm,group:PLANETS[pid].n,body:{seg:1,size:.9+r()*.3,skin:pk(T.skins),color:Math.floor(r()*SKIN_COLORS.length),shape:pk(TORSOS).id,pattern:pk(PATTERNS).id,color2:Math.floor(r()*SKIN_COLORS.length)},
         parts:{kopf:pk(T.heads),augen:pk(PARTS.augen.filter(p=>p.k!=='none')).id,arme:pk(PARTS.arme).id,beine:pk(legs).id,extras:[pk(PARTS.extras).id]}});d.id='nat-'+pid+'-'+i;d.native=true;out.push(d)}
-    return natCache[pid]=out}
+    return natCache[key]=out}
   function activeId(){return SAVE.activeChar||null}
-  function residents(pid){if(pid==='kompost')return allCreatures().filter(d=>d.id!==activeId());return natives(pid)}
+  function residents(pid){if(pid==='kompost'){const own=allCreatures().filter(d=>d.id!==activeId());return own.concat(natives(pid,Math.max(0,20-own.length)))}return natives(pid,20)}
   /* ---------- Bauplätze: vor dem Gelände-Aufbau wählen, damit der Boden flach wird ---------- */
   function spots(pid,fns0){const list=residents(pid);const r=srand(hashStr('home'+pid).length*977+3);const out=[];const R=fns0.R;const taken=fns0.places.map(p=>p.dir);
-    const c0=fns0.places[0].dir,maxA=Math.min(1.25,72/R);const t0=new THREE.Vector3().crossVectors(c0,Math.abs(c0.y)>.9?new THREE.Vector3(1,0,0):new THREE.Vector3(0,1,0)).normalize();
+    const c0=fns0.places[0].dir,maxA=Math.min(1.25,(list.length>12?96:72)/R);const t0=new THREE.Vector3().crossVectors(c0,Math.abs(c0.y)>.9?new THREE.Vector3(1,0,0):new THREE.Vector3(0,1,0)).normalize();
     /* Bauplatz direkt im Umkreis des Dorfs ziehen (auch auf riesigen Planeten wohnen alle nah beisammen) */const inCap=()=>{const a=Math.acos(1-r()*(1-Math.cos(maxA))),ph=r()*TAU;return c0.clone().applyAxisAngle(t0,a).applyAxisAngle(c0,ph).normalize()};
     for(const d of list){let best=null;for(let i=0;i<220&&!best;i++){const p=inCap();const h=fns0.hAt(p);if(h<fns0.sea+.5)continue;
         if(taken.some(q=>q.angleTo(p)*R<(out.length<3?17.5:16.5)))continue;let flat=true;const t1=new THREE.Vector3().crossVectors(p,new THREE.Vector3(0,0,1)).normalize(),t2=new THREE.Vector3().crossVectors(p,t1);

@@ -1037,3 +1037,6 @@ wallpaper('praxis',{n:'Praxis-Kacheln',price:450,planet:'alle',draw:(x,w,h)=>{x.
 floorpat('linoleum',{n:'Praxis-Linoleum',price:420,planet:'alle',draw:(x,w,h)=>{x.fillStyle='#DDEEEA';x.fillRect(0,0,w,h);const r=srand(77);
   for(let i=0;i<900;i++){x.fillStyle=['rgba(140,190,180,.35)','rgba(255,255,255,.6)','rgba(180,160,200,.25)'][i%3];const s=1+r()*2.5;x.fillRect(r()*w,r()*h,s,s)}
   x.fillStyle='rgba(120,170,160,.28)';for(let i=0;i<2;i++){x.fillRect(i*w/2,0,2,h);x.fillRect(0,i*h/2,w,2)}}});
+/* Boutique: Creme mit zarten Rosastreifen und feinen Goldlinien */
+wallpaper('boutique',{n:'Boutique-Streifen',price:520,planet:'alle',draw:(x,w,h)=>{x.fillStyle='#FFF4EC';x.fillRect(0,0,w,h);for(let i=0;i<8;i++){x.fillStyle='rgba(242,168,196,.45)';x.fillRect(i*w/8+w/32,0,w/16,h);x.fillStyle='rgba(201,164,90,.55)';x.fillRect(i*w/8,0,1.5,h)}
+  x.fillStyle='#F2D6DE';x.fillRect(0,h*.62,w,h*.38);x.fillStyle='rgba(201,164,90,.8)';x.fillRect(0,h*.62,w,3);for(let i=0;i<6;i++){x.strokeStyle='rgba(216,112,142,.35)';x.lineWidth=2;x.strokeRect(i*w/6+6,h*.66,w/6-12,h*.3)}}});

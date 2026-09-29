@@ -8,12 +8,12 @@
 const TOWN=(()=>{
   const {B,C,S,Wd,wallMat,roofMat,winAt,doorAt,signBoard,finish,signTex,decal,awning,crate,flagOn,scallop,shellRibs,starfish,archShape,tu,rtex}=window.FU;const {shade}=NH;
   const NAMES={
-    kompost:{praxis:'Praxis Dr. Bolzen',museum:'Nationalmuseum',shop:'Kompost-Kiosk',studio:'Farbstudio',bar:'Jazz-Keller',rathaus:'Rathaus',garage:'Raketen-Garage',pflanzen:'Gärtnerei Grünfink',tiere:'Tierstube Pfötchen'},
-    schrott:{praxis:'Reparatur-Klinik',museum:'Schrott-Museum',shop:'Ersatzteil-Basar',studio:'Rost-Atelier',bar:'Blech-Blues-Bar',rathaus:'Rathaus',garage:'Turbo-Garage',pflanzen:'Kabel-Kakteen',tiere:'Robo-Tierheim'},
-    korallen:{praxis:'Muschel-Praxis',museum:'Korallen-Museum',shop:'Muschel-Laden',studio:'Riff-Atelier',bar:'Wellen-Jazz-Bar',rathaus:'Rathaus',garage:'Hafen-Garage',pflanzen:'Seetang-Gärtnerei',tiere:'Aquarium-Zoohandlung'},
-    frost:{praxis:'Eis-Klinik',museum:'Eis-Museum',shop:'Iglu-Laden',studio:'Frost-Atelier',bar:'Polarlicht-Bar',rathaus:'Rathaus',garage:'Schlitten-Garage',pflanzen:'Wintergarten',tiere:'Pinguin-Pension'},
-    wueste:{praxis:'Oasen-Praxis',museum:'Wüsten-Museum',shop:'Oasen-Basar',studio:'Sand-Atelier',bar:'Oasen-Jazz',rathaus:'Rathaus',garage:'Karawanen-Garage',pflanzen:'Kaktus-Stube',tiere:'Karawanen-Tierhof'},
-    pilz:{praxis:'Sporen-Praxis',museum:'Sporen-Museum',shop:'Sporen-Stübchen',studio:'Pilz-Atelier',bar:'Glühwürmchen-Bar',rathaus:'Rathaus',garage:'Pilz-Garage',pflanzen:'Myzel-Gärtnerei',tiere:'Moos-Tierstube'}};
+    kompost:{mode:'Boutique Blümchen',praxis:'Praxis Dr. Bolzen',museum:'Nationalmuseum',shop:'Kompost-Kiosk',studio:'Farbstudio',bar:'Jazz-Keller',rathaus:'Rathaus',garage:'Raketen-Garage',pflanzen:'Gärtnerei Grünfink',tiere:'Tierstube Pfötchen'},
+    schrott:{mode:'Chic & Chrom',praxis:'Reparatur-Klinik',museum:'Schrott-Museum',shop:'Ersatzteil-Basar',studio:'Rost-Atelier',bar:'Blech-Blues-Bar',rathaus:'Rathaus',garage:'Turbo-Garage',pflanzen:'Kabel-Kakteen',tiere:'Robo-Tierheim'},
+    korallen:{mode:'Muschel-Mode',praxis:'Muschel-Praxis',museum:'Korallen-Museum',shop:'Muschel-Laden',studio:'Riff-Atelier',bar:'Wellen-Jazz-Bar',rathaus:'Rathaus',garage:'Hafen-Garage',pflanzen:'Seetang-Gärtnerei',tiere:'Aquarium-Zoohandlung'},
+    frost:{mode:'Pelz & Perle',praxis:'Eis-Klinik',museum:'Eis-Museum',shop:'Iglu-Laden',studio:'Frost-Atelier',bar:'Polarlicht-Bar',rathaus:'Rathaus',garage:'Schlitten-Garage',pflanzen:'Wintergarten',tiere:'Pinguin-Pension'},
+    wueste:{mode:'Sand-Couture',praxis:'Oasen-Praxis',museum:'Wüsten-Museum',shop:'Oasen-Basar',studio:'Sand-Atelier',bar:'Oasen-Jazz',rathaus:'Rathaus',garage:'Karawanen-Garage',pflanzen:'Kaktus-Stube',tiere:'Karawanen-Tierhof'},
+    pilz:{mode:'Sporen-Chic',praxis:'Sporen-Praxis',museum:'Sporen-Museum',shop:'Sporen-Stübchen',studio:'Pilz-Atelier',bar:'Glühwürmchen-Bar',rathaus:'Rathaus',garage:'Pilz-Garage',pflanzen:'Myzel-Gärtnerei',tiere:'Moos-Tierstube'}};
   /* ---------- Planeten-Stile ---------- */
   const STY={
     kompost:{wall:'holz',walls:['#FFE3B8','#F7D0A0','#E8F2D8','#FFD8D0'],roof:'gable',roofs:['#E0876A','#8E6BD1','#5FA652','#F0556E'],trim:'#FFF4DC',plinth:'#BDB6C8',door:'#8A5A44',win:'eckig',pitch:.7},
@@ -141,7 +141,7 @@ const TOWN=(()=>{
     else if(kind==='pflanzen'){for(let i=0;i<5;i++){at(dx-2.4+i*1.2,Z+.3,q=>{C(q,.22,.16,.34,m.c(PAL.terracotta),[0,.17,0]);S(q,.24,m.c('#6DAE55',{rim:.6}),[0,.5,0],[1,.8,1]);for(let j=0;j<3;j++)S(q,.07,m.c(['#FF8FB8','#FFE27A','#C6A9FF','#FF7E6B','#7FDCE6'][(i+j)%5]),[Math.cos(j*2.1)*.16,.64,Math.sin(j*2.1)*.16])})}at(Rr+.4,Z-.8,q=>{B(q,1.2,.35,.7,.04,Wd(m,'#C98C5A'),[0,.18,0]);B(q,1.1,.08,.6,.02,m.c('#8A5E42'),[0,.36,0]);for(let i=0;i<4;i++)S(q,.1,m.c('#7CC46A'),[-.4+i*.27,.45,0])})}
     else if(kind==='tiere'){at(Rr,Z-.3,q=>{B(q,.9,.7,.8,.06,Wd(m,'#E0876A'),[0,.35,0]);const s2=new THREE.Shape();s2.moveTo(-.55,0);s2.lineTo(.55,0);s2.lineTo(0,.45);s2.closePath();P(q,new THREE.ExtrudeGeometry(s2,{depth:.95,bevelEnabled:false}),m.c('#8E6BD1'),[0,.7,-.475]);P(q,G.puff(archShape(.4,.45,.2),.04),m.c('#3B3450'),[0,0,.41])},-.5);
       at(L,Z,q=>{C(q,.25,.2,.12,m.c('#6AA8F0',{gloss:.6}),[0,.06,0]);C(q,.2,.2,.02,m.c('#8A5A44'),[0,.12,0]);for(let i=0;i<8;i++){const a=i/8*TAU;if(i===2)continue;C(q,.04,.04,.6,Wd(m,'#FFFBF0'),[Math.sin(a)*1,.3,Math.cos(a)*1-.3])}})}}
-  const SIGNTXT={praxis:'Praxis. Hier werden Cyborgs gut und neu. Willkommen!',museum:'Willkommen im Museum! Kunst, Fisch und Käfer aus der Welt.',shop:'Hier kaufen und verkaufen. Neu heute: gut und klein.',bar:'Musik und tanzen bis in die Nacht. Willkommen, Freund!',studio:'Malen und Kunst. Du bist hier willkommen.',
+  const SIGNTXT={mode:'Boutique. Mode für jeden Körper, direkt aus Paris. Entrez!',praxis:'Praxis. Hier werden Cyborgs gut und neu. Willkommen!',museum:'Willkommen im Museum! Kunst, Fisch und Käfer aus der Welt.',shop:'Hier kaufen und verkaufen. Neu heute: gut und klein.',bar:'Musik und tanzen bis in die Nacht. Willkommen, Freund!',studio:'Malen und Kunst. Du bist hier willkommen.',
     rathaus:'Rathaus. Wir sind eine Welt. Hallo, Freund!',garage:'Rakete neu, Reise bald. Garage.',pflanzen:'Pflanzen kaufen! Sonne und Wasser, bitte.',tiere:'Tiere und Liebe. Neu hier? Hallo!'};
   function build(kind,pid,m){if(kind==='rocket')return null;
     /* Bausatz-Gebäude (einzigartig je Planet und Art, sauber geprüft) */
@@ -151,5 +151,5 @@ const TOWN=(()=>{
       finish(g,[dx,0,dz],res.bodyR*U,kind,[]);Object.assign(g.userData,{name:nm,doorExact:true,obstR:.3,colliders:res.colliders.map(c=>[...rot(c[0],c[1]),c[2]*U]),style:res.style});return g}catch(e){console.warn('Bausatz-Gebäude',kind,e)}}QF=Math.min(QF||1,HIGH?.7:.45);const res=ARCH.forTown(pid,kind);if(!res)return null;const g=new THREE.Group();g.add(res.g);const ticks=[];if(res.g.userData.tick){const t0=res.g.userData.tick;ticks.push(t0)}
     const[dx,dz]=res.door;yardSign(g,m,pid,kind,(NAMES[pid]||NAMES.kompost)[kind]||kind,dx+(dx>0?-2.1:2.1),dz-.1);try{yard(g,m,pid,kind,dx,dz,res.r,ticks)}catch(e){console.warn('Vorplatz',kind,e)}
     finish(g,[dx,0,dz],res.r,kind,ticks);g.userData.name=(NAMES[pid]||NAMES.kompost)[kind]||kind;return g}
-  return{build,NAMES,STY,kinds:[...Object.keys(B_),'praxis']}
+  return{build,NAMES,STY,kinds:[...Object.keys(B_),'praxis','mode']}
 })();
