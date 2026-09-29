@@ -19,17 +19,19 @@ const GAME=(()=>{
   /* ================= Aufbau Aussenwelt ================= */
   function buildOutdoor(pid){
     const def=PLANETS[pid];let homeSpots=[];try{homeSpots=HOMES.spots(pid,makePlanetFns(pid))}catch(e){console.warn('Häuser',e)}const fns=makePlanetFns(pid,homeSpots);const Rr=def.R;Object.assign(G_,{id:pid,def,hAt:fns.hAt,biomeAt:fns.biomeAt,places:fns.places,R:Rr,sea:def.sea,paths:fns.roads,roadDist:fns.roadDist,fns});
-    const sc=new THREE.Scene();sc.background=skyTex(def.sky[0],def.sky[1],pid);sc.fog=new THREE.Fog(def.fog,Rr*.7,Rr*1.9);
+    const sc=new THREE.Scene();sc.background=skyTex(def.sky[0],def.sky[1],pid);sc.fog=new THREE.Fog(def.fog,Math.min(Rr*.7,62),Math.min(Rr*1.9,175));
     const hemi=new THREE.HemisphereLight('#dff1ff','#f0c9a8',.52);sc.add(hemi);
     const sun=new THREE.DirectionalLight('#fff3de',1.0);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-22,right:22,top:22,bottom:-22,near:1,far:110});sun.shadow.bias=-.0006;sun.shadow.normalBias=.04;sc.add(sun);sc.add(sun.target);
     const fill=new THREE.DirectionalLight('#c9d8ff',.18);sc.add(fill);
     const detail=Math.round(Rr*(HIGH?3.4:2.3));
     /* Gelände: LOD-Kacheln (feine Kacheln am Spieler, grobe in der Ferne); beim Aufbau zählt die exakte Höhenfunktion */
-    if(typeof PLANETLOD!=='undefined'){const gm=groundMaterial(fns);PLANETLOD.create(fns,gm,sc,{vattr:terrainVattr(fns),fine:HIGH?.32:.55});const pz=(fns.places.find(p=>p.build==='plaza')||{dir:UPV}).dir;PLANETLOD.update(pz.clone().multiplyScalar(Rr+12),0,true);
+    if(typeof PLANETLOD!=='undefined'){const gm=groundMaterial(fns);const W0=buildWaterMesh(fns,1);W0.mesh.geometry.dispose();G_.water=null;G_.waterU=W0.U;
+      PLANETLOD.create(fns,gm,sc,{vattr:terrainVattr(fns),fine:HIGH?.32:.55,water:W0.mesh.material});const pz=(fns.places.find(p=>p.build==='plaza')||{dir:UPV}).dir;PLANETLOD.update(pz.clone().multiplyScalar(Rr+12),0,true);
       G_.planet=PLANETLOD.S.group;G_.groundU=gm.userData.U;G_.hAt=fns.hAt;G_.lod=true}
     else{const planet=buildTerrainMesh(fns,detail);sc.add(planet);G_.planet=planet;G_.hAt=makeSurface(planet,fns);G_.groundU=planet.material.userData.U;G_.lod=false}
     G_.hExact=G_.hAt;
-    const W_=buildWaterMesh(fns,Math.round(detail*.5));sc.add(W_.mesh);G_.water=W_.mesh;G_.waterU=W_.U;
+    /* LOD: Wasser entsteht mit den Kacheln (gleiches Material), sonst eine Wasserkugel */
+    if(!G_.lod){const W_=buildWaterMesh(fns,Math.min(140,Math.round(detail*.5)));sc.add(W_.mesh);G_.water=W_.mesh;G_.waterU=W_.U}
     /* Atmosphäre */
     const atm=new THREE.Mesh(new THREE.SphereGeometry(Rr*1.35,64,40),new THREE.ShaderMaterial({transparent:true,side:THREE.BackSide,depthWrite:false,fog:false,uniforms:{c:{value:new THREE.Color(def.sky[0])}},
       vertexShader:'varying vec3 vN;varying vec3 vP;void main(){vN=normalize(normalMatrix*normal);vec4 mv=modelViewMatrix*vec4(position,1.0);vP=mv.xyz;gl_Position=projectionMatrix*mv;}',
@@ -39,7 +41,7 @@ const GAME=(()=>{
     Object.assign(G_,{scene:sc,sun,hemi,fill,inter:[],lights:[],clouds:[],ticks:[],trees:[],rocks:[]});
     /* grosse Planeten: Natur wird in Chunks um den Spieler gestreamt */G_.stream=G_.lod&&(Rr>70||!!window.FORCE_STREAM);
     SCATTER.reset(sc,Rr,M,G_.stream?{fill:fillChunk,unload:unloadChunkRefs}:null);
-    buildPlaces();buildStones();scatterWorld();buildGrass();
+    buildPlaces();buildStones();try{buildDocks()}catch(e){console.warn('Stege',e)}scatterWorld();buildGrass();
     if(G_.stream){const lp=SAVE.lastPos&&SAVE.lastPos.planet===pid?new V3(...SAVE.lastPos.p).normalize():(fns.places.find(p=>p.build==='plaza')||{dir:UPV}).dir;SCATTER.stream(lp,0,true)}buildClouds();buildBall();if(typeof WEATHER!=='undefined')WEATHER.build(G_);else buildWeather();SCATTER.finalize();
     /* nach dem Aufbau: Höhe exakt aus der sichtbaren Kachel (Figuren stehen genau auf dem Boden) */if(G_.lod){const fh=fns.hAt;G_.hAt=p=>{const h=PLANETLOD.height(p);return h==null?fh(p):h}}
     cam.far=Rr*6+500;cam.updateProjectionMatrix();
@@ -51,7 +53,9 @@ const GAME=(()=>{
   const isLand=p=>G_.hAt(p)>G_.sea+.05;
   function placeObj(o,p,yaw,off){o.position.copy(onSurf(p,off||0));o.quaternion.setFromUnitVectors(UPV,p);if(yaw)o.rotateY(yaw)}
   function faceTo(o,p,dirWorld){o.up.copy(p);o.lookAt(o.position.clone().add(dirWorld))}
-  function randLand(r,minH,maxH,tries){for(let i=0;i<(tries||80);i++){const p=new V3(r()*2-1,r()*2-1,r()*2-1).normalize();const h=G_.hAt(p);if(h>(minH??G_.sea+.3)&&h<(maxH??99))return p}return null}
+  /* Zufallspunkt im Umkreis (grosse Planeten: Dinge erscheinen dort, wo gespielt wird, nicht verstreut über den ganzen Planeten) */
+  function randAround(r,rad,center){const c=center||(me?me.p:((G_.places||[]).find(p=>p.id==='platz')||{dir:UPV}).dir);const t=tangentTo(c,new V3(r()-.5,r()-.5,r()-.5));if(!isFinite(t.x))return c.clone();const ang=Math.sqrt(r())*rad/G_.R;return c.clone().applyAxisAngle(new V3().crossVectors(c,t).normalize(),ang).normalize()}
+  function randLand(r,minH,maxH,tries,rad){for(let i=0;i<(tries||80);i++){const p=G_.stream?randAround(r,rad||90):new V3(r()*2-1,r()*2-1,r()*2-1).normalize();const h=G_.hAt(p);if(h>(minH??G_.sea+.3)&&h<(maxH??99))return p}return null}
   const nearPlace=(p,pad)=>G_.places.some(pl=>angle(p,pl.dir)<pl.r*(pad||1.25))||(G_.paths||[]).some(([a,b])=>distToArc(p,a,b)<.05);
 
   function smartMerge(o){const keep=[...(o.userData.keep||[]),o.userData.rocket,o.userData.flag].filter(Boolean);try{if(o.userData.tick)mergeCreature(o,keep);else mergeGroup(o,keep)}catch(e){console.warn('merge',e)}}
@@ -87,7 +91,8 @@ const GAME=(()=>{
   /* ---------- Wolken ---------- */
   function buildClouds(){const cm=cozy({color:'#ffffff',rim:.8,rimColor:'#ffffff'});cm.userData.noBake=true;const NC=HIGH?26:16;for(let i=0;i<NC;i++){const g=new THREE.Group();const r=srand(40+i);QF=.6;const np=5+Math.floor(r()*5),w=2.5+r()*3;range(np,(t,j)=>{const x=(t-.5)*w,rr=.8+r()*.9*(1-Math.abs(t-.5));P(g,G.s(rr),cm,[x,r()*.5+rr*.3,(r()-.5)*1.4],null,[1,.72,.95])});P(g,G.s(1),cm,[0,-.1,0],null,[w*.55,.35,.9]);QF=1;g.traverse(o=>{if(o.isMesh){o.castShadow=true}});mergeGroup(g);
     const p=new V3(r()*2-1,r()*2-1,r()*2-1).normalize();const ax=new V3().crossVectors(p,new V3(r(),r(),r()).normalize()).normalize();G_.scene.add(g);g.scale.setScalar(.8+r()*.7);G_.clouds.push({g,p,ax,sp:.006+r()*.012,i,h:7+r()*6})}}
-  function stepClouds(dt){for(const c of G_.clouds){c.p.applyAxisAngle(c.ax,c.sp*dt).normalize();c.g.position.copy(c.p).multiplyScalar(G_.R+(c.h||9));c.g.quaternion.setFromUnitVectors(UPV,c.p)}}
+  function stepClouds(dt){const lim=G_.stream&&me?Math.cos(120/G_.R):-2;for(const c of G_.clouds){c.p.applyAxisAngle(c.ax,c.sp*dt).normalize();
+      /* grosse Planeten: Wolken ziehen mit dem Spieler mit (weit entfernte tauchen vorn wieder auf) */if(c.p.dot(me?me.p:c.p)<lim){c.p.copy(randAround(Math.random,110,me.p));c.sp=.03+Math.random()*.03}c.g.position.copy(c.p).multiplyScalar(G_.R+(c.h||9));c.g.quaternion.setFromUnitVectors(UPV,c.p)}}
 
   /* ---------- Natur verstreuen: Biome, ohne Überschneidungen ---------- */
   function makeNature(type,opt,seed){const n=NATURE[type];const g=new THREE.Group();QF=HIGH?.7:.5;try{if(n)n.b(g,M,Object.assign({planet:G_.id},opt||{}),srand(seed||1));else P(g,G.s(.3),M.c('#7CC46A'),[0,.3,0])}catch(e){console.warn('Natur',type,e)}QF=1;addOutlines(g);if(!g.userData.tick)mergeGroup(g,g.userData.fruits);return g}
@@ -134,10 +139,34 @@ const GAME=(()=>{
   /* ---------- Gebäude & Orte ---------- */
   /* Wortsteine (fremde Ruinen): bringen je ein Wort der Planetensprache bei */
   function buildStones(){if(typeof LANG==='undefined'||!LANG.has(G_.id))return;const r=srand(hashStr('stones'+G_.id).length*313+7);const seen=SAVE.stones||{};let n=0;
-    for(let i=0;i<400&&n<7;i++){const p=randLand(r,G_.sea+.4);if(!p||nearPlace(p,2.2))continue;if(G_.places.some(pl=>pl.dir.angleTo(p)*G_.R<14))continue;{const h0=G_.hAt(p),t1=tangentTo(p,new V3(1,0,0)),t2=new V3().crossVectors(p,t1);let bad=false;for(let k=0;k<8&&!bad;k++){const a2=k/8*TAU;const q=p.clone().addScaledVector(t1,Math.cos(a2)*5.5/G_.R).addScaledVector(t2,Math.sin(a2)*5.5/G_.R).normalize();if(Math.abs(G_.hAt(q)-h0)>.45)bad=true}if(bad)continue}const id=G_.id+'-st'+n;
+    for(let i=0;i<400&&n<(G_.stream?12:7);i++){const p=randLand(r,G_.sea+.4,99,80,G_.R*1.4);if(!p||nearPlace(p,2.2))continue;if(G_.places.some(pl=>pl.dir.angleTo(p)*G_.R<14))continue;{const h0=G_.hAt(p),t1=tangentTo(p,new V3(1,0,0)),t2=new V3().crossVectors(p,t1);let bad=false;for(let k=0;k<8&&!bad;k++){const a2=k/8*TAU;const q=p.clone().addScaledVector(t1,Math.cos(a2)*5.5/G_.R).addScaledVector(t2,Math.sin(a2)*5.5/G_.R).normalize();if(Math.abs(G_.hAt(q)-h0)>.45)bad=true}if(bad)continue}const id=G_.id+'-st'+n;
       const g=LANG.stoneModel(G_.id,M);addOutlines(g);let ru=null;try{ru=LANG.ruin(G_.id,ARCH.hashNum(id),G_.R);g.add(ru.g)}catch(e){console.warn('Ruine',e)}placeObj(g,p,r()*TAU,-.05);G_.scene.add(g);G_.ticks.push(g);addObst(p,.8);g.updateMatrixWorld(true);if(ru){/* jedes Ruinenteil auf den Boden darunter setzen */const h0=G_.hAt(p);for(const ch of ru.g.children){const d=ch.getWorldPosition(new V3()).normalize();ch.position.y+=G_.hAt(d)-h0}g.updateMatrixWorld(true);for(const c of ru.cols){addObst(g.localToWorld(new V3(c[0],0,c[1])).normalize(),c[2])}}const st={id,used:!!seen[id]};
       G_.inter.push({kind:'stone',p,r:2,label:'Wortstein lesen',act:()=>LANG.stone(G_.id,st)});if(n===0&&typeof STORY!=='undefined'){const si=Object.keys(PLANETS).indexOf(G_.id);const got=(SAVE.story&&SAVE.story.shards||[]).includes(si);if(!got){const cr=new THREE.Mesh(new THREE.OctahedronGeometry(.28,0),M.glow('#C8A0FF',2.2));cr.position.set(1.4,1.2,1.4);g.add(cr);const t0=g.userData.tick;g.userData.tick=t=>{t0&&t0(t);cr.rotation.y=t*1.5;cr.position.y=1.2+Math.sin(t*2)*.12};
         const sp=g.localToWorld(new V3(1.4,0,1.4)).normalize();const it={kind:'shard',p:sp,r:1.6,label:'Leuchtenden Splitter berühren',act:()=>{if(STORY.shard(si)){cr.visible=false;G_.inter.splice(G_.inter.indexOf(it),1)}}};G_.inter.push(it)}}G_.places.push({id,n:'Ruine',dir:p.clone(),r:6.5/G_.R});n++}}
+  /* ---------- Boote: Stege am Ufer, Ruderboot für Inseln und Meere ---------- */
+  function makeBoat(){const g=new THREE.Group();QF=HIGH?.8:.55;const hull=M.c('#D8674E',{gloss:.4}),wood=M.c('#C99466'),dark=M.c('#8A5A40');
+    /* Rumpf: gerundet, vorn spitz, weisser Streifen */const sh=new THREE.Shape();sh.moveTo(0,1.15);sh.quadraticCurveTo(.52,.7,.5,0);sh.lineTo(.46,-.8);sh.quadraticCurveTo(.44,-1.02,0,-1.04);sh.quadraticCurveTo(-.44,-1.02,-.46,-.8);sh.lineTo(-.5,0);sh.quadraticCurveTo(-.52,.7,0,1.15);
+    const hg=G.puff(sh,.34,.1);hg.rotateX(PI/2);P(g,hg,hull,[0,.12,0],null,[1,1,1]);P(g,G.puff(sh,.06,.02).rotateX(PI/2),M.c('#FFF6E6'),[0,.25,0],null,[1.02,1,1.02]);
+    const inner=new THREE.Shape();inner.moveTo(0,.9);inner.quadraticCurveTo(.38,.5,.36,0);inner.lineTo(.33,-.72);inner.quadraticCurveTo(.3,-.86,0,-.87);inner.quadraticCurveTo(-.3,-.86,-.33,-.72);inner.lineTo(-.36,0);inner.quadraticCurveTo(-.38,.5,0,.9);
+    P(g,G.ex(inner,.04,.01).rotateX(PI/2),wood,[0,.27,0]);for(let i=0;i<5;i++)P(g,G.bx(.02,.012,1.5,0),dark,[-.24+i*.12,.315,-.05]);
+    P(g,G.bx(.74,.06,.24,.03),wood,[0,.38,.05]);P(g,G.bx(.6,.06,.2,.03),wood,[0,.38,-.62]);
+    /* Ruder */const oars=[];for(const s of[-1,1]){const o=new THREE.Group();o.position.set(s*.5,.42,.05);P(o,G.cy(.022,.022,1.3),wood,[s*.45,0,0],[0,0,PI/2]);P(o,G.bx(.34,.02,.14,.01),wood,[s*1.05,0,0]);g.add(o);oars.push(o)}
+    /* Laterne am Bug */P(g,G.cy(.015,.015,.4),dark,[0,.55,.85]);P(g,G.s(.07),M.glow('#FFD27A',1.6),[0,.78,.85]);P(g,G.cy(.07,.09,.05),dark,[0,.84,.85]);
+    QF=1;addOutlines(g);g.traverse(o=>{if(o.isMesh){o.castShadow=HIGH;o.receiveShadow=true}});g.userData.oars=oars;return g}
+  function moorBoat(b,p,dir){b.p.copy(p);b.dir.copy(dir);b.moving=false;if(!b.it){b.it={kind:'boat',p:b.p,r:1.7,label:'Ins Boot steigen',act:()=>board(b)};G_.inter.push(b.it)}}
+  function board(b){if(!me||me.boat)return;me.boat=b;me.p.copy(b.p);me.dir.copy(tangentTo(me.p,b.dir));const i=G_.inter.indexOf(b.it);if(i>=0)G_.inter.splice(i,1);b.it=null;SND.play('soft',{vol:.6,rate:.8});UI.toast('Rudern: einfach losfahren. Am Ufer steigst du von selbst aus.',3200)}
+  function leaveBoat(e,land){const b=e.boat;e.boat=null;moorBoat(b,e.p.clone(),e.dir.clone());e.p.copy(land);SND.play('step_grass',{vol:.4})}
+  function buildDocks(){G_.boats=[];const r=srand(hashStr('dock'+G_.id).length*131+5);const out=[];const hx=G_.hExact||G_.hAt;
+    for(let i=0;i<500&&out.length<(G_.stream?4:2);i++){const p=randLand(r,G_.sea+.08,G_.sea+.7,1,G_.stream?140:G_.R*1.5);if(!p||nearPlace(p,1.3))continue;if(out.some(q=>angle(q,p)*G_.R<25))continue;
+      /* Richtung zum Wasser: tiefes Wasser 2–3 Einheiten entfernt */let best=null;for(let k=0;k<12;k++){const a=k/12*TAU;const t1=tangentTo(p,new V3(Math.cos(a),.3,Math.sin(a)));if(!isFinite(t1.x))continue;const q=p.clone().addScaledVector(t1,2.6/G_.R).normalize();if(hx(q)<G_.sea-.7){best=t1;break}}
+      if(!best)continue;out.push(p);
+      /* Steg */const g=new THREE.Group();const wood=M.c('#B8845A'),dk=M.c('#8A5A40');for(let k=0;k<6;k++)P(g,G.bx(1.1,.08,.36,.03),k%2?wood:M.c('#C99466'),[0,.28,.2+k*.42]);for(const s of[-1,1])for(let k=0;k<3;k++)P(g,G.cy(.07,.08,1.4),dk,[s*.5,-.2,.25+k*1.05]);
+      P(g,G.to(.08,.025),M.c('#E8D8B8'),[.5,.52,2.3],[PI/2,0,0]);addOutlines(g);g.traverse(o=>{if(o.isMesh){o.castShadow=HIGH;o.receiveShadow=true}});mergeGroup(g);
+      placeObj(g,p,0,-.05);faceTo(g,p,best);G_.scene.add(g);
+      const bp=p.clone().addScaledVector(best,3.1/G_.R).normalize();const bg=makeBoat();G_.scene.add(bg);const b={g:bg,p:bp.clone(),dir:tangentTo(bp,best.clone().applyAxisAngle(bp,PI/2)),it:null};moorBoat(b,bp,b.dir);G_.boats.push(b)}}
+  function poseBoats(dt,t){for(const b of G_.boats||[]){const riding=me&&me.boat===b;const p=riding?me.p:b.p,dir=riding?me.dir:b.dir;const bob=Math.sin(t*1.6+b.p.x*9)*.05;
+      b.g.position.copy(p).multiplyScalar(G_.R+G_.sea-.08+bob);b.g.up.copy(p);b.g.lookAt(b.g.position.clone().add(dir));b.g.rotateZ(Math.sin(t*1.2+b.p.z*7)*.04);
+      const rowing=riding&&me.speed>.1;for(const[i,o]of b.g.userData.oars.entries()){const s=i?1:-1;o.rotation.y=rowing?Math.sin(t*5)*.6*s:.15*s;o.rotation.z=rowing?(Math.cos(t*5)*.18-.12)*s:-.2*s}}}
   function buildPlaces(){for(const pl of G_.places){if(!pl.build)continue;const g=new THREE.Group();let obj=null;
       QF=HIGH?.7:.42;try{
         if(pl.build==='plaza')obj=buildPlaza(pl);
@@ -247,7 +276,8 @@ const GAME=(()=>{
   const tmpQ=new THREE.Quaternion();
   function moveEnt(e,dirWorld,speed,dt){/* dirWorld tangential, speed Einheiten/s */if(speed<=0)return false;const ang=speed*dt/G_.R;const axis=new V3().crossVectors(e.p,dirWorld).normalize();if(!isFinite(axis.x))return false;
     const np=e.p.clone().applyAxisAngle(axis,ang).normalize();const h=G_.hAt(np);
-    if(h<G_.sea-.3&&!e.water&&!e.fly){return false}
+    if(e.boat){if(h>G_.sea+.1){leaveBoat(e,np);return true}}/* im Boot: ans Ufer fahren = aussteigen */
+    else if(h<G_.sea-.3&&!e.water&&!e.fly){return false}
     /* Hindernisse */
     for(const o of obstAround(np,3)){const d=angle(np,o.p)*G_.R;const minD=o.r+.35;if(d<minD){const away=tangentTo(o.p,np.clone().sub(o.p));if(!isFinite(away.x))continue;const pushA=(minD-d)/G_.R;np.applyAxisAngle(new V3().crossVectors(o.p,away).normalize(),pushA*1.02).normalize()}}
     if(e.kind==='me'){for(const o of ents.values()){if(o===e||o.kind==='peer')continue;const d=angle(np,o.p)*G_.R;if(d<.7){const away=tangentTo(o.p,np.clone().sub(o.p));if(isFinite(away.x))np.applyAxisAngle(new V3().crossVectors(o.p,away).normalize(),(.7-d)/G_.R).normalize()}}}
@@ -281,7 +311,7 @@ const GAME=(()=>{
     const k=talking?Math.max(0,Math.sin(t*15+e.phase))*.8+Math.max(0,Math.sin(t*23+e.phase*2))*.3:0;if(!ms.length){/* Köpfe ohne Mund (Schnabel, Bildschirm, Lautsprecher): sanftes Wippen im Sprechrhythmus */e.g.scale.y*=1+k*.035;e.g.scale.x*=1-k*.015;return}
     for(const q of ms){const u=q.userData;if(u.smile){if(u.open){u.open.visible=k>.08;u.open.scale.y=Math.max(.1,k)}continue}
       /* nach unten öffnen (nicht in die Nase wachsen) */q.scale.set(1+k*.12,1+k*.9,1);if(u.y0!=null)q.position.y=u.y0-k*.9*(u.w||0)*.55;if(u.open)u.open.visible=k>.25}}
-  function poseEnt(e,dt,t){const h=G_.hAt(e.p);let base=h;const inWater=h<G_.sea;if(inWater)base=e.fly?G_.sea:G_.sea-.25;let alt=e.move.alt?e.move.alt*CS*1.1+Math.sin(t*1.5+e.phase)*.1:0;
+  function poseEnt(e,dt,t){const h=G_.hAt(e.p);let base=h;const inWater=h<G_.sea;if(e.boat)base=G_.sea+.1+Math.sin(t*1.6)*.05;else if(inWater)base=e.fly?G_.sea:G_.sea-.25;let alt=e.move.alt?e.move.alt*CS*1.1+Math.sin(t*1.5+e.phase)*.1:0;
     const moving=e.speed>.1;if(e.move.hop&&moving)alt+=Math.abs(Math.sin(t*5+e.phase))*e.move.hop*CS*1.2;if(e.jump>0)alt+=Math.sin((1-e.jump/.9)*PI)*.9;
     e.g.position.copy(e.p).multiplyScalar(G_.R+base+alt);e.g.up.copy(e.p);
     const look=e.lookAt&&e.stop>0?e.lookAt.g.position:e.g.position.clone().add(e.dir);e.g.lookAt(look);if(e.stop<=0)e.lookAt=null;
@@ -430,7 +460,7 @@ const GAME=(()=>{
       let mvv=cf.clone().multiplyScalar(iy).addScaledVector(cr,ix);let mag=Math.min(1,Math.hypot(ix,iy));
       if(mag<.1&&tapTarget&&!busy){const to=tangentTo(me.p,tapTarget.p.clone().sub(me.p));const dist=angle(me.p,tapTarget.p)*G_.R;if(dist<.8||!isFinite(to.x)){const f=tapTarget.then;tapTarget=null;f&&f()}else{mvv=to;mag=1}}else if(mag>.1)tapTarget=null;
       const run=keys['shift']||(input.joy&&Math.hypot(input.joy.x,input.joy.y)>.95);let spd=0;
-      if(mag>.1){mvv.normalize();me.dir.lerp(mvv,Math.min(1,dt*10)).normalize();me.dir.copy(tangentTo(me.p,me.dir));spd=(run?6.8:3.8)*Math.min(1.35,Math.max(.6,me.move.sp))*mag*(me.boost>0?1.45:1);if(!moveEnt(me,mvv,spd,dt)){spd=0}}
+      if(mag>.1){mvv.normalize();me.dir.lerp(mvv,Math.min(1,dt*10)).normalize();me.dir.copy(tangentTo(me.p,me.dir));spd=(me.boat?(run?7.5:5.2):(run?6.8:3.8)*Math.min(1.35,Math.max(.6,me.move.sp)))*mag*(me.boost>0?1.45:1);if(!moveEnt(me,mvv,spd,dt)){spd=0}}
       me.speed=spd;if(spd>0&&me.emote){me.emote=null;me.emoteT=0;me.dance=0}
       /* Schritte */
       if(spd>0&&!me.move.alt){stepT-=dt*spd*.55;if(stepT<=0){stepT=1;if(run&&Math.random()<.7)W.fx(me.p,'staub',2,onSurf(me.p,.15));const h=G_.hAt(me.p);if(h>G_.sea+.05)SND.play(h<G_.sea+.4?'step_grass':'step_grass',{vol:.28,jitter:.15});else SND.play('soft',{vol:.2,rate:1.4,jitter:.2})}}
@@ -438,7 +468,7 @@ const GAME=(()=>{
     /* Figuren */
     for(const e of ents.values()){try{if(e===me||e.kind==='peer'){}else stepVillager(e,dt,t);if(e.kind==='peer')SOCIAL.stepPeer(e,dt)}catch(err){if(!e.errLogged){e.errLogged=1;console.warn('Figur',e.d&&e.d.id,err)}}}
     const camP=cam.position.clone().normalize();for(const e of ents.values()){const vis=overview?e.p.dot(camP)>.1:e===me||(e.p.dot(camP)>.55&&angle(e.p,me?me.p:e.p)*G_.R<40);e.g.visible=vis;e.shadow.visible=vis;if(vis)poseEnt(e,dt,t)}
-    stepProps(dt,t);stepParts(dt);stepClouds(dt);SCATTER.step(dt);if(typeof WEATHER!=='undefined')WEATHER.frame(dt,t,G_,me);else stepWeather(dt,t);if(G_.groundU)G_.groundU.uT.value=t;SCATTER.update(overview?cam.position.clone().normalize():(me?me.p:UPV),t,HIGH);stepBall(dt);stepLaunch(dt);for(const o of G_.ticks){try{o.userData.tick(t,false,0)}catch(e){}}
+    stepProps(dt,t);stepParts(dt);stepClouds(dt);SCATTER.step(dt);if(typeof WEATHER!=='undefined')WEATHER.frame(dt,t,G_,me);else stepWeather(dt,t);if(G_.groundU)G_.groundU.uT.value=t;SCATTER.update(overview?cam.position.clone().normalize():(me?me.p:UPV),t,HIGH);stepBall(dt);stepLaunch(dt);poseBoats(dt,t);for(const o of G_.ticks){try{o.userData.tick(t,false,0)}catch(e){}}
     if(me){if(me.boost>0)me.boost-=dt;if(me.glitter>0){me.glitter-=dt;if(Math.random()<dt*6)W.fx(me.p,'funke',1,me.g.position.clone().addScaledVector(me.p,.8+Math.random()*.6))}}
     if(me&&!overview){OCC.a.value.copy(cam.position);OCC.b.value.copy(me.g.position).addScaledVector(me.p,.9);OCC.on.value=1}else OCC.on.value=0;ACT.frame(dt,t);REPAIR.frame(dt,t);if((typeof FAUNA!=='undefined'))try{FAUNA.step(dt,t)}catch(e){console.warn('Fauna',e)}SOCIAL.frame(dt,t);grassU.value=t;G_.waterU.uT.value=t;
     ecoT-=dt;if(ecoT<=0){ecoT=1;ecoTick()}grassU.value=t;
@@ -485,6 +515,6 @@ const GAME=(()=>{
   async function init(){await loadPlanet(planetId);dayLight()}
   function onAvatarChanged(){if(!me||!scene)return;const p=me.p.clone(),dir=me.dir.clone();const inside=me.inside;const ix=me.ix,iz=me.iz;dropEnt('__me');me=makeEnt(avatarData(),{kind:'me',p,q:HIGH?.9:.6,me:true});me.dir.copy(dir);if(inside){INTERIOR.adopt(me);me.ix=ix;me.iz=iz}}
   function toggleOverview(){overview=overview?null:{az:Math.atan2(cam.position.z,cam.position.x)};if(!overview)camSnap=true;UI.toast(overview?'Beamer-Übersicht: alle Cyborgs auf einen Blick. Nochmals drücken zum Beenden.':'Zurück zur Spielfigur');return!!overview}
-  return{_aim:(tgt,dist,pitch)=>{if(!me)return;camF.copy(tangentTo(me.p,tgt.clone().sub(me.p)));camYaw=0;if(dist)camDist=dist;if(pitch!=null)camPitch=pitch},addObst,obstAround,_load:loadPlanet,toggleOverview,get overview(){return!!overview},_joy:()=>input.joy,init,frame,resize,quality,travel,landOn,syncVillagers,onAvatarChanged,W,G:G_,ents,get me(){return me},get scene(){return scene},cam,R,say,makeEnt,dropEnt,moveEnt,onSurf,placeObj,angle,tangentTo,isLand,randLand,note,
+  return{_aim:(tgt,dist,pitch)=>{if(!me)return;camF.copy(tangentTo(me.p,tgt.clone().sub(me.p)));camYaw=0;if(dist)camDist=dist;if(pitch!=null)camPitch=pitch},addObst,obstAround,_load:loadPlanet,toggleOverview,get overview(){return!!overview},_joy:()=>input.joy,init,frame,resize,quality,travel,landOn,syncVillagers,onAvatarChanged,W,G:G_,ents,get me(){return me},get scene(){return scene},cam,R,say,makeEnt,dropEnt,moveEnt,onSurf,placeObj,angle,tangentTo,isLand,randLand,randAround,note,
     get mode(){return mode},set mode(v){mode=v},showCard,talkTo,voiceFor,fadeOut,parts,makeNature,nearPlace,get camF(){return camF},get night(){return G_.night||0}};
 })();

@@ -225,7 +225,7 @@ const FAUNA=(()=>{
   function rec(a){const s=st();return s[a.id]||(s[a.id]={fr:0})}
   function okAt(sp,p){const G_=V_();const h=G_.hAt(p);if(sp.water)return h<G_.sea-.25&&h>G_.sea-1.4;if(sp.fly)return h>G_.sea+.1;
     if(h<G_.sea+.08)return false;if(sp.shore&&h<G_.sea+.6)return true;if(sp.nearWater&&h<G_.sea+.7)return true;const b=G_.biomeAt(p,h);return!sp.biomes||sp.biomes.includes(b)}
-  function findSpot(sp,r,near,rad){for(let i=0;i<260;i++){let p;if(near){const t=GAME.tangentTo(near,new V().randomDirection());p=near.clone().applyAxisAngle(new V().crossVectors(near,t).normalize(),r()*rad/V_().R)}else p=new V(r()*2-1,r()*2-1,r()*2-1).normalize();
+  function findSpot(sp,r,near,rad){for(let i=0;i<260;i++){let p;if(near){const t=GAME.tangentTo(near,new V().randomDirection());p=near.clone().applyAxisAngle(new V().crossVectors(near,t).normalize(),r()*rad/V_().R)}else p=V_().stream&&GAME.randAround?GAME.randAround(r,130):new V(r()*2-1,r()*2-1,r()*2-1).normalize();
       if(!isFinite(p.x))continue;if(GAME.nearPlace&&GAME.nearPlace(p,1.1))continue;if(!okAt(sp,p))continue;if(!sp.water&&!sp.fly&&GAME.obstAround(p,1).some(o=>o.p.angleTo(p)*V_().R<o.r+.3))continue;return p}return null}
   function clear(){for(const a of animals){a.g.parent&&a.g.parent.remove(a.g);a.shadow.parent&&a.shadow.parent.remove(a.shadow);disposeTree(a.g);a.lbl.remove()}animals=[];companion=null;game=null}
   const shadowMat=()=>new THREE.MeshBasicMaterial({map:ctex('blob',128,128,(x,w,h)=>{const gr=x.createRadialGradient(64,64,4,64,64,62);gr.addColorStop(0,'rgba(60,40,90,.35)');gr.addColorStop(1,'rgba(60,40,90,0)');x.fillStyle=gr;x.fillRect(0,0,w,h)}),transparent:true,depthWrite:false});

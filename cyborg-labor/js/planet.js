@@ -14,7 +14,7 @@ const PLANETLOD=(()=>{
   function faceUV(p){let f=0,bd=-2;for(let i=0;i<6;i++){const d=p.dot(FACES[i][0]);if(d>bd){bd=d;f=i}}const F=FACES[f];return{f,u:Math.atan(p.dot(F[1])/bd)/Q4,v:Math.atan(p.dot(F[2])/bd)/Q4}}
   let S=null;/* Zustand des aktuellen Planeten */
   function create(fns,mat,scene,o){dispose();o=o||{};const R=fns.R;const faceLen=R*Math.PI/2;let maxD=0;while(faceLen/Math.pow(2,maxD)/N>(o.fine||.55)&&maxD<9)maxD++;
-    S={fns,mat,scene,R,maxD,roots:[],queue:[],building:0,vattr:o.vattr,onReady:o.onReady||null,split:o.split||2.1,group:new THREE.Group(),frame:0,pending:new Set()};S.group.name='planet';scene.add(S.group);
+    S={fns,mat,scene,R,maxD,roots:[],queue:[],building:0,vattr:o.vattr,water:o.water||null,onReady:o.onReady||null,split:o.split||2.1,group:new THREE.Group(),frame:0,pending:new Set()};S.group.name='planet';scene.add(S.group);
     for(let f=0;f<6;f++)S.roots.push(node(f,-1,-1,2,0,null));return S}
   function node(f,u0,v0,s,d,parent){const c=dirOf(f,u0+s/2,v0+s/2);return{f,u0,v0,s,d,parent,kids:null,mesh:null,H:null,P:null,ready:false,want:false,c,len:s/2*S.R*Math.PI/2,queued:false,dead:false}}
   /* ---------- Kachel bauen ---------- */
@@ -37,8 +37,15 @@ const PLANETLOD=(()=>{
     for(let t=0;t<skirt.length;t++){const[a,sa]=skirt[t],[b,sb]=skirt[(t+1)%skirt.length];idx.push(a,sa,b,b,sa,sb,a,b,sa,b,sb,sa)}
     const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos.subarray(0,si*3),3));g.setAttribute('normal',new THREE.BufferAttribute(nor.subarray(0,si*3),3));g.setAttribute('color',new THREE.BufferAttribute(col.subarray(0,si*3),3));
     g.setAttribute('aMat',new THREE.BufferAttribute(mat.subarray(0,si*4),4));g.setAttribute('aPat',new THREE.BufferAttribute(pat.subarray(0,si*4),4));g.setAttribute('aCl',new THREE.BufferAttribute(cl.subarray(0,si*3),3));g.setIndex(idx);g.computeBoundingSphere();
-    const m=new THREE.Mesh(g,S.mat);m.receiveShadow=true;m.matrixAutoUpdate=false;m.userData.lod=nd.d;nd.mesh=m;nd.H=H;nd.P=P;nd.ready=true;m.visible=false;S.group.add(m);if(S.onReady)try{S.onReady(nd)}catch(e){console.warn(e)}}
-  function freeNode(nd){if(nd.kids){for(const k of nd.kids)freeNode(k);nd.kids=null}if(nd.mesh){S.group.remove(nd.mesh);nd.mesh.geometry.dispose();nd.mesh=null}nd.ready=false;nd.dead=true;nd.H=null;nd.P=null}
+    const m=new THREE.Mesh(g,S.mat);m.receiveShadow=true;m.matrixAutoUpdate=false;m.userData.lod=nd.d;nd.mesh=m;nd.H=H;nd.P=P;nd.ready=true;m.visible=false;S.group.add(m);
+    /* Wasser je Kachel (gleiche Auflösung wie der Boden, nur wo es Wasser gibt): Tiefe je Vertex für Schaum und Farbe */
+    if(S.water){let lo=1e9;for(let i=0;i<nv;i++)if(H[i]<lo)lo=H[i];if(lo<sea+.02){const wr=R+sea;const wp=new Float32Array(nv*3),wn=new Float32Array(nv*3),wd=new Float32Array(nv);
+        for(let i=0;i<nv;i++){const x=P[i*3],y=P[i*3+1],z=P[i*3+2];const l=Math.hypot(x,y,z)||1;wn[i*3]=x/l;wn[i*3+1]=y/l;wn[i*3+2]=z/l;wp[i*3]=wn[i*3]*wr;wp[i*3+1]=wn[i*3+1]*wr;wp[i*3+2]=wn[i*3+2]*wr;wd[i]=sea-H[i]}
+        const wi=[];for(let j=0;j<N;j++)for(let i=0;i<N;i++){const a=j*M+i,b=a+1,c=a+M,e=c+1;if(wd[a]<-.4&&wd[b]<-.4&&wd[c]<-.4&&wd[e]<-.4)continue;wi.push(a,b,c,b,e,c)}
+        if(wi.length){const wg=new THREE.BufferGeometry();wg.setAttribute('position',new THREE.BufferAttribute(wp,3));wg.setAttribute('normal',new THREE.BufferAttribute(wn,3));wg.setAttribute('depth',new THREE.BufferAttribute(wd,1));wg.setIndex(wi);wg.computeBoundingSphere();
+          const w=new THREE.Mesh(wg,S.water);w.matrixAutoUpdate=false;w.renderOrder=2;w.userData.water=true;m.add(w)}}}
+    if(S.onReady)try{S.onReady(nd)}catch(e){console.warn(e)}}
+  function freeNode(nd){if(nd.kids){for(const k of nd.kids)freeNode(k);nd.kids=null}if(nd.mesh){S.group.remove(nd.mesh);nd.mesh.geometry.dispose();for(const c of nd.mesh.children)c.geometry&&c.geometry.dispose();nd.mesh=null}nd.ready=false;nd.dead=true;nd.H=null;nd.P=null}
   /* ---------- LOD-Auswahl ---------- */
   const _c=new V();
   function wants(nd,cam,camLen){const dist=_c.copy(nd.c).multiplyScalar(S.R).distanceTo(cam)-nd.len*.72;/* Horizont: hinter dem Horizont nicht verfeinern */

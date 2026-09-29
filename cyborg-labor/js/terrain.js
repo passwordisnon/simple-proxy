@@ -101,18 +101,18 @@ const BIOMES={
 
 /* ================= Planeten ================= */
 const PLANETS={
-  kompost:{n:'Kompost-Planet',R:46,sea:-.25,music:'world',sky:['#9fd8ff','#ffe9c7'],fog:'#cfeaff',water:'#62CCEA',deep:'#3E9BD1',step:1.15,shop:'kompost',
+  kompost:{n:'Kompost-Planet',R:138,R0:46,sea:-.25,music:'world',sky:['#9fd8ff','#ffe9c7'],fog:'#cfeaff',water:'#62CCEA',deep:'#3E9BD1',step:1.15,shop:'kompost',
     desc:'Wiesen, Wälder, Kirschhaine, Flüsse. Hier wohnt ihr.',weather:'blueten',orbit:[26,0],size:1,
     col:['#8FD36B','#62CCEA']},
-  schrott:{n:'Schrott-Mond',R:36,sea:-.15,music:'town',sky:['#b9a8e8','#ffd6c2'],fog:'#d9cdf2',water:'#6FE3C8',deep:'#3FB8A8',step:1.0,shop:'schrott',
+  schrott:{n:'Schrott-Mond',R:108,R0:36,sea:-.15,music:'town',sky:['#b9a8e8','#ffd6c2'],fog:'#d9cdf2',water:'#6FE3C8',deep:'#3FB8A8',step:1.0,shop:'schrott',
     desc:'Kristalle, Kabelbäume, glühende Pilze.',weather:'funken',orbit:[40,1.4],size:.8,col:['#A99BC6','#6FE3C8']},
-  korallen:{n:'Korallen-Welt',R:42,sea:.05,music:'shop',sky:['#8fe3ff','#fff2c8'],fog:'#c8f2ff',water:'#4FD6E0',deep:'#2BA8D8',step:.85,shop:'korallen',
+  korallen:{n:'Korallen-Welt',R:126,R0:42,sea:.05,music:'shop',sky:['#8fe3ff','#fff2c8'],fog:'#c8f2ff',water:'#4FD6E0',deep:'#2BA8D8',step:.85,shop:'korallen',
     desc:'Türkises Meer, Inseln, Palmen, Muscheln.',weather:'blasen',orbit:[54,2.6],size:.95,col:['#F7DCA2','#4FD6E0']},
-  frost:{n:'Frost-Stern',R:38,sea:-.3,music:'museum',sky:['#bcd6ff','#f4f0ff'],fog:'#e4ecff',water:'#8FD0F0',deep:'#5A9AD8',step:1.0,shop:'frost',
+  frost:{n:'Frost-Stern',R:114,R0:38,sea:-.3,music:'museum',sky:['#bcd6ff','#f4f0ff'],fog:'#e4ecff',water:'#8FD0F0',deep:'#5A9AD8',step:1.0,shop:'frost',
     desc:'Schnee, Tannen, Eisseen und Polarlicht.',weather:'schnee',orbit:[68,4.1],size:.85,col:['#EEF4FF','#8FD0F0']},
-  wueste:{n:'Dünen-Planet',R:42,sea:-.35,music:'shop',sky:['#9fd4ff','#ffe0b8'],fog:'#ffe8cc',water:'#5FD0D8',deep:'#3AA0C0',step:1.5,shop:'wueste',
+  wueste:{n:'Dünen-Planet',R:126,R0:42,sea:-.35,music:'shop',sky:['#9fd4ff','#ffe0b8'],fog:'#ffe8cc',water:'#5FD0D8',deep:'#3AA0C0',step:1.5,shop:'wueste',
     desc:'Dünen, Oasen, Canyons voller Kakteen.',weather:'sand',orbit:[82,5.2],size:.95,col:['#F7CB90','#5FD0D8']},
-  pilz:{n:'Sporen-Mond',R:36,sea:-.2,music:'home',sky:['#6e5aa8','#f4b8d8'],fog:'#b8a0d8',water:'#7FDCC8',deep:'#4A9AA0',step:.9,shop:'pilz',
+  pilz:{n:'Sporen-Mond',R:108,R0:36,sea:-.2,music:'home',sky:['#6e5aa8','#f4b8d8'],fog:'#b8a0d8',water:'#7FDCC8',deep:'#4A9AA0',step:.9,shop:'pilz',
     desc:'Riesenpilze, Leuchtsporen, Moorwiesen.',weather:'sporen',orbit:[96,.6],size:.8,col:['#8070AC','#7FDCC8']}
 };
 const PLACES={
@@ -163,18 +163,31 @@ function townPlaces(pid){const R=PLANETS[pid].R;const pl=PLACES[pid].find(p=>p.b
   return TOWN_RING.map(([id,build],i)=>({id,n:id,lat,lon:off+i*360/TOWN_RING.length,r:(build==="rocket"?3.6:6.2)/R,h,build}))}
 /* ================= Höhenfeld & Biome je Planet ================= */
 function makePlanetFns(pid,extra){const def=PLANETS[pid];const seed={kompost:1,schrott:2,korallen:3,frost:4,wueste:5,pilz:6}[pid];const N=perlin3(seed),N2=perlin3(seed+40),N3=perlin3(seed+80);
-  const places=PLACES[pid].concat(townPlaces(pid)).map(pl=>Object.assign({dir:dirLL(pl.lat,pl.lon)},pl)).concat(extra||[]);const R=def.R,sea=def.sea,step=def.step;
+  /* Ortsgrössen sind als Winkel angegeben (für den alten Radius R0): Gebäude behalten ihre echte Grösse, Seen wachsen etwas mit */
+  const ks=(def.R0||def.R)/def.R;const places=PLACES[pid].map(pl=>Object.assign({dir:dirLL(pl.lat,pl.lon)},pl,{r:pl.r*(pl.build?ks:Math.min(1,ks*1.7))})).concat(townPlaces(pid).map(pl=>Object.assign({dir:dirLL(pl.lat,pl.lon)},pl))).concat(extra||[]);const R=def.R,sea=def.sea,step=def.step;
   const fbm=(p,f,o)=>N(p.x*f+o,p.y*f,p.z*f)*.6+N(p.x*f*2.1,p.y*f*2.1+o,p.z*f*2.1)*.28+N(p.x*f*4.3,p.y*f*4.3,p.z*f*4.3+o)*.12;
   const plazaDir=places[0].dir;const roads=places.filter(p=>p.build&&p!==places[0]).map(p=>[plazaDir,p.dir]);
-  function raw(p){let h=0;
+  /* Detail-Rauschen in Welt-Einheiten (Hügel bleiben gleich gross, auch wenn der Planet wächst): q = p * R/R0 */
+  const k=R/(def.R0||R);const q=new THREE.Vector3();
+  /* Grossform je Planet: oc = Meeresanteil (Kontinent-Schwelle), m = Gebirgs-Schwelle, isl = Inselstärke */
+  const MAC={kompost:{oc:-.1,m:.2,isl:1},schrott:{oc:-.32,m:.16,isl:.6},korallen:{oc:.14,m:.34,isl:1.5},frost:{oc:-.2,m:.1,isl:.8},wueste:{oc:-.4,m:.18,isl:.5},pilz:{oc:-.18,m:.24,isl:.9}}[pid]||{oc:-.2,m:.2,isl:1};
+  const vilR=48/R;
+  function raw(p){q.set(p.x*k,p.y*k,p.z*k);let h=0;
     switch(pid){
-      case 'kompost':{h=fbm(p,1.3,3)*2.4+.9-2.6*sstep(-.15,-.6,p.y);/* Flüsse */const rv=Math.abs(N2(p.x*1.6,p.y*1.6,p.z*1.6));h-=2.2*sstep(.05,.0,rv)*sstep(-.3,.1,p.y);break}
-      case 'schrott':{h=fbm(p,1.5,7)*2+.9;/* Krater */for(let i=0;i<7;i++){const c=dirLL(-50+i*23,i*97);const d=angle(p,c);const cr=.12+(i%3)*.05;if(d<cr*1.6){h+=(d<cr?-1.6*(1-Math.pow(d/cr,2)):.7*sstep(cr*1.6,cr,d))}}break}
-      case 'korallen':{h=fbm(p,2.1,2)*2.2-.6+1.5*sstep(.35,.85,p.y)+.8*Math.max(0,N2(p.x*3,p.y*3,p.z*3));break}
-      case 'frost':{h=fbm(p,1.2,5)*2.2+.9;const ridge=1-Math.abs(N2(p.x*2.2,p.y*2.2,p.z*2.2));h+=Math.pow(ridge,6)*2.4-.4;break}
-      case 'wueste':{h=fbm(p,1.1,9)*1.6+.9;/* Dünen: Wellen quer zum Wind */const w=Math.sin((p.x*.8+p.z*.6)*R*.55+N2(p.x*2,p.y*2,p.z*2)*4)*.35;h+=w*sstep(.2,-.2,N3(p.x*1.5,p.y*1.5,p.z*1.5));
-        /* Tafelberge */const mesa=N3(p.x*2.4,p.y*2.4,p.z*2.4);if(mesa>.28)h+=2.6*sstep(.28,.34,mesa);break}
-      case 'pilz':{h=fbm(p,1.6,4)*2+.7;break}}
+      case 'kompost':{h=fbm(q,1.3,3)*2.4+.9;/* Flüsse */const rv=Math.abs(N2(q.x*1.6,q.y*1.6,q.z*1.6));h-=2.9*sstep(.05,.0,rv)*sstep(-.3,.1,p.y);break}
+      case 'schrott':{h=fbm(q,1.5,7)*2+.9;/* Krater */for(let i=0;i<7;i++){const c=dirLL(-50+i*23,i*97);const d=angle(p,c);const cr=.12+(i%3)*.05;if(d<cr*1.6){h+=(d<cr?-1.6*(1-Math.pow(d/cr,2)):.7*sstep(cr*1.6,cr,d))}}break}
+      case 'korallen':{h=fbm(q,2.1,2)*2.2-.6+1.5*sstep(.35,.85,p.y)+.8*Math.max(0,N2(q.x*3,q.y*3,q.z*3));break}
+      case 'frost':{h=fbm(q,1.2,5)*2.2+.9;const ridge=1-Math.abs(N2(q.x*2.2,q.y*2.2,q.z*2.2));h+=Math.pow(ridge,6)*2.4-.4;break}
+      case 'wueste':{h=fbm(q,1.1,9)*1.6+.9;/* Dünen: Wellen quer zum Wind */const w=Math.sin((p.x*.8+p.z*.6)*R*.55+N2(q.x*2,q.y*2,q.z*2)*4)*.35;h+=w*sstep(.2,-.2,N3(q.x*1.5,q.y*1.5,q.z*1.5));
+        /* Tafelberge */const mesa=N3(q.x*2.4,q.y*2.4,q.z*2.4);if(mesa>.28)h+=2.6*sstep(.28,.34,mesa);break}
+      case 'pilz':{h=fbm(q,1.6,4)*2+.7;break}}
+    /* ---- Grossform: Kontinente, Ozeane mit Inseln, Gebirge (das Dorf am Nordpol bleibt geschützt) ---- */
+    const a=Math.acos(Math.max(-1,Math.min(1,p.y)));const V=sstep(vilR*1.9,vilR,a);
+    const cont=N3(p.x*1.4+11,p.y*1.4,p.z*1.4)*.75+N(p.x*3.1,p.y*3.1+5,p.z*3.1)*.25;
+    const oc=sstep(MAC.oc+.05,MAC.oc-.1,cont)*(1-V);
+    if(oc>0){/* Inseln: einzelne Buckel im Meer, manche ragen hoch hinaus */const isl=Math.max(0,N2(q.x*.42+7,q.y*.42,q.z*.42)-.16)*15*MAC.isl;h=h*(1-oc)+oc*(sea-3.4+isl+Math.max(0,h-1)*.3)}
+    const mm=sstep(MAC.m,MAC.m+.22,N2(p.x*1.9+3,p.y*1.9,p.z*1.9))*(1-oc)*(1-V);
+    if(mm>0){/* Gebirge: Grate aus Rauschen, stufig durch die Terrassen → begehbar */const ridge=1-Math.abs(N3(q.x*.2,q.y*.2+9,q.z*.2));h+=mm*(2+ridge*ridge*ridge*9)}
     return h}
   const terr=pid!=='frost'&&pid!=='wueste'?1:pid==='wueste'?.5:.35;
   function hAt(p){let h=raw(p);/* Terrassen im Tierdorf-Stil: flache Stufen, steile Kanten */
@@ -185,7 +198,8 @@ function makePlanetFns(pid,extra){const def=PLANETS[pid];const seed={kompost:1,s
     return h}
   function roadDist(p){let rd=9;for(const[a,b]of roads)rd=Math.min(rd,distToArc(p,a,b));return rd}
   /* Biom aus Temperatur T, Feuchte M, Höhe h, Wassernähe */
-  function biomeAt(p,h){if(h===undefined)h=hAt(p);const T=N2(p.x*1.1+5,p.y*1.1,p.z*1.1),M=N3(p.x*1.25,p.y*1.25+3,p.z*1.25);const nearPond=places.some(pl=>pl.pond&&angle(p,pl.dir)<pl.r*2.2);const low=h<sea+.55;
+  const PEAK={kompost:'schneefeld',schrott:'kristallfeld',korallen:'felsinsel',frost:'polarhuegel',wueste:'canyon',pilz:'moorwiese'};
+  function biomeAt(p,h){if(h===undefined)h=hAt(p);if(h>sea+6.5&&PEAK[pid]&&BIOMES[PEAK[pid]])return PEAK[pid];const T=N2(p.x*1.1+5,p.y*1.1,p.z*1.1),M=N3(p.x*1.25,p.y*1.25+3,p.z*1.25);const nearPond=places.some(pl=>pl.pond&&angle(p,pl.dir)<pl.r*2.2);const low=h<sea+.55;
     switch(pid){
       case 'kompost':if(low&&h<sea+.45&&!nearPond)return'strand';if(nearPond||M>.32)return'sumpf';if(T>.28)return'kirschhain';if(T<-.3)return'herbstwald';if(M<-.18)return'wald';if(M>.1&&T>0)return'blumenfeld';return'wiese';
       case 'schrott':if(T>.15)return'kristallfeld';if(M>.2||nearPond)return'gluehwald';return'schrottebene';

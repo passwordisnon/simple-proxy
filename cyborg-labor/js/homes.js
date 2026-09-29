@@ -29,8 +29,9 @@ const HOMES=(()=>{
   function residents(pid){if(pid==='kompost')return allCreatures().filter(d=>d.id!==activeId());return natives(pid)}
   /* ---------- Bauplätze: vor dem Gelände-Aufbau wählen, damit der Boden flach wird ---------- */
   function spots(pid,fns0){const list=residents(pid);const r=srand(hashStr('home'+pid).length*977+3);const out=[];const R=fns0.R;const taken=fns0.places.map(p=>p.dir);
-    for(const d of list){let best=null;for(let i=0;i<220&&!best;i++){const p=new THREE.Vector3(r()*2-1,r()*2-1,r()*2-1).normalize();const h=fns0.hAt(p);if(h<fns0.sea+.5)continue;
-        if(p.dot(fns0.places[0].dir)<Math.cos(1.25))continue;/* nicht zu weit vom Dorf */
+    const c0=fns0.places[0].dir,maxA=Math.min(1.25,72/R);const t0=new THREE.Vector3().crossVectors(c0,Math.abs(c0.y)>.9?new THREE.Vector3(1,0,0):new THREE.Vector3(0,1,0)).normalize();
+    /* Bauplatz direkt im Umkreis des Dorfs ziehen (auch auf riesigen Planeten wohnen alle nah beisammen) */const inCap=()=>{const a=Math.acos(1-r()*(1-Math.cos(maxA))),ph=r()*TAU;return c0.clone().applyAxisAngle(t0,a).applyAxisAngle(c0,ph).normalize()};
+    for(const d of list){let best=null;for(let i=0;i<220&&!best;i++){const p=inCap();const h=fns0.hAt(p);if(h<fns0.sea+.5)continue;
         if(taken.some(q=>q.angleTo(p)*R<(out.length<3?17.5:16.5)))continue;let flat=true;const t1=new THREE.Vector3().crossVectors(p,new THREE.Vector3(0,0,1)).normalize(),t2=new THREE.Vector3().crossVectors(p,t1);
         for(const dd of[t1,t2,t1.clone().negate(),t2.clone().negate()]){const q=p.clone().addScaledVector(dd,6.5/R).normalize();if(Math.abs(fns0.hAt(q)-h)>1.3||fns0.hAt(q)<fns0.sea+.2)flat=false}if(!flat)continue;best=p}
       if(!best)continue;taken.push(best);const h=fns0.hAt(best);const step=PLANETS[pid].step;const hh=Math.max(fns0.sea+.5,Math.round((h-fns0.sea)/step)*step+fns0.sea);

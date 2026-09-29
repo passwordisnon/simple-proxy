@@ -49,7 +49,7 @@ const ACT=(()=>{
   function mkObj(build,scale){const g=new THREE.Group();QF=.6;try{build(g)}catch(e){P(g,G.s(.3),M.c('#FFE27A'),[0,.3,0])}QF=1;addOutlines(g);mergeGroup(g);g.scale.setScalar(scale||1);g.traverse(o=>{if(o.isMesh)o.castShadow=HIGH});GAME.scene.add(g);return g}
   function spawnShells(n){const shells=ITEMS.filter(i=>['muschel','jakobsmuschel','schneckenhaus','sanddollar','koralle_stueck','seeglas'].includes(i.id));if(!shells.length)return;
     for(let i=0;i<n;i++){const p=beachSpot();if(!p)continue;const it=pick(shells);const g=mkObj(gg=>it.b(gg,M,{},srand(i)),.45);GAME.placeObj(g,p,Math.random()*TAU,-.02);pickups.push({kind:'item',id:it.id,p,g,label:it.n+' aufheben'})}}
-  function beachSpot(){for(let i=0;i<80;i++){const p=new V3().randomDirection();const h=GG().hAt(p);if(h>GG().sea+.04&&h<GG().sea+.4&&!GAME.nearPlace(p,1))return p}return null}
+  function beachSpot(){for(let i=0;i<120;i++){const p=GG().stream&&GAME.randAround?GAME.randAround(Math.random,80):new V3().randomDirection();const h=GG().hAt(p);if(h>GG().sea+.04&&h<GG().sea+.4&&!GAME.nearPlace(p,1))return p}return null}
   function spawnDigs(n){for(let i=0;i<n;i++){const p=GAME.randLand(Math.random,GG().sea+.5);if(!p||GAME.nearPlace(p))continue;const g=mkObj(gg=>{const m=M.c('#8A5E42');both(s=>P(gg,G.bx(.55,.04,.12,.04),m,[0,.02,0],[0,s*PI/4,0]));P(gg,G.s(.08),m,[.28,.03,.1],null,[1,.3,1])},1);GAME.placeObj(g,p,Math.random()*TAU,0);digs.push({p,g})}}
   function bugPool(){const pid=GG().id;const nt=nightNow();return BUGS.filter(b=>(b.planet===pid||b.planet==='alle')&&(!b.time||b.time==='immer'||(b.time==='nacht')===nt))}
   function spawnBugs(n){const pool=bugPool();if(!pool.length)return;const me=GAME.me;for(let i=0;i<n;i++){const b=weighted(pool);let p=null,anchor=null;
