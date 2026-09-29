@@ -34,7 +34,7 @@ const GAME=(()=>{
       const st=new THREE.Points(sg,new THREE.PointsMaterial({color:'#fff6e0',size:1.8,transparent:true,opacity:0,fog:false}));sc.add(st);G_.stars=st}
     Object.assign(G_,{scene:sc,sun,hemi,fill,inter:[],lights:[],clouds:[],ticks:[],trees:[],rocks:[]});
     SCATTER.reset(sc,Rr,M);
-    buildPlaces();buildStones();scatterWorld();buildGrass();buildClouds();buildBall();buildWeather();SCATTER.finalize();
+    buildPlaces();buildStones();scatterWorld();buildGrass();buildClouds();buildBall();if(typeof WEATHER!=='undefined')WEATHER.build(G_);else buildWeather();SCATTER.finalize();
     cam.far=Rr*6+500;cam.updateProjectionMatrix();
     comp=makeComposer(R,sc,cam);scene=sc;return sc}
 
@@ -72,9 +72,9 @@ const GAME=(()=>{
       list.forEach((t,i)=>{q.setFromUnitVectors(UPV,t.p);q2.setFromAxisAngle(UPV,t.yaw);q.multiply(q2);sv.set(t.s,t.s*(.8+t.s*.3),t.s);m4.compose(t.p.clone().multiplyScalar(G_.R+G_.hAt(t.p)-.02),q,sv);im.setMatrixAt(i,m4);im.setColorAt(i,t.c)});
       G_.scene.add(im);SCATTER.chunks[c].meshes.push(im)}}
   /* ---------- Wolken ---------- */
-  function buildClouds(){const cm=M.c('#ffffff',{rim:.7});for(let i=0;i<10;i++){const g=new THREE.Group();const r=srand(40+i);QF=.6;range(4+i%3,(t,j)=>P(g,G.s(.9+r()*.7),cm,[(t-.5)*3,r()*.4,(r()-.5)*1.2],null,[1,.75,.9]));QF=1;g.traverse(o=>{if(o.isMesh){o.castShadow=true}});mergeGroup(g);
-    const p=new V3(r()*2-1,r()*2-1,r()*2-1).normalize();const ax=new V3().crossVectors(p,new V3(r(),r(),r()).normalize()).normalize();G_.scene.add(g);G_.clouds.push({g,p,ax,sp:.008+r()*.01})}}
-  function stepClouds(dt){for(const c of G_.clouds){c.p.applyAxisAngle(c.ax,c.sp*dt).normalize();c.g.position.copy(c.p).multiplyScalar(G_.R+9);c.g.quaternion.setFromUnitVectors(UPV,c.p)}}
+  function buildClouds(){const cm=cozy({color:'#ffffff',rim:.8,rimColor:'#ffffff'});cm.userData.noBake=true;const NC=HIGH?26:16;for(let i=0;i<NC;i++){const g=new THREE.Group();const r=srand(40+i);QF=.6;const np=5+Math.floor(r()*5),w=2.5+r()*3;range(np,(t,j)=>{const x=(t-.5)*w,rr=.8+r()*.9*(1-Math.abs(t-.5));P(g,G.s(rr),cm,[x,r()*.5+rr*.3,(r()-.5)*1.4],null,[1,.72,.95])});P(g,G.s(1),cm,[0,-.1,0],null,[w*.55,.35,.9]);QF=1;g.traverse(o=>{if(o.isMesh){o.castShadow=true}});mergeGroup(g);
+    const p=new V3(r()*2-1,r()*2-1,r()*2-1).normalize();const ax=new V3().crossVectors(p,new V3(r(),r(),r()).normalize()).normalize();G_.scene.add(g);g.scale.setScalar(.8+r()*.7);G_.clouds.push({g,p,ax,sp:.006+r()*.012,i,h:7+r()*6})}}
+  function stepClouds(dt){for(const c of G_.clouds){c.p.applyAxisAngle(c.ax,c.sp*dt).normalize();c.g.position.copy(c.p).multiplyScalar(G_.R+(c.h||9));c.g.quaternion.setFromUnitVectors(UPV,c.p)}}
 
   /* ---------- Natur verstreuen: Biome, ohne Überschneidungen ---------- */
   function makeNature(type,opt,seed){const n=NATURE[type];const g=new THREE.Group();QF=HIGH?.7:.5;try{if(n)n.b(g,M,Object.assign({planet:G_.id},opt||{}),srand(seed||1));else P(g,G.s(.3),M.c('#7CC46A'),[0,.3,0])}catch(e){console.warn('Natur',type,e)}QF=1;addOutlines(g);if(!g.userData.tick)mergeGroup(g,g.userData.fruits);return g}
@@ -408,7 +408,7 @@ const GAME=(()=>{
     /* Figuren */
     for(const e of ents.values()){try{if(e===me||e.kind==='peer'){}else stepVillager(e,dt,t);if(e.kind==='peer')SOCIAL.stepPeer(e,dt)}catch(err){if(!e.errLogged){e.errLogged=1;console.warn('Figur',e.d&&e.d.id,err)}}}
     const camP=cam.position.clone().normalize();for(const e of ents.values()){const vis=overview?e.p.dot(camP)>.1:e===me||(e.p.dot(camP)>.55&&angle(e.p,me?me.p:e.p)*G_.R<40);e.g.visible=vis;e.shadow.visible=vis;if(vis)poseEnt(e,dt,t)}
-    stepProps(dt,t);stepParts(dt);stepClouds(dt);SCATTER.step(dt);stepWeather(dt,t);if(G_.groundU)G_.groundU.uT.value=t;SCATTER.update(overview?cam.position.clone().normalize():(me?me.p:UPV),t,HIGH);stepBall(dt);stepLaunch(dt);for(const o of G_.ticks){try{o.userData.tick(t,false,0)}catch(e){}}
+    stepProps(dt,t);stepParts(dt);stepClouds(dt);SCATTER.step(dt);if(typeof WEATHER!=='undefined')WEATHER.frame(dt,t,G_,me);else stepWeather(dt,t);if(G_.groundU)G_.groundU.uT.value=t;SCATTER.update(overview?cam.position.clone().normalize():(me?me.p:UPV),t,HIGH);stepBall(dt);stepLaunch(dt);for(const o of G_.ticks){try{o.userData.tick(t,false,0)}catch(e){}}
     if(me){if(me.boost>0)me.boost-=dt;if(me.glitter>0){me.glitter-=dt;if(Math.random()<dt*6)W.fx(me.p,'funke',1,me.g.position.clone().addScaledVector(me.p,.8+Math.random()*.6))}}
     if(me&&!overview){OCC.a.value.copy(cam.position);OCC.b.value.copy(me.g.position).addScaledVector(me.p,.9);OCC.on.value=1}else OCC.on.value=0;ACT.frame(dt,t);REPAIR.frame(dt,t);if((typeof FAUNA!=='undefined'))try{FAUNA.step(dt,t)}catch(e){console.warn('Fauna',e)}SOCIAL.frame(dt,t);grassU.value=t;G_.waterU.uT.value=t;
     ecoT-=dt;if(ecoT<=0){ecoT=1;ecoTick()}grassU.value=t;
@@ -436,7 +436,7 @@ const GAME=(()=>{
   function dayLight(){const d=new Date();if(window.__hour!=null)d.setHours(window.__hour,0);const h=d.getHours()+d.getMinutes()/60;const hh=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');$('clock').querySelector('b').textContent=hh;
     const night=h<6||h>=21?1:h<7.5?1-(h-6)/1.5:h>19.5?(h-19.5)/1.5:0;const dusk=(h>17.5&&h<21)||(h>5.5&&h<8)?1:0;G_.night=night;
     const def=G_.def;G_.scene.background=night>.5?skyTex('#2B2F66','#6A5A9E','n'+G_.id):dusk&&night<.5?skyTex('#9FB4F0','#FFC9A8','d'+G_.id):skyTex(def.sky[0],def.sky[1],G_.id);
-    G_.sun.intensity=1-night*.6;G_.sun.color.set(dusk?'#ffd9b0':'#fff3de');G_.hemi.intensity=.52-night*.12;G_.hemi.color.set(night>.5?'#8f9cff':'#dff1ff');G_.stars.material.opacity=night;G_.scene.fog.color.set(night>.5?'#4b4a86':def.fog)}
+    G_.sunBase=1-night*.6;G_.sun.intensity=G_.sunBase;G_.sun.color.set(dusk?'#ffd9b0':'#fff3de');G_.hemiBase=.52-night*.12;G_.hemi.intensity=G_.hemiBase;G_.hemi.color.set(night>.5?'#8f9cff':'#dff1ff');G_.stars.material.opacity=night;G_.scene.fog.color.set(night>.5?'#4b4a86':def.fog)}
   /* ---------- Namensschilder & Sprechblasen ---------- */
   const tV=new V3();
   function labels(){const w=canvas.clientWidth,h=canvas.clientHeight;const camN=cam.position.clone().normalize();for(const e of ents.values()){const near=overview?e.p.dot(camN)>.3:me&&(e===me||angle(e.p,me.p)*G_.R<16);const show=e.g.visible&&near;
