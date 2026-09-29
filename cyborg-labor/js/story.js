@@ -13,22 +13,37 @@ const STORY=(()=>{
   const DOC='Dr. Bolzen';const DV={pitch:150,kind:'tief',speed:.95};const DC='#5AA8C8';
   const doctor=()=>sanitize({name:DOC,body:{seg:2,size:1.05,skin:'plastik',color:3,shape:'ei',pattern:'bauch',color2:0},parts:{kopf:'monitor',augen:'kulleraugen',arme:'greifarme',beine:'roboterbeine',extras:['stethoskop','kittel'].filter(x=>PARTS.extras.some(p=>p.id===x))}});
   /* ---------- Praxis-Innenraum ---------- */
-  function buildClinic(sc){const W=10,D=8,H=3.4;INTERIOR.makeRoom(sc,W,D,H,'karo','fliesen',{trim:'#8FB8D0',curtain:'#9ED8E8',frame:'#FFFFFF'});const A=INTERIOR.actions,C=INTERIOR.colliders;const M=makeMats({skin:'haut',color:0});
-    const put=(pk,nm,x,z,ry,sc2)=>{if(typeof KIT==='undefined'||!KIT.has(pk,nm))return null;const bb=KIT.bounds(pk,nm);const m=KIT.mesh(pk,nm,pk==='furn'||pk==='food'||pk==='nature'?KIT.ORIG:undefined);const s=sc2||1.8;m.scale.setScalar(s);
+  function buildClinic(sc){const W=11,D=8,H=3.4;INTERIOR.makeRoom(sc,W,D,H,'praxis','linoleum',{trim:CLINIC.MINT,mat:CLINIC.MINTD,curtain:'#CDEBE3',frame:'#FFFFFF'});const A=INTERIOR.actions,C=INTERIOR.colliders;const M=makeMats({skin:'haut',color:0});const r=srand(4242);const CPAL={light:'#8FD4C4',sand:'#F3EBDD',sandD:'#E4D8C6',roof2:'#8FD4C4',woodL:'#EFE3D0',wall:'#F1E8DA',roof:'#8FD4C4',glass:'#E4F3F5',plant:'#F7FCFA',wood:'#E8DCC8',metal:'#B8C4CC',dark:'#5A6470'};
+    /* Praxis: hell und klar – kühles Tageslicht statt Lampen-Schummer */sc.traverse(o=>{if(o.isHemisphereLight){o.intensity=.34;o.color.set('#F4FFFD');o.groundColor.set('#C8D8D4')}else if(o.isDirectionalLight&&o.intensity<.3&&o.intensity>.1){o.intensity=.18;o.color.set('#FFFFFF')}});
+    const put=(pk,nm,x,z,ry,sc2)=>{if(typeof KIT==='undefined'||!KIT.has(pk,nm))return null;const bb=KIT.bounds(pk,nm);const m=KIT.mesh(pk,nm,pk==='furn'&&!/Plant/.test(nm)?CPAL:pk==='furn'||pk==='food'||pk==='nature'?KIT.ORIG:undefined);const s=sc2||1.8;m.scale.setScalar(s);
       m.position.set(x-(bb[0]+bb[3])/2*s*Math.cos(ry||0),-bb[1]*s,z-(bb[2]+bb[5])/2*s);m.rotation.y=ry||0;sc.add(m);return m};
-    /* Krankenbett, Monitor, Schrank, Pflanzen, Lampe, Waschbecken, Teppich */
-    put('furn','bedSingle',-3.2,-2.2,0);C.push({x0:-4.4,x1:-2.2,z0:-3.9,z1:-.2});
-    put('station','computer-system',-1.4,-3.4,0,1.5);C.push({x0:-2.1,x1:-.7,z0:-3.9,z1:-2.9});
-    put('furn','bathroomCabinet',3.9,-3.5,0);put('furn','bathroomSink',2.4,-3.6,0);C.push({x0:1.6,x1:4.6,z0:-3.9,z1:-3});
-    put('furn','pottedPlant',4.3,2.9,0);put('furn','pottedPlant',-4.3,2.9,0);put('furn','lampRoundFloor',-4.3,-.2,0);put('furn','rugRound',0,.6,0,2.2);
-    put('furn','chairCushion',1.8,-.6,-PI/2);put('furn','desk',3.2,-.6,-PI/2);C.push({x0:2.5,x1:4.2,z0:-1.6,z1:.4});
-    INTERIOR.lamp(sc,'pendel',0,H-.05,0,{c:'#FFF6E0',i:1.3});INTERIOR.lamp(sc,'wand',-4.9,2,-2.2,{c:'#E8F6FF'});
-    /* Spiegel an der Wand = Labor */const mir=new THREE.Group();P(mir,G.bx(1.1,1.7,.08,.05),M.c('#C8A06E'),[0,0,0]);const gl=P(mir,G.bx(.92,1.52,.02,.02),new THREE.MeshBasicMaterial({color:'#CFEFFF',toneMapped:false}),[0,0,.05]);mir.position.set(4.95,1.5,1.4);mir.rotation.y=-PI/2;sc.add(mir);
-    A.push({x:4.1,z:1.4,r:1.3,label:'In den Spiegel schauen (Labor)',act:()=>mirror()});
-    /* Dr. Bolzen */let doc=null;try{doc=buildCreature(doctor(),{q:HIGH?.6:.42,noShadow:!HIGH,blob:false,merge:true});doc.scale.setScalar(CS);doc.position.set(-1.3,0,-1.2);doc.rotation.y=.5;sc.add(doc)}catch(e){console.warn('Doktor',e)}
-    C.push({x0:-1.8,x1:-.8,z0:-1.7,z1:-.7});A.push({x:-.6,z:-.4,r:1.4,label:'Mit '+DOC+' sprechen',act:()=>talk()});
+    const add=(g,x,y,z,ry)=>{g.position.set(x,y,z);g.rotation.y=ry||0;sc.add(g);return g};const anim=sc.userData.anim=[];
+    /* Behandlungsecke: Bett, Infusion, EKG am Wandarm, Untersuchungslampe, Vorhang */
+    add(CLINIC.bed(M),-3.7,0,-2.85);C.push({x0:-4.3,x1:-3.1,z0:-3.95,z1:-1.75});
+    add(CLINIC.iv(M,[-.55,.82,-.2]),-2.75,0,-3.3);C.push({x0:-3.05,x1:-2.45,z0:-3.6,z1:-3});
+    anim.push(add(CLINIC.monitor(M),-4.85,1.95,-3.97));
+    add(CLINIC.examLamp(M),-2.5,0,-1.55,.4);C.push({x0:-2.8,x1:-2.2,z0:-1.85,z1:-1.25});
+    add(CLINIC.curtain(M,2.7,H,.68),-1.85,0,-2.6);add(CLINIC.curtain(M,3.6,H,.72,true),-3.7,0,-1.25,PI/2);C.push({x0:-1.95,x1:-1.75,z0:-3.95,z1:-3.05},{x0:-5.5,x1:-4.4,z0:-1.35,z1:-1.15});
+    /* Rückwand: Praxis-Kreuz, Waschbecken, Medizinschrank */
+    add(CLINIC.emblem(M,1.15),.1,2.55,-3.96);put('furn','bathroomSink',1.05,-3.62,0);C.push({x0:.55,x1:1.55,z0:-3.95,z1:-3.3});
+    add(CLINIC.cabinet(M,r),4.55,0,-3.72);C.push({x0:3.9,x1:5.2,z0:-3.95,z1:-3.45});
+    /* Schreibtisch des Doktors mit Computer, Stuhl, Pflanze */
+    put('furn','desk',2.6,-1.6,0);put('station','computer-system',2.6,-1.95,0,.9);put('furn','chairDesk',2.6,-.85,PI)||put('furn','chairCushion',2.6,-.85,PI);C.push({x0:1.8,x1:3.4,z0:-2.2,z1:-1.1});
+    put('furn','pottedPlant',5.05,-2.7,0);
+    /* Rechte Wand: Sehtafel, Spiegel (Labor), Wartebereich mit Stühlen und Wasserspender */
+    add(CLINIC.eyeChart(M),5.47,1.75,-2.05,-PI/2);
+    for(const z of[2.1,2.95])put('furn','chairCushion',4.9,z,-PI/2);C.push({x0:4.5,x1:5.4,z0:1.7,z1:3.4});put('furn','sideTableDrawers',4.95,3.75,-PI/2);
+    add(CLINIC.cooler(M),-5.1,0,2.9);C.push({x0:-5.4,x1:-4.8,z0:2.6,z1:3.2});add(CLINIC.height(M),-5.47,0,1.6,PI/2);
+    put('furn','pottedPlant',-5.05,-.9,0);put('furn','rugRectangle',0,1.4,0,2.2)||put('furn','rugRound',0,1.4,0,2.2);
+    INTERIOR.lamp(sc,'pendel',-3.4,H-.05,-2.4,{col:'#F4FFFB',i:.85,shade:'#F4FBFA'});INTERIOR.lamp(sc,'pendel',2.6,H-.05,-1.4,{col:'#FFF6E0',i:.75,shade:CLINIC.MINT});INTERIOR.lamp(sc,'pendel',0,H-.05,1.6,{col:'#FFF6E8',i:.7,shade:'#F4FBFA'});INTERIOR.lamp(sc,'wand',5.4,2.1,2.5,{col:'#E8F6FF',ry:-PI/2});
+    /* Spiegel an der Wand = Labor */const mir=new THREE.Group();P(mir,G.bx(1.1,1.7,.08,.05),M.c(CLINIC.MINT),[0,0,0]);const gl=P(mir,G.bx(.92,1.52,.02,.02),new THREE.MeshBasicMaterial({color:'#CFEFFF',toneMapped:false}),[0,0,.05]);gl.userData.noOutline=true;addOutlines(mir);mir.position.set(5.45,1.5,1.2);mir.rotation.y=-PI/2;sc.add(mir);
+    A.push({x:4.6,z:1.1,r:1.2,label:'In den Spiegel schauen (Labor)',act:()=>mirror()});
+    /* Dr. Bolzen */let doc=null;try{doc=buildCreature(doctor(),{q:HIGH?.6:.42,noShadow:!HIGH,blob:false,merge:true});doc.scale.setScalar(CS);doc.position.set(-1.1,0,-1.1);doc.rotation.y=-.35;sc.add(doc);sc.userData.doc=doc}catch(e){console.warn('Doktor',e)}
+    C.push({x0:-1.5,x1:-.7,z0:-1.5,z1:-.7});A.push({x:-.6,z:-.3,r:1.4,label:'Mit '+DOC+' sprechen',act:()=>talk()});
     return{W,D,camD:Math.max(W,D)*1.05+2.5,doc}}
-  INTERIOR.kinds.klinik={bg:'#DDEEF6',music:'home',build:buildClinic};
+  /* Monitor-Kurve, Doktor atmet und blinzelt */
+  function clinicFrame(dt,t){const S=INTERIOR.scene;if(!S)return;for(const o of S.userData.anim||[])o.userData.tick&&o.userData.tick(t);const d=S.userData.doc;if(d){d.userData.tick&&d.userData.tick(t,false,UI.typing?1:0);const es=d.userData.eyes||[];const ph=(t+1.3)%4.1;const k=ph<.14?1-Math.sin(ph/.14*PI)*.92:1;for(const q of es)q.scale.y=k}}
+  INTERIOR.kinds.klinik={bg:'#DDEEF6',music:'home',build:buildClinic,frame:clinicFrame};
   /* ---------- Spiegel: Labor als «Operation» ---------- */
   function mirror(){UI.talk(DOC,['Der Spiegel zeigt dein neues Ich.','Wenn dir etwas nicht gefällt: Im Labor können wir Teile austauschen. Nur eine kleine Operation!'],{voice:DV,color:DC}).then(()=>{MAIN.setTab('lab');UI.toast('Labor = Operationssaal. Mit «Welt» kommst du zurück in die Praxis.',4200)})}
   /* ---------- Gespräch beim späteren Besuch ---------- */

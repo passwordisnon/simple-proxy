@@ -1029,3 +1029,11 @@ window.FURN_GALLERY=[
   {id:'laterne',n:'Laterne',b:(g,m)=>g.add(buildStreetLamp(m))},{id:'post',n:'Briefkasten',b:(g,m)=>g.add(buildMailbox(m))},{id:'schild',n:'Wegweiser',b:(g,m)=>g.add(buildSignpost(m,'Museum|Laden|Raketen'))},
   {id:'brunnen',n:'Brunnen',b:(g,m)=>g.add(buildFountain(m))},{id:'bruecke',n:'Brücke',b:(g,m)=>g.add(buildBridge(m,5))}];
 })();
+/* Praxis: weiss-mintfarbene Fliesen mit Zierband, heller Linoleum mit Sprenkeln */
+wallpaper('praxis',{n:'Praxis-Kacheln',price:450,planet:'alle',draw:(x,w,h)=>{x.fillStyle='#F7FBFA';x.fillRect(0,0,w,h);
+  x.fillStyle='#CFEDE6';x.fillRect(0,h*.58,w,h*.42);x.fillStyle='#9BD6CB';x.fillRect(0,h*.55,w,h*.035);x.fillStyle='rgba(255,255,255,.9)';x.fillRect(0,h*.585,w,h*.012);
+  x.fillStyle='rgba(120,170,165,.35)';for(let i=0;i<=8;i++)x.fillRect(i*w/8-1,h*.585,2,h*.415);for(let j=0;j<5;j++)x.fillRect(0,h*.585+j*h*.415/4.5,w,2);
+  x.fillStyle='rgba(150,200,195,.18)';for(let i=0;i<=8;i++)x.fillRect(i*w/8-1,0,2,h*.55);for(let j=0;j<6;j++)x.fillRect(0,j*h*.55/5.5,w,2)}});
+floorpat('linoleum',{n:'Praxis-Linoleum',price:420,planet:'alle',draw:(x,w,h)=>{x.fillStyle='#DDEEEA';x.fillRect(0,0,w,h);const r=srand(77);
+  for(let i=0;i<900;i++){x.fillStyle=['rgba(140,190,180,.35)','rgba(255,255,255,.6)','rgba(180,160,200,.25)'][i%3];const s=1+r()*2.5;x.fillRect(r()*w,r()*h,s,s)}
+  x.fillStyle='rgba(120,170,160,.28)';for(let i=0;i<2;i++){x.fillRect(i*w/2,0,2,h);x.fillRect(0,i*h/2,w,2)}}});

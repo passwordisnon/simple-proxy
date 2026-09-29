@@ -54,7 +54,7 @@ const INTERIOR=(()=>{
     both(s=>{const w=new THREE.Mesh(new THREE.BoxGeometry(.2,H,D),wm2);w.position.set(s*(W/2+.1),H/2,0);w.receiveShadow=true;g.add(w)});
     /* Sockelleiste & Rahmen */const trim=M.c(o.trim||'#C98C5A');P(g,G.bx(W+.4,.18,.08,.03),trim,[0,.09,-D/2+.02]);both(s=>P(g,G.bx(.08,.18,D,.03),trim,[s*(W/2-.02),.09,0]));P(g,G.bx(W+.6,.25,.4,.08),trim,[0,H+.1,-D/2-.1]);
     /* Fenster mit Himmel je Tageszeit, Vorhängen, Fensterbank und Lichtfleck */if(o.windows!==false)roomWindows(g,W,D,H,o);
-    /* Tür (vorne unten angedeutet als Fussmatte) */P(g,G.bx(1.4,.04,.8,.02),M.c('#F0556E'),[0,.02,D/2-.45]);colliders.length=0;return g}
+    /* Tür (vorne unten angedeutet als Fussmatte) */P(g,G.bx(1.4,.04,.8,.02),M.c(o.mat||'#F0556E'),[0,.02,D/2-.45]);colliders.length=0;return g}
   function skyNow(){const h=GAMETIME.hour();
     if(h<5.5||h>=21)return{k:'nacht',a:'#1B1F4A',b:'#3A3F7A',spill:0};if(h<7.5)return{k:'morgen',a:'#FFB8A0',b:'#FFE3C2',spill:.18};if(h>=18.5)return{k:'abend',a:'#6E5AB8',b:'#FF9E7A',spill:.14};return{k:'tag',a:'#8FD0FF',b:'#E8F6FF',spill:.26}}
   function roomWindows(g,W,D,H,o){const S=skyNow();const arch=o.winArch??(W>10);const ww=o.winW||1.15,wh=o.winH||(arch?1.5:1.25),y0=o.winY||(H*.42);

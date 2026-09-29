@@ -131,7 +131,7 @@ const HAUS=(()=>{
 
   /* ---------- Wüsten-Familie: Pueblo-Terrassen aus Lehmwürfeln (Kenney Modular Buildings) ----------
      Jede Zelle hat ihre eigene Höhe, Nachbarn nie gleich hoch → jede Zelle bekommt ein sauberes Dach mit Brüstung. */
-  function makePueblo(pid,seed,plan){const r=rng(seed*2654435761+99);const pal0=palette(pid,r);const pal=Object.assign({},pal0,{plant:pal0.roof,plantD:pal0.roof,roofB:pal0.roof});
+  function makePueblo(pid,seed,plan){const r=rng(seed*2654435761+99);const pal0=Object.assign(palette(pid,r),plan.pal||{});const pal=Object.assign({},pal0,{plant:pal0.roof,plantD:pal0.roof,roofB:pal0.roof});
     const g=new THREE.Group();const occ=[];let txn=null;const issues=[];const MP='modular',FH=.625;
     const mk=(pack,name,x,y,z,ry,sc,pl)=>{if(!KIT.has(pack,name))return null;const m=KIT.mesh(pack,name,pack==='nature'?KIT.ORIG:(pl||pal));m.position.set(x,y,z);m.rotation.y=ry||0;if(sc!=null)typeof sc==='number'?m.scale.setScalar(sc):m.scale.set(sc[0],sc[1],sc[2]);return m};
     const put=(cat,part,pack,name,x,y,z,ry,sc,pl)=>{const m=mk(pack,name,x,y,z,ry,sc,pl);if(!m){issues.push('fehlt '+name);return null}g.add(m);const o={b:boxOf(m,pack,name),cat,part,name,m};occ.push(o);if(txn)txn.push(o);return m};
@@ -212,7 +212,7 @@ const HAUS=(()=>{
     P(g,G.bx(r0*1.8,.025,.02,0),cozy({color:col}),[0,0,.03]);P(g,G.bx(.025,r0*1.8,.02,0),cozy({color:col}),[0,0,.03]);
     if(box){P(g,G.bx(r0*2.1,.11,.16,.02),cozy({color:shadeC(col,.85)}),[0,-r0-.08,.07]);const fl=['#FF8FB8','#FFE27A','#B98CFF','#FF6F6F'];for(let i=0;i<4;i++)P(g,G.s(.045),cozy({color:fl[i%4]}),[(i-1.5)*r0*.45,-r0-.01,.1])}return g}
   function makeMush(pid,seed,plan){const r=rng(seed*2654435761+313);const occ=[];let txn=null;const issues=[];const g=new THREE.Group();
-    const stemC=pick(r,MUSH.stem),capC=pick(r,MUSH.cap),doorC=pick(r,MUSH.door),kind=pick(r,MUSH.kinds);
+    const stemC=(plan.mushPal&&plan.mushPal.stem)||pick(r,MUSH.stem),capC=(plan.mushPal&&plan.mushPal.cap)||pick(r,MUSH.cap),doorC=pick(r,MUSH.door),kind=pick(r,MUSH.kinds);
     const R=(plan.big?1.25:.78)+r()*.4,H=(plan.big?2.4:1.6)+r()*.8,Rc=R*(kind==='flat'?2.05:kind==='bell'?1.55:1.8)*(0.95+r()*.15),hc=kind==='flat'?Rc*.34:kind==='bell'?Rc*1.05:Rc*.62;
     const M=mushroom(r,{R,H,Rc,hc,kind,stem:stemC,cap:capC,ring:r()<.7,spots:kind!=='bell'&&kind!=='wave'||r()<.3,spotC:capC==='#C98E62'?'#FFF1DA':'#FFFFFF',glow:r()<.7});
     const body=new THREE.Group();body.add(M.g);
@@ -370,7 +370,24 @@ const HAUS=(()=>{
     if(plan.fam==='mush')Object.assign(plan,{big:1,stack:kind==='rathaus'||kind==='museum'});
     else if(plan.fam!=='pueblo')plan.fp=Object.assign({},base.fp||{},{dims:[[3,2],[3,3],[4,2],[2,3]],tall:.85,maxFl:3,noWings:false,tower:kind==='rathaus'||kind==='museum'?1:.15,towerExtra:kind==='rathaus'?1:0});
     else plan.big=1;
+    if(kind==='praxis')plan.pal={wall:'#F7FBFA',sand:'#F7FBFA',sandD:'#E6F0EE',roof:'#7FCFC0',roofB:'#7FCFC0',roof2:'#6CC4B4',trim:'#FFFFFF',wood:'#D4E6E2',woodL:'#E2EFEC',wood2:'#BCD4CF'},plan.mushPal={cap:'#7FCFC0',stem:'#FBFDFD'};
     return build(pid,opt.seed||hashS(pid+kind),Object.assign({},opt,{plan}))}
+  /* Praxis: seitlich abstehendes, leuchtendes Apothekenkreuz neben der Tür (Platz wird gegen alle Bauteile geprüft) */
+  function praxisSign(H){const M=makeMats({skin:'haut',color:0});const base=H.base||0;const fz=H.door[1]-.5;const MINT='#7FCFC0';
+    for(const y of[.74,.64,.84])for(const sx of[1,-1])for(const ox of[.44,.56,.34]){const x=H.door[0]+sx*ox;
+      const K=1.3;const bx=new THREE.Box3(new V(x-.065,base+y-.3,fz-.62),new V(x+.065,base+y+.24,fz-.06));if(H.occ.some(o=>o.name!=='schild'&&depth(bx,o.b)>.004))continue;
+      const g=new THREE.Group();g.position.set(x,base+y,fz);g.scale.setScalar(K);
+      /* Wandplatte + Ausleger (beginnt in der Wand, damit er auch an runden Stielen anliegt) */P(g,G.bx(.1,.14,.04,.015),M.c('#E4ECF0'),[0,.13,-.02]);P(g,G.bx(.035,.035,.5,.012),M.c('#9AA8B6'),[0,.13,-.14]);P(g,G.bx(.02,.12,.02,.005),M.c('#9AA8B6'),[0,.08,-.3]);
+      P(g,G.bx(.07,.3,.3,.04),M.c('#FFFFFF'),[0,-.07,-.3]);const sh=new THREE.Shape();const a=.04,b=.12;[[-a,-b],[a,-b],[a,-a],[b,-a],[b,a],[a,a],[a,b],[-a,b],[-a,a],[-b,a],[-b,-a],[-a,-a]].forEach(([u,v],i)=>i?sh.lineTo(u,v):sh.moveTo(u,v));
+      for(const s2 of[1,-1]){const c=P(g,G.ex(sh,.015,.006),M.glow('#6FE6CC',1.25),[s2*.036,-.07,-.3],[0,s2*PI/2,0])}
+      addOutlines(g);g.traverse(o=>{if(o.isMesh)o.castShadow=true});H.g.add(g);H.occ.push({b:bx,cat:'attach',part:-1,name:'praxis-kreuz'});return true}
+    /* Kein Platz an der Wand (z. B. Pilzhut reicht tief): Kreuz auf einem Pfosten neben dem Weg */
+    for(const sx of[1,-1])for(const oz of[.9,1.2,.7])for(const ox of[.75,1,.55]){const x=H.door[0]+sx*ox,z=fz-oz;const bx=new THREE.Box3(new V(x-.2,base,z-.2),new V(x+.2,base+1.2,z+.2));if(H.occ.some(o=>depth(bx,o.b)>.004))continue;
+      const g=new THREE.Group();g.position.set(x,base,z);P(g,G.cy(.08,.1,.06),M.c('#E4ECF0'),[0,.03,0]);P(g,G.cy(.028,.028,.9),M.c('#9AA8B6'),[0,.5,0]);const q=grp(g,[0,1.02,0],[0,sx>0?-.5:.5,0]);
+      P(q,G.bx(.3,.3,.08,.04),M.c('#FFFFFF'),[0,0,0]);const sh=new THREE.Shape();const a=.04,b=.12;[[-a,-b],[a,-b],[a,-a],[b,-a],[b,a],[a,a],[a,b],[-a,b],[-a,a],[-b,a],[-b,-a],[-a,-a]].forEach(([u,v],i)=>i?sh.lineTo(u,v):sh.moveTo(u,v));
+      for(const s2 of[1,-1])P(q,G.ex(sh,.015,.006),M.glow('#6FE6CC',1.25),[0,0,s2*.042],[0,s2>0?0:PI,0]);
+      addOutlines(g);g.traverse(o=>{if(o.isMesh)o.castShadow=true});H.g.add(g);H.occ.push({b:bx,cat:'yard',part:-1,name:'praxis-kreuz'});return true}
+    H.issues.push('kein Platz für Praxis-Kreuz');return false}
   const hashS=s=>{let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return(h>>>0)%1000003};
   const REJ={};function rej(plan,iss){for(const i of iss){const k=(plan.fam||'town')+': '+i.replace(/@.*/,'');REJ[k]=(REJ[k]||0)+1}}
   function build(pid,seed,opt){opt=opt||{};const plans=PLAN[pid]||PLAN.kompost;let last=null,tries=0;
@@ -378,7 +395,7 @@ const HAUS=(()=>{
       const H=plan.fam==='pueblo'?makePueblo(pid,s,plan):plan.fam==='mush'?makeMush(pid,s,plan):make(pid,s,plan);if(H.issues.length){rej(plan,H.issues);last={H,plan};continue}
       if(plan.fam!=='pueblo'&&plan.fam!=='mush')attachments(H,plan);yard(H,pid,plan);const fl=plan.fam==='mush'?[]:floating(H);if(fl.length){H.issues.push(...fl.map(f=>'schwebt '+f));rej(plan,H.issues);last={H,plan};continue}
       last={H,plan};break}
-    const{H,plan}=last;const bb=new THREE.Box3();for(const o of H.occ)if(['wall','roof','struct'].includes(o.cat))bb.union(o.b);const c=center(H.g,H.door,bb.isEmpty()?null:bb);const ctr=c.ctr;
+    const{H,plan}=last;if(plan.civic==='praxis')try{praxisSign(H)}catch(e){console.warn('Praxis-Schild',e)}const bb=new THREE.Box3();for(const o of H.occ)if(['wall','roof','struct'].includes(o.cat))bb.union(o.b);const c=center(H.g,H.door,bb.isEmpty()?null:bb);const ctr=c.ctr;
     /* Krümmung des Planeten: Gartenteile am Boden folgen der Kugel (sonst schweben die Ränder) */
     const unit=H.unit||1;const sagR=opt.sagR?opt.sagR/unit:0;
     for(const o of H.occ){if(!o.m)continue;if(['yard','path','chain','veg'].includes(o.cat)||(o.cat==='attach'&&o.m.position.y<.05)){if(sagR&&o.m.position.y<1.1){const d2=o.m.position.x*o.m.position.x+o.m.position.z*o.m.position.z;o.m.position.y-=d2/(2*sagR)}}}
