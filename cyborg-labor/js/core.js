@@ -245,19 +245,38 @@ function def(slot,id,n,k,b,extra){const i=PARTS[slot].findIndex(p=>p.id===id);co
 const findPart=(slot,id)=>PARTS[slot].find(p=>p.id===id);
 
 /* ---------- Rumpfformen ---------- */
-const TORSOS=[{id:'ei',n:'Ei'},{id:'kugel',n:'Kugel'},{id:'kapsel',n:'Kapsel'},{id:'birne',n:'Birne'},{id:'kiste',n:'Kiste'},{id:'dose',n:'Dose'},{id:'bohne',n:'Bohne'},{id:'glocke',n:'Glocke'}];
-function torsoMesh(g,shape,rr,y,mat){
-  switch(shape){
-    case 'kugel':return P(g,G.s(rr),mat,[0,y,0]);
-    case 'kapsel':return P(g,G.ca(rr*.85,rr*.5),mat,[0,y,0],null,[1,1,.92]);
-    case 'birne':return P(g,G.la([[0,-rr],[rr*.72,-rr*.95],[rr*1.02,-rr*.6],[rr*1.02,-rr*.1],[rr*.78,rr*.45],[rr*.56,rr*.82],[rr*.3,rr*1.0],[0,rr*1.04]]),mat,[0,y,0]);
-    case 'kiste':return P(g,G.bx(rr*1.8,rr*1.9,rr*1.6,rr*.5),mat,[0,y,0]);
-    case 'dose':return P(g,G.la([[0,-rr],[rr*.78,-rr],[rr*.92,-rr*.86],[rr*.95,-rr*.6],[rr*.95,rr*.6],[rr*.92,rr*.86],[rr*.78,rr],[0,rr]]),mat,[0,y,0]);
-    case 'bohne':return P(g,G.ca(rr*.9,rr*.35),mat,[0,y,0],[0,0,.18],[1,1.02,.9]);
-    case 'glocke':return P(g,G.la([[0,-rr],[rr*1.05,-rr*.95],[rr*1.1,-rr*.7],[rr*.9,-rr*.2],[rr*.72,rr*.4],[rr*.6,rr*.8],[rr*.35,rr*1.02],[0,rr*1.06]]),mat,[0,y,0]);
-    default:return P(g,G.s(rr),mat,[0,y,0],null,[1,1.1,.94]);
-  }
-}
+const TORSOS=[{id:'ei',n:'Ei'},{id:'kugel',n:'Kugel'},{id:'kapsel',n:'Kapsel'},{id:'birne',n:'Birne'},{id:'kiste',n:'Kiste'},{id:'dose',n:'Dose'},{id:'bohne',n:'Bohne'},{id:'glocke',n:'Glocke'},{id:'mochi',n:'Mochi'},{id:'tropfen',n:'Tropfen'},{id:'teddy',n:'Teddy'}];
+/* Rumpf-Profile (t: -1 unten … +1 oben, r: Radius relativ zum Segment). Weiche, runde Silhouetten im Stil gemütlicher Tierfiguren. */
+const TORSO_PROF={
+  ei:[[-.98,0],[-.95,.46],[-.84,.8],[-.6,.97],[-.25,1.0],[.15,.93],[.5,.76],[.8,.5],[1.0,.22],[1.08,0]],
+  kugel:[[-.9,0],[-.88,.52],[-.78,.84],[-.55,1.0],[-.2,1.05],[.2,1.0],[.55,.86],[.82,.58],[.97,.28],[1.02,0]],
+  kapsel:[[-1,0],[-.98,.42],[-.9,.72],[-.72,.88],[-.4,.91],[.4,.89],[.72,.84],[.9,.66],[.98,.38],[1.02,0]],
+  birne:[[-.95,0],[-.92,.52],[-.78,.9],[-.5,1.07],[-.15,1.03],[.2,.83],[.5,.63],[.78,.48],[.95,.3],[1.04,0]],
+  dose:[[-1,0],[-1,.62],[-.98,.8],[-.93,.9],[-.86,.86],[-.8,.9],[0,.92],[.8,.9],[.86,.86],[.93,.9],[.98,.8],[1,.62],[1,0]],
+  bohne:[[-1,0],[-.96,.55],[-.8,.86],[-.45,.96],[0,.9],[.45,.93],[.8,.8],[.96,.5],[1.02,0]],
+  glocke:[[-1,0],[-.99,.8],[-.94,1.08],[-.82,1.1],[-.55,.94],[-.15,.76],[.3,.65],[.65,.55],[.9,.4],[1.05,0]],
+  mochi:[[-.74,0],[-.72,.66],[-.62,1.04],[-.35,1.2],[0,1.16],[.35,.96],[.62,.64],[.78,.3],[.82,0]],
+  tropfen:[[-1,0],[-.95,.5],[-.76,.88],[-.42,1.02],[-.02,.92],[.34,.64],[.68,.34],[.94,.12],[1.1,0]],
+  teddy:[[-.96,0],[-.93,.5],[-.8,.86],[-.52,1.02],[-.15,1.0],[.25,.9],[.58,.74],[.84,.5],[1.0,.24],[1.06,0]]};
+/* dichte Tabelle je Profil (Catmull-Rom geglättet) */
+const TORSO_TAB={};function torsoTab(shape){if(TORSO_TAB[shape])return TORSO_TAB[shape];const pts=TORSO_PROF[shape]||TORSO_PROF.ei;const out=[];
+  for(let i=0;i<pts.length-1;i++){const p0=pts[Math.max(0,i-1)],p1=pts[i],p2=pts[i+1],p3=pts[Math.min(pts.length-1,i+2)];for(let k=0;k<8;k++){const t=k/8,t2=t*t,t3=t2*t;
+    const f=(a,b,c,d)=>.5*((2*b)+(-a+c)*t+(2*a-5*b+4*c-d)*t2+(-a+3*b-3*c+d)*t3);out.push([f(p0[0],p1[0],p2[0],p3[0]),Math.max(0,f(p0[1],p1[1],p2[1],p3[1]))])}}
+  out.push(pts[pts.length-1]);for(let i=1;i<out.length;i++)out[i][0]=Math.max(out[i][0],out[i-1][0]+1e-4);return TORSO_TAB[shape]=out}
+function torsoR(shape,t){const T=torsoTab(shape);if(t<=T[0][0]||t>=T[T.length-1][0])return 0;let lo=0,hi=T.length-1;while(hi-lo>1){const m=(lo+hi)>>1;if(T[m][0]<=t)lo=m;else hi=m}const a=T[lo],b=T[hi];return a[1]+(b[1]-a[1])*(t-a[0])/(b[0]-a[0])}
+/* Ganzer Rumpf aus allen Segmenten als EIN weicher Körper (glatte Vereinigung der Profile → sanfte Taillen statt Schneemann) */
+function torsoInfo(shape,ys,rs){const K=6;const lo=ys[0]+rs[0]*torsoTab(shape)[0][0],hi=ys[ys.length-1]+rs[rs.length-1]*torsoTab(shape).at(-1)[0];
+  const R=y=>{let s2=0;for(let i=0;i<ys.length;i++){const r=rs[i]*torsoR(shape,(y-ys[i])/rs[i]);s2+=Math.pow(r,K)}return Math.pow(s2,1/K)};return{lo,hi,R}}
+function torsoBody(g,shape,ys,rs,mat){
+  if(shape==='kiste'){ys.forEach((y,i)=>{const rr=rs[i];P(g,G.bx(rr*1.8,rr*1.9,rr*1.6,rr*.55),mat,[0,y,0])});for(let i=1;i<ys.length;i++){const a=ys[i-1],b=ys[i];P(g,G.bx(Math.min(rs[i],rs[i-1])*1.5,Math.max(.01,b-a),Math.min(rs[i],rs[i-1])*1.3,Math.min(rs[i],rs[i-1])*.4),mat,[0,(a+b)/2,0])}return}
+  const I=torsoInfo(shape,ys,rs);const N=Math.max(24,Math.round(56*QF+ys.length*10));const pts=[];for(let k=0;k<=N;k++){const u=k/N;const y=I.lo+(I.hi-I.lo)*(.5-.5*Math.cos(u*PI));pts.push([k===0||k===N?0:Math.max(.002,I.R(y)),y])}
+  /* Naht hinten, Musterbauch vorn (gleiche UV-Lage wie früher die Kugel) */const geo=new THREE.LatheGeometry(pts.map(p=>new THREE.Vector2(p[0],p[1])),Q(40),-PI/2);const pos=geo.attributes.position;const mid=(I.lo+I.hi)/2,hh=(I.hi-I.lo)/2,r0=rs[0];
+  for(let i=0;i<pos.count;i++){let x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i);const t=(y-mid)/hh;
+    /* etwas flacher von vorn nach hinten, kleiner Bauch vorn */z*=.9;if(z>0){const bel={teddy:.16,birne:.08,ei:.06,kugel:.05,mochi:.06,glocke:.03}[shape]||0;z+=bel*r0*Math.max(0,Math.cos(t*PI*.9-(-.35)))*Math.min(1,z/(r0*.5))}
+    if(shape==='bohne'){z+=.15*r0*(1-t*t)-.05*r0}
+    pos.setXYZ(i,x,y,z)}geo.computeVertexNormals();P(g,geo,mat,[0,0,0])}
+/* alte Einzelform (für Vorschau-Symbole u. Ä.) */
+function torsoMesh(g,shape,rr,y,mat){const gg=new THREE.Group();torsoBody(gg,shape,[0],[rr],mat);gg.position.y=y;g.add(gg);return gg}
 
 /* ---------- Outlines (Inverted Hull, farbig) ---------- */
 const OUTLINE_MATS={};const OUTLINE_SCALE={value:1};const OUTLINE_BASE=.0052;
@@ -367,15 +386,15 @@ function buildCreature(d,opt){
   const legP=findPart('beine',d.parts.beine)||PARTS.beine[0]||{h:1};
   const y0=(legP.h??1)*s;
   const ys=[],rs=[];for(let i=0;i<n;i++){const rr=r*(1-i*.08);rs.push(rr);ys.push(i===0?y0+rr:ys[i-1]+(rs[i-1]+rr)*.72)}
-  const topY=ys[n-1]+rs[n-1]*(d.body.shape==='ei'?1.08:d.body.shape==='kiste'?.95:1);
+  const TI=d.body.shape==='kiste'?null:torsoInfo(d.body.shape,ys,rs);
+  const topY=TI?TI.hi-rs[n-1]*.06:ys[n-1]+rs[n-1]*.95;
   const hr=.58*s;
-  const c={s,r,n,ys,rs,y0,topY,midY:ys[Math.floor((n-1)/2)],belly:ys[0],shX:rs[n-1]*.9,shY:ys[n-1]+.22*rs[n-1],hipX:rs[0]*.45,hr,hy:topY+hr*.82,
+  const shY0=ys[n-1]+.22*rs[n-1],c={s,r,n,ys,rs,y0,topY,midY:ys[Math.floor((n-1)/2)],belly:ys[0],shX:TI?Math.max(rs[n-1]*.55,TI.R(shY0)*.97):rs[n-1]*.9,shY:shY0,hipX:rs[0]*.45,R:TI?TI.R:null,hr,hy:topY+hr*.82,
     an:f=>an.push(f),body:d.body,m:realM,PAL};
   const focus=new THREE.Group();g.add(focus);
   const bodyMat=only?ghostM.skin():realM.skin();
-  ys.forEach((y,i)=>torsoMesh(g,d.body.shape,rs[i],y,bodyMat));
-  for(let i=1;i<n;i++){const a=ys[i-1],b=ys[i];P(g,G.ca(Math.min(rs[i],rs[i-1])*.8,Math.max(.01,b-a-rs[i]*.6)),bodyMat,[0,(a+b)/2,0],null,[1,1,.92])}
-  if(!only)both(x=>P(g,G.s(.16*s),realM.skin(),[x*rs[n-1]*.82,ys[n-1]+.2*rs[n-1],0]));
+  torsoBody(g,d.body.shape,ys,rs,bodyMat);
+  /* Schulteransätze sitzen genau auf der Körperoberfläche */if(!only)both(x=>P(g,G.s(.15*s),realM.skin(),[x*(c.shX-.05*s),c.shY-.02*s,0],null,[1,.9,.9]));
   if(n>0&&!only){P(g,G.cy(c.hr*.34,c.hr*.42,c.hr*.5),realM.skin(),[0,topY,0])}
   const H={cy:c.hy,r:c.hr,top:c.hy+c.hr,front:c.hr*.93,faceY:c.hy+c.hr*.02,sideX:c.hr};
   const run=(slot,id,target)=>{const p=findPart(slot,id);if(!p)return null;c.m=(only&&only!==slot)?ghostM:realM;let res=null;try{res=p.b(target,c)}catch(e){console.warn('Teil',slot,id,e)}c.m=realM;return res};
