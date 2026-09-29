@@ -315,6 +315,16 @@ const HAUS=(()=>{
     mode:[['town','stall-bench',1,'df',PI/2],['nature','pot_large',1.3,'d',0],['nature','flower_redA',1.4,'d',0],['nature','plant_bushDetailed',1.4,'c',0],['town','lantern',1,'c',0]],
     praxis:[['town','stall-bench',1,'df',PI/2],['nature','pot_large',1.3,'d',0],['nature','plant_bushDetailed',1.4,'c',0],['town','lantern',1,'c',0]],
     tiere:[['town','fence-curved',1,'f',0],['nature','log_stack',1.3,'s',0],['town','cart',1,'s',0],['pirate','barrel',.33,'d',0],['nature','stump_round',1.4,'f',0]]};
+  /* Gartentor: zwei feste Pfosten + Flügel an einem Scharnier (Gruppe H.gate.pivot, wird in der Welt animiert) */
+  function gardenGate(H,x,z,hh,kind){const M=makeMats({skin:'haut',color:0});const wood=(H.pal&&H.pal.wood)||'#C8875A',dark=new THREE.Color(wood).multiplyScalar(.78).getStyle();
+    const hedge=kind!=='fence';const ph=hedge?Math.min(.5,Math.max(.34,hh*.85)):Math.max(.3,hh*.95);const g=new THREE.Group();g.position.set(x,0,z);
+    for(const sx of[-1,1]){P(g,G.bx(.09,ph+.12,.09,.025),M.c(dark),[sx*.47,(ph+.12)/2,0]);P(g,G.bx(.12,.04,.12,.015),M.c(wood),[sx*.47,ph+.14,0])}
+    const pv=new THREE.Group();pv.position.set(-.42,0,0);g.add(pv);const W=.84;
+    for(const y of[ph*.3,ph*.78])P(pv,G.bx(W,.05,.035,.012),M.c(dark),[W/2,y,0]);
+    const n=5;for(let i=0;i<n;i++){const u=.07+i*(W-.14)/(n-1);P(pv,G.bx(.075,ph-.04,.045,.02),M.c(wood),[u,(ph-.04)/2+.02,.02]);P(pv,G.co(.052,.07,4),M.c(wood),[u,ph+.015,.02],[0,PI/4,0])}
+    P(pv,G.bx(.05,.05,.05,.012),M.c('#E8C060'),[W-.07,ph*.55,.06]);/* Riegel */
+    addOutlines(g);g.traverse(o=>{if(o.isMesh)o.castShadow=true});H.g.add(g);
+    H.occ.push({b:new THREE.Box3(new V(x-.52,0,z-.08),new V(x+.52,ph+.16,z+.08)),cat:'yard',part:-1,name:'gartentor'});H.gate={pivot:pv,x,z,w:W}}
   function yard(H,pid,plan){const{tryPut,begin,rollback,commit,edgeT,r,door,base,minX,maxX,minZ,maxZ,cellFl}=H;const T='town';
     const zf=minZ-2;/* Zaunreihe */
     /* Weg von der Tür (oder Treppe) zum Tor */
@@ -333,8 +343,12 @@ const HAUS=(()=>{
       else if(bed==='pots'){tryPut('yard','nature','pot_large',x+.25,0,z-.78,0,1.1)}}}
     /* Zaun oder Hecke mit Tor */
     const kind=plan.fence!==undefined?plan.fence:pick(r,['fence','hedge','fence','hedge-large',null]);
-    if(kind&&!base){H.fenced=true;for(let x=minX-1;x<=maxX+1;x++){const E=edgeT(x,zf,'nz');if(x===door[0]){if(kind==='fence')tryPut('chain',T,'fence-gate',E.x,0,E.z,E.ry);continue}tryPut('chain',T,kind,E.x,0,E.z,E.ry)}
-      for(const[sx,d]of[[minX-1,'nx'],[maxX+1,'px']])for(let z=zf;z<minZ;z++){const E=edgeT(sx,z,d);tryPut('chain',T,kind,E.x,0,E.z,E.ry)}}
+    if(kind&&!base){H.fenced=true;for(let x=minX-1;x<=maxX+1;x++){const E=edgeT(x,zf,'nz');if(x===door[0])continue;/* offener Durchgang statt Tor: Figuren laufen hindurch */tryPut('chain',T,kind,E.x,0,E.z,E.ry)}
+      for(const[sx,d]of[[minX-1,'nx'],[maxX+1,'px']])for(let z=zf;z<minZ;z++){const E=edgeT(sx,z,d);tryPut('chain',T,kind,E.x,0,E.z,E.ry)}
+      /* Gartentor im Durchgang (schwenkt nach innen auf) + Vorgarten-Rechteck mit Wegpunkten innen/aussen für die KI */
+      const nb=H.occ.filter(o=>o.cat==='chain'&&Math.abs((o.b.min.x+o.b.max.x)/2-door[0])<1.3&&o.b.max.x-o.b.min.x>o.b.max.z-o.b.min.z);
+      if(nb.length){const zc=nb.reduce((a,o)=>a+(o.b.min.z+o.b.max.z)/2,0)/nb.length;const hh=Math.max(...nb.map(o=>o.b.max.y));gardenGate(H,door[0],zc,hh,kind);
+        H.yard={x0:minX-1.9,x1:maxX+1.9,z0:zc,z1:minZ-.5,gin:[door[0],zc+.95],gout:[door[0],zc-1.05]}}}
     /* Gemüsebeet neben dem Haus */
     if(GD.veg&&!base&&r()<.45){for(const sx of[maxX+1.55,minX-1.55].sort(()=>r()-.5)){begin();const z0=minZ+(maxZ>minZ?.5:0);let ok=!!tryPut('yard','nature','crops_dirtRow',sx,0,z0,PI/2,[1.2,1,1]);
         if(ok)for(const dz of[-.35,0,.35])tryPut('veg','nature',pick(r,GD.veg),sx,.02,z0+dz,r()*6,1);if(ok){commit();break}else rollback()}}
@@ -404,12 +418,12 @@ const HAUS=(()=>{
     /* Kollision: Hauskörper-Radius + kleine Kreise für Zaun, Bäume, Deko */
     let bodyR=0;const cols=[];for(const o of H.occ){const b=o.b;const x0=b.min.x-ctr.x,x1=b.max.x-ctr.x,z0=b.min.z-ctr.z,z1=b.max.z-ctr.z;
       if(['wall','roof','struct','tower','chim'].includes(o.cat)){for(const x of[x0,x1])for(const z of[z0,z1])bodyR=Math.max(bodyR,Math.hypot(x,z)*(o.cat==='roof'?.8:1))}
-      else if(['yard','chain'].includes(o.cat)&&o.name!=='schild'&&b.max.y-b.min.y>.15){const cx=(x0+x1)/2,cz=(z0+z1)/2,w=x1-x0,d=z1-z0;if(Math.max(w,d)>1.3){const n=Math.ceil(Math.max(w,d)/.9);for(let i=0;i<n;i++){const t=(i+.5)/n;cols.push([w>d?x0+w*t:cx,w>d?cz:z0+d*t,Math.max(.22,Math.min(w,d)/2+.12)])}}else cols.push([cx,cz,Math.max(.18,Math.max(w,d)*.45)])}}
+      else if(['yard','chain'].includes(o.cat)&&o.name!=='schild'&&o.name!=='gartentor'&&b.max.y-b.min.y>.15){const cx=(x0+x1)/2,cz=(z0+z1)/2,w=x1-x0,d=z1-z0;if(Math.max(w,d)>1.3){const n=Math.ceil(Math.max(w,d)/.9);for(let i=0;i<n;i++){const t=(i+.5)/n;cols.push([w>d?x0+w*t:cx,w>d?cz:z0+d*t,Math.max(.22,Math.min(w,d)/2+.12)])}}else cols.push([cx,cz,Math.max(.18,Math.max(w,d)*.45)])}}
     /* Hauskörper: ein Kreis je Rasterzelle (deckt die Ecken ab), Pilze: Stielkreis */
     if(plan.fam==='mush'){const sb=H.occ.find(o=>o.name==='stiel').b;cols.push([(sb.min.x+sb.max.x)/2-ctr.x,(sb.min.z+sb.max.z)/2-ctr.z,(sb.max.x-sb.min.x)/2]);const an=H.occ.find(o=>o.name==='anbau');if(an){const b=an.b;cols.push([(b.min.x+b.max.x)/2-ctr.x,(b.min.z+b.max.z)/2-ctr.z,(b.max.x-b.min.x)*.32])}}
     else{for(const[x,z]of H.cells)cols.push([x-ctr.x,z-ctr.z,.74]);for(const o of H.occ)if(o.cat==='tower'||o.cat==='chim'||(o.cat==='struct')){const b=o.b;cols.push([(b.min.x+b.max.x)/2-ctr.x,(b.min.z+b.max.z)/2-ctr.z,Math.max(.2,Math.min(b.max.x-b.min.x,b.max.z-b.min.z)*.5)])}}
-    const S=unit;const sign=H.sign?[(H.sign[0]-ctr.x)*S,(H.sign[1]-ctr.z)*S]:null;
-    if(H.unit){H.g.scale.setScalar(H.unit)}return{g:H.g,unit,bodyR:bodyR*S,colliders:cols.map(c2=>[c2[0]*S,c2[1]*S,c2[2]*S]),sign,door:[c.door[0]*S,c.door[1]*S],size:c.size.clone().multiplyScalar(S),pal:H.pal,issues:H.issues,tries,style:(plan.fam||'town')+(H.style?'-'+H.style:'')+(plan.mushroom?'+pilzdach':'')+(plan.base?'+stelzen':'')+(H.round?(plan.fam==='pueblo'?'+kuppelturm':'+rundturm'):'')+(H.chim?'+kamin':'')+(H.balc&&!H.balcFailed?'+balkon':'')}}
+    const S=unit;const gt=H.gate?{pivot:H.gate.pivot,x:(H.gate.x-.42-ctr.x)*S,z:(H.gate.z-ctr.z)*S,w:H.gate.w*S}:null;const yd=H.yard?{x0:(H.yard.x0-ctr.x)*S,x1:(H.yard.x1-ctr.x)*S,z0:(H.yard.z0-ctr.z)*S,z1:(H.yard.z1-ctr.z)*S,gin:[(H.yard.gin[0]-ctr.x)*S,(H.yard.gin[1]-ctr.z)*S],gout:[(H.yard.gout[0]-ctr.x)*S,(H.yard.gout[1]-ctr.z)*S]}:null;const sign=H.sign?[(H.sign[0]-ctr.x)*S,(H.sign[1]-ctr.z)*S]:null;
+    if(H.unit){H.g.scale.setScalar(H.unit)}return{g:H.g,unit,yard:yd,gate:gt,bodyR:bodyR*S,colliders:cols.map(c2=>[c2[0]*S,c2[1]*S,c2[2]*S]),sign,door:[c.door[0]*S,c.door[1]*S],size:c.size.clone().multiplyScalar(S),pal:H.pal,issues:H.issues,tries,style:(plan.fam||'town')+(H.style?'-'+H.style:'')+(plan.mushroom?'+pilzdach':'')+(plan.base?'+stelzen':'')+(H.round?(plan.fam==='pueblo'?'+kuppelturm':'+rundturm'):'')+(H.chim?'+kamin':'')+(H.balc&&!H.balcFailed?'+balkon':'')}}
   function center(g,door,body){const box=new THREE.Box3().setFromObject(g);const ctr=(body||box).getCenter(new V());ctr.y=0;g.children.forEach(c=>{c.position.x-=ctr.x;c.position.z-=ctr.z});return{ctr,door:[door[0]-ctr.x,door[1]-.5-ctr.z],size:box.getSize(new V())}}
   const PACKS=['town','holiday','pirate','nature','survival','station','modular','castle','plat','space','furn','food','graveyard','resto','market','cave'];let ready=false;
   function load(){return Promise.all(PACKS.map(p=>KIT.load(p))).then(()=>{ready=true;if(window.KITFURN)KITFURN.fix()})}

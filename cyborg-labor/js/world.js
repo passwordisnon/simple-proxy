@@ -38,7 +38,7 @@ const GAME=(()=>{
       fragmentShader:'uniform vec3 c;varying vec3 vN;varying vec3 vP;void main(){float f=pow(1.0-abs(dot(normalize(-vP),vN)),2.4);gl_FragColor=vec4(mix(c,vec3(1.),.5),f*.55);}'}));sc.add(atm);
     {const sg=new THREE.BufferGeometry();const sp=[];const r=srand(9);for(let i=0;i<1200;i++){const p=new V3(r()*2-1,r()*2-1,r()*2-1).normalize().multiplyScalar(400+r()*100);sp.push(p.x,p.y,p.z)}sg.setAttribute('position',new THREE.Float32BufferAttribute(sp,3));
       const st=new THREE.Points(sg,new THREE.PointsMaterial({color:'#fff6e0',size:1.8,transparent:true,opacity:0,fog:false}));sc.add(st);G_.stars=st}
-    Object.assign(G_,{scene:sc,sun,hemi,fill,inter:[],lights:[],clouds:[],ticks:[],trees:[],rocks:[]});
+    Object.assign(G_,{scene:sc,sun,hemi,fill,inter:[],yards:[],gates:[],lights:[],clouds:[],ticks:[],trees:[],rocks:[]});
     /* grosse Planeten: Natur wird in Chunks um den Spieler gestreamt */G_.stream=G_.lod&&(Rr>70||!!window.FORCE_STREAM);
     SCATTER.reset(sc,Rr,M,G_.stream?{fill:fillChunk,unload:unloadChunkRefs}:null);
     buildPlaces();buildStones();try{buildDocks()}catch(e){console.warn('Stege',e)}try{buildCaves()}catch(e){console.warn('Höhlen',e)}scatterWorld();buildGrass();
@@ -202,6 +202,10 @@ const GAME=(()=>{
       G_.scene.add(g);pl.obj=g;const rad=(obj.userData.r||2.2);if(pl.build!=='plaza')addObst(pl.dir,obj.userData.obstR??rad);
       g.updateMatrixWorld(true);if(pl.build==='plaza'){settleKids(obj);registerPlaza(obj)}
       for(const c of(obj.userData.colliders||[])){const wp=g.localToWorld(new V3(c[0],0,c[1]));addObst(wp.normalize(),c[2])}
+      if(obj.userData.yard){const Y=obj.userData.yard;const wl=(x,z)=>obj.localToWorld(new V3(x,0,z)).normalize();obj.updateMatrixWorld(true);const y={obj,Y,c:pl.dir.clone(),gin:wl(...Y.gin),gout:wl(...Y.gout)};G_.yards.push(y);
+        const gd=obj.userData.gate;if(gd){const pv=gd.pivot;pv.updateMatrixWorld(true);const a=pv.localToWorld(new V3(0,0,0)),b=pv.localToWorld(new V3(gd.w,0,0));
+          const gate={pv,a:a.normalize(),b:b.normalize(),c:a.clone().add(b).normalize(),open:0,want:0,byKI:false,idle:0};y.gate=gate;G_.gates.push(gate);
+          gate.it={kind:'gate',p:gate.c,r:1.1,label:'Gartentor öffnen',act:()=>{gate.want=gate.want>.5?0:1;gate.byKI=false;SND.play('soft',{vol:.5,rate:gate.want?1.25:.9})}};G_.inter.push(gate.it)}}
       /* Türpunkt: vor der Tür, aber sicher ausserhalb der Kollision, damit man ihn erreicht */
       const door=obj.userData.door?new V3(...obj.userData.door):new V3(0,0,rad+.8);door.y=0;const dl=Math.hypot(door.x,door.z)||1;const need=obj.userData.doorExact?0:rad+.9;if(dl<need){door.x*=need/dl;door.z*=need/dl;if(!door.x&&!door.z)door.z=need}
       const dw=g.localToWorld(door.clone());const dp=dw.clone().normalize();pl.doorP=dp;obj.traverse(o=>{if(o.isMesh)o.userData.place=pl})
@@ -295,11 +299,25 @@ const GAME=(()=>{
     const np=e.p.clone().applyAxisAngle(axis,ang).normalize();const h=G_.hAt(np);
     if(e.boat){if(h>G_.sea+.1){leaveBoat(e,np);return true}}/* im Boot: ans Ufer fahren = aussteigen */
     else if(h<G_.sea-.3&&!e.water&&!e.fly){return false}
-    /* Hindernisse */
+    /* Hindernisse (geschlossenes Gartentor wie eine Wand) */
+    if(G_.gates.length&&gateBlocks(np)&&!gateBlocks(e.p))return false;
     for(const o of obstAround(np,3)){const d=angle(np,o.p)*G_.R;const minD=o.r+.35;if(d<minD){const away=tangentTo(o.p,np.clone().sub(o.p));if(!isFinite(away.x))continue;const pushA=(minD-d)/G_.R;np.applyAxisAngle(new V3().crossVectors(o.p,away).normalize(),pushA*1.02).normalize()}}
     if(e.kind==='me'){for(const o of ents.values()){if(o===e||o.kind==='peer')continue;const d=angle(np,o.p)*G_.R;if(d<.7){const away=tangentTo(o.p,np.clone().sub(o.p));if(isFinite(away.x))np.applyAxisAngle(new V3().crossVectors(o.p,away).normalize(),(.7-d)/G_.R).normalize()}}}
     e.dir.applyAxisAngle(axis,ang);e.p.copy(np);e.dir.copy(tangentTo(e.p,e.dir));return true}
 
+  /* Gartentore: schwenken weich auf/zu; von der KI geöffnete Tore schliesst sie hinter sich wieder */
+  function stepGates(dt){for(const g of G_.gates){const d=g.want-g.open;if(Math.abs(d)>.001){g.open+=Math.sign(d)*Math.min(Math.abs(d),dt*2.2);const k=g.open*g.open*(3-2*g.open);g.pv.rotation.y=-k*1.5}
+      if(g.it)g.it.label=g.want>.5?'Gartentor schliessen':'Gartentor öffnen';
+      if(g.byKI&&g.want>.5){let near=false;for(const e of ents.values()){if(e.kind==='peer')continue;if(angle(e.p,g.c)*G_.R<1.6){near=true;break}}g.idle=near?0:g.idle+dt;if(g.idle>1.2){g.want=0;g.byKI=false;SND.play('soft',{vol:.35,rate:.9})}}}}
+  /* geschlossenes Tor als Strecke: Abstand der Figur zur Torlinie (auf der Kugel näherungsweise gerade) */
+  const _ga=new V3(),_gb=new V3();function gateBlocks(p){for(const g of G_.gates){if(g.open>.6)continue;if(angle(p,g.c)*G_.R>2)continue;_ga.copy(g.b).sub(g.a);const t=Math.max(0,Math.min(1,_gb.copy(p).sub(g.a).dot(_ga)/_ga.lengthSq()));const d=_gb.copy(g.a).addScaledVector(_ga,t).distanceTo(p)*G_.R;if(d<.38)return g}return null}
+  /* Vorgärten mit Hecke/Zaun: liegt Ziel auf der anderen Seite, erst zum Durchgang (innen/aussen) laufen */
+  const _yv=new V3();function inYard(y,p){_yv.copy(p).multiplyScalar(G_.R+G_.hAt(p));y.obj.worldToLocal(_yv);const Y=y.Y;return _yv.x>Y.x0&&_yv.x<Y.x1&&_yv.z>Y.z0&&_yv.z<Y.z1}
+  function viaYard(e,target){if(e.via&&e.via.to===target){const w=e.via.pts[0];if(angle(e.p,w)*G_.R<.45){e.via.pts.shift();if(!e.via.pts.length){e.via=null;return target}}return e.via.pts[0]}
+    e.via=null;for(const y of G_.yards){if(angle(e.p,y.c)*G_.R>14&&angle(target,y.c)*G_.R>14)continue;const a=inYard(y,e.p),b=inYard(y,target);if(a===b)continue;
+      e.via={to:target,y,pts:a?[y.gin,y.gout]:[y.gout,y.gin]};return e.via.pts[0]}return target}
+  /* KI am Tor: aufmachen und kurz warten, bis es offen ist */
+  function gateWait(e){const g=e.via&&e.via.y&&e.via.y.gate;if(!g||angle(e.p,g.c)*G_.R>1.35)return false;if(g.want<.5){g.want=1;g.byKI=true;g.idle=0;e.act=.6;if(angle(e.p,me?me.p:e.p)*G_.R<14)SND.play('soft',{vol:.35,rate:1.2})}return g.open<.75}
   function stepVillager(e,dt,t){e.stop=Math.max(0,e.stop-dt);e.dance=Math.max(0,e.dance-dt);e.jump=Math.max(0,e.jump-dt);e.act=Math.max(0,e.act-dt*1.3);
     /* Fähigkeiten */
     if(e.kind==='villager'&&mode==='outdoor'&&G_.id==='kompost'){for(const a of e.abs){const A=ABIL[a];if(!A.act)continue;e.cd[a]-=dt;if(e.cd[a]>0||e.goal||e.stop>0||e.talking)continue;e.cd[a]=(A.cd||8)*(1.6+Math.random()*1.2);
@@ -314,8 +332,14 @@ const GAME=(()=>{
     /* Spieler begrüssen */
     if(me&&e.kind!=='peer'&&angle(e.p,me.p)*G_.R<2.6&&!e.greetT){e.greetT=18+Math.random()*20;e.stop=Math.max(e.stop,2.2);e.lookAt=me;if(Math.random()<.5)say(e,pick(['Hallo!','Hey!','Oh, hi!','icon:heart','icon:wave']),2.2)}
     if(e.greetT)e.greetT=Math.max(0,e.greetT-dt);
+    if(target)target=viaYard(e,target);
+    if(target&&gateWait(e))moving=false;
     let spd=0;if(target&&moving){const want=tangentTo(e.p,target.clone().sub(e.p));if(isFinite(want.x)){e.dir.lerp(want,Math.min(1,dt*3)).normalize();e.dir.copy(tangentTo(e.p,e.dir))}spd=1.5*e.move.sp*(lifeOn?LIFE.speedMul(e):1)*(following&&me?Math.max(1,me.speed/3):1)}
-    if(spd>0&&!moveEnt(e,e.dir,spd,dt)){e.dir.applyAxisAngle(e.p,1.2+Math.random());e.goal=null}
+    /* festgelaufen (an Deko/Hecke hängen geblieben): kurz seitlich ausweichen */
+    if(e.side>0){e.side-=dt;if(spd>0){e.dir.applyAxisAngle(e.p,e.sideA);e.dir.copy(tangentTo(e.p,e.dir))}}
+    const p0=spd>0?e.p.clone():null;
+    if(spd>0&&!moveEnt(e,e.dir,spd,dt)){e.dir.applyAxisAngle(e.p,1.2+Math.random());e.goal=null;e.via=null}
+    else if(p0&&e.side<=0){const got=angle(p0,e.p)*G_.R;e.stuckT=got<spd*dt*.25?(e.stuckT||0)+dt:Math.max(0,(e.stuckT||0)-dt*2);if(e.stuckT>.7){e.stuckT=0;e.side=.55;e.sideA=(Math.random()<.5?1:-1)*1.25}}
     e.speed=spd}
 
   /* ---------- Figur ins Bild setzen ---------- */
@@ -485,7 +509,7 @@ const GAME=(()=>{
     /* Figuren */
     for(const e of ents.values()){try{if(e===me||e.kind==='peer'){}else stepVillager(e,dt,t);if(e.kind==='peer')SOCIAL.stepPeer(e,dt)}catch(err){if(!e.errLogged){e.errLogged=1;console.warn('Figur',e.d&&e.d.id,err)}}}
     const camP=cam.position.clone().normalize();for(const e of ents.values()){const vis=overview?e.p.dot(camP)>.1:e===me||(e.p.dot(camP)>.55&&angle(e.p,me?me.p:e.p)*G_.R<40);e.g.visible=vis;e.shadow.visible=vis;if(vis)poseEnt(e,dt,t)}
-    stepProps(dt,t);stepParts(dt);stepClouds(dt);SCATTER.step(dt);if(typeof WEATHER!=='undefined')WEATHER.frame(dt,t,G_,me);else stepWeather(dt,t);if(G_.groundU)G_.groundU.uT.value=t;SCATTER.update(overview?cam.position.clone().normalize():(me?me.p:UPV),t,HIGH);stepBall(dt);stepLaunch(dt);poseBoats(dt,t);for(const o of G_.ticks){try{o.userData.tick(t,false,0)}catch(e){}}
+    stepProps(dt,t);stepParts(dt);stepClouds(dt);SCATTER.step(dt);if(typeof WEATHER!=='undefined')WEATHER.frame(dt,t,G_,me);else stepWeather(dt,t);if(G_.groundU)G_.groundU.uT.value=t;SCATTER.update(overview?cam.position.clone().normalize():(me?me.p:UPV),t,HIGH);stepBall(dt);stepLaunch(dt);poseBoats(dt,t);stepGates(dt);for(const o of G_.ticks){try{o.userData.tick(t,false,0)}catch(e){}}
     if(me){if(me.boost>0)me.boost-=dt;if(me.glitter>0){me.glitter-=dt;if(Math.random()<dt*6)W.fx(me.p,'funke',1,me.g.position.clone().addScaledVector(me.p,.8+Math.random()*.6))}}
     if(me&&!overview){OCC.a.value.copy(cam.position);OCC.b.value.copy(me.g.position).addScaledVector(me.p,.9);OCC.on.value=1}else OCC.on.value=0;ACT.frame(dt,t);REPAIR.frame(dt,t);if((typeof FAUNA!=='undefined'))try{FAUNA.step(dt,t)}catch(e){console.warn('Fauna',e)}SOCIAL.frame(dt,t);grassU.value=t;G_.waterU.uT.value=t;
     ecoT-=dt;if(ecoT<=0){ecoT=1;ecoTick()}grassU.value=t;
@@ -550,6 +574,6 @@ const GAME=(()=>{
   let ovBtn=null;const ovKey=e=>{if(e.key==='Escape'&&overview){e.stopPropagation();toggleOverview()}};
   function toggleOverview(){overview=overview?null:{az:Math.atan2(cam.position.z,cam.position.x)};if(!overview)camSnap=true;
     /* gut sichtbarer Ausgang: Knopf oben in der Mitte + Esc */if(overview){ovBtn=btn('Übersicht beenden (Esc)','primary',()=>toggleOverview());ovBtn.classList.add('ovexit');$('world').append(ovBtn);addEventListener('keydown',ovKey,true)}else{if(ovBtn){ovBtn.remove();ovBtn=null}removeEventListener('keydown',ovKey,true)}UI.toast(overview?'Beamer-Übersicht: alle Cyborgs auf einen Blick. Nochmals drücken zum Beenden.':'Zurück zur Spielfigur');return!!overview}
-  return{_aim:(tgt,dist,pitch)=>{if(!me)return;camF.copy(tangentTo(me.p,tgt.clone().sub(me.p)));camYaw=0;if(dist)camDist=dist;if(pitch!=null)camPitch=pitch},addObst,obstAround,_load:loadPlanet,toggleOverview,get overview(){return!!overview},_joy:()=>input.joy,init,frame,resize,quality,travel,landOn,syncVillagers,onAvatarChanged,W,G:G_,ents,get me(){return me},get scene(){return scene},cam,R,say,makeEnt,dropEnt,moveEnt,onSurf,placeObj,angle,tangentTo,isLand,avatarData,randLand,randAround,note,
+  return{_stepV:stepVillager,_stepGates:stepGates,_aim:(tgt,dist,pitch)=>{if(!me)return;camF.copy(tangentTo(me.p,tgt.clone().sub(me.p)));camYaw=0;if(dist)camDist=dist;if(pitch!=null)camPitch=pitch},addObst,obstAround,_load:loadPlanet,toggleOverview,get overview(){return!!overview},_joy:()=>input.joy,init,frame,resize,quality,travel,landOn,syncVillagers,onAvatarChanged,W,G:G_,ents,get me(){return me},get scene(){return scene},cam,R,say,makeEnt,dropEnt,moveEnt,onSurf,placeObj,angle,tangentTo,isLand,avatarData,randLand,randAround,note,
     get mode(){return mode},set mode(v){mode=v},showCard,talkTo,voiceFor,fadeOut,parts,makeNature,nearPlace,get camF(){return camF},camSide:(a)=>{camYaw=a},camFwd:()=>me?camF.clone().applyAxisAngle(me.p,camYaw):camF.clone(),get night(){return G_.night||0}};
 })();

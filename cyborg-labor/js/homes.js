@@ -46,6 +46,8 @@ const HOMES=(()=>{
     /* Neue Häuser aus Bausätzen (einzigartig je Bewohner, sauber geprüft); Front zeigt zum Dorfplatz (+z) */
     if(typeof HAUS!=='undefined'&&HAUS.ready){const U=2.0;const res=HAUS.build(GAME.G.id,seed,{sagR:(GAME.G.R+(pl.h||0))/U});const w=new THREE.Group();w.rotation.y=PI;w.scale.setScalar(U);w.add(res.g);g.add(w);
       const rot=(x,z)=>[-x*U,-z*U];const[dx,dz]=rot(res.door[0],res.door[1]);Object.assign(g.userData,{door:[dx,0,dz],doorExact:true,obstR:.3,r:res.bodyR*U,colliders:res.colliders.map(c=>[...rot(c[0],c[1]),c[2]*U]),style:res.style});
+      if(res.gate){g.userData.gate={pivot:res.gate.pivot,w:.84};g.userData.keep=[res.gate.pivot]}
+      if(res.yard){const Y=res.yard;const a=rot(Y.x0,Y.z0),b=rot(Y.x1,Y.z1);g.userData.yard={x0:Math.min(a[0],b[0]),x1:Math.max(a[0],b[0]),z0:Math.min(a[1],b[1]),z1:Math.max(a[1],b[1]),gin:rot(...Y.gin),gout:rot(...Y.gout)}}
       if(res.sign){try{const[sx,sz]=rot(res.sign[0],res.sign[1]);const sg=grp(g,[sx,0,sz]);bt(sg,[0,0,0],[0,.9,0],.05,M.c('#A0704C'));P(sg,G.bx(1.05,.36,.08,.05),M.c('#FFFBF0'),[0,1.0,0]);
         const tx=ctex('nameplate-'+pl.who,256,90,(x,w2,hh)=>{x.fillStyle='#FFFBF0';x.fillRect(0,0,w2,hh);x.fillStyle='#5B4A3E';x.font='bold 34px "Nunito","Trebuchet MS",sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(pl.whoName.slice(0,14),w2/2,hh/2+2)});
         const lt=typeof LANG!=='undefined'?LANG.signTex(GAME.G.id,'np-'+pl.who,pl.whoName,{h:.33}):null;P(sg,G.pl(.98,.32),lt?new THREE.MeshBasicMaterial({map:lt}):M.tex('np-'+pl.who,tx),[0,1.0,.045]);g.userData.signPos=[sx,sz];g.userData.signText='Haus von '+pl.whoName+'. Willkommen, Freund!'}catch(e){}}

@@ -27,11 +27,12 @@ Status: ✔ erledigt · ◐ teilweise · ☐ offen. Wird bei jedem Schritt aktua
 - ✔ Grössere Planeten (3× Radius, gestreamt), Ozeane, Inseln, Boote mit Stegen
 - ◐ Berge besteigen (begehbar; Kletter-Animation fehlt)
 - ✔ Höhlen zum Erkunden (Kenney Cave Kit: Kristalle, Tropfsteine, Teich, Fossilien, Kristalladern)
-- ◐ Biome je Planet: kalt / Wald-Dschungel / heiss passend zur Planeten-Ästhetik
+- ✔ Biome je Planet: kalt / Wald-Dschungel / heiss passend zur Planeten-Ästhetik
 - ✔ Tag-Nacht-Zyklus mit Morgen- und Abendrot, wanderende Sonne
 - ✔ Wetter, Wolken, Ringe, Monde am Himmel, Polarlicht
 - ✔ Ruinen mit Wortsteinen (NMS-Sprachen), Schrift je Planet, KI freundlicher je mehr Wörter
 - ✔ Tiere je Planet zum Interagieren
+- ✔ Gartentore in Hecken/Zäunen zum Öffnen und Schliessen (E); die KI öffnet das Tor, geht hindurch und schliesst es wieder
 - ☐ Kamera stösst nicht durch Wände/Häuser (Kamera-Kollision)
 
 ## Gebäude & Innenräume
