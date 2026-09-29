@@ -39,12 +39,22 @@ const HOMES=(()=>{
   function styleFor(pid,d){const T=THEME[pid].house;const r=srand(parseInt(hashStr(d.id||d.name).slice(0,5),36));const pk=a=>a[Math.floor(r()*a.length)];
     return{shape:pk(T.shapes),wall:pk(T.walls),wallCol:pk(T.wallCols),roofCol:pk(T.roofCols),doorCol:pk(['#7FB2E0','#F0556E','#FFD85A','#8A5A44','#56C6B6','#C6A9FF']),win:pk(T.win),chimney:!!THEME[pid].chimney||r()<.4,fence:!!THEME[pid].fence&&r()<.6,size:1,flag:false}}
   /* ---------- Haus bauen (inkl. Namensschild, Briefkasten, Deko) ---------- */
-  function build(pl,M){const g=new THREE.Group();const h=buildHouse(pl.style,M);g.add(h);Object.assign(g.userData,{door:h.userData.door,r:h.userData.r||2.2,tick:h.userData.tick});
-    try{const sg=grp(g,[1.6,0,(h.userData.r||2.2)*.9]);bt(sg,[0,0,0],[0,.9,0],.05,M.c('#A0704C'));P(sg,G.bx(1.05,.36,.08,.05),M.c('#FFFBF0'),[0,1.0,0]);
+  /* Einzigartiges Haus: Bauform aus dem Architektur-Generator (Planet + Samen), dazu Namensschild und Hobby-Ecke */
+  function build(pl,M){const g=new THREE.Group();const seed=ARCH.hashNum(pl.who+GAME.G.id);const res=ARCH.forHouse(GAME.G.id,seed);g.add(res.g);const[dx,dz]=res.door;Object.assign(g.userData,{door:[dx,0,dz],r:res.r,tick:res.g.userData.tick});
+    try{const sg=grp(g,[dx+(dx>0?-1.5:1.5),0,dz-.3]);bt(sg,[0,0,0],[0,.9,0],.05,M.c('#A0704C'));P(sg,G.bx(1.05,.36,.08,.05),M.c('#FFFBF0'),[0,1.0,0]);
       const tx=ctex('nameplate-'+pl.who,256,90,(x,w,hh)=>{x.fillStyle='#FFFBF0';x.fillRect(0,0,w,hh);x.fillStyle='#5B4A3E';x.font='bold 34px "Nunito","Trebuchet MS",sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(pl.whoName.slice(0,14),w/2,hh/2+2)});
       P(sg,G.pl(.98,.32),M.tex('np-'+pl.who,tx),[0,1.0,.045])}catch(e){}
-    const deco=THEME[GAME.G.id].deco;const r=srand(pl.who.length*7+3);for(let i=0;i<2;i++){const t=deco[Math.floor(r()*deco.length)];if(!NATURE[t])continue;const n=GAME.makeNature(t,{},i+3);const a=(i?-1:1)*(1.9+r()*.4);n.position.set(a,0,-.4-r()*.8);n.scale.setScalar(.8);g.add(n)}
+    /* Hobby-Ecke seitlich vor dem Haus */try{const d=GAME.ents.get(pl.who);const hobby=(d&&d.life&&d.life.hobby)||['natur','fitness','spiel','bildung','musik','kunst','angeln'][seed%7];hobbyProp(g,M,hobby,dx+(dx>0?1.9:-1.9)*-1,dz-.6)}catch(e){}
+    const deco=THEME[GAME.G.id].deco;const r=srand(seed%9973);const t=deco[Math.floor(r()*deco.length)];if(NATURE[t]){const n=GAME.makeNature(t,{},3);n.position.set(-res.r*.9,0,-res.r*.5);n.scale.setScalar(.85);g.add(n)}
     return g}
+  function hobbyProp(g,M,h,x,z){const q=grp(g,[x,0,z]);
+    if(h==='natur'){B(q,1.3,.3,.8,.04,Wd(M,'#C98C5A'),[0,.15,0]);B(q,1.2,.06,.7,.02,M.c('#8A5E42'),[0,.3,0]);for(let i=0;i<5;i++){S(q,.1,M.c(i%2?'#7CC46A':'#F0556E'),[-.45+i*.22,.4,(i%2)*.15-.07])}}
+    else if(h==='fitness'){bt(q,[-.5,.55,0],[.5,.55,0],.03,M.steel());for(const x2 of[-.45,.45])C(q,.2,.2,.08,M.c('#3B3450'),[x2,.55,0],[0,0,PI/2]);B(q,1.1,.08,.4,.03,M.c('#F0556E'),[0,.3,.4])}
+    else if(h==='spiel'){for(const x2 of[-.7,.7]){bt(q,[x2,0,-.4],[x2,1.6,0],.04,M.c('#F7B84B'));bt(q,[x2,0,.4],[x2,1.6,0],.04,M.c('#F7B84B'))}bt(q,[-.7,1.6,0],[.7,1.6,0],.05,M.c('#F7B84B'));for(const x2 of[-.15,.15])bt(q,[x2,1.6,0],[x2,.5,0],.01,M.c('#8A5A44'));B(q,.45,.05,.2,.02,M.c('#56C6B6'),[0,.48,0])}
+    else if(h==='bildung'){for(let i=0;i<3;i++){const a=i/3*TAU;bt(q,[Math.sin(a)*.35,0,Math.cos(a)*.35],[0,.9,0],.025,M.c('#8A5A44'))}const t=grp(q,[0,.95,0],[0,0,-.6]);C(t,.08,.11,.9,M.c('#F7F3E8',{gloss:.6}),[0,.3,0]);P(t,G.to(.09,.02),M.gold(),[0,.75,0],[PI/2,0,0])}
+    else if(h==='musik'){B(q,.6,.5,.5,.05,Wd(M,'#8A5A44'),[0,.25,0]);const hn=grp(q,[0,.5,0],[-.4,0,0]);bt(hn,[0,0,0],[0,.3,.1],.03,M.gold());P(hn,G.co(.3,.5,16,),M.gold(),[0,.55,.25],[-1.2,0,0])}
+    else if(h==='kunst'){for(const x2 of[-1,1])bt(q,[x2*.3,0,0],[x2*.12,1.4,-.1],.03,Wd(M,PAL.wood));B(q,.6,.5,.04,.02,M.c('#FFFBF0'),[0,1,-.02],[-.12,0,0]);S(q,.06,M.c('#56C6B6'),[0,1.05,.02])}
+    else{const b=grp(q,[0,0,0],[0,.4,0]);P(b,G.hs(1),M.c('#6AA8F0',{gloss:.5}),[0,.25,0],[PI,0,0],[.9,.35,.4]);bt(b,[.2,.3,0],[.6,1.6,0],.02,M.c('#8A5A44'))}}
   /* ---------- Klingeln ---------- */
   async function knock(pl){const e=GAME.ents.get(pl.who);SND.play('pep',{vol:.8});setTimeout(()=>SND.play('pep',{vol:.8,rate:1.2}),260);
     if(!e){UI.toast('Niemand zu Hause.');return}
