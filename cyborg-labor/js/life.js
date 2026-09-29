@@ -103,6 +103,7 @@ const LIFE=(()=>{
     gaertnern:{n:'gärtnert',i:'leaf',ad:{fun:30,hygiene:-8},dur:8,where:e=>nearU(e.home||e.p,5),end:e=>{try{if(V_().id==='kompost'&&GAME.W.spawn){const pr=GAME.W.spawn('blume',e.p.clone());if(pr)pr.grow=.2}}catch(x){}logDay(e,'hat eine Blume gepflanzt');moodlet(e,'froh',1,60,'gegärtnert')}},
     singen:{n:'singt',i:'note',ad:{fun:35,social:5},dur:7,where:e=>nearU(e.p,2),start:e=>{SND.voice&&e.g.visible&&dU(e.p,GAME.me.p)<14&&SND.voice('la la laa lalala',Object.assign({},GAME.voiceFor(e.d),{vol:.6}))},tick:(e,t)=>{if(Math.random()<.05)GAME.W.fx(e.p,'note',1)},end:e=>logDay(e,'hat ein Lied gesungen')},
     besuch:{n:'besucht dich',i:'wave',ad:{social:45},dur:5,where:e=>{const me=GAME.me;return me&&!me.inside&&dU(e.p,me.p)<35?nearU(me.p,2):null},end:e=>{const me=GAME.me;if(me&&dU(e.p,me.p)<4){e.lookAt=me;e.stop=3;GAME.say(e,pick(PERS[e.life.pers].hi),3);if(!e.life.want&&Math.random()<.5)makeWant(e)}}},
+    bar:{n:'ist in der Jazz-Bar',i:'note',ad:{social:55,fun:45},dur:40,evening:2.4,where:e=>{const s=place('bar');return s&&s.doorP?s.doorP.clone():null},start:e=>{e.inBar=true},end:e=>{e.inBar=false;logDay(e,'war in der Jazz-Bar');moodlet(e,'froh',1.2,90,'Abend in der Bar')}},
     fangen:{n:'spielt Fangen',i:'party',ad:{fun:45,energy:-10,social:20},dur:9,social:true,game:true}};
   function shore(p){for(let i=0;i<24;i++){const q=nearU(p,4+Math.random()*10);const h=V_().hAt(q);if(h>V_().sea&&h<V_().sea+.25)return q}return null}
   function curve(v){return Math.pow(Math.max(0,(100-v))/100,2)*2+.05}
@@ -115,8 +116,8 @@ const LIFE=(()=>{
     const a=A[best];if(a.social){const o=partner(e);if(!o)return false;startSocial(e,o,best);return true}
     const p=a.where?a.where(e):null;if(!p)return false;L.act={k:best,a,t:a.dur,started:false};L.last=best;e.goal={p,then:()=>begin(e)};return true}
   function begin(e){const L=e.life;if(!L.act)return;L.act.started=true;e.stop=L.act.a.dur;L.act.t=L.act.a.dur;L.act.a.start&&L.act.a.start(e)}
-  function finish(e){const L=e.life;const a=L.act;if(!a)return;for(const n in a.a.ad)L.needs[n]=Math.max(0,Math.min(100,L.needs[n]+a.a.ad[n]));a.a.end&&a.a.end(e);L.act=null;e.stop=.5;e.dance=0;e.sleeping=false;e.inHome=false}
-  function partner(e){let best=null,bd=28;for(const o of GAME.ents.values()){if(o===e||!o.life||o.kind==='peer'||o.kind==='me'||o.talking||o.life.act||o.inside||o.inHome)continue;const d=dU(e.p,o.p);if(d<bd){bd=d;best=o}}return best}
+  function finish(e){const L=e.life;const a=L.act;if(!a)return;for(const n in a.a.ad)L.needs[n]=Math.max(0,Math.min(100,L.needs[n]+a.a.ad[n]));a.a.end&&a.a.end(e);L.act=null;e.stop=.5;e.dance=0;e.sleeping=false;e.inHome=false;e.inBar=false}
+  function partner(e){let best=null,bd=28;for(const o of GAME.ents.values()){if(o===e||!o.life||o.kind==='peer'||o.kind==='me'||o.talking||o.life.act||o.inside||o.inHome||o.inBar)continue;const d=dU(e.p,o.p);if(d<bd){bd=d;best=o}}return best}
   function startSocial(e,o,k){const mid=e.p.clone().add(o.p).normalize();const a=A[k];
     const pa=nearU(mid,.9),pb=nearU(mid,.9);e.life.act={k,a,t:a.dur+6,started:false,with:o};o.life.act={k,a,t:a.dur+6,started:false,with:e};e.life.last=k;
     e.goal={p:pa,then:()=>meet(e,o,k)};o.goal={p:pb,then:()=>meet(o,e,k)}}

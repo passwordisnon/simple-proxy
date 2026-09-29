@@ -254,7 +254,7 @@ const GAME=(()=>{
     /* weiches Squash beim Laufen */
     const sq=moving&&!e.move.alt?1+Math.sin(t*10+e.phase)*.03:1+Math.sin(t*2+e.phase)*.012;e.g.scale.set(CS*(2-sq)*.5+CS*.5,CS*sq,CS*(2-sq)*.5+CS*.5);
     const dist=me&&e!==me?angle(e.p,me.p)*G_.R:0;const far=dist>13;if(far!==e.far){e.far=far;setOutlines(e.g,!far&&HIGH)}
-    const hide=e.inHome||!overview&&dist>(HIGH?40:30);e.g.visible=!hide;e.shadow.visible=!hide;
+    const hide=e.inHome||e.inBar||!overview&&dist>(HIGH?40:30);e.g.visible=!hide;e.shadow.visible=!hide;
     if(!hide&&!far||!hide&&((t*10|0)%3===0))e.g.userData.tick(t+e.phase,moving,e.act);
     e.shadow.position.copy(e.p).multiplyScalar(surfR(e.p,true)+.03);e.shadow.quaternion.setFromUnitVectors(new V3(0,0,1),e.p);const ss=Math.max(.4,1-alt*.25);e.shadow.scale.setScalar(ss);
     if(e.sayT>0){e.sayT-=dt;if(e.sayT<=0)e.bub.hidden=true}
@@ -264,7 +264,7 @@ const GAME=(()=>{
   let promptTarget=null;
   function findTarget(){if(!me)return null;let best=null,bs=1e9;const fw=me.dir;
     const consider=(p,r,obj)=>{const d=angle(me.p,p)*G_.R;if(d>r)return;const to=tangentTo(me.p,p.clone().sub(me.p));const facing=isFinite(to.x)?to.dot(fw):1;const score=d-facing*.8+(obj.prio||0);if(score<bs){bs=score;best=obj}};
-    for(const e of ents.values()){if(e===me||e.kind==='peer'||e.inHome)continue;consider(e.p,2.4,{kind:'talk',ent:e,label:(e.kind==='bot'?'Winken: ':'Reden: ')+(e.d.name||'Namenlos'),prio:-.6})}
+    for(const e of ents.values()){if(e===me||e.kind==='peer'||e.inHome||e.inBar)continue;consider(e.p,2.4,{kind:'talk',ent:e,label:(e.kind==='bot'?'Winken: ':'Reden: ')+(e.d.name||'Namenlos'),prio:-.6})}
     for(const it of G_.inter)consider(it.p,it.r+.4,Object.assign({},it,{label:it.label||it.kind}));
     for(const o of obstAround(me.p,4)){if(!o.ref)continue;if(o.ref.kind==='tree')consider(o.p,o.r+1.5,{kind:'tree',ref:o.ref,label:o.ref.hasFruit?'Baum schütteln (Früchte!)':'Baum schütteln'});else if(o.ref.kind==='rock')consider(o.p,o.r+1.4,{kind:'rock',ref:o.ref,label:'Mit der Schaufel auf den Stein hauen'})}
     for(const it of ACT.targets())consider(it.p,it.r||1.6,it);
