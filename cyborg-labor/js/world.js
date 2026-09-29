@@ -168,15 +168,22 @@ const GAME=(()=>{
       b.g.position.copy(p).multiplyScalar(G_.R+G_.sea-.08+bob);b.g.up.copy(p);b.g.lookAt(b.g.position.clone().add(dir));b.g.rotateZ(Math.sin(t*1.2+b.p.z*7)*.04);
       const rowing=riding&&me.speed>.1;for(const[i,o]of b.g.userData.oars.entries()){const s=i?1:-1;o.rotation.y=rowing?Math.sin(t*5)*.6*s:.15*s;o.rotation.z=rowing?(Math.cos(t*5)*.18-.12)*s:-.2*s}}}
   /* ---------- Höhlen: Felstore am Fuss von Hängen ---------- */
+  /* ---------- Höhlen: Eingänge nur in echten Felswänden (hohe, steile Hänge über die ganze Breite) ---------- */
   function buildCaves(){if(typeof CAVES==='undefined')return;const r=srand(hashStr('cave'+G_.id).length*211+9);const hx=G_.hExact||G_.hAt;const out=[];
-    for(let i=0;i<1400&&out.length<(G_.stream?5:3);i++){const p=randLand(r,G_.sea+.6,99,1,G_.stream?170:G_.R*1.5);if(!p||nearPlace(p,1.6))continue;if(out.some(q=>angle(q,p)*G_.R<28))continue;if(flatAt(p,1.1)>.35)continue;
-      const h=hx(p);let back=null,bd=0;for(let k=0;k<16;k++){const a=k/16*TAU;const t1=tangentTo(p,new V3(Math.cos(a),.17,Math.sin(a)));if(!isFinite(t1.x))continue;const q=p.clone().addScaledVector(t1,2.4/G_.R).normalize();const d=hx(q)-h;if(d>bd){bd=d;back=t1}}
-      if(!back||bd<1.1)continue;const front=back.clone().negate();{const q=p.clone().addScaledVector(front,2/G_.R).normalize();if(Math.abs(hx(q)-h)>.5||hx(q)<G_.sea+.2)continue}
-      out.push(p);const id=G_.id+'-hoehle'+out.length;const pos=p.clone().addScaledVector(back,.45/G_.R).normalize();
-      const g=CAVES.entrance(M,G_.id);placeObj(g,pos,0,-.04);faceTo(g,pos,front);g.traverse(o=>{if(o.isMesh){o.castShadow=HIGH;o.receiveShadow=true}});G_.scene.add(g);
-      const side=new V3().crossVectors(pos,front).normalize();for(const s of[-1,1])addObst(pos.clone().addScaledVector(side,s*1.15/G_.R).normalize(),.45);addObst(pos.clone().addScaledVector(back,.9/G_.R).normalize(),.9);
-      const seed=hashStr(id).length*7919+out.length*131+G_.id.length;G_.inter.push({kind:'cave',p:pos.clone().addScaledVector(front,1.2/G_.R).normalize(),r:1.6,label:'Höhle betreten',act:()=>CAVES.enter({seed,id})});
-      G_.places.push({id,n:'Höhle',dir:pos.clone(),r:3.6/G_.R})}}
+    const at=(p,dir,side,f,l)=>{const q=p.clone().addScaledVector(dir,f/G_.R).addScaledVector(side,l/G_.R).normalize();return hx(q)};
+    for(let i=0;i<9000&&out.length<(G_.stream?5:3);i++){const p=randLand(r,G_.sea+.4,99,1,G_.stream?300:G_.R*1.5);if(!p||nearPlace(p,1.6))continue;if(out.some(q=>angle(q,p)*G_.R<28))continue;if(flatAt(p,.9)>.45)continue;
+      const h=hx(p);let back=null,bd=0;for(let k=0;k<16;k++){const a=k/16*TAU;const t1=tangentTo(p,new V3(Math.cos(a),.17,Math.sin(a)));if(!isFinite(t1.x))continue;const d=at(p,t1,t1,3.2,0)-h;if(d>bd){bd=d;back=t1}}
+      if(!back||bd<1.9)continue;const side=new V3().crossVectors(p,back).normalize();
+      /* Wand über die ganze Breite: links und rechts ebenfalls hoch; vorn frei und eben */
+      const wl=at(p,back,side,3.2,-1.3)-h,wr=at(p,back,side,3.2,1.3)-h;if(Math.min(wl,wr)<1.5)continue;
+      const front=back.clone().negate();{const hf=at(p,front,side,2,0);if(Math.abs(hf-h)>.6||hf<G_.sea+.2)continue}
+      const rise=Math.min(bd,wl,wr);out.push(p);const id=G_.id+'-hoehle'+out.length;
+      /* Eingang in den Hang schieben; Höhe an die Wand anpassen (Oberkante trifft die Hangkante) */const pos=p.clone().addScaledVector(back,1.1/G_.R).normalize();const k=Math.max(.62,Math.min(1.15,(rise+.35)/3.2));
+      const B=BIOMES[G_.biomeAt(pos,hx(pos))]||{};const g=CAVES.entrance(M,G_.id,{rock:B.cliff,grass:B.grass||(B.g&&B.g[0])});g.scale.setScalar(k);placeObj(g,p.clone().addScaledVector(back,.9/G_.R).normalize(),0,-.18);faceTo(g,g.position.clone().normalize(),front);
+      g.traverse(o=>{if(o.isMesh){o.castShadow=HIGH;o.receiveShadow=true}});G_.scene.add(g);
+      for(const s2 of[-1,1])addObst(pos.clone().addScaledVector(side,s2*1.3*k/G_.R).normalize(),.55*k);addObst(pos.clone().addScaledVector(back,1/G_.R).normalize(),1);
+      const seed=hashStr(id).length*7919+out.length*131+G_.id.length;G_.inter.push({kind:'cave',p:p.clone().addScaledVector(front,.7/G_.R).normalize(),r:1.7,label:'Höhle betreten',act:()=>CAVES.enter({seed,id})});
+      G_.places.push({id,n:'Höhle',dir:p.clone(),r:3.6/G_.R})}}
   function buildPlaces(){for(const pl of G_.places){if(!pl.build)continue;const g=new THREE.Group();let obj=null;
       QF=HIGH?.7:.42;try{
         if(pl.build==='plaza')obj=buildPlaza(pl);

@@ -21,6 +21,36 @@ function perlin3(seed){const p=new Uint8Array(512);const r=srand(seed*977+13);co
    grass: Grasbüschel-Farbe (null = keins) · trees/deco/rocks: [[typ, gewicht, opt?]] · *D: Dichte pro 100 m²
    litter: Sammelsachen [[itemId, gewicht]] */
 const BIOMES={
+  /* --- Klimazonen (kalt / Dschungel / heiss), je Planet passend --- */
+  dschungel:{n:'Dschungel',g:['#4FB06A','#3E9A5A'],cliff:'#7A6A48',pat:'gras',grass:'#58B868',grassD:1,
+    trees:[['palme',3],['kokospalme_klein',2],['weide',1.5],['doppelbaum',1],['busch',3]],treeD:2.8,
+    deco:[['farn',8],['blumenbusch',2],['hortensienbusch',2],['moospolster',3],['schilf',1.5]],decoD:8,
+    rocks:[['findling',.6],['stein',1]],rockD:.4,litter:[['ast',2],['champignon',1]]},
+  savanne:{n:'Savanne',g:['#D8C878','#C8B868'],cliff:'#C49366',pat:'gras',grass:'#D2C274',grassD:.6,
+    trees:[['doppelbaum',1],['baum',.6,{color:'#A8B858'}],['busch',1]],treeD:.35,
+    deco:[['duenengras',5],['grasbuesche',4],['wuestenblume',1],['rollbusch',1]],decoD:5,
+    rocks:[['findling',.6],['tafelfels',.25],['kiesel',1]],rockD:.4,litter:[['ast',1]]},
+  frostwiese:{n:'Frostwiese',g:['#EAF2FA','#D8E6F2'],cliff:'#9AA8C0',pat:'schnee',grass:'#DDE8F0',grassD:.3,
+    trees:[['schneetanne',2],['winterbirke',2],['schneebusch',2]],treeD:.9,
+    deco:[['schneehaufen',3],['gefrorener_busch',2],['kiesel',1]],decoD:3,rocks:[['eisfels',.6],['stein',1]],rockD:.5,litter:[['ast',1]]},
+  thermalquellen:{n:'Warme Quellen',g:['#9ED8B0','#86C8A0'],cliff:'#8A9AA8',pat:'gras',grass:'#8ED0A0',grassD:.8,
+    trees:[['winterbirke',1.5],['tanne',1.5]],treeD:.6,deco:[['moospolster',3],['farn',2],['pfuetze',2],['blume',1]],decoD:4,rocks:[['eisfels',.4],['findling',.5]],rockD:.4,litter:[['ast',1]]},
+  kaltwueste:{n:'Kalte Wüste',g:['#E8D8C8','#D8C4B0'],cliff:'#A88A78',pat:'sand',grass:null,grassD:0,
+    trees:[['totholz',1]],treeD:.25,deco:[['wuestenstein',3],['knochen_deko',1],['duenengras',1]],decoD:2,rocks:[['wuestenstein',2],['tafelfels',.3]],rockD:.6,litter:[['ast',1]]},
+  oasenwald:{n:'Oasenwald',g:['#8ED87A','#78C868'],cliff:'#C49366',pat:'gras',grass:'#86D070',grassD:.9,
+    trees:[['palme',4],['kokospalme_klein',2]],treeD:1.6,deco:[['oasenschilf',3],['farn',2],['wuestenblume',2]],decoD:5,rocks:[['wuestenstein',1]],rockD:.3,litter:[['ast',1]]},
+  nebelklippen:{n:'Nebelklippen',g:['#C8D4DC','#B8C4CC'],cliff:'#8A96A4',pat:'moos',grass:'#A8C0B8',grassD:.5,
+    trees:[['tanne',2],['birke',1]],treeD:.7,deco:[['moospolster',3],['farn',2],['muschel_deko',1]],decoD:3,rocks:[['felsen',.8],['findling',.6]],rockD:.7,litter:[['treibholz',1]]},
+  frostpilzwald:{n:'Frost-Pilzwald',g:['#D8E0F4','#C8D0EC'],cliff:'#8A86A8',pat:'schnee',grass:'#C8D4EC',grassD:.4,
+    trees:[['pilzbaum',2],['schneetanne',1.5]],treeD:1.1,deco:[['leuchtpilzgruppe',3],['schneehaufen',2]],decoD:4,rocks:[['eisfels',.5]],rockD:.4,litter:[['ast',1]]},
+  sporenglut:{n:'Sporenglut',g:['#E8A0C0','#D888B0'],cliff:'#8A5A7A',pat:'moos',grass:'#E0A0C8',grassD:.7,
+    trees:[['riesenpilz',2]],treeD:.8,deco:[['sporenkugel',3],['pilzranke',2],['leuchtpilzgruppe',3]],decoD:5,rocks:[['schwammfels',.8]],rockD:.4,litter:[['ast',.5]]},
+  lavaschrott:{n:'Lava-Schrott',g:['#C87A5A','#A86A58'],cliff:'#6E4A48',pat:'staub',grass:null,grassD:0,
+    trees:[['antennenbaum',.6]],treeD:.3,deco:[['schrotthaufen',2],['krater',1],['oel',1]],decoD:2,rocks:[['felsen',.8],['kristallfels',.3]],rockD:.6,litter:[['ast',.3]]},
+  eisschrott:{n:'Eis-Schrott',g:['#D8E4F0','#C4D4E8'],cliff:'#8A96B0',pat:'schnee',grass:null,grassD:0,
+    trees:[['antennenbaum',.8]],treeD:.4,deco:[['kristallfels',1],['schrotthaufen',1.5],['schneehaufen',1]],decoD:2,rocks:[['eisfels',.8]],rockD:.6,litter:[['ast',.3]]},
+  kabeldschungel:{n:'Kabel-Dschungel',g:['#7AC8A8','#68B898'],cliff:'#6E7A90',pat:'moos',grass:'#78C8A8',grassD:.8,
+    trees:[['antennenbaum',3],['kristallbaum',2]],treeD:1.8,deco:[['pilzranke',3],['moospolster',2],['schrotthaufen',1]],decoD:4,rocks:[['kristallfels',.6]],rockD:.4,litter:[['ast',.5]]},
   /* --- Kompost-Planet --- */
   wiese:{n:'Wiese',g:['#9ED872','#89CB62'],cliff:'#B98A5E',pat:'gras',grass:'#93D66C',grassD:1,
     trees:[['obstbaum',3],['eiche',2],['birke',1.2],['busch',2.5],['beerenstrauch',1]],treeD:.55,
@@ -199,8 +229,12 @@ function makePlanetFns(pid,extra){const def=PLANETS[pid];const seed={kompost:1,s
     return h}
   function roadDist(p){let rd=9;for(const[a,b]of roads)rd=Math.min(rd,distToArc(p,a,b));return rd}
   /* Biom aus Temperatur T, Feuchte M, Höhe h, Wassernähe */
+  const CLIMATE={kompost:{cold:'frostwiese',hot:'savanne',wet:'dschungel'},frost:{hot:'thermalquellen',wet:'thermalquellen'},wueste:{cold:'kaltwueste',wet:'oasenwald'},korallen:{cold:'nebelklippen',wet:'dschungel'},pilz:{cold:'frostpilzwald',hot:'sporenglut'},schrott:{cold:'eisschrott',hot:'lavaschrott',wet:'kabeldschungel'}};
   const PEAK={kompost:'schneefeld',schrott:'kristallfeld',korallen:'felsinsel',frost:'polarhuegel',wueste:'canyon',pilz:'moorwiese'};
-  function biomeAt(p,h){if(h===undefined)h=hAt(p);if(h>sea+6.5&&PEAK[pid]&&BIOMES[PEAK[pid]])return PEAK[pid];const T=N2(p.x*1.1+5,p.y*1.1,p.z*1.1),M=N3(p.x*1.25,p.y*1.25+3,p.z*1.25);const nearPond=places.some(pl=>pl.pond&&angle(p,pl.dir)<pl.r*2.2);const low=h<sea+.55;
+  function biomeAt(p,h){if(h===undefined)h=hAt(p);
+    /* Klimazonen: grosses Klimafeld (kalt / heiss) und Feuchte (Dschungel); das Dorf bleibt gemässigt */
+    {const ang=Math.acos(Math.max(-1,Math.min(1,p.y)));if(ang>vilR*2.1&&h>sea+.25){const Cl=N(p.x*.9+21,p.y*.9-7,p.z*.9+3)*.8+N2(p.x*2.2+4,p.y*2.2,p.z*2.2)*.2;const Wt=N3(p.x*1.6-9,p.y*1.6+2,p.z*1.6);const Z=CLIMATE[pid];
+      if(Z){if(Cl<-.24&&Z.cold)return Z.cold;if(Cl>.26&&Z.hot)return Z.hot;if(Wt>.22&&Z.wet&&h<sea+5)return Z.wet}}}if(h>sea+6.5&&PEAK[pid]&&BIOMES[PEAK[pid]])return PEAK[pid];const T=N2(p.x*1.1+5,p.y*1.1,p.z*1.1),M=N3(p.x*1.25,p.y*1.25+3,p.z*1.25);const nearPond=places.some(pl=>pl.pond&&angle(p,pl.dir)<pl.r*2.2);const low=h<sea+.55;
     switch(pid){
       case 'kompost':if(low&&h<sea+.45&&!nearPond)return'strand';if(nearPond||M>.32)return'sumpf';if(T>.28)return'kirschhain';if(T<-.3)return'herbstwald';if(M<-.18)return'wald';if(M>.1&&T>0)return'blumenfeld';return'wiese';
       case 'schrott':if(T>.15)return'kristallfeld';if(M>.2||nearPond)return'gluehwald';return'schrottebene';
