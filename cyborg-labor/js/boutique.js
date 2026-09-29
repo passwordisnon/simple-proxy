@@ -11,8 +11,9 @@ const BOUTIQUE=(()=>{
   const NM='Monsieur Boulon';const VOICE={pitch:230,kind:'robot',speed:1.05};const COL='#D8708E';
   const FR=['Bonjour, mon ami!','Oh là là, quelle élégance!','Magnifique!','Très chic!','Voilà!','Formidable!','C’est parfait!','Merci beaucoup!'];
   const fr=()=>FR[Math.floor(Math.random()*FR.length)];
-  const boulon=()=>({name:NM,body:{seg:1,size:1,skin:'chrom',color:16,shape:'glocke',pattern:'keine',color2:16},parts:{kopf:'ei',augen:'kulleraugen',arme:'greifarme',beine:'roboterbeine',extras:[]},
-    clothes:{hat:'baskenmuetze',neck:'fliege',face:'schnurrbart',col:{hat:12,neck:12,face:3},more:[['face','monokel']]}});
+  /* niedlicher Retro-Fernseher-Roboter: Antennen, grosse Kulleraugen auf dem Bildschirm, Schnurrbart, Baskenmütze, Ringelshirt, Fliege, Monokel */
+  const boulon=()=>({name:NM,body:{seg:1,size:1,skin:'plastik',color:15,shape:'ei',pattern:'bauch',color2:16},parts:{kopf:'roehre',augen:'kulleraugen',arme:'mensch',beine:'mensch',extras:[]},
+    clothes:{hat:'baskenmuetze',top:'ringelshirt',neck:'fliege',face:'schnurrbart',col:{hat:12,top:13,neck:12,face:3},more:[['face','monokel']]}});
   const pid=()=>(GAME.G&&GAME.G.id)||'kompost';
   /* ---------- Bausatz-Teile ---------- */
   function kput(sc,pk,nm,x,y,z,ry,s,pal){if(typeof KIT==='undefined'||!KIT.has(pk,nm))return null;const b=KIT.bounds(pk,nm);const m=KIT.mesh(pk,nm,pal||KIT.ORIG);const g=new THREE.Group();
@@ -41,7 +42,7 @@ const BOUTIQUE=(()=>{
     /* Kleiderstangen links und rechts */
     for(const[x,z,ry]of[[-4.2,-2.2,PI/2],[-4.2,1.2,PI/2],[4.1,1.4,-PI/2]]){const g=rack(M,[0,1,2,3,4,5].map(i=>pcols[(i+Math.floor(r()*9))%pcols.length]||SKIN_COLORS[i*3%18]),r);g.position.set(x,0,z);g.rotation.y=ry;sc.add(g);C.push({x0:x-.4,x1:x+.4,z0:z-1.05,z1:z+1.05});A.push({x:x+(x<0?1:-1),z,r:1.4,label:'Kollektion ansehen',act:()=>shop()})}
     /* Hutständer vorn am Schaufenster */
-    hats.slice(0,4).forEach((it,i)=>{const g=hatStand(M,it,it.col);g.position.set(-1.6+i*1.1,0,3.3);sc.add(g);C.push({x0:-1.8+i*1.1,x1:-1.4+i*1.1,z0:3.1,z1:3.5})});A.push({x:0,z:2.5,r:1.8,label:'Hüte anschauen',act:()=>shop('hat')});
+    /* Hut-Ecke rechts vorn (nicht im Eingang) */const HP=[[2.2,2.1],[3.1,2.7],[2.2,3.4],[3.1,3.95]];hats.slice(0,4).forEach((it,i)=>{const[x,z]=HP[i];const g=hatStand(M,it,it.col);g.position.set(x,0,z);g.rotation.y=-.6;sc.add(g);C.push({x0:x-.22,x1:x+.22,z0:z-.22,z1:z+.22})});A.push({x:1.5,z:2.8,r:1.5,label:'Hüte anschauen',act:()=>shop('hat')});
     /* Schaufensterpuppen im Planeten-Look */
     const shapes=['ei','birne','glocke'];for(let i=0;i<3;i++){const m=mannequin(M,CLOTHES.random(srand(i*31+pid().length),pid()),shapes[i]);m.position.set(-1.9+i*1.9,0,-3.1);m.rotation.y=(i-1)*-.25;sc.add(m);C.push({x0:-2.35+i*1.9,x1:-1.45+i*1.9,z0:-3.55,z1:-2.65})}
     /* Regal mit gefalteten Pullis, Sofa, Pflanzen, Teppich, Lampen (Kenney-Möbel) */
