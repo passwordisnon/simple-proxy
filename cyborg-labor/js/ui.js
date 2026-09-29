@@ -75,10 +75,11 @@ UI.closeTop=()=>{const w=openWins[openWins.length-1];if(w){w.close();return true
 UI.talk=function(name,lines,o){o=o||{};return new Promise(res=>{
   const box=$('talk'),txt=$('talkText'),nm=$('talkName'),more=$('talkMore'),ch=$('talkChoices');box.hidden=false;nm.textContent=name;nm.style.background=o.color||'var(--pink)';ch.replaceChildren();
   let i=0,typing=null,full='';
-  const show=()=>{full=lines[i];txt.textContent='';more.hidden=true;let k=0;SND.voice(full,o.voice||{});clearInterval(typing);
-    typing=setInterval(()=>{k+=2;txt.textContent=full.slice(0,k);if(k>=full.length){clearInterval(typing);typing=null;done()}},28)};
+  const plain=h=>o.html?h.replace(/<[^>]+>/g,''):h;
+  const show=()=>{full=lines[i];txt.textContent='';more.hidden=true;let k=0;const pf=plain(full);SND.voice(pf,o.voice||{});clearInterval(typing);
+    typing=setInterval(()=>{k+=2;txt.textContent=pf.slice(0,k);if(k>=pf.length){clearInterval(typing);typing=null;if(o.html)txt.innerHTML=full;done()}},28)};
   const done=()=>{if(i<lines.length-1||!o.choices){more.hidden=false;return}ch.replaceChildren(...o.choices.map((c,ci)=>{const b=el('button',null,c);b.type='button';b.onclick=e=>{e.stopPropagation();finish(ci)};return b}));ch.querySelector('button')?.focus()};
-  const adv=()=>{if(typing){clearInterval(typing);typing=null;txt.textContent=full;done();return}if(o.choices&&i===lines.length-1)return;if(i<lines.length-1){i++;SND.play('pep',{vol:.25});show()}else finish(-1)};
+  const adv=()=>{if(typing){clearInterval(typing);typing=null;if(o.html)txt.innerHTML=full;else txt.textContent=full;done();return}if(o.choices&&i===lines.length-1)return;if(i<lines.length-1){i++;SND.play('pep',{vol:.25});show()}else finish(-1)};
   const finish=r=>{UI._talkEnd=null;box.hidden=true;box.onclick=null;document.removeEventListener('keydown',kd,true);ch.replaceChildren();res(r)};
   const kd=e=>{if(['Enter',' ','e','E'].includes(e.key)&&!ch.children.length){e.preventDefault();e.stopPropagation();adv()}else if(e.key==='Escape'){e.stopPropagation();finish(-1)}
     else if(ch.children.length&&/^[1-9]$/.test(e.key)){const b=ch.children[+e.key-1];if(b){e.stopPropagation();b.click()}}};

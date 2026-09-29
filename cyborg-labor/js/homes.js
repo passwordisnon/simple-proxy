@@ -46,7 +46,7 @@ const HOMES=(()=>{
       const rot=(x,z)=>[-x*U,-z*U];const[dx,dz]=rot(res.door[0],res.door[1]);Object.assign(g.userData,{door:[dx,0,dz],doorExact:true,obstR:.3,r:res.bodyR*U,colliders:res.colliders.map(c=>[...rot(c[0],c[1]),c[2]*U]),style:res.style});
       if(res.sign){try{const[sx,sz]=rot(res.sign[0],res.sign[1]);const sg=grp(g,[sx,0,sz]);bt(sg,[0,0,0],[0,.9,0],.05,M.c('#A0704C'));P(sg,G.bx(1.05,.36,.08,.05),M.c('#FFFBF0'),[0,1.0,0]);
         const tx=ctex('nameplate-'+pl.who,256,90,(x,w2,hh)=>{x.fillStyle='#FFFBF0';x.fillRect(0,0,w2,hh);x.fillStyle='#5B4A3E';x.font='bold 34px "Nunito","Trebuchet MS",sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(pl.whoName.slice(0,14),w2/2,hh/2+2)});
-        P(sg,G.pl(.98,.32),M.tex('np-'+pl.who,tx),[0,1.0,.045])}catch(e){}}
+        const lt=typeof LANG!=='undefined'?LANG.signTex(GAME.G.id,'np-'+pl.who,pl.whoName,{h:.33}):null;P(sg,G.pl(.98,.32),lt?new THREE.MeshBasicMaterial({map:lt}):M.tex('np-'+pl.who,tx),[0,1.0,.045]);g.userData.signPos=[sx,sz];g.userData.signText='Haus von '+pl.whoName+'. Willkommen, Freund!'}catch(e){}}
       return g}
     const res=ARCH.forHouse(GAME.G.id,seed);g.add(res.g);const[dx,dz]=res.door;Object.assign(g.userData,{door:[dx,0,dz],r:res.r,tick:res.g.userData.tick});
     try{const sg=grp(g,[dx+(dx>0?-1.5:1.5),0,dz-.3]);bt(sg,[0,0,0],[0,.9,0],.05,M.c('#A0704C'));P(sg,G.bx(1.05,.36,.08,.05),M.c('#FFFBF0'),[0,1.0,0]);

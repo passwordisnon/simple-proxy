@@ -70,7 +70,7 @@ const LIFE=(()=>{
   function save(e){SAVE.life=SAVE.life||{};SAVE.life[e.d.id]={log:e.life.log.slice(-8),want:e.life.want,bd:e.life.birthday};persist()}
   const has=(L,t)=>L.traits.includes(t);
   function relP(e){return SAVE.friendship[e.d.id]||0}/* 0..100 zur Spielfigur */
-  function addRel(e,n){SAVE.friendship[e.d.id]=Math.max(-50,Math.min(100,(SAVE.friendship[e.d.id]||0)+n));persist()}
+  function addRel(e,n){if(n>0&&e.d.native&&typeof LANG!=='undefined')n*=LANG.bonus(GAME.G.id);SAVE.friendship[e.d.id]=Math.max(-50,Math.min(100,(SAVE.friendship[e.d.id]||0)+n));persist()}
   function relLabel(v){return v<-20?'Streit':v<5?'Bekannte':v<25?'Freundlich':v<50?'Befreundet':v<80?'Gute Freundschaft':'Beste Freundschaft'}
   function moodlet(e,emo,w,sec,why){const L=e.life;L.moodlets=L.moodlets.filter(m=>m.why!==why);L.moodlets.push({emo,w,t:sec,why})}
   function logDay(e,txt){const L=e.life;const h=new Date();L.log.push(String(h.getHours()).padStart(2,'0')+':'+String(h.getMinutes()).padStart(2,'0')+' '+txt);if(L.log.length>12)L.log.shift();save(e)}
@@ -161,7 +161,9 @@ const LIFE=(()=>{
     if(L.act&&!L.act.with){L.act=null}const voice=()=>Object.assign({},GAME.voiceFor(e.d),{mood:EMO[L.emo].voice});const nm=e.d.name||'Namenlos';SAVE.stats.talks++;
     const col='#'+new THREE.Color(SKIN_COLORS[e.d.body.color]||'#8C6FE0').getHexString();
     const first=[pick(PERS[L.pers].hi)+' '+L.catch+'!'];if(L.emo!=='ausgeglichen')first.push(`(${nm} ist gerade ${EMO[L.emo].n}.)`);
-    await UI.talk(nm,first,{voice:voice(),color:col});
+    const LG=e.d.native&&typeof LANG!=='undefined'&&LANG.has(GAME.G.id);if(LG){first[0]=LANG.garble(GAME.G.id,first[0],true);const f=LANG.frac(GAME.G.id);first.push(f<.15?`(Du verstehst kaum etwas. An Wortsteinen und Schildern lernst du ${LANG.STYLE[GAME.G.id].n}.)`:f<.5?'(Du verstehst schon einiges – '+nm+' freut sich, dass du es versuchst.)':'('+nm+' strahlt: Du sprichst fast fliessend '+LANG.STYLE[GAME.G.id].n+'!)');
+      if(Math.random()<.3){const w=LANG.learn(GAME.G.id);if(w)first.push(nm+' bringt dir ein Wort bei: <b class="lw">'+LANG.alien(GAME.G.id,w)+'</b> = '+w+'.')}}
+    await UI.talk(nm,first,{voice:voice(),color:col,html:LG});
     let open=true;while(open&&!UI.anyOpen()){const choice=await menu(e);if(!choice){open=false;break}const res=await choice(e,voice,nm,col);if(res==='end')open=false}
     persist();e.talking=false;e.stop=1.5;e.lookAt=null;e.dir.copy(old)}
   function menu(e){return new Promise(res=>{const L=e.life;const nm=e.d.name||'Namenlos';const w=UI.win(nm,{size:'narrow',onClose:()=>res(null)});
@@ -179,7 +181,7 @@ const LIFE=(()=>{
     for(const[cn,ic,list]of cats){const box=el('div','scat');const h=el('div','scat-h');h.innerHTML=ICON(ic)+' '+cn;box.append(h);const g=el('div','scat-b');
       for(const[label,fn,need]of list){const b=btn(label,'small');if(need&&relP(e)<need){b.disabled=true;b.title='Erst ab mehr Freundschaft'}b.onclick=()=>{res(fn);w.close()};g.append(b)}box.append(g);w.body.append(box)}
     w.foot.append(btn('Fertig',null,()=>{w.close()}))})}
-  const talk=(e,voice,nm,col,lines,o)=>UI.talk(nm,lines,Object.assign({voice:voice(),color:col},o||{}));
+  const talk=(e,voice,nm,col,lines,o)=>{const L=e.d.native&&typeof LANG!=='undefined'&&LANG.has(GAME.G.id);return UI.talk(nm,L?lines.map(l=>LANG.garble(GAME.G.id,l,true)):lines,Object.assign({voice:voice(),color:col,html:L},o||{}))};
   function react(e,good,big){const d=big?(good?6:-8):(good?3:-4);addRel(e,d);UI.toast((d>0?'+':'')+d+' Beziehung');if(good){doEmote(e,pick(['freude','lachen','herz']),true);moodlet(e,'froh',1,60,'nett von '+(SAVE.nick||'dir'))}else{doEmote(e,pick(['wuetend','traurig']),true);moodlet(e,good===false?'wuetend':'traurig',1.2,60,'Ärger mit '+(SAVE.nick||'dir'))}}
   const mod=e=>{const L=e.life;let m=0;if(['froh','verspielt','energie'].includes(L.emo))m+=.15;if(['wuetend','muede','traurig'].includes(L.emo))m-=.2;m+=relP(e)/300;return m};
   async function chat(e,voice,nm,col){doEmote(GAME.me,'winken',true);const tp=pick(TOPICS);const ok=Math.random()<.7+mod(e);e.life.needs.social=Math.min(100,e.life.needs.social+25);

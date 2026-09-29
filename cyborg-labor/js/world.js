@@ -34,7 +34,7 @@ const GAME=(()=>{
       const st=new THREE.Points(sg,new THREE.PointsMaterial({color:'#fff6e0',size:1.8,transparent:true,opacity:0,fog:false}));sc.add(st);G_.stars=st}
     Object.assign(G_,{scene:sc,sun,hemi,fill,inter:[],lights:[],clouds:[],ticks:[],trees:[],rocks:[]});
     SCATTER.reset(sc,Rr,M);
-    buildPlaces();scatterWorld();buildGrass();buildClouds();buildBall();buildWeather();SCATTER.finalize();
+    buildPlaces();buildStones();scatterWorld();buildGrass();buildClouds();buildBall();buildWeather();SCATTER.finalize();
     cam.far=Rr*6+500;cam.updateProjectionMatrix();
     comp=makeComposer(R,sc,cam);scene=sc;return sc}
 
@@ -112,6 +112,11 @@ const GAME=(()=>{
       if(y<-4)y+=16;if(y>12)y-=16;if(x>20)x-=40;if(x<-20)x+=40;if(z>20)z-=40;if(z<-20)z+=40;a.setXYZ(i,x,y,z)}a.needsUpdate=true;
     W_.pts.position.copy(base);W_.pts.quaternion.setFromUnitVectors(UPV,up)}
   /* ---------- Gebäude & Orte ---------- */
+  /* Wortsteine (fremde Ruinen): bringen je ein Wort der Planetensprache bei */
+  function buildStones(){if(typeof LANG==='undefined'||!LANG.has(G_.id))return;const r=srand(hashStr('stones'+G_.id).length*313+7);const seen=SAVE.stones||{};let n=0;
+    for(let i=0;i<400&&n<7;i++){const p=randLand(r,G_.sea+.4);if(!p||nearPlace(p,1.6))continue;if(G_.places.some(pl=>pl.dir.angleTo(p)*G_.R<9))continue;const id=G_.id+'-st'+n;
+      const g=LANG.stoneModel(G_.id,M);addOutlines(g);placeObj(g,p,r()*TAU,-.05);G_.scene.add(g);G_.ticks.push(g);addObst(p,.8);const st={id,used:!!seen[id]};
+      G_.inter.push({kind:'stone',p,r:2,label:'Wortstein lesen',act:()=>LANG.stone(G_.id,st)});n++}}
   function buildPlaces(){for(const pl of G_.places){if(!pl.build)continue;const g=new THREE.Group();let obj=null;
       QF=HIGH?.7:.42;try{
         if(pl.build==='plaza')obj=buildPlaza(pl);
@@ -136,7 +141,8 @@ const GAME=(()=>{
       const label={museum:'Museum betreten',shop:'Laden betreten',studio:'Malen',rocket:'Reisen',house:'Nach Hause'}[pl.build];if(label)G_.inter.push({kind:pl.build,place:pl,p:dp,r:2.2,label});
       const nm=obj.userData.name||'';const ext={bar:['Jazz-Bar betreten',()=>BUILDINGS.enter('bar')],rathaus:['Rathaus betreten',()=>BUILDINGS.enter('rathaus')],garage:['Raketen-Garage',()=>BUILDINGS.garage()],pflanzen:['Gärtnerei',()=>BUILDINGS.plants()],tiere:['Tierhandlung',()=>BUILDINGS.pets()]}[pl.build];
       if(ext)G_.inter.push({kind:pl.build,place:pl,p:dp,r:2.2,label:ext[0]+(nm?' · '+nm:''),act:ext[1]});
-      if(pl.build==='residence')G_.inter.push({kind:'home',place:pl,p:dp,r:2,label:'Bei '+pl.whoName+' klingeln',act:()=>HOMES.knock(pl)})}
+      if(pl.build==='residence')G_.inter.push({kind:'home',place:pl,p:dp,r:2,label:'Bei '+pl.whoName+' klingeln',act:()=>HOMES.knock(pl)})
+      if(obj.userData.signPos&&typeof LANG!=='undefined'){const sp=g.localToWorld(new V3(obj.userData.signPos[0],0,obj.userData.signPos[1]+.5)).normalize();const txt=obj.userData.signText;G_.inter.push({kind:'sign',place:pl,p:sp,r:1.3,label:'Schild lesen',act:()=>LANG.read(G_.id,txt)})}}
     if(G_.id==='kompost'&&G_.houseObj){}
   }
   /* Kinder einer flachen Gruppe einzeln auf die gekrümmte Oberfläche setzen (sonst schweben sie am Rand) */
@@ -164,7 +170,7 @@ const GAME=(()=>{
       goal:null,idleT:Math.random()*3,height:(g.userData.height||3)*CS,marked:0,energy:.8,home:p.clone(),speed:0,step:0,hidden:abs.some(a=>ABIL[a].flag==='hidden')};
     if(scene){scene.add(g);scene.add(shadow)}ents.set(d.id,e);return e}
   function dropEnt(id){const e=ents.get(id);if(!e)return;if(e.g.parent)e.g.parent.remove(e.g);if(e.shadow.parent)e.shadow.parent.remove(e.shadow);disposeTree(e.g);e.lbl.remove();e.bub.remove();ents.delete(id)}
-  function say(e,txt,sec,emote){if(!e)return;txt=String(txt);if(txt.startsWith('icon:')){e.bub.innerHTML=ICON(txt.slice(5));emote=true}else e.bub.textContent=txt;e.bub.classList.toggle('emote',!!emote);e.bub.hidden=false;e.sayT=sec||3.2}
+  function say(e,txt,sec,emote){if(!e)return;txt=String(txt);if(e.d&&e.d.native&&typeof LANG!=='undefined'&&!txt.startsWith('icon:'))txt=LANG.garble(G_.id,txt);if(txt.startsWith('icon:')){e.bub.innerHTML=ICON(txt.slice(5));emote=true}else e.bub.textContent=txt;e.bub.classList.toggle('emote',!!emote);e.bub.hidden=false;e.sayT=sec||3.2}
 
   /* ---------- Spieler ---------- */
   let me=null;const input={x:0,y:0,run:false,joy:null};let camYaw=0,camPitch=.42,camDist=8.5,camF=new V3(1,0,0);let tapTarget=null;

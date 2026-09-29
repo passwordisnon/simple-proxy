@@ -832,7 +832,7 @@ function gableRoof(g,m,bw,bd,Hb,col,p,ov){const hw=bw/2,ridge=Hb+hw*Math.tan(p),
   P(g,G.cy(.13,.13,D+.06),m.c(darker(col,.78)),[0,ridge+.16,0],[PI/2,0,0]);return ridge}
 function gableFill(g,m,mat,bw,bd,Hb,p){const hw=bw/2,ridge=Hb+hw*Math.tan(p);both(s=>P(g,G.ex(shp([[-hw,0],[hw,0],[0,ridge-Hb]]),.12),mat,[0,Hb,s>0?bd/2-.12:-bd/2]))}
 function signBoard(g,m,key,text,w,h,p,o){o=o||{};const s=grp(g,p,o.rot);B(s,w,h,.12,Math.min(.08,h*.3),o.board||Wd(m,PAL.wood),[0,0,0]);
-  decal(s,m,signTex(key,text,{bg:o.bg||PAL.cream,fg:o.fg||PAL.ink,bd:o.bd,w:o.tw||512,h:Math.round((o.tw||512)*h/w),glow:o.glow,border:o.border}),'sg-'+key,w-.14,h-.12,[0,0,.065],null,o.lit);return s}
+  decal(s,m,o.tex||signTex(key,text,{bg:o.bg||PAL.cream,fg:o.fg||PAL.ink,bd:o.bd,w:o.tw||512,h:Math.round((o.tw||512)*h/w),glow:o.glow,border:o.border}),'sg-'+key,w-.14,h-.12,[0,0,.065],null,o.lit);return s}
 function awning(g,m,w,d,y,z,a,b,n){const t=stripeTex('aw'+a+b,a,b,n||8,true);const mt=m.tex('aw'+a+b,rtex(t,1,1));const aw=grp(g,[0,y,z],[.42,0,0]);B(aw,w,.06,d,.03,mt,[0,0,d/2]);
   const k=Math.round(w/.3);for(let i=0;i<k;i++){const x=-w/2+(i+.5)*w/k;P(aw,G.cy(w/k/2,w/k/2,.05),m.c(i%2?a:b),[x,-.02,d],[PI/2,0,0],[1,1,1]).rotation.set(0,0,0)}
   for(let i=0;i<k;i++){const x=-w/2+(i+.5)*w/k;P(aw,G.hs(w/k/2),m.c(i%2?b:a),[x,-.03,d],[PI,0,0],[1,.25,.7])}return aw}
