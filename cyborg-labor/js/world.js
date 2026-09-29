@@ -272,7 +272,7 @@ const GAME=(()=>{
     for(const it of REPAIR.targets())consider(it.p,it.r,it);
     if(!best){const f=ACT.waterAhead(me);if(f)best={kind:'fish',label:'Angel auswerfen',p:f}}
     return best}
-  function doAction(){if(mode==='space'){if(!UI.anyOpen())SPACE.action();return}if(!me||UI.anyOpen()||ACT.busy())return;const t=promptTarget;SND.init();
+  function doAction(){if(mode==='space'){if(!UI.anyOpen())SPACE.action();return}if(launchT)return;if(!me||UI.anyOpen()||ACT.busy())return;const t=promptTarget;SND.init();
     if(!t){if(ACT.busy())return;me.emote='hop';me.jump=.9;return}
     switch(t.kind){case 'talk':talkTo(t.ent);break;case 'tree':ACT.shake(t.ref);break;case 'rock':ACT.hitRock(t.ref);break;case 'fish':ACT.fish(t.p);break;
       case 'shop':BUILDINGS.enter('shop');break;case 'museum':INTERIOR.enter('museum');break;case 'house':INTERIOR.enter('house');break;case 'studio':PAINT.open();break;case 'rocket':travelMenu();break;
@@ -325,12 +325,20 @@ const GAME=(()=>{
     letters.forEach(l=>{const b=el('div','pcard');b.append(el('b',null,'Von: '+l.from),el('span',null,l.t));w.body.append(b)});SND.play('page')}
 
   /* ---------- Reisen ---------- */
-  function travel(pid){const pl=G_.places.find(p=>p.build==='rocket');const rk=pl&&pl.obj&&pl.obj.children[0]&&pl.obj.children[0].userData.rocket;
-    if(rk&&me){launchT={rk,t:0,pid,base:rk.position.y};me.g.visible=false;me.shadow.visible=false;SND.play('powerup');UI.toast('3 … 2 … 1 … Start!');return}
-    doTravel(pid)}
+  function travel(pid){if(launchT)return;const pl=G_.places.find(p=>p.build==='rocket');const rk=pl&&pl.obj&&pl.obj.children[0]&&pl.obj.children[0].userData.rocket;
+    if(rk&&me){tapTarget=null;launchT={rk,pl,t:0,ph:0,pid,base:rk.position.y,from:me.p.clone(),busy:true};SND.play('door');return}
+    if(pid==='__space')fadeOut(()=>SPACE.enter(G_.id));else doTravel(pid)}
   let launchT=null;
-  function stepLaunch(dt){const L=launchT;if(!L)return;L.t+=dt;L.rk.position.y=L.base+Math.max(0,L.t-.6)*Math.max(0,L.t-.6)*9;L.rk.rotation.y+=dt*2;const pl=G_.places.find(p=>p.build==='rocket');if(pl&&Math.random()<.8)W.fx(pl.dir,pick(['rauch','funke','dampf']),2,pl.obj.localToWorld(new V3(0,L.rk.position.y,0)));camDist=Math.min(22,camDist+dt*4);
-    if(L.t>2.6){launchT=null;L.rk.position.y=L.base;me.g.visible=true;me.shadow.visible=true;if(L.pid==='__space')fadeOut(()=>SPACE.enter(G_.id));else doTravel(L.pid)}}
+  /* Einsteigen → Countdown → Start: Figur läuft zur Rakete, steigt ein, Kamera folgt dem Start */
+  function stepLaunch(dt){const L=launchT;if(!L)return;L.t+=dt;const pl=L.pl;
+    try{if(L.ph===0){/* zur Luke laufen */const k=Math.min(1,L.t/1.4);const q=L.from.clone().lerp(pl.dir,k).normalize();me.p.copy(q);const to=tangentTo(me.p,pl.dir.clone().sub(me.p));if(isFinite(to.x)&&to.lengthSq()>1e-8)me.dir.copy(to.normalize());me.speed=3.5;
+        if(k>.75){const s=Math.max(.01,1-(k-.75)/.25);me.g.scale.multiplyScalar(s)}
+        if(k>=1){L.ph=1;L.t=0;me.g.visible=false;me.shadow.visible=false;me.speed=0;SND.play('powerup');UI.toast('3 … 2 … 1 … Start!',2200)}return}
+      L.rk.position.y=L.base+Math.max(0,L.t-.9)*Math.max(0,L.t-.9)*7;L.rk.rotation.y+=dt*(L.t>.9?2.5:.4);if(L.t<.9)L.rk.position.x=(Math.random()-.5)*.06;
+      if(Math.random()<.85)W.fx(pl.dir,pick(['rauch','funke','dampf']),2,pl.obj.localToWorld(new V3(0,Math.max(.3,L.rk.position.y-.6),0)));
+      camDist=Math.min(22,camDist+dt*5);camPitch=Math.max(camPitch-dt*.15,.12);
+      if(L.t>3){launchT=null;L.rk.position.set(0,L.base,0);me.g.visible=true;me.shadow.visible=true;me.p.copy(L.from);if(L.pid==='__space')fadeOut(()=>SPACE.enter(G_.id));else doTravel(L.pid)}}
+    catch(err){console.warn('Start',err);launchT=null;me.g.visible=true;me.shadow.visible=true;if(L.pid==='__space')fadeOut(()=>SPACE.enter(G_.id));else doTravel(L.pid)}}
   function doTravel(pid){fadeOut(async()=>{SND.play('whoosh');await arrive(pid)})}
   function landOn(pid){fadeOut(async()=>{mode='outdoor';SND.play('whoosh');await arrive(pid)})}
   /* Ankunft: neben der Raketenstation; auf neuen Planeten (und manchmal sonst) gibt es eine Bruchlandung */
@@ -379,7 +387,7 @@ const GAME=(()=>{
     /* Spieler-Eingabe */
     let ix=(keys['d']||keys['arrowright']?1:0)-(keys['a']||keys['arrowleft']?1:0),iy=(keys['w']||keys['arrowup']?1:0)-(keys['s']||keys['arrowdown']?1:0);
     if(input.joy){ix=input.joy.x;iy=input.joy.y}if(keys['q'])camYaw+=dt*1.8;if(keys['c'])camYaw-=dt*1.8;
-    const busy=UI.anyOpen()||ACT.busy();if(busy){ix=0;iy=0}
+    const busy=UI.anyOpen()||ACT.busy()||!!launchT;if(busy){ix=0;iy=0}
     if(me){camF.copy(tangentTo(me.p,camF));if(!isFinite(camF.x))camF=tangentTo(me.p,new V3(1,0,0));if(Math.abs(camYaw)>1e-4){camF.applyAxisAngle(me.p,camYaw*.0+0);}
       const cf=camF.clone().applyAxisAngle(me.p,camYaw);const cr=new V3().crossVectors(cf,me.p).normalize();
       let mvv=cf.clone().multiplyScalar(iy).addScaledVector(cr,ix);let mag=Math.min(1,Math.hypot(ix,iy));
@@ -391,7 +399,7 @@ const GAME=(()=>{
       if(spd>0&&!me.move.alt){stepT-=dt*spd*.55;if(stepT<=0){stepT=1;if(run&&Math.random()<.7)W.fx(me.p,'staub',2,onSurf(me.p,.15));const h=G_.hAt(me.p);if(h>G_.sea+.05)SND.play(h<G_.sea+.4?'step_grass':'step_grass',{vol:.28,jitter:.15});else SND.play('soft',{vol:.2,rate:1.4,jitter:.2})}}
       SAVE.lastPos={planet:G_.id,p:[+me.p.x.toFixed(4),+me.p.y.toFixed(4),+me.p.z.toFixed(4)]}}
     /* Figuren */
-    for(const e of ents.values()){if(e===me||e.kind==='peer'){}else stepVillager(e,dt,t);if(e.kind==='peer')SOCIAL.stepPeer(e,dt)}
+    for(const e of ents.values()){try{if(e===me||e.kind==='peer'){}else stepVillager(e,dt,t);if(e.kind==='peer')SOCIAL.stepPeer(e,dt)}catch(err){if(!e.errLogged){e.errLogged=1;console.warn('Figur',e.d&&e.d.id,err)}}}
     const camP=cam.position.clone().normalize();for(const e of ents.values()){const vis=overview?e.p.dot(camP)>.1:e===me||(e.p.dot(camP)>.55&&angle(e.p,me?me.p:e.p)*G_.R<40);e.g.visible=vis;e.shadow.visible=vis;if(vis)poseEnt(e,dt,t)}
     stepProps(dt,t);stepParts(dt);stepClouds(dt);SCATTER.step(dt);stepWeather(dt,t);if(G_.groundU)G_.groundU.uT.value=t;SCATTER.update(overview?cam.position.clone().normalize():(me?me.p:UPV),t,HIGH);stepBall(dt);stepLaunch(dt);for(const o of G_.ticks){try{o.userData.tick(t,false,0)}catch(e){}}
     if(me){if(me.boost>0)me.boost-=dt;if(me.glitter>0){me.glitter-=dt;if(Math.random()<dt*6)W.fx(me.p,'funke',1,me.g.position.clone().addScaledVector(me.p,.8+Math.random()*.6))}}

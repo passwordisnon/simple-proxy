@@ -61,7 +61,7 @@ const LIFE=(()=>{
   const dU=(a,b)=>a.angleTo(b)*R();
   const hour=()=>{const d=new Date();return d.getHours()+d.getMinutes()/60};
   /* ---------- Persönlichkeit aus der Figur ableiten (stabil je id) ---------- */
-  function seedOf(d){return parseInt(hashStr(d.id||d.name||'x').slice(0,6),36)}
+  function seedOf(d){return (parseInt(hashStr(String(d.id||d.name||'x')).slice(0,6),36)%2000000000)+1}
   function makeLife(e){const d=e.d;const r=srand(seedOf(d));const tk=Object.keys(TRAITS);const t1=tk[Math.floor(r()*tk.length)];let t2=tk[Math.floor(r()*tk.length)];if(t2===t1)t2=tk[(tk.indexOf(t1)+5)%tk.length];
     const hk=Object.keys(HOBBIES);const hobby=hk[Math.floor(r()*hk.length)];const pk=t1==='hitzkopf'||t2==='hitzkopf'?'grummelig':t1==='sportlich'?'sportlich':t1==='gemuetlich'?'gemuetlich':t1==='froehlich'?'fröhlich':['normal','schick','schwesterlich'][Math.floor(r()*3)];
     const needs={};for(const k in NEEDS)needs[k]=45+r()*50;const saved=SAVE.life&&SAVE.life[d.id];
@@ -138,7 +138,8 @@ const LIFE=(()=>{
     const cand=pool.concat(['apfel','beeren','champignon','muschel','kiesel']).filter(id=>ITEMS.some(i=>i.id===id));const id=pick(cand);L.want={id,since:Date.now()};save(e);return L.want}
   /* ---------- Schritt je Frame ---------- */
   function tick(e,dt,t){const L=e.life||makeLife(e);const dec=dt*(V_()&&GAME.mode==='outdoor'?1:.3);
-    for(const k in NEEDS){let m=1;for(const tr of L.traits){const d=TRAITS[tr].dec;if(d&&d[k])m*=d[k]}if(L.act&&L.act.started&&L.act.a.ad[k]>0)continue;L.needs[k]=Math.max(0,L.needs[k]-NEEDS[k].dec*m*dec*(e.sleeping?.2:1))}
+    if(!L.ok){L.traits=L.traits.map((t,i)=>TRAITS[t]?t:['froehlich','neugierig'][i%2]);if(!HOBBIES[L.hobby])L.hobby=Object.keys(HOBBIES)[0];L.ok=1}
+    for(const k in NEEDS){let m=1;for(const tr of L.traits){const d=(TRAITS[tr]||{}).dec;if(d&&d[k])m*=d[k]}if(L.act&&L.act.started&&L.act.a.ad[k]>0)continue;L.needs[k]=Math.max(0,L.needs[k]-NEEDS[k].dec*m*dec*(e.sleeping?.2:1))}
     for(const m of L.moodlets)m.t-=dt;L.moodlets=L.moodlets.filter(m=>m.t>0);L.emoT+=dt;
     L.evalT=(L.evalT||0)-dt;if(L.evalT<=0){L.evalT=2;evalEmo(e)}
     if(L.act){if(L.act.started){L.act.t-=dt;L.act.a.tick&&L.act.a.tick(e,t);if(L.act.t<=0)finish(e)}else{L.act.wait=(L.act.wait||0)+dt;if(L.act.wait>40){L.act=null;e.goal=null}}}

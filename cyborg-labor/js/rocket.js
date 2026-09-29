@@ -120,8 +120,8 @@ const REPAIR=(()=>{
 
 /* =================== Flug durchs Sonnensystem =================== */
 const SPACE=(()=>{
-  const V=THREE.Vector3;let sc=null,cam=null,ship=null,sun=null,planets=[],belt=null,dust=[],on=false,vel=new V(),yaw=0,t0=0,intro=0,near=null,from=null;const keys={};
-  addEventListener('keydown',e=>{if(on)keys[e.key.toLowerCase()]=true});addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false});
+  const V=THREE.Vector3;let sc=null,cam=null,ship=null,sun=null,planets=[],belt=null,dust=[],on=false,vel=new V(),yaw=0,t0=0,intro=0,near=null,from=null,landLock=0,view='chase';const keys={};
+  addEventListener('keydown',e=>{if(!on)return;const k=e.key.toLowerCase();if(k==='m'&&!keys.m)toggleView();keys[k]=true});addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false});
   const M=()=>makeMats({skin:'haut',color:0});
   function planetTex(pid){const d=PLANETS[pid];return ctex('pl-'+pid,256,128,(x,w,h)=>{x.fillStyle=d.col[1];x.fillRect(0,0,w,h);const r=srand(pid.length*17);for(let i=0;i<60;i++){x.fillStyle=i%3?d.col[0]:'#ffffff22';x.beginPath();x.ellipse(r()*w,r()*h,10+r()*30,6+r()*16,r()*3,0,TAU);x.fill()}x.fillStyle='rgba(255,255,255,.5)';x.fillRect(0,0,w,6);x.fillRect(0,h-6,w,6)})}
   function build(){sc=new THREE.Scene();sc.background=new THREE.Color('#141433');cam=new THREE.PerspectiveCamera(50,1,.1,2000);const m=M();
@@ -138,13 +138,14 @@ const SPACE=(()=>{
     /* Asteroidengürtel */{const n=380;const geo=new THREE.IcosahedronGeometry(.6,0);belt=new THREE.InstancedMesh(geo,cozy({color:'#9A8BB0',flatShading:false,rim:.4}),n);const mm=new THREE.Matrix4();belt.userData.rocks=[];
       for(let i=0;i<n;i++){const a=Math.random()*TAU,rr=61+Math.random()*5;const p=new V(Math.cos(a)*rr,(Math.random()-.5)*1.5,Math.sin(a)*rr);const s=.5+Math.random()*1.4;mm.compose(p,new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.random()*3,Math.random()*3,0)),new V(s,s*.8,s));belt.setMatrixAt(i,mm);belt.userData.rocks.push({p,s})}sc.add(belt)}
     /* Sternenstaub zum Einsammeln */dust=[];for(let i=0;i<40;i++){const a=Math.random()*TAU,rr=18+Math.random()*90;const s=new THREE.Mesh(new THREE.OctahedronGeometry(.5,0),new THREE.MeshBasicMaterial({color:['#FFE27A','#7FDCE6','#FF8FB8'][i%3],toneMapped:false}));s.position.set(Math.cos(a)*rr,0,Math.sin(a)*rr);sc.add(s);dust.push(s)}
-    /* Schiff */ship=new THREE.Group();QF=.7;const rk=ROCKET.build(ROCKET.spec(),m);QF=1;addOutlines(rk);rk.rotation.x=-PI/2;rk.position.z=0;rk.scale.setScalar(.45);ship.add(rk);ship.userData.rk=rk;sc.add(ship)}
+    /* Schiff */ship=new THREE.Group();QF=.7;const rk=ROCKET.build(ROCKET.spec(),m);QF=1;addOutlines(rk);rk.rotation.x=-PI/2;rk.position.z=0;rk.scale.setScalar(.7);ship.add(rk);ship.userData.rk=rk;sc.add(ship)}
   function posOf(p,t){const a=p.ph+t*p.sp;return new V(Math.cos(a)*p.dist,0,Math.sin(a)*p.dist)}
-  function enter(fromPid){if(!sc)build();else{ship.remove(ship.userData.rk);const rk=ROCKET.build(ROCKET.spec(),M());addOutlines(rk);rk.rotation.x=-PI/2;rk.scale.setScalar(.45);ship.add(rk);ship.userData.rk=rk}
-    from=fromPid;t0=performance.now()/1000;const p=planets.find(x=>x.pid===fromPid)||planets[0];const pp=posOf(p,0);ship.position.copy(pp).add(new V(p.r+2,0,0));vel.set(0,0,0);yaw=-PI/2;intro=1;on=true;GAME.mode='space';SND.music('museum');
-    for(const q of planets)q.lbl.style.display='';hudOn(true);resize()}
-  function exit(){on=false;for(const q of planets)q.lbl.style.display='none';hudOn(false);$('prompt').hidden=true}
-  let hud=null;function hudOn(v){if(hud){hud.remove();hud=null}if(!v)return;hud=el('div','spacehud');hud.innerHTML='<b>Weltraum</b><span>'+(document.body.classList.contains('coarse')?'Joystick: lenken & Schub':'W Schub · A/D lenken · S bremsen · Shift Turbo')+'</span><span class="sp"></span>';$('world').append(hud)}
+  function enter(fromPid){if(!sc)build();else{ship.remove(ship.userData.rk);const rk=ROCKET.build(ROCKET.spec(),M());addOutlines(rk);rk.rotation.x=-PI/2;rk.scale.setScalar(.7);ship.add(rk);ship.userData.rk=rk}
+    from=fromPid;t0=performance.now()/1000;const p=planets.find(x=>x.pid===fromPid)||planets[0];const pp=posOf(p,0);const out=pp.clone().normalize();ship.position.copy(pp).addScaledVector(out,p.r+7);yaw=Math.atan2(out.x,out.z);vel.copy(out).multiplyScalar(6);landLock=2.5;intro=1;on=true;GAME.mode='space';SND.music('museum');
+    UI.talkAbort&&UI.talkAbort();document.body.classList.add('inspace');for(const q of planets)q.lbl.style.display='';hudOn(true);resize()}
+  function toggleView(){view=view==='chase'?'map':'chase';SND.play('pep',{vol:.3});if(hud)hud.querySelector('.vw').textContent=view==='chase'?'Karte (M)':'Cockpit (M)'}
+  function exit(){on=false;document.body.classList.remove('inspace');for(const q of planets)q.lbl.style.display='none';hudOn(false);$('prompt').hidden=true}
+  let hud=null;function hudOn(v){if(hud){hud.remove();hud=null}if(!v)return;hud=el('div','spacehud');hud.innerHTML='<b>Weltraum</b><span>'+(document.body.classList.contains('coarse')?'Joystick: lenken & Schub':'W Schub · A/D lenken · S bremsen · Shift Turbo · E landen')+'</span><span class="sp"></span>';const vb=el('button','vw','Karte (M)');vb.type='button';vb.onclick=e=>{e.stopPropagation();toggleView()};hud.append(vb);$('world').append(hud)}
   function resize(){const w=$('world');cam.aspect=w.clientWidth/w.clientHeight;cam.updateProjectionMatrix()}
   function frame(dt,t){if(!on)return;const tt=performance.now()/1000-t0;const st=ROCKET.stats();const J=GAME._joy&&GAME._joy();
     let turn=(keys['a']||keys['arrowleft']?1:0)-(keys['d']||keys['arrowright']?1:0),thr=(keys['w']||keys['arrowup']?1:0)-(keys['s']||keys['arrowdown']?.6:0);if(J&&Math.hypot(J.x,J.y)>.1){turn=-J.x;thr=Math.max(0,J.y)}
@@ -154,11 +155,14 @@ const SPACE=(()=>{
     /* Asteroiden */const sp=ship.position;for(const r of belt.userData.rocks){if(r.p.distanceTo(sp)<r.s*.8+.8){const n=sp.clone().sub(r.p).setY(0).normalize();sp.addScaledVector(n,.4);vel.reflect(n).multiplyScalar(.5/st.armor);SND.play('metal',{vol:.5});break}}
     for(const d of dust){if(!d.visible)continue;d.rotation.y+=dt*2;if(d.position.distanceTo(sp)<1.6){d.visible=false;money(15);SND.play('pickup',{vol:.6});setTimeout(()=>{d.visible=true;const a=Math.random()*TAU,rr=18+Math.random()*90;d.position.set(Math.cos(a)*rr,0,Math.sin(a)*rr)},30000)}}
     /* Planeten kreisen */near=null;let nd=1e9;for(const p of planets){const pp=posOf(p,tt);p.g.position.copy(pp);p.g.rotation.y+=dt*.2;const d=pp.distanceTo(sp)-p.r;if(d<nd){nd=d;near=p}}
-    const pr=$('prompt');if(near&&nd<4){pr.hidden=false;pr.innerHTML='';pr.append(el('kbd',null,'E'),document.createTextNode('Landen auf '+PLANETS[near.pid].n));$('hbA').textContent='Landen'}else{pr.hidden=true;$('hbA').textContent='Schub';if(nd>=4)near=null}
-    /* Kamera: vom Planeten in die Übersicht zoomen */intro=Math.max(0,intro-dt*.45);const k=1-intro;const hgt=18+k*34+vel.length()*.6,back=10+k*12;const cp=sp.clone().addScaledVector(fwd,-back*(1-.4*k)).add(new V(0,hgt,0));cam.position.lerp(cp,Math.min(1,dt*3+intro*.2));cam.lookAt(sp.clone().addScaledVector(fwd,6));
+    landLock=Math.max(0,landLock-dt);const pr=$('prompt');if(near&&nd<4&&landLock<=0){pr.hidden=false;pr.innerHTML='';pr.append(el('kbd',null,'E'),document.createTextNode('Landen auf '+PLANETS[near.pid].n));$('hbA').textContent='Landen'}else{pr.hidden=true;$('hbA').textContent='Schub';if(nd>=4)near=null}
+    /* Kamera: Verfolger hinter dem Schiff oder Übersichtskarte */intro=Math.max(0,intro-dt*.5);const vl=vel.length();let cp,look;
+    if(view==='chase'){cp=sp.clone().addScaledVector(fwd,-(8+vl*.12)).add(new V(0,4.6+vl*.05+intro*14,0));look=sp.clone().addScaledVector(fwd,12).add(new V(0,1.2,0))}
+    else{cp=sp.clone().addScaledVector(fwd,-14).add(new V(0,55,0));look=sp.clone().addScaledVector(fwd,4)}
+    cam.position.lerp(cp,Math.min(1,dt*(view==='chase'?4:2.5)));cam.lookAt(look);cam.fov+=((view==='chase'?60+vl*.4:50)-cam.fov)*Math.min(1,dt*3);cam.updateProjectionMatrix();
     const w=$('world').clientWidth,h=$('world').clientHeight;for(const p of planets){const v=p.g.position.clone().add(new V(0,p.r+1.4,0)).project(cam);p.lbl.style.left=((v.x+1)/2*w)+'px';p.lbl.style.top=((1-v.y)/2*h)+'px';p.lbl.style.display=v.z<1?'':'none'}
     if(hud)hud.querySelector('.sp').textContent=Math.round(vel.length()*12)+' km/s';
     GAME.R.render(sc,cam)}
-  function action(){if(near){const pid=near.pid;exit();GAME.landOn(pid)}}
+  function action(){if(near&&landLock<=0){const pid=near.pid;exit();GAME.landOn(pid)}}
   return{enter,frame,action,resize,get on(){return on}}
 })();

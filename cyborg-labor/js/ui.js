@@ -79,10 +79,11 @@ UI.talk=function(name,lines,o){o=o||{};return new Promise(res=>{
     typing=setInterval(()=>{k+=2;txt.textContent=full.slice(0,k);if(k>=full.length){clearInterval(typing);typing=null;done()}},28)};
   const done=()=>{if(i<lines.length-1||!o.choices){more.hidden=false;return}ch.replaceChildren(...o.choices.map((c,ci)=>{const b=el('button',null,c);b.type='button';b.onclick=e=>{e.stopPropagation();finish(ci)};return b}));ch.querySelector('button')?.focus()};
   const adv=()=>{if(typing){clearInterval(typing);typing=null;txt.textContent=full;done();return}if(o.choices&&i===lines.length-1)return;if(i<lines.length-1){i++;SND.play('pep',{vol:.25});show()}else finish(-1)};
-  const finish=r=>{box.hidden=true;box.onclick=null;document.removeEventListener('keydown',kd,true);ch.replaceChildren();res(r)};
+  const finish=r=>{UI._talkEnd=null;box.hidden=true;box.onclick=null;document.removeEventListener('keydown',kd,true);ch.replaceChildren();res(r)};
   const kd=e=>{if(['Enter',' ','e','E'].includes(e.key)&&!ch.children.length){e.preventDefault();e.stopPropagation();adv()}else if(e.key==='Escape'){e.stopPropagation();finish(-1)}
     else if(ch.children.length&&/^[1-9]$/.test(e.key)){const b=ch.children[+e.key-1];if(b){e.stopPropagation();b.click()}}};
-  box.onclick=()=>adv();document.addEventListener('keydown',kd,true);show()})};
+  box.onclick=()=>adv();document.addEventListener('keydown',kd,true);UI._talkEnd=()=>{clearInterval(typing);finish(-1)};show()})};
+UI.talkAbort=()=>{if(UI._talkEnd)UI._talkEnd()};
 
 /* ---------- Geld / HUD ---------- */
 UI.hud=function(){const m=$('money');if(m)m.querySelector('span').textContent=fmt(SAVE.money)};
