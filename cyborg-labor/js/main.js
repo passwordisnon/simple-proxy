@@ -13,15 +13,28 @@ const MAIN=(()=>{
     const i=el('input');i.type='text';i.id='nickIn';i.maxLength=24;i.value=S.name||'';i.placeholder='z. B. Moos-Mo';w.body.append(i);
     const go=()=>{SAVE.nick=i.value.trim().slice(0,24)||'Gast';persist();w.close();GAME.onAvatarChanged();UI.toast('Hallo '+SAVE.nick+'!');SND.jingle('j_success')};i.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter')go()});w.foot.append(btn('Los geht\'s','primary',go));setTimeout(()=>i.focus(),50)}
   /* ---------- Cy-Phone ---------- */
-  function phone(){TUT.ev('phone');const v=el('div','veil');const ph=el('div','phone');const d=new Date();const head=el('div','ph');head.append(el('span',null,GAMETIME.str()),el('span',null,'Cy-Phone'),el('span',null,fmt(SAVE.money)+' T'));
-    const apps=el('div','apps');const A=(ic,n,bg,fn)=>{const b=el('button','app-i');b.type='button';const i=el('b');i.innerHTML=ICON(ic);i.style.background=bg;b.append(i,document.createTextNode(n));b.onclick=()=>{close();SND.play('select');fn()};apps.append(b)};
-    const close=()=>{v.remove();openWinsPop()};
-    A('dna','Labor','#C6A9FF',()=>setTab('lab'));A('bag','Tasche','#FFD35C',()=>ACT.bag());A('book','Lexikon','#7FDCE6',()=>ACT.lexikon());A('paw','Tiere','#A6EBC3',()=>FAUNA.lexikon());A('smile','Figuren','#FFC9A8',()=>HOMES.charsApp());
-    A('palette','Designs','#FF8FB1',designsApp);A('house','Hausbau','#FFB27A',()=>houseBuilder());A('people','Freund:innen','#A6EBC3',()=>SOCIAL.playersWin());
-    A('chat','Chat','#8FD3FF',()=>SOCIAL.toggleChat(true));A('smile','Emotes','#FFE27A',()=>ACT.emoteMenu());A('map','Karte','#9FD86A',mapApp);
-    A('globe','Bewohner:innen','#FFC9A8',residentsApp);A('school','Klasse','#D9B5F2',teacherApp);A('gear','Einstellungen','#DDD3C4',settingsApp);
-    ph.append(head,apps);v.append(ph);v.addEventListener('pointerdown',e=>{if(e.target===v)close()});document.body.append(v);SND.play('open');
-    const kd=e=>{if(e.key==='Escape'||e.key==='Tab'){e.preventDefault();close();removeEventListener('keydown',kd,true)}};addEventListener('keydown',kd,true);function openWinsPop(){removeEventListener('keydown',kd,true)}}
+  /* GTA-artig: das Handy gleitet unten rechts hoch, das Spiel läuft weiter; Pfeiltasten + Enter, Esc/Tab/Rücktaste steckt es weg */
+  let phoneEl=null;
+  function phone(){if(phoneEl){phoneEl.close();return}TUT.ev('phone');const ph=el('div','phone gta');ph.setAttribute('role','dialog');ph.setAttribute('aria-label','Cy-Phone');
+    const pid=(GAME.G&&GAME.G.id)||'kompost';const WP={kompost:['#9FE08A','#6FC4E8'],schrott:['#B9A8E8','#6FE3C8'],korallen:['#7FE0F0','#FFD9A0'],frost:['#CFE3FF','#9FB0F0'],wueste:['#FFD39A','#F08A6A'],pilz:['#B89AE8','#F2A8D0']}[pid]||['#C9E5FF','#FFC7D8'];
+    const scr=el('div','ph-scr');scr.style.background=`linear-gradient(165deg,${WP[0]},${WP[1]})`;const notch=el('div','ph-notch');
+    const bar=el('div','ph-bar');const tm=el('span','ph-time',GAMETIME.str());bar.append(tm,el('span','ph-sig','●●●● '+(GAME.G&&GAME.G.def?GAME.G.def.n.split('-')[0]:'')),el('span',null,fmt(SAVE.money)+' T'));
+    const clock=el('div','ph-clock');clock.append(el('b',null,GAMETIME.str()),el('span',null,(GAME.G&&GAME.G.def?GAME.G.def.n:'')));
+    const apps=el('div','apps');const list=[];const A=(ic,n,bg,fn)=>{const b=el('button','app-i');b.type='button';const i=el('b');i.innerHTML=ICON(ic);i.style.background=bg;b.append(i,el('span',null,n));b.onclick=()=>{go(fn)};apps.append(b);list.push(b)};
+    let sel=0;const mark=()=>list.forEach((b,i)=>b.classList.toggle('sel',i===sel));
+    const close=()=>{if(!phoneEl)return;removeEventListener('keydown',kd,true);clearInterval(tick);ph.classList.add('down');SND.play('close',{vol:.5});const x=ph;setTimeout(()=>x.remove(),260);phoneEl=null};
+    const go=fn=>{SND.play('select');close();setTimeout(fn,120)};
+    A('bag','Tasche','#FFD35C',()=>ACT.bag());A('book','Lexikon','#7FDCE6',()=>ACT.lexikon());A('paw','Tiere','#A6EBC3',()=>FAUNA.lexikon());A('rocket','Reisen','#FFC9A8',()=>UI.toast('Zur Rakete am Dorfrand gehen, um zu reisen.',3000));
+    A('palette','Designs','#FF8FB1',designsApp);A('house','Hausbau','#FFB27A',()=>houseBuilder());A('people','Freunde','#A6EBC3',()=>SOCIAL.playersWin());
+    A('chat','Chat','#8FD3FF',()=>SOCIAL.toggleChat(true));A('wave','Emotes','#FFE27A',()=>ACT.emoteMenu());A('map','Karte','#9FD86A',mapApp);
+    A('globe','Bewohner','#FFC9A8',residentsApp);A('school','Klasse','#D9B5F2',teacherApp);A('gear','Optionen','#DDD3C4',settingsApp);
+    const dock=el('div','ph-home');dock.title='Wegstecken';dock.onclick=close;
+    scr.append(notch,bar,clock,apps,dock);ph.append(scr);$('world').append(ph);mark();SND.play('open',{vol:.6});
+    const tick=setInterval(()=>{tm.textContent=GAMETIME.str();clock.firstChild.textContent=GAMETIME.str()},1000);
+    const cols=3;const kd=e=>{const k=e.key;if(k==='Escape'||k==='Tab'||k==='Backspace'){e.preventDefault();e.stopPropagation();close();return}
+      const mv={ArrowRight:1,ArrowLeft:-1,ArrowDown:cols,ArrowUp:-cols}[k];if(mv!=null){e.preventDefault();e.stopPropagation();sel=(sel+mv+list.length)%list.length;mark();list[sel].scrollIntoView({block:'nearest'});SND.play('click',{vol:.3,rate:1.4});return}
+      if(k==='Enter'){e.preventDefault();e.stopPropagation();list[sel].click()}};addEventListener('keydown',kd,true);
+    phoneEl={close}}
   $('hbPhone').onclick=phone;$('hbBag').onclick=()=>ACT.bag();$('hbEmote').onclick=()=>ACT.emoteMenu();
   function designsApp(){const w=UI.win('Meine Designs',{size:'narrow'});const gr=el('div','grid');SAVE.designs.forEach(d=>{const c=el('button','card');c.type='button';c.append(designImg(d,96),el('span',null,d.name));c.onclick=()=>{w.close();PAINT.open(d)};gr.append(c)});
     if(!SAVE.designs.length)w.body.append(el('p','empty','Noch keine Designs. Male dein erstes!'));w.body.append(gr);w.foot.append(btn('Neues Design','primary',()=>{w.close();PAINT.open()}))}
@@ -56,7 +69,7 @@ const MAIN=(()=>{
     try{if(tab==='lab')LAB.frame(dt,t);else if(worldReady)GAME.frame(dt,t)}catch(e){console.error(e)}
     /* automatische Qualitätsanpassung bei sehr langsamen Geräten */fpsT+=dt;frames++;if(fpsT>6){const fps=frames/fpsT;fpsT=0;frames=0;if(fps<22&&HIGH&&tab==='world'){HIGH=false;updQ();LAB.quality();GAME.quality();UI.toast('Grafik auf «schnell» gestellt, damit es flüssig läuft.')}}}
   function boot(){renderBody();renderParts();renderCards();renderChecklist();LAB.rebuild();LAB.resize();UI.hud();loop();setTimeout(()=>{$('loading').style.opacity='0';setTimeout(()=>$('loading').hidden=true,500)},250);
-    const h=location.hash.replace('#','');if(h==='welt'||STORY.needsIntro())setTab('world')}
+    /* Das Labor erreicht man nur über Dr. Bolzen in der Praxis: das Spiel startet immer in der Welt */setTab('world')}
   return{setTab,phone,importCodes,exportWorld,boot,get tab(){return tab}};
 })();
 MAIN.boot();

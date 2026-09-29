@@ -314,7 +314,7 @@ const FAUNA=(()=>{
       w.body.append(el('p','sub','★ = Lieblingsessen'),gr);const iv=setInterval(()=>{if(w.closed){clearInterval(iv);setTimeout(res,50)}},250)})}
   function startGame(a){if(a.sp.water){UI.toast(nameOf(a)+' spielt lieber Wasserspritzen! *platsch*');happy(a,2);GAME.W.fx(a.p,'blase',10);bump(a,1);return}
     game={a,t:20,last:21};sound(a);say(a,'Fang mich!',2);UI.toast('Fangen! Lauf mit Shift hinter '+nameOf(a)+' her!')}
-  async function win(a){happy(a,3);bump(a,2);SND.jingle('j_success');const amt=50+frOf(a)*10;money(amt);SAVE.stats.tag=(SAVE.stats.tag||0)+1;persist();
+  async function win(a){happy(a,3);bump(a,2);SND.jingle('j_success');const amt=15+frOf(a)*4;money(amt);SAVE.stats.tag=(SAVE.stats.tag||0)+1;persist();
     await UI.talk(nameOf(a),[`${sound(a)}! *${nameOf(a)} lacht und rollt sich im Gras*`,`Gefangen! Freundschaft +2 und ${amt} Taler.`],{voice:voice(a)})}
   function nameIt(a){const w=UI.win('Wie soll '+a.sp.n+' heissen?',{size:'narrow'});const inp=el('input');inp.maxLength=18;inp.value=nameOf(a);inp.style.cssText='width:100%;font:inherit;padding:10px;border-radius:12px;border:2px solid var(--line,#e6d8b8)';
     w.body.append(el('p',null,'Gib dem Tier einen Namen. Er bleibt gespeichert.'),inp);const ok=btn('Speichern','primary',()=>{const v=sanitizeName(inp.value);if(v){rec(a).name=v;persist();UI.toast(a.sp.n+' heisst jetzt '+v+'!');happy(a,2)}w.close()});w.foot.append(ok);setTimeout(()=>inp.focus(),50)}

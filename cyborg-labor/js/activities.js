@@ -7,7 +7,11 @@
 const findIn=(arr,id)=>arr.find(x=>x.id===id);
 function itemDef(kind,id){return kind==='fish'?findIn(FISH,id):kind==='bug'?findIn(BUGS,id):kind==='relic'?findIn(RELICS,id):kind==='item'?findIn(ITEMS,id):kind==='furn'?findFurn(id):kind==='wall'?findIn(WALLPAPERS,id):kind==='floor'?findIn(FLOORS,id):kind==='design'?SAVE.designs.find(d=>d.id===id):kind==='plant'&&typeof SEEDS!=='undefined'?findIn(SEEDS,id):null}
 function itemName(kind,id){const d=itemDef(kind,id);return d?(d.n||d.name||id):id}
-function itemPrice(kind,id){const d=itemDef(kind,id);if(!d)return 10;if(kind==='furn'||kind==='wall'||kind==='floor')return Math.round((d.price||100)/4);return d.price||50}
+/* Wirtschaft: Verkaufen bringt weniger, und dieselbe Sache mehrmals am selben Tag verkaufen senkt den Preis (Markt ist gesättigt) */
+function marketDay(){return Math.floor((GAMETIME.hour()+(SAVE.dayN||0)*24)/24)}
+function saturation(id){const M=SAVE.market=SAVE.market||{};const e=M[id];if(!e)return 0;const days=Math.max(0,((Date.now()-e.t)/60000)/24);/* 1 Spieltag = 24 echte Minuten */return Math.max(0,e.n-days*4)}
+function noteSold(id,n){const M=SAVE.market=SAVE.market||{};const s0=saturation(id);M[id]={n:s0+n,t:Date.now()}}
+function itemPrice(kind,id){const d=itemDef(kind,id);if(!d)return 4;let p;if(kind==='furn'||kind==='wall'||kind==='floor')p=(d.price||100)/5;else p=(d.price||50)*.45;return Math.max(1,Math.round(p/(1+saturation(id)*.12)))}
 function itemThumb(kind,id){const d=itemDef(kind,id);if(!d){return el('div','ph')}
   if(kind==='wall'||kind==='floor'){const c=document.createElement('canvas');c.width=c.height=96;const x=c.getContext('2d');try{d.draw(x,96,96)}catch(e){}const img=new Image();img.src=c.toDataURL();img.alt='';img.style.borderRadius='12px';return img}
   if(kind==='design'){return designImg(d)}
@@ -29,7 +33,15 @@ const EMOTES={
   drehen:{i:'spiral',n:'Pirouette',pose:(e,t)=>{e.g.rotateY(t*9)}},
   wuetend:{i:'angry',n:'Wütend',pose:(e,t)=>{e.g.rotateZ(Math.sin(t*30)*.04)}},
   idee:{i:'bulb',n:'Idee!',start:e=>{e.jump=.5;GAME.W.fx(e.p,'funke',8)}},
-  kompost:{i:'leaf',n:'Kompostieren',start:e=>GAME.W.fx(e.p,'blatt',12)}
+  kompost:{i:'leaf',n:'Kompostieren',start:e=>GAME.W.fx(e.p,'blatt',12)},
+  /* Gefühls-Animationen für Gespräche */
+  umarmen:{i:'heart',n:'Umarmen',hidden:1,start:e=>GAME.W.fx(e.p,'herz',10),pose:(e,t)=>{e.g.rotateX(.3);e.act=1;e.g.scale.multiplyScalar(1+Math.sin(t*6)*.02)}},
+  kichern:{i:'laugh',n:'Kichern',hidden:1,pose:(e,t)=>{e.g.rotateZ(Math.sin(t*22)*.1);e.g.position.addScaledVector(e.p,Math.abs(Math.sin(t*16))*.08)}},
+  frech:{i:'star',n:'Frech',hidden:1,pose:(e,t)=>{e.g.rotateZ(.2+Math.sin(t*9)*.08);e.g.rotateY(Math.sin(t*4)*.3)}},
+  singen:{i:'note',n:'Singen',hidden:1,start:e=>GAME.W.fx(e.p,'note',8),pose:(e,t)=>{e.g.rotateZ(Math.sin(t*3)*.14);e.g.position.addScaledVector(e.p,Math.abs(Math.sin(t*3))*.05)}},
+  verlegen:{i:'smile',n:'Verlegen',hidden:1,pose:(e,t)=>{e.g.rotateX(.16);e.g.rotateY(Math.sin(t*2.4)*.35)}},
+  nicken:{i:'chat',n:'Nicken',hidden:1,pose:(e,t)=>{e.g.rotateX(Math.max(0,Math.sin(t*7))*.14)}},
+  schmollen:{i:'sad',n:'Schmollen',hidden:1,pose:(e,t)=>{e.g.rotateY(.9);e.g.rotateX(.12)}}
 };
 function doEmote(e,id,silent){const E=EMOTES[id];if(!E||!e)return;e.emote=id;e.emoteT=3.2;GAME.say(e,'icon:'+E.i,2.6,true);E.start&&E.start(e);
   if(e===GAME.me){SOCIAL.emote&&SOCIAL.emote(id);if(!silent)SND.play(id==='tanzen'||id==='freude'?'j_success':'pep',{vol:.5});
@@ -68,14 +80,14 @@ const ACT=(()=>{
         const it=findIn(ITEMS,tr.fruit);const n=tr.fruit==='beeren'?2:3;for(let i=0;i<n;i++){const p=GAME.W.near(tr.p,.05+Math.random()*.05);const g=mkObj(gg=>it?it.b(gg,M,{},srand(i)):P(gg,G.s(.3),M.c('#F0556E'),[0,.3,0]),.55);GAME.placeObj(g,p,0,-.02);const x={kind:'item',id:tr.fruit,p,g,label:(it?it.n:tr.fruit)+' aufheben'};pickups.push(x);g.userData.drop=0}
         SND.play('soft',{vol:.8});GAME.W.fx(tr.p,'blatt',10,top)}
       else{const r=Math.random();GAME.W.fx(tr.p,'blatt',8,top);
-        if(r<.1){SND.play('coins');const amt=pick([100,200,300]);money(amt);UI.toast(`${amt} Taler sind aus dem Baum gefallen!`)}
+        if(r<.035){SND.play('coins');const amt=pick([20,30,50]);money(amt);UI.toast(`${amt} Taler sind aus dem Baum gefallen!`)}
         else if(r<.32){const id=pick(['ast','ast','blatt_herbst','kiefernzapfen'].filter(x=>findIn(ITEMS,x)));const it=findIn(ITEMS,id);if(it){const p=GAME.W.near(tr.p,.05);const g=mkObj(gg=>it.b(gg,M,{},srand(1)),.55);GAME.placeObj(g,p,0,-.02);pickups.push({kind:'item',id,p,g,label:it.n+' aufheben'});g.userData.drop=0}}
         else if(r<.45){const pool=bugPool().filter(b=>b.where==='baum');if(pool.length){const b=weighted(pool);const p=GAME.W.near(tr.p,.04);const g=mkObj(gg=>b.b(gg,M,{},srand(1)),.32);GAME.placeObj(g,p,0,.05);bugs.push({def:b,p,home:p.clone(),g,ph:0,fly:false,flee:0,alive:true});UI.toast('Da ist etwas runtergefallen!')}}}},500)}
   /* ---------- Stein hauen (Tierdorf: Schaufel auf Felsen) ---------- */
   function hitRock(rk){const day=Math.floor(Date.now()/864e5);if(rk.day!==day){rk.day=day;rk.hits=0}const me=GAME.me;me.act=1;SND.play('metal',{vol:.8});GAME.W.fx(rk.p,'staub',8,GAME.onSurf(rk.p,1));
     if(rk.hits>=3){UI.toast('Aus diesem Stein kommt heute nichts mehr.');return}rk.hits++;const pid=GG().id;
     const pool={frost:['eiskristall','stein_klein','kiesel'],wueste:['wuestenrose','stein_klein','kiesel'],schrott:['schraube','kabelrest','stein_klein'],pilz:['leuchtspore','stein_klein','kiesel']}[pid]||['stein_klein','kiesel','stein_klein'];
-    const id=pick(pool.filter(x=>findIn(ITEMS,x)));if(Math.random()<.15){money(100);SND.play('coins');UI.toast('100 Taler sprangen aus dem Stein!');return}
+    const id=pick(pool.filter(x=>findIn(ITEMS,x)));if(Math.random()<.08){money(25);SND.play('coins');UI.toast('25 Taler sprangen aus dem Stein!');return}
     const it=findIn(ITEMS,id);if(!it)return;const p=GAME.W.near(rk.p,.06);const g=mkObj(gg=>it.b(gg,M,{},srand(rk.hits)),.5);GAME.placeObj(g,p,0,-.02);pickups.push({kind:'item',id,p,g,label:it.n+' aufheben'});g.userData.drop=0}
   /* ---------- Sammelsachen je Biom (Äste, Steine, Unkraut, Pilze ...) ---------- */
   function spawnLitter(n){const me=GAME.me;if(!me)return;for(let i=0;i<n;i++){const p=GAME.W.near(me.p,1+Math.random()*5);const h=GG().hAt(p);if(h<GG().sea+.1)continue;const B=BIOMES[GG().biomeAt(p,h)];if(!B||!B.litter)continue;
@@ -85,7 +97,7 @@ const ACT=(()=>{
   function dig(d){busyState='dig';const me=GAME.me;me.act=1;SND.play('chop');GAME.W.fx(d.p,'staub',10);
     setTimeout(()=>{SND.play('chop');GAME.W.fx(d.p,'staub',10)},450);
     setTimeout(async()=>{d.g.parent&&d.g.parent.remove(d.g);digs.splice(digs.indexOf(d),1);const pid=GG().id;const pool=RELICS.filter(r=>r.planet===pid||r.planet==='alle');const rel=pool.length?weighted(pool):null;busyState=null;
-      if(!rel){money(150);UI.toast('Nur ein paar Taler vergraben: 150');return}
+      if(!rel){money(35);UI.toast('Nur ein paar Taler vergraben: 35');return}
       if(!bagAdd('relic',rel.id)){UI.toast('Tasche voll!');return}const first=!SAVE.caught.relics[rel.id];SAVE.caught.relics[rel.id]=(SAVE.caught.relics[rel.id]||0)+1;SAVE.stats.relics++;persist();
       await showCatch('relic',rel,first)},1000)}
   /* ---------- Insektennetz ---------- */

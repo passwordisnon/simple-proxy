@@ -45,12 +45,12 @@ const STORY=(()=>{
   function clinicFrame(dt,t){const S=INTERIOR.scene;if(!S)return;for(const o of S.userData.anim||[])o.userData.tick&&o.userData.tick(t);const d=S.userData.doc;if(d){d.userData.tick&&d.userData.tick(t,false,UI.typing?1:0);const es=d.userData.eyes||[];const ph=(t+1.3)%4.1;const k=ph<.14?1-Math.sin(ph/.14*PI)*.92:1;for(const q of es)q.scale.y=k}}
   INTERIOR.kinds.klinik={bg:'#DDEEF6',music:'home',build:buildClinic,frame:clinicFrame};
   /* ---------- Spiegel: Labor als «Operation» ---------- */
-  function mirror(){UI.talk(DOC,['Der Spiegel zeigt dein neues Ich.','Wenn dir etwas nicht gefällt: Im Labor können wir Teile austauschen. Nur eine kleine Operation!'],{voice:DV,color:DC}).then(()=>{MAIN.setTab('lab');UI.toast('Labor = Operationssaal. Mit «Welt» kommst du zurück in die Praxis.',4200)})}
+  function mirror(){UI.talk(DOC,['Der Spiegel zeigt dein neues Ich.','Wenn dir etwas nicht gefällt: Im Labor können wir Teile austauschen. Nur eine kleine Operation!'],{voice:DV,color:DC}).then(()=>{MAIN.setTab('lab');UI.toast('Labor = Operationssaal. Mit «Fertig» kommst du zurück zu Dr. Bolzen.',4200)})}
   /* ---------- Gespräch beim späteren Besuch ---------- */
   async function talk(){if(!SAVE.story||!SAVE.story.intro){await intro(true);return}const ch=SAVE.story.chapter||1;const sh=(SAVE.story.shards||[]).length;
     const lines=['Na, wie fühlt sich dein Körper an? Alles noch dran?',sh?`Du hast schon ${sh} Erinnerungs-Splitter gefunden. Sie leuchten in Ruinen und Höhlen auf anderen Planeten.`:'Man sagt, auf anderen Planeten liegen leuchtende Erinnerungs-Splitter. Vielleicht finden wir so heraus, wer du warst …'];
-    const r=await UI.talk(DOC,lines,{voice:DV,color:DC,choices:['Ich will eine Operation (Labor)','Was ist mit mir passiert?','Tschüss!']});
-    if(r===0)mirror();else if(r===1)await UI.talk(DOC,[...memoryLines(),'Mehr weiss ich auch nicht. Die Splitter werden es zeigen.'],{voice:DV,color:DC})}
+    const r=await UI.talk(DOC,lines,{voice:DV,color:DC,choices:['Ich will eine Operation (Aussehen ändern)','Andere Figur wählen','Was ist mit mir passiert?','Tschüss!']});
+    if(r===0)mirror();else if(r===1){await UI.talk(DOC,['Aha, ein Körpertausch! Such dir aus, wer du heute sein willst.'],{voice:DV,color:DC});HOMES.charsApp()}else if(r===2)await UI.talk(DOC,[...memoryLines(),'Mehr weiss ich auch nicht. Die Splitter werden es zeigen.'],{voice:DV,color:DC})}
   /* ---------- Erinnerungs-Splitter (Hauptgeschichte) ---------- */
   const MEM=['Ein Labor voller Licht. Jemand sagt: «Sie ist bereit.»','Eine Rakete, die in einen grünen Planeten stürzt.','Ein Wortstein – du konntest ihn schon einmal lesen …','Eine Gruppe Kinder, die Teile an einen Körper schrauben. Sie lachen.','Ein Satz auf einer Tafel: «Unsere Grenze war …»','Die Stimme von Professorin Pixel: «Wir müssen sie verstecken.»','Ein eigener Planet, ganz leer, der auf dich wartet.'];
   function memoryLines(){const sh=(SAVE.story&&SAVE.story.shards)||[];if(!sh.length)return['Du hattest einen Unfall mit deiner Rakete. Wir haben dich wieder zusammengesetzt – mit ein paar neuen Teilen.'];return sh.map(i=>'Erinnerung: '+MEM[i%MEM.length])}

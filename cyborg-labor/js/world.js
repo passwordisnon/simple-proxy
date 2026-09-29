@@ -479,10 +479,10 @@ const GAME=(()=>{
     else if(me){const cf=camF.clone().applyAxisAngle(me.p,camYaw);const up=me.p;const target=me.g.position.clone().addScaledVector(up,1.1);
       const want=target.clone().addScaledVector(cf,-camDist*Math.cos(camPitch)).addScaledVector(up,camDist*Math.sin(camPitch)+.6);
       if(camSnap||cam.position.distanceTo(want)>30){cam.position.copy(want);cam.up.copy(up);camSnap=false}else{cam.position.lerp(want,Math.min(1,dt*6));cam.up.lerp(up,Math.min(1,dt*6))}cam.lookAt(target);
-      /* Sonne folgt Spieler (Schatten) */const sp=me.p.clone();const sd=tangentTo(sp,new V3(.5,.2,.6)).multiplyScalar(.9).add(sp).normalize();G_.sun.position.copy(me.g.position).addScaledVector(sd,40).addScaledVector(sp,26);G_.sun.target.position.copy(me.g.position);G_.fill.position.copy(me.g.position).addScaledVector(sp,10).addScaledVector(sd,-15)
+      /* Sonne folgt Spieler, steht aber je nach Tageszeit tief im Osten, hoch am Mittag, tief im Westen (lange Schatten am Morgen/Abend) */const sp=me.p.clone();const east=tangentTo(sp,new V3(.5,.2,.6));const north=new V3().crossVectors(sp,east).normalize();const el=G_.sunEl??.9,az=G_.sunAz??1.2;const sd=east.clone().multiplyScalar(Math.cos(az)*Math.cos(el)).addScaledVector(north,Math.sin(az)*Math.cos(el)*.35).addScaledVector(sp,Math.sin(el)).normalize();G_.sun.position.copy(me.g.position).addScaledVector(sd,60);G_.sun.target.position.copy(me.g.position);G_.fill.position.copy(me.g.position).addScaledVector(sp,10).addScaledVector(sd,-15)
       /* Ambiente */;const nearSea=G_.hAt(me.p)<G_.sea+.9?1:0;SND.ambience('meer',nearSea*.6);SND.ambience('wind',.25)}
     /* Prompt */
-    promptTarget=busy?null:findTarget();const pr=$('prompt');if(promptTarget&&!UI.anyOpen()){pr.hidden=false;pr.innerHTML='';const k=el('kbd',null,'E');pr.append(k,document.createTextNode(promptTarget.label));$('hbA').textContent=shortLabel(promptTarget)}else{pr.hidden=true;$('hbA').textContent='Hüpfen'}
+    promptTarget=busy||document.querySelector('.bubmenu')?null:findTarget();const pr=$('prompt');if(promptTarget&&!UI.anyOpen()){pr.hidden=false;pr.innerHTML='';const k=el('kbd',null,'E');pr.append(k,document.createTextNode(promptTarget.label));$('hbA').textContent=shortLabel(promptTarget)}else{pr.hidden=true;$('hbA').textContent='Hüpfen'}
     if(G_.lod)PLANETLOD.update(cam.position,HIGH?4:2.5);if(G_.stream)SCATTER.stream(overview?cam.position.clone().normalize():(me?me.p:UPV),HIGH?5:3);
     if(HIGH)comp.render();else R.render(scene,cam);labels()}
   function shortLabel(t){return{talk:'Reden',tree:'Schütteln',fish:'Angeln',shop:'Laden',museum:'Museum',house:'Haus',studio:'Malen',rocket:'Reisen',board:'Lesen',stage:'Tanzen',home:'Klingeln',animal:'Tier',mail:'Post',dig:'Graben',pick:'Nehmen',bug:'Fangen'}[t.kind]||'Aktion'}
@@ -494,11 +494,27 @@ const GAME=(()=>{
   function ecoTick(){if(G_.id!=='kompost')return;const live=W.props.filter(x=>!x.dying);const oils=live.filter(x=>x.type==='oel');
     for(let i=0;i<10;i++){const x=pick(live);if(!x)break;const REP={baum:[.03,3],blume:[.08,5],pilz:[.04,3],moos:[.02,4]}[x.type];if(REP&&x.grow>=1&&Math.random()<REP[0]&&live.filter(y=>y.type===x.type&&y.p.dot(x.p)>Math.cos(.12)).length<REP[1]&&!oils.some(o=>o.p.dot(x.p)>Math.cos(.1)))W.spawn(x.type,W.near(x.p,.12))}
     for(const o of oils)for(const x of live){if(x.p.dot(o.p)<Math.cos(.06))continue;if(['blume','pilz'].includes(x.type)&&Math.random()<.08)W.remove(x);if(x.type==='moos'&&Math.random()<.05){W.remove(o);note('Moos hat einen Ölfleck abgebaut');break}}}
-  function dayLight(){const h=GAMETIME.hour();const hh=GAMETIME.str();$('clock').querySelector('b').textContent=hh;
-    const night=h<6||h>=21?1:h<7.5?1-(h-6)/1.5:h>19.5?(h-19.5)/1.5:0;const dusk=(h>17.5&&h<21)||(h>5.5&&h<8)?1:0;G_.night=night;
-    const def=G_.def;G_.scene.background=night>.5?skyTex('#2B2F66','#6A5A9E','n'+G_.id):dusk&&night<.5?skyTex('#9FB4F0','#FFC9A8','d'+G_.id):skyTex(def.sky[0],def.sky[1],G_.id);
-    G_.sunBase=1-night*.6;G_.sun.color.set(dusk?'#ffd9b0':'#fff3de');G_.hemiBase=.52-night*.12;G_.hemi.color.set(night>.5?'#8f9cff':'#dff1ff');G_.stars.material.opacity=night;G_.fogBase=new THREE.Color(night>.5?'#4b4a86':def.fog);
-    /* Mit Wetter setzt WEATHER.frame Licht und Nebelfarbe jedes Bild aus diesen Basiswerten (sonst blinkt es einmal pro Sekunde hell auf) */if(typeof WEATHER==='undefined'){G_.sun.intensity=G_.sunBase;G_.hemi.intensity=G_.hemiBase;G_.scene.fog.color.copy(G_.fogBase)}}
+  /* ---------- Tageslauf: fliessende Übergänge (Dämmerung, Morgenrot, Mittag, goldene Stunde, Abendrot, Nacht) ---------- */
+  const DAYKEYS=[/* Stunde, Himmel oben, Horizont, Sonnenfarbe, Sonne, Umgebungslicht, Himmelslicht, Nebel */
+    [0,'#141A44','#2E3470','#8FA0FF',.22,'#7A88E8',.32,'#2E3266'],[4.6,'#1B2150','#3A3A78','#8FA0FF',.22,'#7A88E8',.32,'#343872'],
+    [5.6,'#3B3E86','#C98AA8','#FFA88A',.3,'#B8A0E0',.36,'#8A7AAE'],[6.4,'#6E86D8','#FFB892','#FFB58A',.55,'#F0C8D8',.42,'#E8B8A8'],
+    [7.6,null,'#FFE3C2','#FFE2B8',.85,'#E6F0FF',.5,null],[12,null,null,'#FFF6E2',1,'#DFF1FF',.52,null],[16.8,null,null,'#FFEFD2',.96,'#E4EEFF',.52,null],
+    [18.4,'#7C8EE0','#FFC08A','#FFB070',.7,'#F2D0C8',.46,'#F0C8A8'],[19.4,'#5A5AB0','#FF9A7A','#FF9070',.45,'#D8A8D0',.4,'#B890B8'],
+    [20.4,'#2E3278','#9A6AA8','#A08AE0',.28,'#9A90E0',.34,'#4E4A88'],[21.3,'#171D4A','#343A78','#8FA0FF',.22,'#7A88E8',.32,'#2E3266'],[24,'#141A44','#2E3470','#8FA0FF',.22,'#7A88E8',.32,'#2E3266']];
+  const _ca=new THREE.Color(),_cb=new THREE.Color();
+  function dayLight(){const h=GAMETIME.hour();const hh=GAMETIME.str();$('clock').querySelector('b').textContent=hh;const def=G_.def;
+    let i=0;while(i<DAYKEYS.length-2&&DAYKEYS[i+1][0]<=h)i++;const A=DAYKEYS[i],B=DAYKEYS[i+1];const t=Math.max(0,Math.min(1,(h-A[0])/(B[0]-A[0])));const s=t*t*(3-2*t);
+    const col=(k,dflt)=>{_ca.set(A[k]||dflt);_cb.set(B[k]||dflt);return _ca.clone().lerp(_cb,s)};const num=k=>A[k]+(B[k]-A[k])*s;
+    const top=col(1,def.sky[0]),hor=col(2,def.sky[1]);
+    const night=h<5.6||h>=20.6?1:h<7?1-(h-5.6)/1.4:h>19.2?(h-19.2)/1.4:0;G_.night=Math.max(0,Math.min(1,night));
+    /* Sonnenbahn: Aufgang ~6 Uhr im Osten, Mittag hoch, Untergang ~20 Uhr im Westen; nachts Mondlicht von der Gegenseite */
+    const day=(h-6)/14;G_.sunEl=day>=0&&day<=1?Math.sin(day*PI)*1.25+.08:.55;G_.sunAz=day>=0&&day<=1?day*PI:((h+24-20)%24)/10*PI;G_.isNight=!(day>=0&&day<=1);
+    /* Himmel: Verlauf + leuchtender Horizont bei Morgen-/Abendrot */
+    if(!G_.skyCv){G_.skyCv=document.createElement('canvas');G_.skyCv.width=16;G_.skyCv.height=256;G_.skyT=new THREE.CanvasTexture(G_.skyCv);G_.skyT.encoding=THREE.sRGBEncoding}
+    {const x=G_.skyCv.getContext('2d');const g=x.createLinearGradient(0,0,0,256);g.addColorStop(0,'#'+top.getHexString());g.addColorStop(.62,'#'+hor.getHexString());g.addColorStop(1,'#'+hor.clone().lerp(new THREE.Color('#ffffff'),.12).getHexString());x.fillStyle=g;x.fillRect(0,0,16,256);G_.skyT.needsUpdate=true}
+    G_.scene.background=G_.skyT;
+    G_.sunBase=num(4);G_.sun.color.copy(col(3,'#fff3de'));G_.hemiBase=num(6);G_.hemi.color.copy(col(5,'#dff1ff'));G_.stars.material.opacity=G_.night;G_.fogBase=col(7,def.fog);
+    if(typeof WEATHER==='undefined'){G_.sun.intensity=G_.sunBase;G_.hemi.intensity=G_.hemiBase;G_.scene.fog.color.copy(G_.fogBase)}}
   /* ---------- Namensschilder & Sprechblasen ---------- */
   const tV=new V3();
   function labels(){const w=canvas.clientWidth,h=canvas.clientHeight;const camN=cam.position.clone().normalize();for(const e of ents.values()){const near=overview?e.p.dot(camN)>.3:me&&(e===me||angle(e.p,me.p)*G_.R<16);const show=e.g.visible&&near;
@@ -514,7 +530,9 @@ const GAME=(()=>{
   function quality(){R.shadowMap.enabled=HIGH;if(scene)loadPlanet(G_.id)}
   async function init(){await loadPlanet(planetId);dayLight()}
   function onAvatarChanged(){if(!me||!scene)return;const p=me.p.clone(),dir=me.dir.clone();const inside=me.inside;const ix=me.ix,iz=me.iz;dropEnt('__me');me=makeEnt(avatarData(),{kind:'me',p,q:HIGH?.9:.6,me:true});me.dir.copy(dir);if(inside){INTERIOR.adopt(me);me.ix=ix;me.iz=iz}}
-  function toggleOverview(){overview=overview?null:{az:Math.atan2(cam.position.z,cam.position.x)};if(!overview)camSnap=true;UI.toast(overview?'Beamer-Übersicht: alle Cyborgs auf einen Blick. Nochmals drücken zum Beenden.':'Zurück zur Spielfigur');return!!overview}
+  let ovBtn=null;const ovKey=e=>{if(e.key==='Escape'&&overview){e.stopPropagation();toggleOverview()}};
+  function toggleOverview(){overview=overview?null:{az:Math.atan2(cam.position.z,cam.position.x)};if(!overview)camSnap=true;
+    /* gut sichtbarer Ausgang: Knopf oben in der Mitte + Esc */if(overview){ovBtn=btn('Übersicht beenden (Esc)','primary',()=>toggleOverview());ovBtn.classList.add('ovexit');$('world').append(ovBtn);addEventListener('keydown',ovKey,true)}else{if(ovBtn){ovBtn.remove();ovBtn=null}removeEventListener('keydown',ovKey,true)}UI.toast(overview?'Beamer-Übersicht: alle Cyborgs auf einen Blick. Nochmals drücken zum Beenden.':'Zurück zur Spielfigur');return!!overview}
   return{_aim:(tgt,dist,pitch)=>{if(!me)return;camF.copy(tangentTo(me.p,tgt.clone().sub(me.p)));camYaw=0;if(dist)camDist=dist;if(pitch!=null)camPitch=pitch},addObst,obstAround,_load:loadPlanet,toggleOverview,get overview(){return!!overview},_joy:()=>input.joy,init,frame,resize,quality,travel,landOn,syncVillagers,onAvatarChanged,W,G:G_,ents,get me(){return me},get scene(){return scene},cam,R,say,makeEnt,dropEnt,moveEnt,onSurf,placeObj,angle,tangentTo,isLand,randLand,randAround,note,
-    get mode(){return mode},set mode(v){mode=v},showCard,talkTo,voiceFor,fadeOut,parts,makeNature,nearPlace,get camF(){return camF},get night(){return G_.night||0}};
+    get mode(){return mode},set mode(v){mode=v},showCard,talkTo,voiceFor,fadeOut,parts,makeNature,nearPlace,get camF(){return camF},camSide:(a)=>{camYaw=a},camFwd:()=>me?camF.clone().applyAxisAngle(me.p,camYaw):camF.clone(),get night(){return G_.night||0}};
 })();

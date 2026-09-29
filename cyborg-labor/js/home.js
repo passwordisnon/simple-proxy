@@ -20,9 +20,9 @@ const SHOP=(()=>{
           c.onclick=()=>{if(SAVE.money<d.price){SND.play('error');UI.toast('Dafür reicht das Geld noch nicht.');return}if(!bagAdd(kind,d.id)){UI.toast('Die Tasche ist voll.');return}money(-d.price);SND.play('j_buy');upd();UI.toast(d.n+' gekauft!')};gr.append(c)};
         S0.furn.forEach(d=>add('furn',d));S0.walls.forEach(d=>add('wall',d));S0.floors.forEach(d=>add('floor',d));body.append(gr)}
       else{const sellable=SAVE.bag.filter(x=>x.kind!=='design');if(!sellable.length){body.append(el('p','empty','Du hast nichts zum Verkaufen.'));return}
-        const all=btn('Alle Fische, Insekten & Fundsachen verkaufen','primary',()=>{let sum=0;for(const it of[...SAVE.bag])if(['fish','bug','item','relic'].includes(it.kind)){sum+=itemPrice(it.kind,it.id)*it.n;bagTake(it.kind,it.id,it.n)}if(sum){money(sum);SND.play('coins');UI.toast(`Verkauft für ${fmt(sum)} Taler`)}upd();show('sell')});body.append(all);
+        const all=btn('Alle Fische, Insekten & Fundsachen verkaufen','primary',()=>{let sum=0;for(const it of[...SAVE.bag])if(['fish','bug','item','relic'].includes(it.kind)){for(let k=0;k<it.n;k++){sum+=itemPrice(it.kind,it.id);noteSold(it.id,1)}bagTake(it.kind,it.id,it.n)}if(sum){money(sum);SND.play('coins');UI.toast(`Verkauft für ${fmt(sum)} Taler`)}upd();show('sell')});body.append(all);
         const gr=el('div','grid');sellable.forEach(it=>{const c=el('button','card');c.type='button';c.append(itemThumb(it.kind,it.id),el('span',null,itemName(it.kind,it.id)),el('span','sub',`×${it.n} · ${fmt(itemPrice(it.kind,it.id))} T`));
-          c.onclick=()=>{bagTake(it.kind,it.id,1);money(itemPrice(it.kind,it.id));SND.play('coins');upd();show('sell')};gr.append(c)});body.append(gr)}}
+          c.onclick=()=>{bagTake(it.kind,it.id,1);money(itemPrice(it.kind,it.id));noteSold(it.id,1);SND.play('coins');upd();show('sell')};gr.append(c)});body.append(gr)}}
     show('buy')}
   return{open};
 })();
