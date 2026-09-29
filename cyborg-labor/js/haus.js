@@ -137,7 +137,7 @@ const HAUS=(()=>{
     const put=(cat,part,pack,name,x,y,z,ry,sc,pl)=>{const m=mk(pack,name,x,y,z,ry,sc,pl);if(!m){issues.push('fehlt '+name);return null}g.add(m);const o={b:boxOf(m,pack,name),cat,part,name,m};occ.push(o);if(txn)txn.push(o);return m};
     const tryPut=(cat,pack,name,x,y,z,ry,sc,pl)=>{const m=mk(pack,name,x,y,z,ry,sc,pl);if(!m)return null;m.updateMatrix();const b=boxOf(m,pack,name);for(const o of occ){if(depth(b,o.b)>tolOf(cat,o.cat))return null}g.add(m);const o={b,cat,part:-1,name,m};occ.push(o);if(txn)txn.push(o);return m};
     const begin=()=>{txn=[]};const rollback=()=>{for(const o of txn){g.remove(o.m);occ.splice(occ.indexOf(o),1)}txn=null};const commit=()=>{txn=null};
-    /* Raster und Höhen */const W=2+Math.floor(r()*2),D=2+Math.floor(r()*2);const flip=r()<.5;const cellFl=new Map();
+    /* Raster und Höhen */const W=plan.big?3+Math.floor(r()*2):2+Math.floor(r()*2),D=plan.big?3:2+Math.floor(r()*2);const flip=r()<.5;const cellFl=new Map();
     for(let x=0;x<W;x++)for(let z=0;z<D;z++)cellFl.set(x+','+z,1+z+((x+(flip?1:0))%2));
     /* eine Ecke weglassen für L-Formen (nie die Tür-Reihe komplett) */if(r()<.5){const cx=r()<.5?0:W-1;cellFl.delete(cx+','+(D-1))}
     const fl=(x,z)=>cellFl.get(x+','+z)||0;const cells=[...cellFl.keys()].map(k=>k.split(',').map(Number));
@@ -213,7 +213,7 @@ const HAUS=(()=>{
     if(box){P(g,G.bx(r0*2.1,.11,.16,.02),cozy({color:shadeC(col,.85)}),[0,-r0-.08,.07]);const fl=['#FF8FB8','#FFE27A','#B98CFF','#FF6F6F'];for(let i=0;i<4;i++)P(g,G.s(.045),cozy({color:fl[i%4]}),[(i-1.5)*r0*.45,-r0-.01,.1])}return g}
   function makeMush(pid,seed,plan){const r=rng(seed*2654435761+313);const occ=[];let txn=null;const issues=[];const g=new THREE.Group();
     const stemC=pick(r,MUSH.stem),capC=pick(r,MUSH.cap),doorC=pick(r,MUSH.door),kind=pick(r,MUSH.kinds);
-    const R=.78+r()*.4,H=1.6+r()*.8,Rc=R*(kind==='flat'?2.05:kind==='bell'?1.55:1.8)*(0.95+r()*.15),hc=kind==='flat'?Rc*.34:kind==='bell'?Rc*1.05:Rc*.62;
+    const R=(plan.big?1.25:.78)+r()*.4,H=(plan.big?2.4:1.6)+r()*.8,Rc=R*(kind==='flat'?2.05:kind==='bell'?1.55:1.8)*(0.95+r()*.15),hc=kind==='flat'?Rc*.34:kind==='bell'?Rc*1.05:Rc*.62;
     const M=mushroom(r,{R,H,Rc,hc,kind,stem:stemC,cap:capC,ring:r()<.7,spots:kind!=='bell'&&kind!=='wave'||r()<.3,spotC:capC==='#C98E62'?'#FFF1DA':'#FFFFFF',glow:r()<.7});
     const body=new THREE.Group();body.add(M.g);
     /* Tür vorne (−z) */const dr=M.rAt(.4);const door=archDoor(doorC,shadeC(capC,.85));door.position.set(0,0,-dr+.03);door.rotation.y=PI;body.add(door);
@@ -260,6 +260,15 @@ const HAUS=(()=>{
       const onRoof=(nm,pk,sc,ry)=>{for(let t=0;t<8;t++){const[x,z]=pick(r,H.cells);const k=x+','+z;if(used.has(k))continue;const y=base+fl(x,z)+.3;const P=H.parts.find(p=>x>=p.x&&x<p.x+p.w&&z>=p.z&&z<p.z+p.d&&p.fl===fl(x,z));if(!P)continue;
           if(tryPut('attach',pk,nm,x,y,z,ry==null?Math.floor(r()*4)*PI/2:ry,sc)){used.add(k);return true}}return false};
       onRoof(pick(r,['satelliteDish','satelliteDish_detailed']),'space',1.1);if(r()<.7)onRoof('machine_wireless','space',1.2);if(r()<.5)onRoof('hangar_roundGlass','space',.28,0);if(r()<.6)onRoof(pick(r,['chimney','chimney_detailed']),'space',.8);if(r()<.5)onRoof('container','station',.8)}
+    /* Öffentliche Gebäude: Fassade je Art (Säulenreihe, Markisen, Laternenkette, breites Tor …) */
+    if(plan.civic&&H.F.edge!=='station'){const fr=H.cells.filter(([x,z])=>!fl(x,z-1)).sort((a,b)=>a[0]-b[0]);const K=plan.civic;
+      for(const[x,z]of fr){const isDoor=x===door[0]&&z===door[1];const E=edgeT(x,z,'nz');
+        if(K==='museum'){for(const ox of[-.45,.45])tryPut('attach',T,'pillar-stone',x+ox,0,z-1.05,0,[1,1.9+base,1])}
+        else if(K==='shop'&&!isDoor){tryPut('attach',T,'overhang',E.x,base,E.z,E.ry)}
+        else if(K==='bar'){tryPut('attach',T,'lantern',x+.45,base,z-.85,0,[.8,.8,.8])}
+        else if((K==='studio'||K==='pflanzen')&&!isDoor){tryPut('attach','nature',K==='pflanzen'?'pot_large':'flower_purpleA',x,base,z-.72,0,1.3);if(K==='pflanzen')tryPut('attach','nature','plant_bushSmall',x,base+.22,z-.72,0,1.6)}
+        else if(K==='rathaus'&&!isDoor&&fl(x,z)>1){tryPut('attach',T,r()<.5?'banner-red':'banner-green',E.x,base+1,E.z,E.ry)}}
+      if(K==='museum'||K==='rathaus'){const xs2=fr.map(c=>c[0]);const zz=Math.min(...fr.map(c=>c[1]));for(let x=Math.min(...xs2);x<=Math.max(...xs2);x++)tryPut('path',T,'stairs-stone-round',x,0,zz-1.62,PI/2,[1,.25,1])}}
     /* Balkon */
     if(balc){begin();const{ox,oz,d}=balc;const[dx,dz]=DV[d];const tx=-dz,tz=dx;let ok=true;const y=base+1;
       ok=ok&&tryPut('attach',T,'planks',ox,y,oz,0);
@@ -293,6 +302,16 @@ const HAUS=(()=>{
   const GARDEN={kompost:{path:'path_stone',flowers:['flower_redA','flower_yellowA','flower_purpleA','flower_redB','flower_yellowB'],veg:['crop_pumpkin','crop_carrot','crop_turnip','crop_melon']},
     frost:{path:'path_stone',flowers:null,veg:null},korallen:{path:'planks',flowers:['flower_redA','flower_yellowB'],veg:null},wueste:{path:'path_stone',flowers:null,veg:['crop_melon'],pots:1},
     pilz:{path:'path_stone',flowers:['flower_purpleA','flower_purpleB','mushroom_redTall','mushroom_tanTall'],veg:['crop_pumpkin']},schrott:{path:'planks',flowers:null,veg:null}};
+  /* Vorplatz-Deko der öffentlichen Gebäude (d=neben der Tür, f=Vorplatz, s=Seite, c=Ecke, b=hinten) */
+  const CIVIC={
+    museum:[['town','fountain-round',.9,'f',0],['castle','flag-banner-long',1.3,'c',0],['nature','statue_obelisk',1,'s',0]],
+    shop:[['town','stall-red',1,'fs',0],['town','stall-green',1,'fs',0],['pirate','crate',.42,'d',0],['pirate','barrel',.33,'d',0],['town','cart',1,'fs',0]],
+    bar:[['town','stall-bench',1,'df',PI/2],['town','stall-bench',1,'f',PI/2],['pirate','barrel',.33,'d',0],['town','lantern',1,'fc',0],['survival','campfire-pit',2,'f',0]],
+    studio:[['nature','pot_large',1.4,'d',0],['town','stall-bench',1,'f',PI/2],['nature','flower_redA',1.3,'d',0],['nature','plant_bushDetailed',1.4,'cs',0]],
+    rathaus:[['town','fountain-round',1,'f',0],['castle','flag-banner-long',1.3,'c',0],['castle','flag',1.6,'c',0],['castle','flag',1.6,'c',0],['town','pillar-stone',1,'d',0],['town','stall-bench',1,'f',PI/2]],
+    garage:[['space','rover',1.6,'fs',0],['space','machine_generator',1.2,'s',PI/2],['space','barrels',1,'dc',0],['survival','workbench',1.8,'d',0]],
+    pflanzen:[['nature','crops_cornStageC',1.3,'fs',0],['nature','pot_large',1.4,'d',0],['nature','flower_yellowA',1.4,'df',0],['nature','plant_bushLarge',1.5,'cs',0],['nature','crop_pumpkin',1.3,'f',0]],
+    tiere:[['town','fence-curved',1,'f',0],['nature','log_stack',1.3,'s',0],['town','cart',1,'s',0],['pirate','barrel',.33,'d',0],['nature','stump_round',1.4,'f',0]]};
   function yard(H,pid,plan){const{tryPut,begin,rollback,commit,edgeT,r,door,base,minX,maxX,minZ,maxZ,cellFl}=H;const T='town';
     const zf=minZ-2;/* Zaunreihe */
     /* Weg von der Tür (oder Treppe) zum Tor */
@@ -301,7 +320,7 @@ const HAUS=(()=>{
     for(let z=door[1]-(base>0&&H.F.edge!=='station'?2:1);z>=zf;z--){if(GD.path==='path_stone')tryPut('path','nature','path_stone',door[0],0,z,PI/2,[1,1,.9]);else tryPut('path',T,'planks-half',door[0]-.25,0,z,0)}
     /* Laterne neben dem Weg */
     /* Platz für das Namensschild neben dem Weg reservieren */
-    for(const sx of[.78,-.78]){const bx=new THREE.Box3(new V(door[0]+sx-.3,0,door[1]-2.05),new V(door[0]+sx+.3,1.1,door[1]-1.85));if(!H.occ.some(o=>depth(bx,o.b)>.004)){H.occ.push({b:bx,cat:'yard',part:-1,name:'schild'});H.sign=[door[0]+sx,door[1]-1.95];break}}
+    const sw=plan.civic?1.1:.3,so=plan.civic?1.7:.78;for(const sx of[so,-so]){const bx=new THREE.Box3(new V(door[0]+sx-sw,0,door[1]-2.05),new V(door[0]+sx+sw,1.6,door[1]-1.85));if(!H.occ.some(o=>depth(bx,o.b)>.004)){H.occ.push({b:bx,cat:'yard',part:-1,name:'schild'});H.sign=[door[0]+sx,door[1]-1.95];break}}
     if(!plan.noLantern)for(const s2 of[1,-1]){if(tryPut('yard',T,'lantern',door[0]+.62*s2,0,door[1]-1.05))break}
     /* Blumenbeete vor den Fenstern */
     const bed=!base?pick(r,GD.flowers?['flowers','flowers','hedge',null]:['hedge',null,GD.pots?'pots':null]):null;
@@ -317,12 +336,13 @@ const HAUS=(()=>{
     if(GD.veg&&!base&&r()<.45){for(const sx of[maxX+1.55,minX-1.55].sort(()=>r()-.5)){begin();const z0=minZ+(maxZ>minZ?.5:0);let ok=!!tryPut('yard','nature','crops_dirtRow',sx,0,z0,PI/2,[1.2,1,1]);
         if(ok)for(const dz of[-.35,0,.35])tryPut('veg','nature',pick(r,GD.veg),sx,.02,z0+dz,r()*6,1);if(ok){commit();break}else rollback()}}
     /* Deko auf festen Plätzen */
-    const P=PROPS[pid]||PROPS.kompost;const zf2=zf;const slots=[];
+    const P=plan.civic?(CIVIC[plan.civic]||[]).concat((PROPS[pid]||PROPS.kompost).slice(0,2)):(PROPS[pid]||PROPS.kompost);const zf2=zf;const slots=[];
     for(const s2 of[-1,1])slots.push({t:'d',x:door[0]+1.2*s2,z:door[1]-1.3});
     const fenced=!!H.fenced;if(fenced)slots.push({t:'c',x:minX-.55,z:zf2+.35},{t:'c',x:maxX+.55,z:zf2+.35});else slots.push({t:'c',x:minX-1.5,z:minZ-1.3},{t:'c',x:maxX+1.5,z:minZ-1.3});
     for(let z=minZ;z<=maxZ;z++){slots.push({t:'s',x:minX-1.45,z,side:-1},{t:'s',x:maxX+1.45,z,side:1})}
     for(let x=minX;x<=maxX;x++)slots.push({t:'b',x,z:maxZ+1.5});
-    const n=1+Math.floor(r()*3);let placed=0;const used=new Set();
+    const n=plan.civic?4+Math.floor(r()*2):1+Math.floor(r()*3);let placed=0;const used=new Set();
+    if(plan.civic){for(let x=minX-1;x<=maxX+1;x+=2)slots.push({t:'f',x,z:minZ-2.6})}
     for(let t=0;t<40&&placed<n;t++){const pr=pick(r,P);const[pk,nm,psc,allow,rot]=pr;if(!KIT.has(pk,nm))continue;const cand=slots.filter((sl,i)=>allow.includes(sl.t)&&!used.has(i));if(!cand.length)continue;
       const sl=pick(r,cand);const ry=rot==null?Math.floor(r()*4)*PI/2:(sl.t==='s'?rot+PI/2:rot);
       if(tryPut('yard',pk,nm,sl.x,0,sl.z,ry,psc,H.pal)){used.add(slots.indexOf(sl));placed++}}
@@ -343,6 +363,13 @@ const HAUS=(()=>{
     frost:[{fam:'cabin',snow:1,fp:{noHigh:1,noWings:1,noTower:1}},{fam:'cabin',snow:1,fp:{noHigh:1,tall:.75,noWings:1,noTower:1}},{fam:'cabin',snow:1,base:.99,fp:{noHigh:1,maxFl:1,noWings:1,noTower:1,dims:[[2,1],[2,2],[1,2],[3,1]]}},{fam:'town',fp:{tall:.6}},{fam:'town',round:1}],
     wueste:[{fam:'pueblo',fence:null,noLantern:1},{fam:'pueblo',fence:null,noLantern:1},{fam:'pueblo',fence:null,noLantern:1},{fam:'pueblo',fence:null}],
     pilz:[{fam:'mush'},{fam:'mush',fence:null},{fam:'mush'},{fam:'mush',stack:false}]};
+  /* Öffentliche Gebäude: grössere Grundrisse, höher, Turm für Rathaus/Museum, offener Vorplatz */
+  function civic(pid,kind,opt){opt=opt||{};const plans=(PLAN[pid]||PLAN.kompost).filter(p=>!p.base||pid==='korallen'||pid==='schrott');const base=plans[hashS(kind+pid)%plans.length];const plan=Object.assign({},base,{civic:kind,fence:null,noBalcony:kind!=='bar'&&kind!=='studio'});
+    if(plan.fam==='mush')Object.assign(plan,{big:1,stack:kind==='rathaus'||kind==='museum'});
+    else if(plan.fam!=='pueblo')plan.fp=Object.assign({},base.fp||{},{dims:[[3,2],[3,3],[4,2],[2,3]],tall:.85,maxFl:3,noWings:false,tower:kind==='rathaus'||kind==='museum'?1:.15,towerExtra:kind==='rathaus'?1:0});
+    else plan.big=1;
+    return build(pid,opt.seed||hashS(pid+kind),Object.assign({},opt,{plan}))}
+  const hashS=s=>{let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return(h>>>0)%1000003};
   const REJ={};function rej(plan,iss){for(const i of iss){const k=(plan.fam||'town')+': '+i.replace(/@.*/,'');REJ[k]=(REJ[k]||0)+1}}
   function build(pid,seed,opt){opt=opt||{};const plans=PLAN[pid]||PLAN.kompost;let last=null,tries=0;
     for(;tries<24;tries++){const s=seed+tries*7919;const r=rng(s+99);const plan=Object.assign({},opt.plan||plans[(opt.index!=null?opt.index:Math.floor(r()*plans.length))%plans.length]);
@@ -365,5 +392,5 @@ const HAUS=(()=>{
   function center(g,door,body){const box=new THREE.Box3().setFromObject(g);const ctr=(body||box).getCenter(new V());ctr.y=0;g.children.forEach(c=>{c.position.x-=ctr.x;c.position.z-=ctr.z});return{ctr,door:[door[0]-ctr.x,door[1]-.5-ctr.z],size:box.getSize(new V())}}
   const PACKS=['town','holiday','pirate','nature','survival','station','modular','castle','plat','space'];let ready=false;
   function load(){return Promise.all(PACKS.map(p=>KIT.load(p))).then(()=>{ready=true})}
-  return{build,palette,THEMES,rng,REJ,load,PACKS,get ready(){return ready}}
+  return{build,civic,palette,THEMES,rng,REJ,load,PACKS,get ready(){return ready}}
 })();

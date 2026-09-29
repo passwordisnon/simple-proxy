@@ -140,7 +140,12 @@ const TOWN=(()=>{
     else if(kind==='pflanzen'){for(let i=0;i<5;i++){at(dx-2.4+i*1.2,Z+.3,q=>{C(q,.22,.16,.34,m.c(PAL.terracotta),[0,.17,0]);S(q,.24,m.c('#6DAE55',{rim:.6}),[0,.5,0],[1,.8,1]);for(let j=0;j<3;j++)S(q,.07,m.c(['#FF8FB8','#FFE27A','#C6A9FF','#FF7E6B','#7FDCE6'][(i+j)%5]),[Math.cos(j*2.1)*.16,.64,Math.sin(j*2.1)*.16])})}at(Rr+.4,Z-.8,q=>{B(q,1.2,.35,.7,.04,Wd(m,'#C98C5A'),[0,.18,0]);B(q,1.1,.08,.6,.02,m.c('#8A5E42'),[0,.36,0]);for(let i=0;i<4;i++)S(q,.1,m.c('#7CC46A'),[-.4+i*.27,.45,0])})}
     else if(kind==='tiere'){at(Rr,Z-.3,q=>{B(q,.9,.7,.8,.06,Wd(m,'#E0876A'),[0,.35,0]);const s2=new THREE.Shape();s2.moveTo(-.55,0);s2.lineTo(.55,0);s2.lineTo(0,.45);s2.closePath();P(q,new THREE.ExtrudeGeometry(s2,{depth:.95,bevelEnabled:false}),m.c('#8E6BD1'),[0,.7,-.475]);P(q,G.puff(archShape(.4,.45,.2),.04),m.c('#3B3450'),[0,0,.41])},-.5);
       at(L,Z,q=>{C(q,.25,.2,.12,m.c('#6AA8F0',{gloss:.6}),[0,.06,0]);C(q,.2,.2,.02,m.c('#8A5A44'),[0,.12,0]);for(let i=0;i<8;i++){const a=i/8*TAU;if(i===2)continue;C(q,.04,.04,.6,Wd(m,'#FFFBF0'),[Math.sin(a)*1,.3,Math.cos(a)*1-.3])}})}}
-  function build(kind,pid,m){if(kind==='rocket')return null;QF=Math.min(QF||1,HIGH?.7:.45);const res=ARCH.forTown(pid,kind);if(!res)return null;const g=new THREE.Group();g.add(res.g);const ticks=[];if(res.g.userData.tick){const t0=res.g.userData.tick;ticks.push(t0)}
+  function build(kind,pid,m){if(kind==='rocket')return null;
+    /* Bausatz-Gebäude (einzigartig je Planet und Art, sauber geprüft) */
+    if(typeof HAUS!=='undefined'&&HAUS.ready&&kind!=='plaza'){try{const U=1.4;const res=HAUS.civic(pid,kind,{sagR:(GAME.G.R+.8)/U});const g=new THREE.Group();const w=new THREE.Group();w.rotation.y=PI;w.scale.setScalar(U);w.add(res.g);g.add(w);
+      const rot=(x,z)=>[-x*U,-z*U];const[dx,dz]=rot(res.door[0],res.door[1]);const nm=(NAMES[pid]||NAMES.kompost)[kind]||kind;
+      if(res.sign){const[sx,sz]=rot(res.sign[0],res.sign[1]);yardSign(g,m,pid,kind,nm,sx,sz)}
+      finish(g,[dx,0,dz],res.bodyR*U,kind,[]);Object.assign(g.userData,{name:nm,doorExact:true,obstR:.3,colliders:res.colliders.map(c=>[...rot(c[0],c[1]),c[2]*U]),style:res.style});return g}catch(e){console.warn('Bausatz-Gebäude',kind,e)}}QF=Math.min(QF||1,HIGH?.7:.45);const res=ARCH.forTown(pid,kind);if(!res)return null;const g=new THREE.Group();g.add(res.g);const ticks=[];if(res.g.userData.tick){const t0=res.g.userData.tick;ticks.push(t0)}
     const[dx,dz]=res.door;yardSign(g,m,pid,kind,(NAMES[pid]||NAMES.kompost)[kind]||kind,dx+(dx>0?-2.1:2.1),dz-.1);try{yard(g,m,pid,kind,dx,dz,res.r,ticks)}catch(e){console.warn('Vorplatz',kind,e)}
     finish(g,[dx,0,dz],res.r,kind,ticks);g.userData.name=(NAMES[pid]||NAMES.kompost)[kind]||kind;return g}
   return{build,NAMES,STY,kinds:Object.keys(B_)}
