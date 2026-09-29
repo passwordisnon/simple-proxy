@@ -202,6 +202,7 @@ const GAME=(()=>{
       G_.scene.add(g);pl.obj=g;const rad=(obj.userData.r||2.2);if(pl.build!=='plaza')addObst(pl.dir,obj.userData.obstR??rad);
       g.updateMatrixWorld(true);if(pl.build==='plaza'){settleKids(obj);registerPlaza(obj)}
       for(const c of(obj.userData.colliders||[])){const wp=g.localToWorld(new V3(c[0],0,c[1]));addObst(wp.normalize(),c[2])}
+      registerAddons(g,obj);
       if(obj.userData.yard){const Y=obj.userData.yard;const wl=(x,z)=>obj.localToWorld(new V3(x,0,z)).normalize();obj.updateMatrixWorld(true);const y={obj,Y,c:pl.dir.clone(),gin:wl(...Y.gin),gout:wl(...Y.gout)};G_.yards.push(y);
         const gd=obj.userData.gate;if(gd){const pv=gd.pivot;pv.updateMatrixWorld(true);const a=pv.localToWorld(new V3(0,0,0)),b=pv.localToWorld(new V3(gd.w,0,0));
           const gate={pv,a:a.normalize(),b:b.normalize(),c:a.clone().add(b).normalize(),open:0,want:0,byKI:false,idle:0};y.gate=gate;G_.gates.push(gate);
@@ -305,6 +306,9 @@ const GAME=(()=>{
     if(e.kind==='me'){for(const o of ents.values()){if(o===e||o.kind==='peer')continue;const d=angle(np,o.p)*G_.R;if(d<.7){const away=tangentTo(o.p,np.clone().sub(o.p));if(isFinite(away.x))np.applyAxisAngle(new V3().crossVectors(o.p,away).normalize(),(.7-d)/G_.R).normalize()}}}
     e.dir.applyAxisAngle(axis,ang);e.p.copy(np);e.dir.copy(tangentTo(e.p,e.dir));return true}
 
+  /* Anbauten am eigenen Haus: Türen als Interaktion (beim Umbau neu registriert) */
+  function registerAddons(g,obj){G_.inter=G_.inter.filter(it=>!(it.kind==='addon'&&it.host===g));const ds=obj.userData.addonDoors||[];if(!ds.length)return;g.updateMatrixWorld(true);
+    for(const d of ds){const p=g.localToWorld(new V3(d.x,0,d.z)).normalize();const D=ADDONS.def(d.id);G_.inter.push({kind:'addon',host:g,p,r:1.4,label:D.n+' betreten',act:()=>INTERIOR.enter(d.id)})}}
   /* Gartentore: schwenken weich auf/zu; von der KI geöffnete Tore schliesst sie hinter sich wieder */
   function stepGates(dt){for(const g of G_.gates){const d=g.want-g.open;if(Math.abs(d)>.001){g.open+=Math.sign(d)*Math.min(Math.abs(d),dt*2.2);const k=g.open*g.open*(3-2*g.open);g.pv.rotation.y=-k*1.5}
       if(g.it)g.it.label=g.want>.5?'Gartentor schliessen':'Gartentor öffnen';
@@ -353,7 +357,7 @@ const GAME=(()=>{
     for(const q of ms){const u=q.userData;if(u.smile){if(u.open){u.open.visible=k>.08;u.open.scale.y=Math.max(.1,k)}continue}
       /* nach unten öffnen (nicht in die Nase wachsen) */q.scale.set(1+k*.12,1+k*.9,1);if(u.y0!=null)q.position.y=u.y0-k*.9*(u.w||0)*.55;if(u.open)u.open.visible=k>.25}}
   function poseEnt(e,dt,t){const h=G_.hAt(e.p);let base=h;const inWater=h<G_.sea;if(e.boat)base=G_.sea+.1+Math.sin(t*1.6)*.05;else if(inWater)base=e.fly?G_.sea:G_.sea-.25;let alt=e.move.alt?e.move.alt*CS*1.1+Math.sin(t*1.5+e.phase)*.1:0;
-    const moving=e.speed>.1;if(e.move.hop&&moving)alt+=Math.abs(Math.sin(t*5+e.phase))*e.move.hop*CS*1.2;if(e.jump>0)alt+=Math.sin((1-e.jump/.9)*PI)*.9;
+    const moving=e.speed>.1;if(e.move.hop&&moving)alt+=Math.abs(Math.sin(t*5+e.phase))*e.move.hop*CS*1.2;if(e.jump>0)alt+=Math.sin((1-e.jump/.9)*PI)*(e.hop>0?1.9:.9);
     e.g.position.copy(e.p).multiplyScalar(G_.R+base+alt);e.g.up.copy(e.p);
     const look=e.lookAt&&e.stop>0?e.lookAt.g.position:e.g.position.clone().add(e.dir);e.g.lookAt(look);if(e.stop<=0)e.lookAt=null;
     if(e.dance>0){e.g.rotateY(Math.sin(t*6)*.6);e.g.position.addScaledVector(e.p,Math.abs(Math.sin(t*8))*.15)}
@@ -514,7 +518,7 @@ const GAME=(()=>{
     for(const e of ents.values()){try{if(e===me||e.kind==='peer'){}else stepVillager(e,dt,t);if(e.kind==='peer')SOCIAL.stepPeer(e,dt)}catch(err){if(!e.errLogged){e.errLogged=1;console.warn('Figur',e.d&&e.d.id,err)}}}
     const camP=cam.position.clone().normalize();for(const e of ents.values()){const vis=overview?e.p.dot(camP)>.1:e===me||(e.p.dot(camP)>.55&&angle(e.p,me?me.p:e.p)*G_.R<40);e.g.visible=vis;e.shadow.visible=vis;if(vis)poseEnt(e,dt,t)}
     stepProps(dt,t);stepParts(dt);stepClouds(dt);SCATTER.step(dt);if(typeof WEATHER!=='undefined')WEATHER.frame(dt,t,G_,me);else stepWeather(dt,t);if(G_.groundU)G_.groundU.uT.value=t;SCATTER.update(overview?cam.position.clone().normalize():(me?me.p:UPV),t,HIGH);stepBall(dt);stepLaunch(dt);poseBoats(dt,t);stepGates(dt);for(const o of G_.ticks){try{o.userData.tick(t,false,0)}catch(e){}}
-    if(me){if(me.boost>0)me.boost-=dt;if(me.glitter>0){me.glitter-=dt;if(Math.random()<dt*6)W.fx(me.p,'funke',1,me.g.position.clone().addScaledVector(me.p,.8+Math.random()*.6))}}
+    if(me){if(me.boost>0)me.boost-=dt;if(me.hop>0)me.hop-=dt;if(me.glitter>0){me.glitter-=dt;if(Math.random()<dt*6)W.fx(me.p,'funke',1,me.g.position.clone().addScaledVector(me.p,.8+Math.random()*.6))}}
     if(me&&!overview){OCC.a.value.copy(cam.position);OCC.b.value.copy(me.g.position).addScaledVector(me.p,.9);OCC.on.value=1}else OCC.on.value=0;ACT.frame(dt,t);REPAIR.frame(dt,t);if((typeof FAUNA!=='undefined'))try{FAUNA.step(dt,t)}catch(e){console.warn('Fauna',e)}SOCIAL.frame(dt,t);grassU.value=t;G_.waterU.uT.value=t;
     ecoT-=dt;if(ecoT<=0){ecoT=1;ecoTick()}grassU.value=t;
     /* Tageszeit (echte Uhr) */
@@ -585,6 +589,6 @@ const GAME=(()=>{
   let ovBtn=null;const ovKey=e=>{if(e.key==='Escape'&&overview){e.stopPropagation();toggleOverview()}};
   function toggleOverview(){overview=overview?null:{az:Math.atan2(cam.position.z,cam.position.x)};if(!overview)camSnap=true;
     /* gut sichtbarer Ausgang: Knopf oben in der Mitte + Esc */if(overview){ovBtn=btn('Übersicht beenden (Esc)','primary',()=>toggleOverview());ovBtn.classList.add('ovexit');$('world').append(ovBtn);addEventListener('keydown',ovKey,true)}else{if(ovBtn){ovBtn.remove();ovBtn=null}removeEventListener('keydown',ovKey,true)}UI.toast(overview?'Beamer-Übersicht: alle Cyborgs auf einen Blick. Nochmals drücken zum Beenden.':'Zurück zur Spielfigur');return!!overview}
-  return{_stepV:stepVillager,_stepGates:stepGates,_aim:(tgt,dist,pitch)=>{if(!me)return;camF.copy(tangentTo(me.p,tgt.clone().sub(me.p)));camYaw=0;if(dist)camDist=dist;if(pitch!=null)camPitch=pitch},addObst,obstAround,_load:loadPlanet,toggleOverview,get overview(){return!!overview},_joy:()=>input.joy,init,frame,resize,quality,travel,landOn,syncVillagers,onAvatarChanged,W,G:G_,ents,get me(){return me},get scene(){return scene},cam,R,say,makeEnt,dropEnt,moveEnt,onSurf,placeObj,angle,tangentTo,isLand,avatarData,randLand,randAround,note,
+  return{registerAddons,_stepV:stepVillager,_stepGates:stepGates,_aim:(tgt,dist,pitch)=>{if(!me)return;camF.copy(tangentTo(me.p,tgt.clone().sub(me.p)));camYaw=0;if(dist)camDist=dist;if(pitch!=null)camPitch=pitch},addObst,obstAround,_load:loadPlanet,toggleOverview,get overview(){return!!overview},_joy:()=>input.joy,init,frame,resize,quality,travel,landOn,syncVillagers,onAvatarChanged,W,G:G_,ents,get me(){return me},get scene(){return scene},cam,R,say,makeEnt,dropEnt,moveEnt,onSurf,placeObj,angle,tangentTo,isLand,avatarData,randLand,randAround,note,
     get mode(){return mode},set mode(v){mode=v},showCard,talkTo,voiceFor,fadeOut,parts,makeNature,nearPlace,get camF(){return camF},camSide:(a)=>{camYaw=a},camFwd:()=>me?camF.clone().applyAxisAngle(me.p,camYaw):camF.clone(),get night(){return G_.night||0}};
 })();

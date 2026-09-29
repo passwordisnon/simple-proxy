@@ -820,12 +820,14 @@ function buildHouse(style,m){
   /* Zaun & Weg */
   if(st.fence){const Rf=Math.max(W*.8,dz+1.35);picketFence(g,m,Rf,st.fenceCol||'#F7F0EA',1.4);g.userData.fenceR=Rf;
     for(let i=0;i<3;i++){const z=dz+.8+i*(Rf-dz-.6)/3;P(g,G.cy(.26,.28,.06),stone,[(i%2-.5)*.18,.03,z],null,[1.2,1,1])}}
+  /* Anbauten (Sternwarte, Gewächshaus, Labor) neben dem Haus */
+  if(st.addons&&st.addons.length&&typeof ADDONS!=='undefined')try{ADDONS.attach(g,m,st,I.r)}catch(e){console.warn('Anbau',e)}
   if(st.flag)ticks.push(flagOn(g,m,I.apex,st.flagCol||(doorCol===HOUSE_DEF.door?PAL.lemon:doorCol)));
   g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});
   g.userData.door=[0,0,dz+.95];g.userData.r=I.r;g.userData.style=Object.assign({},st,{shape,wall:wk,win:wt,wallCol,roofCol,doorCol,size:sz});g.userData.kind='house';
   if(ticks.length)g.userData.tick=t=>ticks.forEach(f=>f(t));
   return g}
-window.buildHouse=buildHouse;
+window.buildHouse=buildHouse;window.HOUSEKIT={wallMat,houseDoor,houseWin,Wd,darker};
 /* ---------- Gebäude-Helfer ---------- */
 function gableRoof(g,m,bw,bd,Hb,col,p,ov){const hw=bw/2,ridge=Hb+hw*Math.tan(p),L=(hw+ov)/Math.cos(p)+.08,D=bd+ov*1.4;
   both(s=>{const cx=s*(hw+ov)/2,cy=ridge-(hw+ov)/2*Math.tan(p);P(g,G.bx(L,.2,D,.07),roofMat(m,col,D/.7,L/.55),[cx+s*Math.sin(p)*.1,cy+Math.cos(p)*.1,0],[0,0,-s*p])});

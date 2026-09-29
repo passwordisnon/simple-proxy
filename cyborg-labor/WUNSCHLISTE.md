@@ -25,7 +25,7 @@ Status: ✔ erledigt · ◐ teilweise · ☐ offen. Wird bei jedem Schritt aktua
 
 ## Welt & Planeten
 - ✔ Grössere Planeten (3× Radius, gestreamt), Ozeane, Inseln, Boote mit Stegen
-- ◐ Berge besteigen (begehbar; Kletter-Animation fehlt)
+- ✔ Berge besteigen (Kletter-Haltung und langsamer an steilen Hängen)
 - ✔ Höhlen zum Erkunden (Kenney Cave Kit: Kristalle, Tropfsteine, Teich, Fossilien, Kristalladern)
 - ✔ Biome je Planet: kalt / Wald-Dschungel / heiss passend zur Planeten-Ästhetik
 - ✔ Tag-Nacht-Zyklus mit Morgen- und Abendrot, wanderende Sonne
@@ -33,7 +33,7 @@ Status: ✔ erledigt · ◐ teilweise · ☐ offen. Wird bei jedem Schritt aktua
 - ✔ Ruinen mit Wortsteinen (NMS-Sprachen), Schrift je Planet, KI freundlicher je mehr Wörter
 - ✔ Tiere je Planet zum Interagieren
 - ✔ Gartentore in Hecken/Zäunen zum Öffnen und Schliessen (E); die KI öffnet das Tor, geht hindurch und schliesst es wieder
-- ☐ Kamera stösst nicht durch Wände/Häuser (Kamera-Kollision)
+- ✔ Kamera stösst nicht durch Wände/Häuser (Kamera-Kollision)
 
 ## Gebäude & Innenräume
 - ✔ Einzigartige Häuser aus freien Bausätzen (Kenney, KayKit), 30-Planeten-tauglich, Pilzhäuser
@@ -43,7 +43,7 @@ Status: ✔ erledigt · ◐ teilweise · ☐ offen. Wird bei jedem Schritt aktua
 - ✔ Praxis Dr. Bolzen (echte Klinik), Labor nur über den Doktor
 - ✔ Boutique mit Monsieur Boulon (niedlicher französischer Roboter)
 - ✔ Lampen als Lichtquellen, dunkle gemütliche Räume
-- ☐ Viel mehr Hausgegenstände + Anbauten (Sternwarte, Labor, Gewächshaus …)
+- ✔ Viel mehr Hausgegenstände (~250 Möbel) + Anbauten: Sternwarte (Sternbilder), Gewächshaus (Topfpflanzen aus allen Planeten), Labor (Tränke)
 
 ## Rakete & Weltall
 - ✔ Einsteigen, steuerbare Rakete, 3D-Sonnensystem, schöne Weltall-Grafik
