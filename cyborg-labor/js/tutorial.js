@@ -32,6 +32,6 @@ const TUT=(()=>{
     s&&s.begin&&s.begin();show();busy=false}
   function tick(){if(SAVE.tutDone||busy||!GAME.me||GAME.mode!=='outdoor'||UI.anyOpen())return;const s=STEPS[cur()];if(!s){SAVE.tutDone=true;return}if(!start.begun){start.begun=true;s.begin&&s.begin()}
     try{if(s.done())next()}catch(e){}}
-  function startWorld(){if(SAVE.tutDone)return;show();setInterval(tick,700);const s=STEPS[cur()];if(s&&s.intro&&cur()<=1)setTimeout(()=>{if(!UI.anyOpen())UI.talk(GUIDE,s.intro,{voice:V,color:'#8C6FE0'})},1200)}
+  function startWorld(){if(SAVE.tutDone)return;show();setInterval(tick,700);const s=STEPS[cur()];if(s&&s.intro&&cur()<=1){const iv=setInterval(()=>{if(GAME.mode==='outdoor'&&!UI.anyOpen()){clearInterval(iv);UI.talk(GUIDE,['Da bist du ja! Dr. Bolzen hat mir schon alles erzählt.',...s.intro],{voice:V,color:'#8C6FE0'})}},800)}}
   return{startWorld,ev:mark,show,get step(){return cur()}}
 })();

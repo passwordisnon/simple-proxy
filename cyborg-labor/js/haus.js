@@ -312,6 +312,7 @@ const HAUS=(()=>{
     rathaus:[['town','fountain-round',1,'f',0],['castle','flag-banner-long',1.3,'c',0],['castle','flag',1.6,'c',0],['castle','flag',1.6,'c',0],['town','pillar-stone',1,'d',0],['town','stall-bench',1,'f',PI/2]],
     garage:[['space','rover',1.6,'fs',0],['space','machine_generator',1.2,'s',PI/2],['space','barrels',1,'dc',0],['survival','workbench',1.8,'d',0]],
     pflanzen:[['nature','crops_cornStageC',1.3,'fs',0],['nature','pot_large',1.4,'d',0],['nature','flower_yellowA',1.4,'df',0],['nature','plant_bushLarge',1.5,'cs',0],['nature','crop_pumpkin',1.3,'f',0]],
+    praxis:[['town','stall-bench',1,'df',PI/2],['nature','pot_large',1.3,'d',0],['nature','plant_bushDetailed',1.4,'c',0],['town','lantern',1,'c',0]],
     tiere:[['town','fence-curved',1,'f',0],['nature','log_stack',1.3,'s',0],['town','cart',1,'s',0],['pirate','barrel',.33,'d',0],['nature','stump_round',1.4,'f',0]]};
   function yard(H,pid,plan){const{tryPut,begin,rollback,commit,edgeT,r,door,base,minX,maxX,minZ,maxZ,cellFl}=H;const T='town';
     const zf=minZ-2;/* Zaunreihe */
