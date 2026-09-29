@@ -48,6 +48,7 @@ function sanitize(d){
   o.body.skin=SKINS.some(s=>s.id===b.skin)?b.skin:'haut';o.body.color=Number.isInteger(b.color)&&b.color>=0&&b.color<SKIN_COLORS.length?b.color:0;
   o.body.shape=TORSOS.some(t=>t.id===b.shape)?b.shape:'ei';o.body.pattern=PATTERNS.some(t=>t.id===b.pattern)?b.pattern:'keine';o.body.color2=Number.isInteger(b.color2)&&b.color2>=0&&b.color2<SKIN_COLORS.length?b.color2:16;
   const p=d.parts||{};for(const s of ['kopf','augen','arme','beine'])o.parts[s]=findPart(s,p[s])?p[s]:o.parts[s];
+  o.tint={};{const t=d.tint||{};for(const k of TINT_SLOTS)if(Number.isInteger(t[k])&&t[k]>=0&&t[k]<SKIN_COLORS.length)o.tint[k]=t[k]}
   o.parts.extras=Array.isArray(p.extras)?[...new Set(p.extras.filter(x=>findPart('extras',x)))].slice(0,MAXX):[];
   o.info={};const inf=d.info||{};
   for(const k of Object.keys(inf).slice(0,14)){if(!/^(kopf|augen|arme|beine|haut|x-[a-z]+)$/.test(k))continue;const v=inf[k]||{};
@@ -65,8 +66,8 @@ function toB64(s){const b=new TextEncoder().encode(s);let bin='';b.forEach(x=>bi
 function fromB64(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';const bin=atob(s);return new TextDecoder().decode(Uint8Array.from(bin,c=>c.charCodeAt(0)))}
 function slim(d){const o={v:2,id:d.id,name:d.name,group:d.group,createdAt:d.createdAt,body:d.body,parts:d.parts,statement:d.statement,info:{}};for(const a of activeKeys(d)){const i=d.info[a.key];if(i&&(i.func||i.name||i.forWhom||i.maker||i.boundary||i.other))o.info[a.key]=i}return o}
 /* ganz knapp: nur Aussehen (für Online-Präsenz) */
-function looks(d){return{b:[d.body.seg,+d.body.size.toFixed(2),d.body.skin,d.body.color,d.body.shape,d.body.pattern||'keine',d.body.color2??16],p:[d.parts.kopf,d.parts.augen,d.parts.arme,d.parts.beine,...(d.parts.extras||[])]}}
-function fromLooks(l,name){try{const[seg,size,skin,color,shape,pattern,color2]=l.b;const[kopf,augen,arme,beine,...extras]=l.p;return sanitize({name,body:{seg,size,skin,color,shape,pattern,color2},parts:{kopf,augen,arme,beine,extras}})}catch(e){return null}}
+function looks(d){return{b:[d.body.seg,+d.body.size.toFixed(2),d.body.skin,d.body.color,d.body.shape,d.body.pattern||'keine',d.body.color2??16],p:[d.parts.kopf,d.parts.augen,d.parts.arme,d.parts.beine,...(d.parts.extras||[])],...(d.tint&&Object.keys(d.tint).length?{t:TINT_SLOTS.map(k=>d.tint[k]??-1)}:{})}}
+function fromLooks(l,name){try{const[seg,size,skin,color,shape,pattern,color2]=l.b;const[kopf,augen,arme,beine,...extras]=l.p;const tint={};if(Array.isArray(l.t))TINT_SLOTS.forEach((k,i)=>{if(l.t[i]>=0)tint[k]=l.t[i]});return sanitize({name,body:{seg,size,skin,color,shape,pattern,color2},parts:{kopf,augen,arme,beine,extras},tint})}catch(e){return null}}
 const encode=d=>'CYB2.'+toB64(JSON.stringify(slim(d)));
 const rid=()=>Math.random().toString(36).slice(2,10);
 function decodeAll(text){const out=[];const re=/CYB[12]\.([A-Za-z0-9_-]+)/g;let m;while((m=re.exec(text))){try{const d=sanitize(JSON.parse(fromB64(m[1])));if(!d.id)d.id=rid();out.push(d)}catch(e){}}return out}

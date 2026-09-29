@@ -67,6 +67,7 @@ input::placeholder,textarea::placeholder{color:var(--ink3);font-weight:600}
 .seg button[aria-pressed="true"]{border-color:var(--leaf);background:var(--leafL);color:var(--leafD)}
 input[type=range]{width:100%;accent-color:var(--leaf)}
 .swatches{display:flex;gap:6px;flex-wrap:wrap}
+.partcol{margin:8px 0 10px}.partcol>span{display:block;font-weight:700;margin-bottom:6px}.swatches button.orig{background:conic-gradient(#F0556E,#FFD85A,#6FAF5C,#5B8DEF,#9C7BE0,#F0556E)!important;position:relative}.swatches button.orig::after{content:'';position:absolute;inset:5px;border-radius:50%;background:#fff}
 .swatches button{width:28px;height:28px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px var(--line)}
 .swatches button[aria-pressed="true"]{box-shadow:0 0 0 3px var(--ink)}
 .skins{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:6px}
@@ -332,6 +333,7 @@ body:not(.coarse) #hbA{display:none}
           <h2><span class="num">2</span>Teile tauschen</h2>
           <p class="sub">Über 250 Teile. Viele können etwas: Bäume pflanzen, Schrott tragen, überwachen, Musik machen. Die Beine bestimmen, wie euer Cyborg sich bewegt. Bis zu vier Extras.</p>
           <div class="slottabs" role="tablist" id="slotTabs"></div>
+          <div class="f partcol" id="partColWrap"><span id="partColLbl">Farbe</span><div class="swatches" id="partSwatches"></div></div>
           <input type="search" id="inSearch" placeholder="Suchen, z. B. Flügel, pflanzt, fliegt, Pilz">
           <div class="filters" id="kindFilters"></div>
           <div class="tiles" id="partTiles"></div>

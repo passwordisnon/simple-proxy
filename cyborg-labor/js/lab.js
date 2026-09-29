@@ -76,6 +76,9 @@ function renderBody(){
 function renderParts(){
   const tabs=$('slotTabs');tabs.replaceChildren();
   SLOTS.forEach(sl=>{const b=el('button',null,sl.label+(sl.multi?` (${S.parts.extras.length}/${MAXX})`:'')+' · '+PARTS[sl.key].length);b.type='button';b.setAttribute('role','tab');b.setAttribute('aria-selected',activeSlot===sl.key);b.onclick=()=>{activeSlot=sl.key;SND.play('select',{vol:.5});renderParts()};tabs.append(b)});
+  /* Farbe des gewählten Teils (Original oder eine Palettenfarbe) */{const lbl=SLOTS.find(x=>x.key===activeSlot);$('partColLbl').textContent='Farbe: '+(lbl?lbl.label:'Teil')+(activeSlot==='extras'?' (alle Extras)':'');const ps=$('partSwatches');ps.replaceChildren();S.tint=S.tint||{};const cur=S.tint[activeSlot];
+    const o=el('button','orig');o.type='button';o.title='Originalfarben';o.setAttribute('aria-label','Originalfarben');o.setAttribute('aria-pressed',cur==null);o.onclick=()=>{delete S.tint[activeSlot];changed(true);renderParts()};ps.append(o);
+    SKIN_COLORS.forEach((c,i)=>{const b=el('button');b.type='button';b.style.background=c;b.setAttribute('aria-label','Teilfarbe '+(i+1));b.setAttribute('aria-pressed',cur===i);b.onclick=()=>{S.tint[activeSlot]=i;SND.play('select',{vol:.4});changed(true);renderParts()};ps.append(b)})}
   const kf=$('kindFilters');kf.replaceChildren();['alle','org','tier','masch','pflanze','ding'].forEach(k=>{const b=el('button',null,k==='alle'?'alle':KIND[k]);b.type='button';b.setAttribute('aria-pressed',kindFilter===k);b.onclick=()=>{kindFilter=k;renderParts()};kf.append(b)});
   const t=$('partTiles');t.replaceChildren();const q=search.trim().toLowerCase();
   const abText=p=>[p.ab&&ABIL[p.ab]?ABIL[p.ab].n:'',p.mv?MOVE[p.mv].n:''].join(' ');const list=PARTS[activeSlot].filter(p=>(kindFilter==='alle'||p.k===kindFilter||(p.k==='none'))&&(!q||(p.n+' '+abText(p)).toLowerCase().includes(q)));

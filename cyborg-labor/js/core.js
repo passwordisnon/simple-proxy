@@ -377,6 +377,15 @@ function mergeCreature(g,extra){const objs=[];g.traverse(o=>{if(o!==g)objs.push(
   for(const A of anchors.reverse()){const keep=[];A.traverse(o=>{if(o===A)return;if(dyn.has(o))keep.push(o)});mergeGroup(A,keep)}
   g.userData.tick(0,false,0);return g}
 
+/* ---------- Teile umfärben: farbige Töne eines Teils in Richtung Wunschfarbe, Schattierung bleibt; Weiss/Schwarz/Grau bleiben ---------- */
+function tintHex(color,target){let c;try{c=new THREE.Color(color)}catch(e){return color}const h={},T={};c.getHSL(h);new THREE.Color(target).getHSL(T);
+  if(h.s<.14||h.l>.94||h.l<.08)return color;const grey=T.s<.12;
+  const s2=grey?T.s:Math.min(1,T.s*.78+h.s*.22),l2=Math.min(.92,Math.max(.1,h.l*.5+T.l*.5+(h.l-.5)*.25));return'#'+new THREE.Color().setHSL(grey?h.h:T.h,s2,l2).getHexString()}
+function tintMats(M,target){if(!target)return M;const W=Object.create(M);const tc=x=>x==null?x:tintHex(x,target);
+  for(const k of['c','dbl','toon','gloss','plush','leaf','glass','flat','slime','crystal','chitin'])if(M[k])W[k]=(col,...r)=>M[k](col==null?target:tc(col),...r);
+  W.glow=(col,i)=>M.glow(tc(col),i);W.wood=()=>M.c(tintHex('#B8845A',target));return W}
+const TINT_SLOTS=['kopf','augen','arme','beine','extras'];
+
 /* ---------- Kreatur ---------- */
 function buildCreature(d,opt){
   opt=opt||{};QF=opt.q||1;
@@ -397,7 +406,8 @@ function buildCreature(d,opt){
   /* Schulteransätze sitzen genau auf der Körperoberfläche */if(!only)both(x=>P(g,G.s(.15*s),realM.skin(),[x*(c.shX-.05*s),c.shY-.02*s,0],null,[1,.9,.9]));
   if(n>0&&!only){P(g,G.cy(c.hr*.34,c.hr*.42,c.hr*.5),realM.skin(),[0,topY,0])}
   const H={cy:c.hy,r:c.hr,top:c.hy+c.hr,front:c.hr*.93,faceY:c.hy+c.hr*.02,sideX:c.hr};
-  const run=(slot,id,target)=>{const p=findPart(slot,id);if(!p)return null;c.m=(only&&only!==slot)?ghostM:realM;let res=null;try{res=p.b(target,c)}catch(e){console.warn('Teil',slot,id,e)}c.m=realM;return res};
+  const tints={};for(const k of TINT_SLOTS){const i=d.tint&&d.tint[k];if(Number.isInteger(i)&&i>=0&&SKIN_COLORS[i])tints[k]=tintMats(realM,SKIN_COLORS[i])}
+  const run=(slot,id,target)=>{const p=findPart(slot,id);if(!p)return null;c.m=(only&&only!==slot)?ghostM:(tints[slot]||realM);let res=null;try{res=p.b(target,c)}catch(e){console.warn('Teil',slot,id,e)}c.m=realM;return res};
   if(!only||only==='kopf'){const res=run('kopf',d.parts.kopf,only==='kopf'?focus:g);Object.assign(H,res||{})}
   else if(only==='augen'||only==='extras'){P(g,G.s(c.hr),ghostM.skin(),[0,c.hy,0])}
   c.H=H;
