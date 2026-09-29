@@ -123,46 +123,53 @@ const SPACE=(()=>{
   const V=THREE.Vector3;let sc=null,cam=null,ship=null,sun=null,planets=[],belt=null,dust=[],on=false,vel=new V(),yaw=0,t0=0,intro=0,near=null,from=null,landLock=0,view='chase';const keys={};
   addEventListener('keydown',e=>{if(!on)return;const k=e.key.toLowerCase();if(k==='m'&&!keys.m)toggleView();keys[k]=true});addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false});
   const M=()=>makeMats({skin:'haut',color:0});
-  function planetTex(pid){const d=PLANETS[pid];return ctex('pl-'+pid,256,128,(x,w,h)=>{x.fillStyle=d.col[1];x.fillRect(0,0,w,h);const r=srand(pid.length*17);for(let i=0;i<60;i++){x.fillStyle=i%3?d.col[0]:'#ffffff22';x.beginPath();x.ellipse(r()*w,r()*h,10+r()*30,6+r()*16,r()*3,0,TAU);x.fill()}x.fillStyle='rgba(255,255,255,.5)';x.fillRect(0,0,w,6);x.fillRect(0,h-6,w,6)})}
-  function build(){sc=new THREE.Scene();sc.background=new THREE.Color('#141433');cam=new THREE.PerspectiveCamera(50,1,.1,2000);const m=M();
-    sc.add(new THREE.HemisphereLight('#bfc8ff','#2a2050',.45));const pl=new THREE.PointLight('#fff1d0',1.6,0,0);sc.add(pl);
-    /* Sterne */{const g=new THREE.BufferGeometry();const a=[];for(let i=0;i<2500;i++){const v=new V().randomDirection().multiplyScalar(600+Math.random()*300);a.push(v.x,v.y,v.z)}g.setAttribute('position',new THREE.Float32BufferAttribute(a,3));sc.add(new THREE.Points(g,new THREE.PointsMaterial({color:'#fff6e0',size:1.6,sizeAttenuation:false})))}
-    /* Sonne */sun=new THREE.Mesh(new THREE.SphereGeometry(8,40,24),new THREE.MeshBasicMaterial({color:'#FFD27A',toneMapped:false}));sc.add(sun);
-    const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:ctex('sunglow',128,128,(x,w,h)=>{const g=x.createRadialGradient(64,64,4,64,64,64);g.addColorStop(0,'rgba(255,230,160,1)');g.addColorStop(.35,'rgba(255,190,110,.5)');g.addColorStop(1,'rgba(255,160,90,0)');x.fillStyle=g;x.fillRect(0,0,w,h)}),transparent:true,depthWrite:false,toneMapped:false}));glow.scale.setScalar(46);sc.add(glow);
-    planets=[];for(const[pid,d]of Object.entries(PLANETS)){const[dist,ph]=d.orbit;const r=2.2+d.size*2.4;const g=new THREE.Group();const mesh=new THREE.Mesh(new THREE.SphereGeometry(r,40,24),cozy({map:planetTex(pid),color:'#ffffff',rim:.9,rimColor:d.col[1]}));g.add(mesh);
-      if(['schrott','pilz','wueste'].includes(pid)){const rg=new THREE.RingGeometry(r*1.4,r*2.3,64);const rm=new THREE.MeshBasicMaterial({map:ctex('ring-'+pid,256,8,(x,w,h)=>{for(let i=0;i<w;i++){x.fillStyle=`rgba(${pid==='pilz'?'200,170,255':pid==='wueste'?'240,210,160':'200,210,230'},${.25+.6*Math.abs(Math.sin(i*.19)*Math.cos(i*.05))})`;x.fillRect(i,0,1,h)}}),transparent:true,side:THREE.DoubleSide,depthWrite:false});
-        /* Ring-UV radial */const pos=rg.attributes.position,uv=rg.attributes.uv;for(let i=0;i<pos.count;i++){const v=new V().fromBufferAttribute(pos,i);uv.setXY(i,(v.length()-r*1.4)/(r*.9),.5)}const ring=new THREE.Mesh(rg,rm);ring.rotation.x=-PI/2+.35;g.add(ring)}
+  let comp=null,fx=null,camLight=null,trail=null,streak=null,moons=[];
+  function build(){sc=new THREE.Scene();sc.background=new THREE.Color('#151234');cam=new THREE.PerspectiveCamera(55,1,.1,3000);const m=M();
+    sc.add(new THREE.HemisphereLight('#8C8CFF','#3A1E4E',.32));const pl=new THREE.PointLight('#FFF1D6',1.55,0,0);sc.add(pl);
+    camLight=new THREE.DirectionalLight('#D8D0FF',.35);sc.add(camLight,camLight.target);
+    fx={sky:SPACEFX.sky(),stars:SPACEFX.stars(3200)};sc.add(fx.sky,fx.stars);
+    sun=SPACEFX.sun();sc.add(sun);
+    planets=[];moons=[];let si=1;for(const[pid,d]of Object.entries(PLANETS)){const[dist,ph]=d.orbit;const r=2.4+d.size*2.6;const g=SPACEFX.planet(pid,r,si*3.7);si++;
+      g.userData.body.rotation.z=.2;let ring=null;if(['schrott','pilz','wueste'].includes(pid)){ring=SPACEFX.ring(pid,r);g.add(ring)}
       const lbl=el('div','lbl planetlbl');lbl.textContent=d.n;$('labels').append(lbl);lbl.style.display='none';
-      const orbit=new THREE.Mesh(new THREE.RingGeometry(dist-.08,dist+.08,128),new THREE.MeshBasicMaterial({color:'#ffffff',transparent:true,opacity:.12,side:THREE.DoubleSide}));orbit.rotation.x=-PI/2;sc.add(orbit);
-      sc.add(g);planets.push({pid,g,r,dist,ph,lbl,sp:.02/Math.sqrt(dist/26)})}
-    /* Asteroidengürtel */{const n=380;const geo=new THREE.IcosahedronGeometry(.6,0);belt=new THREE.InstancedMesh(geo,cozy({color:'#9A8BB0',flatShading:false,rim:.4}),n);const mm=new THREE.Matrix4();belt.userData.rocks=[];
-      for(let i=0;i<n;i++){const a=Math.random()*TAU,rr=61+Math.random()*5;const p=new V(Math.cos(a)*rr,(Math.random()-.5)*1.5,Math.sin(a)*rr);const s=.5+Math.random()*1.4;mm.compose(p,new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.random()*3,Math.random()*3,0)),new V(s,s*.8,s));belt.setMatrixAt(i,mm);belt.userData.rocks.push({p,s})}sc.add(belt)}
-    /* Sternenstaub zum Einsammeln */dust=[];for(let i=0;i<40;i++){const a=Math.random()*TAU,rr=18+Math.random()*90;const s=new THREE.Mesh(new THREE.OctahedronGeometry(.5,0),new THREE.MeshBasicMaterial({color:['#FFE27A','#7FDCE6','#FF8FB8'][i%3],toneMapped:false}));s.position.set(Math.cos(a)*rr,0,Math.sin(a)*rr);sc.add(s);dust.push(s)}
-    /* Schiff */ship=new THREE.Group();QF=.7;const rk=ROCKET.build(ROCKET.spec(),m);QF=1;addOutlines(rk);rk.rotation.x=-PI/2;rk.position.z=0;rk.scale.setScalar(.7);ship.add(rk);ship.userData.rk=rk;sc.add(ship)}
+      sc.add(SPACEFX.orbit(dist,SPACEFX.pal(pid).atmo));sc.add(g);
+      const pd={pid,g,r,dist,ph,lbl,ring,sp:.02/Math.sqrt(dist/26)};planets.push(pd);
+      /* Monde */const nm={kompost:1,schrott:2,korallen:1,frost:1,wueste:2,pilz:1}[pid]||0;for(let i=0;i<nm;i++){const mo=SPACEFX.moon(.45+Math.random()*.4,['#D8D2E8','#C9B8A6','#B8C8E0','#E8D8C8'][(si+i)%4]);sc.add(mo);moons.push({o:mo,p:pd,d:r*(2.9+i*1.1)+(ring?r*.9:0),s:.5+Math.random()*.4,a:Math.random()*TAU,tilt:(Math.random()-.5)*.5})}}
+    belt=SPACEFX.asteroids(HIGH?420:260,59,67);sc.add(belt);belt.userData.rocks.forEach(r=>{});
+    /* Sternenstaub zum Einsammeln */dust=[];const dc=['#FFE27A','#7FDCE6','#FF8FB8'];for(let i=0;i<40;i++){const a=Math.random()*TAU,rr=18+Math.random()*90;const s=SPACEFX.dustStar(dc[i%3]);s.position.set(Math.cos(a)*rr,0,Math.sin(a)*rr);s.userData.ph=Math.random()*6;sc.add(s);dust.push(s)}
+    trail=SPACEFX.trail(sc,70);streak=SPACEFX.streaks(60);sc.add(streak);
+    /* Schiff */ship=new THREE.Group();QF=.8;const rk=ROCKET.build(ROCKET.spec(),m);QF=1;addOutlines(rk);rk.rotation.x=-PI/2;rk.position.z=0;rk.scale.setScalar(.7);ship.add(rk);ship.userData.rk=rk;
+    const eg=new THREE.Sprite(new THREE.SpriteMaterial({map:ctex('sunglow2',8,8,()=>{}),color:'#FFB070',transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false}));eg.position.set(0,0,-1.25);eg.scale.setScalar(2.2);ship.add(eg);ship.userData.eg=eg;sc.add(ship);
+    if(HIGH){comp=makeComposer(GAME.R,sc,cam);comp.bloom.strength=.5;comp.bloom.radius=.55;comp.bloom.threshold=.96}}
   function posOf(p,t){const a=p.ph+t*p.sp;return new V(Math.cos(a)*p.dist,0,Math.sin(a)*p.dist)}
-  function enter(fromPid){if(!sc)build();else{ship.remove(ship.userData.rk);const rk=ROCKET.build(ROCKET.spec(),M());addOutlines(rk);rk.rotation.x=-PI/2;rk.scale.setScalar(.7);ship.add(rk);ship.userData.rk=rk}
-    from=fromPid;t0=performance.now()/1000;const p=planets.find(x=>x.pid===fromPid)||planets[0];const pp=posOf(p,0);const out=pp.clone().normalize();ship.position.copy(pp).addScaledVector(out,p.r+7);yaw=Math.atan2(out.x,out.z);vel.copy(out).multiplyScalar(6);landLock=2.5;intro=1;on=true;GAME.mode='space';SND.music('museum');
+  function enter(fromPid){if(!sc)build();else{ship.remove(ship.userData.rk);QF=.8;const rk=ROCKET.build(ROCKET.spec(),M());QF=1;addOutlines(rk);rk.rotation.x=-PI/2;rk.scale.setScalar(.7);ship.add(rk);ship.userData.rk=rk}
+    from=fromPid;t0=performance.now()/1000;const p=planets.find(x=>x.pid===fromPid)||planets[0];const pp=posOf(p,0);const out=pp.clone().normalize();ship.position.copy(pp).addScaledVector(out,p.r+7);const tg=new V(-out.z,0,out.x);const dir=tg.clone().multiplyScalar(.75).addScaledVector(out,-.65).normalize();yaw=Math.atan2(dir.x,dir.z);vel.copy(dir).multiplyScalar(5);landLock=2.5;intro=1;on=true;GAME.mode='space';SND.music('museum');
     UI.talkAbort&&UI.talkAbort();document.body.classList.add('inspace');for(const q of planets)q.lbl.style.display='';hudOn(true);resize()}
   function toggleView(){view=view==='chase'?'map':'chase';SND.play('pep',{vol:.3});if(hud)hud.querySelector('.vw').textContent=view==='chase'?'Karte (M)':'Cockpit (M)'}
   function exit(){on=false;document.body.classList.remove('inspace');for(const q of planets)q.lbl.style.display='none';hudOn(false);$('prompt').hidden=true}
   let hud=null;function hudOn(v){if(hud){hud.remove();hud=null}if(!v)return;hud=el('div','spacehud');hud.innerHTML='<b>Weltraum</b><span>'+(document.body.classList.contains('coarse')?'Joystick: lenken & Schub':'W Schub · A/D lenken · S bremsen · Shift Turbo · E landen')+'</span><span class="sp"></span>';const vb=el('button','vw','Karte (M)');vb.type='button';vb.onclick=e=>{e.stopPropagation();toggleView()};hud.append(vb);$('world').append(hud)}
-  function resize(){const w=$('world');cam.aspect=w.clientWidth/w.clientHeight;cam.updateProjectionMatrix()}
+  function resize(){if(!cam)return;sizeView(GAME.R,cam,comp,$('world'))}
   function frame(dt,t){if(!on)return;const tt=performance.now()/1000-t0;const st=ROCKET.stats();const J=GAME._joy&&GAME._joy();
     let turn=(keys['a']||keys['arrowleft']?1:0)-(keys['d']||keys['arrowright']?1:0),thr=(keys['w']||keys['arrowup']?1:0)-(keys['s']||keys['arrowdown']?.6:0);if(J&&Math.hypot(J.x,J.y)>.1){turn=-J.x;thr=Math.max(0,J.y)}
     yaw+=turn*dt*2.4*st.handling;const fwd=new V(Math.sin(yaw),0,Math.cos(yaw));const boost=keys['shift']?1.7:1;vel.addScaledVector(fwd,thr*dt*22*st.speed*boost);vel.multiplyScalar(Math.pow(.55,dt));const mx=26*st.speed*boost;if(vel.length()>mx)vel.setLength(mx);
     ship.position.addScaledVector(vel,dt);if(ship.position.length()<12){ship.position.setLength(12);vel.multiplyScalar(-.4);UI.toast('Zu heiss! Weg von der Sonne!')}if(ship.position.length()>130){ship.position.setLength(130);vel.multiplyScalar(-.3)}
     ship.rotation.y=yaw;ship.userData.rk.rotation.z=-turn*.35;for(const f of ship.userData.rk.userData.flames||[]){f.visible=thr>0;f.scale.set(1,.7+Math.random()*.6*(boost>1?1.6:1),1)}
     /* Asteroiden */const sp=ship.position;for(const r of belt.userData.rocks){if(r.p.distanceTo(sp)<r.s*.8+.8){const n=sp.clone().sub(r.p).setY(0).normalize();sp.addScaledVector(n,.4);vel.reflect(n).multiplyScalar(.5/st.armor);SND.play('metal',{vol:.5});break}}
-    for(const d of dust){if(!d.visible)continue;d.rotation.y+=dt*2;if(d.position.distanceTo(sp)<1.6){d.visible=false;money(15);SND.play('pickup',{vol:.6});setTimeout(()=>{d.visible=true;const a=Math.random()*TAU,rr=18+Math.random()*90;d.position.set(Math.cos(a)*rr,0,Math.sin(a)*rr)},30000)}}
-    /* Planeten kreisen */near=null;let nd=1e9;for(const p of planets){const pp=posOf(p,tt);p.g.position.copy(pp);p.g.rotation.y+=dt*.2;const d=pp.distanceTo(sp)-p.r;if(d<nd){nd=d;near=p}}
+    for(const d of dust){if(!d.visible)continue;const dd=d.userData;dd.gem.rotation.y+=dt*2;dd.gem.position.y=Math.sin(t*1.6+d.userData.ph)*.25;dd.s.scale.setScalar(2.2+Math.sin(t*3+d.userData.ph)*.5);dd.s.material.rotation=t*.4+d.userData.ph;if(d.position.distanceTo(sp)<1.6){d.visible=false;money(15);SND.play('pickup',{vol:.6});setTimeout(()=>{d.visible=true;const a=Math.random()*TAU,rr=18+Math.random()*90;d.position.set(Math.cos(a)*rr,0,Math.sin(a)*rr)},30000)}}
+    /* Sonne, Himmel, Monde */sun.userData.tick(t);fx.sky.material.uniforms.uT.value=t;fx.sky.position.copy(cam.position);fx.stars.position.copy(cam.position);fx.stars.material.uniforms.uT.value=t;
+    for(const mo of moons){mo.a+=dt*mo.s*.4;const c=mo.p.g.position;mo.o.position.set(c.x+Math.cos(mo.a)*mo.d,c.y+Math.sin(mo.a)*mo.d*mo.tilt,c.z+Math.sin(mo.a)*mo.d);mo.o.rotation.y+=dt*.3}
+    /* Antriebsspur */if(thr>0){const back=ship.localToWorld(new V(0,0,-1.3));const side=new V(Math.cos(yaw),0,-Math.sin(yaw));for(let i=0;i<(boost>1?3:2);i++)trail.emit(back.clone().addScaledVector(side,(Math.random()-.5)*.3),fwd.clone().multiplyScalar(-4-Math.random()*3).add(vel.clone().multiplyScalar(.6)),boost>1?'#FF9AD6':'#FFC27A',.8+Math.random()*.5)}trail.step(dt);streak.userData.step(ship,vel);
+    const eg=ship.userData.eg;eg.material.opacity=thr>0?.9:.25;eg.scale.setScalar((thr>0?2.2:1.2)*(1+Math.random()*.15));
+    camLight.position.copy(cam.position);camLight.target.position.copy(ship.position);
+    /* Planeten kreisen */near=null;let nd=1e9;for(const p of planets){const pp=posOf(p,tt);p.g.position.copy(pp);p.g.userData.body.rotation.y+=dt*.12;if(p.g.userData.cl)p.g.userData.cl.rotation.y+=dt*.16;const U=p.g.userData.U;U.uT.value=t;U.uSun.value.set(0,0,0);p.g.userData.at.uniforms.uC.value.copy(pp);if(p.ring){const rm=p.ring.userData.m.uniforms;rm.uC.value.copy(pp)}const d=pp.distanceTo(sp)-p.r;if(d<nd){nd=d;near=p}}
     landLock=Math.max(0,landLock-dt);const pr=$('prompt');if(near&&nd<4&&landLock<=0){pr.hidden=false;pr.innerHTML='';pr.append(el('kbd',null,'E'),document.createTextNode('Landen auf '+PLANETS[near.pid].n));$('hbA').textContent='Landen'}else{pr.hidden=true;$('hbA').textContent='Schub';if(nd>=4)near=null}
     /* Kamera: Verfolger hinter dem Schiff oder Übersichtskarte */intro=Math.max(0,intro-dt*.5);const vl=vel.length();let cp,look;
-    if(view==='chase'){cp=sp.clone().addScaledVector(fwd,-(8+vl*.12)).add(new V(0,4.6+vl*.05+intro*14,0));look=sp.clone().addScaledVector(fwd,12).add(new V(0,1.2,0))}
+    if(view==='chase'){cp=sp.clone().addScaledVector(fwd,-(8+vl*.12)).add(new V(0,4.6+vl*.05+intro*14,0));look=sp.clone().addScaledVector(fwd,7).add(new V(0,.2,0))}
     else{cp=sp.clone().addScaledVector(fwd,-14).add(new V(0,55,0));look=sp.clone().addScaledVector(fwd,4)}
     cam.position.lerp(cp,Math.min(1,dt*(view==='chase'?4:2.5)));cam.lookAt(look);cam.fov+=((view==='chase'?60+vl*.4:50)-cam.fov)*Math.min(1,dt*3);cam.updateProjectionMatrix();
-    const w=$('world').clientWidth,h=$('world').clientHeight;for(const p of planets){const v=p.g.position.clone().add(new V(0,p.r+1.4,0)).project(cam);p.lbl.style.left=((v.x+1)/2*w)+'px';p.lbl.style.top=((1-v.y)/2*h)+'px';p.lbl.style.display=v.z<1?'':'none'}
+    const w=$('world').clientWidth,h=$('world').clientHeight;for(const p of planets){const v=p.g.position.clone().add(new V(0,p.r+1.4,0)).project(cam);p.lbl.style.left=((v.x+1)/2*w)+'px';p.lbl.style.top=((1-v.y)/2*h)+'px';const dl=p.g.position.distanceTo(ship.position);p.lbl.style.display=v.z<1&&(view==='map'||dl<70)?'':'none';p.lbl.style.opacity=view==='map'?1:Math.max(.35,1-dl/80)}
     if(hud)hud.querySelector('.sp').textContent=Math.round(vel.length()*12)+' km/s';
-    GAME.R.render(sc,cam)}
+    if(comp&&HIGH)comp.render();else GAME.R.render(sc,cam)}
   function action(){if(near&&landLock<=0){const pid=near.pid;exit();GAME.landOn(pid)}}
-  return{enter,frame,action,resize,get on(){return on}}
+  return{enter,frame,action,resize,get on(){return on},_dbg:()=>({sc,cam,ship,planets,fx,sun})}
 })();
