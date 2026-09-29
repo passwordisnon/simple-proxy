@@ -24,7 +24,11 @@ const GAME=(()=>{
     const sun=new THREE.DirectionalLight('#fff3de',1.0);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-22,right:22,top:22,bottom:-22,near:1,far:110});sun.shadow.bias=-.0006;sun.shadow.normalBias=.04;sc.add(sun);sc.add(sun.target);
     const fill=new THREE.DirectionalLight('#c9d8ff',.18);sc.add(fill);
     const detail=Math.round(Rr*(HIGH?3.4:2.3));
-    const planet=buildTerrainMesh(fns,detail);sc.add(planet);G_.planet=planet;G_.hAt=makeSurface(planet,fns);G_.groundU=planet.material.userData.U;
+    /* Gelände: LOD-Kacheln (feine Kacheln am Spieler, grobe in der Ferne); beim Aufbau zählt die exakte Höhenfunktion */
+    if(typeof PLANETLOD!=='undefined'){const gm=groundMaterial(fns);PLANETLOD.create(fns,gm,sc,{vattr:terrainVattr(fns),fine:HIGH?.32:.55});const pz=(fns.places.find(p=>p.build==='plaza')||{dir:UPV}).dir;PLANETLOD.update(pz.clone().multiplyScalar(Rr+12),0,true);
+      G_.planet=PLANETLOD.S.group;G_.groundU=gm.userData.U;G_.hAt=fns.hAt;G_.lod=true}
+    else{const planet=buildTerrainMesh(fns,detail);sc.add(planet);G_.planet=planet;G_.hAt=makeSurface(planet,fns);G_.groundU=planet.material.userData.U;G_.lod=false}
+    G_.hExact=G_.hAt;
     const W_=buildWaterMesh(fns,Math.round(detail*.5));sc.add(W_.mesh);G_.water=W_.mesh;G_.waterU=W_.U;
     /* Atmosphäre */
     const atm=new THREE.Mesh(new THREE.SphereGeometry(Rr*1.35,64,40),new THREE.ShaderMaterial({transparent:true,side:THREE.BackSide,depthWrite:false,fog:false,uniforms:{c:{value:new THREE.Color(def.sky[0])}},
@@ -33,8 +37,11 @@ const GAME=(()=>{
     {const sg=new THREE.BufferGeometry();const sp=[];const r=srand(9);for(let i=0;i<1200;i++){const p=new V3(r()*2-1,r()*2-1,r()*2-1).normalize().multiplyScalar(400+r()*100);sp.push(p.x,p.y,p.z)}sg.setAttribute('position',new THREE.Float32BufferAttribute(sp,3));
       const st=new THREE.Points(sg,new THREE.PointsMaterial({color:'#fff6e0',size:1.8,transparent:true,opacity:0,fog:false}));sc.add(st);G_.stars=st}
     Object.assign(G_,{scene:sc,sun,hemi,fill,inter:[],lights:[],clouds:[],ticks:[],trees:[],rocks:[]});
-    SCATTER.reset(sc,Rr,M);
-    buildPlaces();buildStones();scatterWorld();buildGrass();buildClouds();buildBall();if(typeof WEATHER!=='undefined')WEATHER.build(G_);else buildWeather();SCATTER.finalize();
+    /* grosse Planeten: Natur wird in Chunks um den Spieler gestreamt */G_.stream=G_.lod&&(Rr>70||!!window.FORCE_STREAM);
+    SCATTER.reset(sc,Rr,M,G_.stream?{fill:fillChunk,unload:unloadChunkRefs}:null);
+    buildPlaces();buildStones();scatterWorld();buildGrass();
+    if(G_.stream){const lp=SAVE.lastPos&&SAVE.lastPos.planet===pid?new V3(...SAVE.lastPos.p).normalize():(fns.places.find(p=>p.build==='plaza')||{dir:UPV}).dir;SCATTER.stream(lp,0,true)}buildClouds();buildBall();if(typeof WEATHER!=='undefined')WEATHER.build(G_);else buildWeather();SCATTER.finalize();
+    /* nach dem Aufbau: Höhe exakt aus der sichtbaren Kachel (Figuren stehen genau auf dem Boden) */if(G_.lod){const fh=fns.hAt;G_.hAt=p=>{const h=PLANETLOD.height(p);return h==null?fh(p):h}}
     cam.far=Rr*6+500;cam.updateProjectionMatrix();
     comp=makeComposer(R,sc,cam);scene=sc;return sc}
 
@@ -62,7 +69,13 @@ const GAME=(()=>{
     const h=G_.hAt(b.p);b.g.position.copy(b.p).multiplyScalar(G_.R+Math.max(h,G_.sea-.1)+b.r*.95)}
   /* ---------- Gras: flauschige Büschel, je Chunk instanziert ---------- */
   const grassU={value:0};let tuftGeo=null,tuftMat=null;
-  function buildGrass(){tuftGeo=tuftGeo||tuftGeometry();tuftMat=tuftMat||grassMaterial(grassU);const r=srand(5);const area=4*PI*G_.R*G_.R;const N=Math.round(area*(HIGH?.55:.22));
+  /* Gras für einen Chunk: ein InstancedMesh (Streaming) */
+  function grassFor(r,N,sample){tuftGeo=tuftGeo||tuftGeometry();tuftMat=tuftMat||grassMaterial(grassU);const list=[];const col=new THREE.Color();
+    for(let i=0;i<N;i++){const p=sample();if(!p)continue;const h=hEx(p);if(h<G_.sea+.15)continue;const b=BIOMES[G_.biomeAt(p,h)];if(!b.grass||r()>b.grassD)continue;if(G_.roadDist(p)<.02||nearPlace(p,.85))continue;
+      if(Math.abs(hEx(p.clone().applyAxisAngle(UPV,.004))-h)>.25)continue;col.set(b.grass).offsetHSL((r()-.5)*.03,(r()-.5)*.08,(r()-.5)*.08);list.push({p,h,s:.75+r()*.7,yaw:r()*TAU,c:col.clone()})}
+    if(!list.length)return null;const m4=new THREE.Matrix4(),q=new THREE.Quaternion(),q2=new THREE.Quaternion(),sv=new V3();const im=new THREE.InstancedMesh(tuftGeo,tuftMat,list.length);im.frustumCulled=false;im.receiveShadow=true;
+    list.forEach((t,i)=>{q.setFromUnitVectors(UPV,t.p);q2.setFromAxisAngle(UPV,t.yaw);q.multiply(q2);sv.set(t.s,t.s*(.8+t.s*.3),t.s);m4.compose(t.p.clone().multiplyScalar(G_.R+t.h-.02),q,sv);im.setMatrixAt(i,m4);im.setColorAt(i,t.c)});im.userData.small=true;return im}
+  function buildGrass(){if(SCATTER.streaming)return;tuftGeo=tuftGeo||tuftGeometry();tuftMat=tuftMat||grassMaterial(grassU);const r=srand(5);const area=4*PI*G_.R*G_.R;const N=Math.round(area*(HIGH?.55:.22));
     const per=new Map();const col=new THREE.Color(),tmp=new THREE.Color();
     for(let i=0;i<N;i++){const p=new V3(r()*2-1,r()*2-1,r()*2-1).normalize();const h=G_.hAt(p);if(h<G_.sea+.15)continue;const b=BIOMES[G_.biomeAt(p,h)];if(!b.grass||r()>b.grassD)continue;if(G_.roadDist(p)<.02||nearPlace(p,.85))continue;
       if(Math.abs(G_.hAt(p.clone().applyAxisAngle(UPV,.004))-h)>.25)continue;
@@ -78,26 +91,33 @@ const GAME=(()=>{
 
   /* ---------- Natur verstreuen: Biome, ohne Überschneidungen ---------- */
   function makeNature(type,opt,seed){const n=NATURE[type];const g=new THREE.Group();QF=HIGH?.7:.5;try{if(n)n.b(g,M,Object.assign({planet:G_.id},opt||{}),srand(seed||1));else P(g,G.s(.3),M.c('#7CC46A'),[0,.3,0])}catch(e){console.warn('Natur',type,e)}QF=1;addOutlines(g);if(!g.userData.tick)mergeGroup(g,g.userData.fruits);return g}
-  function addObst(p,r,ref){return SCATTER.obstAdd(p.clone().normalize().multiplyScalar(G_.R+G_.hAt(p)),r,ref)}
+  function addObst(p,r,ref){return SCATTER.obstAdd(p.clone().normalize().multiplyScalar(G_.R+(G_.hExact||G_.hAt)(p)),r,ref)}
   function obstAround(p,rad){return SCATTER.obstNear(p.clone().multiplyScalar(G_.R+G_.hAt(p)),rad||3)}
-  function flatAt(p,rad){const h=G_.hAt(p);const t1=tangentTo(p,new V3(1,0,0)),t2=new V3().crossVectors(p,t1);const a=rad/G_.R;let m=0;
-    for(const d of[t1,t2,t1.clone().negate(),t2.clone().negate()]){const q=p.clone().addScaledVector(d,a).normalize();m=Math.max(m,Math.abs(G_.hAt(q)-h))}return m}
+  function flatAt(p,rad){const hf=G_.hExact||G_.hAt;const h=hf(p);const t1=tangentTo(p,new V3(1,0,0)),t2=new V3().crossVectors(p,t1);const a=rad/G_.R;let m=0;
+    for(const d of[t1,t2,t1.clone().negate(),t2.clone().negate()]){const q=p.clone().addScaledVector(d,a).normalize();m=Math.max(m,Math.abs(hf(q)-h))}return m}
   const SIZE={big:1,mid:.55,small:.25,tiny:.08};
-  function scatterWorld(){const r=srand({kompost:11,schrott:22,korallen:33,frost:44,wueste:55,pilz:66}[G_.id]);const area=4*PI*G_.R*G_.R;const q=HIGH?1:.6;
-    const pickW=(list)=>{let s=0;for(const x of list)s+=x[1];let t=r()*s;for(const x of list){t-=x[1];if(t<=0)return x}return list[0]};
-    const passes=[['trees','treeD',2.4,.7,true,1.6],['rocks','rockD',1.5,.35,true,1.8],['deco','decoD',10,.06,false,2.6]];
-    for(const[key,dk,maxD,pad,solid,dens]of passes){const n=Math.round(area/100*maxD*q*dens);
-      for(let i=0;i<n;i++){const p=new V3(r()*2-1,r()*2-1,r()*2-1).normalize();const h=G_.hAt(p);const bid=G_.biomeAt(p,h);const B=BIOMES[bid];const list=B[key];if(!list||!list.length)continue;if(r()>(B[dk]||0)/maxD)continue;
-        const[type,,opt]=pickW(list);const info=NATURE[type]||{};const water=opt&&opt.water;
-        if(!water&&h<G_.sea+.12)continue;if(water&&(h>G_.sea-.1||h<G_.sea-1.2))continue;
-        const rad=Math.max(.12,info.r||(key==='deco'?.15:.4));if(nearPlace(p,1.05))continue;if(G_.roadDist(p)<(solid?.034:.022))continue;
-        const fl=flatAt(p,Math.max(.4,rad));if(fl>(key==='deco'?.3:.24))continue;
-        const wp=p.clone().multiplyScalar(G_.R+h);if(!SCATTER.occFree(wp,rad+pad))continue;
-        const sc=.85+r()*.35;const inst=SCATTER.add(type,opt||null,p,{yaw:r()*TAU,scale:sc,variant:Math.floor(r()*3),off:water?0:-.03-fl*.9});if(water)inst.water=true;
-        SCATTER.occAdd(wp,rad*sc+(solid?.15:0));
-        if(solid&&info.r){if(info.cols){for(const[cx,cz,cr]of info.cols){const lp=new V3(cx,0,cz).applyAxisAngle(UPV,inst.yaw).multiplyScalar(sc);const t1=tangentTo(p,new V3(0,0,1));const t2=new V3().crossVectors(p,t1);const pp=p.clone().addScaledVector(t1,lp.z/G_.R).addScaledVector(t2,lp.x/G_.R).normalize();addObst(pp,cr*sc)}}
-          else{const shake=info.shake||(inst.pr.hasFruit&&key==='trees');const ref=shake?{kind:'tree',inst,p,fruit:fruitIdFor(type,opt,inst),hasFruit:inst.pr.hasFruit,regrow:0}:(key==='rocks'&&info.r>.6?{kind:'rock',inst,p,hits:0}:null);
-            addObst(p,info.r*sc,ref);if(ref&&ref.kind==='tree')G_.trees.push(ref);if(ref&&ref.kind==='rock')G_.rocks.push(ref)}}}}}
+  const PASSES=[['trees','treeD',2.4,.7,true,1.6],['rocks','rockD',1.5,.35,true,1.8],['deco','decoD',10,.06,false,2.6]];
+  const pickW=(list,r)=>{let s=0;for(const x of list)s+=x[1];let t=r()*s;for(const x of list){t-=x[1];if(t<=0)return x}return list[0]};
+  const hEx=p=>(G_.hExact||G_.hAt)(p);
+  /* eine Stelle prüfen und ggf. bepflanzen (gemeinsam für einmaliges Verstreuen und Chunk-Streaming) */
+  function scatterPoint(pass,p,r){const[key,dk,maxD,pad,solid]=pass;const h=hEx(p);const bid=G_.biomeAt(p,h);const B=BIOMES[bid];const list=B[key];if(!list||!list.length)return;if(r()>(B[dk]||0)/maxD)return;
+    const[type,,opt]=pickW(list,r);const info=NATURE[type]||{};const water=opt&&opt.water;
+    if(!water&&h<G_.sea+.12)return;if(water&&(h>G_.sea-.1||h<G_.sea-1.2))return;
+    const rad=Math.max(.12,info.r||(key==='deco'?.15:.4));if(nearPlace(p,1.05))return;if(G_.roadDist(p)<(solid?.034:.022))return;
+    const fl=flatAt(p,Math.max(.4,rad));if(fl>(key==='deco'?.3:.24))return;
+    const wp=p.clone().multiplyScalar(G_.R+h);if(!SCATTER.occFree(wp,rad+pad))return;
+    const sc=.85+r()*.35;const inst=SCATTER.add(type,opt||null,p,{yaw:r()*TAU,scale:sc,variant:Math.floor(r()*3),off:water?0:-.03-fl*.9});if(water)inst.water=true;
+    SCATTER.occAdd(wp,rad*sc+(solid?.15:0));
+    if(solid&&info.r){if(info.cols){for(const[cx,cz,cr]of info.cols){const lp=new V3(cx,0,cz).applyAxisAngle(UPV,inst.yaw).multiplyScalar(sc);const t1=tangentTo(p,new V3(0,0,1));const t2=new V3().crossVectors(p,t1);const pp=p.clone().addScaledVector(t1,lp.z/G_.R).addScaledVector(t2,lp.x/G_.R).normalize();addObst(pp,cr*sc)}}
+      else{const shake=info.shake||(inst.pr.hasFruit&&key==='trees');const ref=shake?{kind:'tree',inst,p,fruit:fruitIdFor(type,opt,inst),hasFruit:inst.pr.hasFruit,regrow:0}:(key==='rocks'&&info.r>.6?{kind:'rock',inst,p,hits:0}:null);
+        addObst(p,info.r*sc,ref);if(ref&&ref.kind==='tree')G_.trees.push(ref);if(ref&&ref.kind==='rock')G_.rocks.push(ref)}}}
+  function scatterWorld(){if(SCATTER.streaming)return;const r=srand({kompost:11,schrott:22,korallen:33,frost:44,wueste:55,pilz:66}[G_.id]);const area=4*PI*G_.R*G_.R;const q=HIGH?1:.6;
+    for(const pass of PASSES){const n=Math.round(area/100*pass[2]*q*pass[5]);for(let i=0;i<n;i++)scatterPoint(pass,new V3(r()*2-1,r()*2-1,r()*2-1).normalize(),r)}}
+  /* Streaming: einen Chunk füllen (immer gleich dank eigenem Zufalls-Seed) */
+  function fillChunk(ci,ch){const r=srand(({kompost:11,schrott:22,korallen:33,frost:44,wueste:55,pilz:66}[G_.id]||hashStr(G_.id).length)*100003+ci*7919+1);const area=4*PI*G_.R*G_.R/SCATTER.K;const q=HIGH?1:.6;const os=SCATTER.oversample();
+    for(const pass of PASSES){const n=Math.round(area/100*pass[2]*q*pass[5]*os);for(let i=0;i<n;i++){const p=SCATTER.randIn(ci,r);if(p)scatterPoint(pass,p,r)}}
+    const g=grassFor(r,Math.round(area*(HIGH?.55:.22)*os),()=>SCATTER.randIn(ci,r));if(g){G_.scene.add(g);ch.meshes.push(g)}}
+  function unloadChunkRefs(ch){G_.trees=G_.trees.filter(t=>t.inst.chunk!==ch.i);G_.rocks=G_.rocks.filter(t=>t.inst.chunk!==ch.i)}
   function fruitIdFor(type,opt,inst){if(opt&&opt.fruit)return opt.fruit;const ids=inst.pr.fruitIds||[];const f=ids.find(x=>x&&x.startsWith('frucht_'));const k=f?f.slice(7):null;
     const map={beere:'beeren',kristall:'seeglas',led:'schraube',kokosnuss:'kokosnuss',apfel:'apfel',birne:'birne',kirsche:'kirsche',pfirsich:'pfirsich',orange:'orange',kaktusfrucht:'kaktusfrucht',zapfen:'kiefernzapfen'};return map[k]||(ITEMS.some(i=>i.id===k)?k:null)}
   /* ---------- Wetter: Schnee, Sporen, Sand, Blüten, Funken, Blasen ---------- */
@@ -390,7 +410,7 @@ const GAME=(()=>{
     const hits=ray.intersectObjects([...ents.values()].filter(x=>x!==me).map(x=>x.g),true);if(hits.length){let o=hits[0].object;while(o&&!o.userData.wid)o=o.parent;const en=o&&ents.get(o.userData.wid);if(en){if(angle(en.p,me.p)*G_.R<3){promptTarget={kind:'talk',ent:en};doAction()}else tapTarget={p:en.p.clone(),then:()=>{promptTarget={kind:'talk',ent:en};doAction()}};return}}
     const bh=ray.intersectObjects(G_.places.filter(p=>p.obj).map(p=>p.obj),true).find(h=>h.object.userData.place);
     if(bh){const pl=bh.object.userData.place;const it=G_.inter.find(i=>i.place===pl||(pl.doorP&&i.p===pl.doorP));if(it){tapTarget={p:it.p.clone(),then:()=>{promptTarget=it;doAction()}};SND.play('select',{vol:.3});return}}
-    const ph=ray.intersectObject(G_.planet,false);if(ph.length){const p=ph[0].point.clone().normalize();tapTarget={p};SND.play('select',{vol:.3})}}
+    const ph=G_.lod?ray.intersectObjects(G_.planet.children.filter(m=>m.visible),false):ray.intersectObject(G_.planet,false);if(ph.length){const p=ph[0].point.clone().normalize();tapTarget={p};SND.play('select',{vol:.3})}}
   /* Joystick */
   {const joy=$('joy'),knob=joy.firstElementChild;let id=null,c0=null;joy.addEventListener('pointerdown',e=>{id=e.pointerId;joy.setPointerCapture(id);const r=joy.getBoundingClientRect();c0={x:r.left+r.width/2,y:r.top+r.height/2};input.joy={x:0,y:0};mv(e);SND.init()});
    const mv=e=>{if(e.pointerId!==id)return;let dx=e.clientX-c0.x,dy=e.clientY-c0.y;const L=Math.hypot(dx,dy),max=48;if(L>max){dx*=max/L;dy*=max/L}knob.style.transform=`translate(${dx}px,${dy}px)`;input.joy={x:dx/max,y:-dy/max}};
@@ -433,6 +453,7 @@ const GAME=(()=>{
       /* Ambiente */;const nearSea=G_.hAt(me.p)<G_.sea+.9?1:0;SND.ambience('meer',nearSea*.6);SND.ambience('wind',.25)}
     /* Prompt */
     promptTarget=busy?null:findTarget();const pr=$('prompt');if(promptTarget&&!UI.anyOpen()){pr.hidden=false;pr.innerHTML='';const k=el('kbd',null,'E');pr.append(k,document.createTextNode(promptTarget.label));$('hbA').textContent=shortLabel(promptTarget)}else{pr.hidden=true;$('hbA').textContent='Hüpfen'}
+    if(G_.lod)PLANETLOD.update(cam.position,HIGH?4:2.5);if(G_.stream)SCATTER.stream(overview?cam.position.clone().normalize():(me?me.p:UPV),HIGH?5:3);
     if(HIGH)comp.render();else R.render(scene,cam);labels()}
   function shortLabel(t){return{talk:'Reden',tree:'Schütteln',fish:'Angeln',shop:'Laden',museum:'Museum',house:'Haus',studio:'Malen',rocket:'Reisen',board:'Lesen',stage:'Tanzen',home:'Klingeln',animal:'Tier',mail:'Post',dig:'Graben',pick:'Nehmen',bug:'Fangen'}[t.kind]||'Aktion'}
   function stepProps(dt,t){for(let i=W.props.length-1;i>=0;i--){const x=W.props[i];

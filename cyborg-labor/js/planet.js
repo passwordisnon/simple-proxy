@@ -33,7 +33,7 @@ const PLANETLOD=(()=>{
     /* Schürzen: Kante nach innen gezogen, gleiche Farbe */let si=nv;const skirt=[];const dep=nd.len/N*2+1.2;
     const edge=[];for(let i=0;i<M;i++)edge.push(i);for(let j=1;j<M;j++)edge.push(j*M+M-1);for(let i=M-2;i>=0;i--)edge.push((M-1)*M+i);for(let j=M-2;j>0;j--)edge.push(j*M);
     for(const k of edge){const x=pos[k*3],y=pos[k*3+1],z=pos[k*3+2];const l=Math.hypot(x,y,z);const f=(l-dep)/l;pos[si*3]=x*f;pos[si*3+1]=y*f;pos[si*3+2]=z*f;for(let c=0;c<3;c++){nor[si*3+c]=nor[k*3+c];col[si*3+c]=col[k*3+c];cl[si*3+c]=cl[k*3+c]}for(let c=0;c<4;c++){mat[si*4+c]=mat[k*4+c];pat[si*4+c]=pat[k*4+c]}skirt.push([k,si]);si++}
-    const idx=[];for(let j=0;j<N;j++)for(let i=0;i<N;i++){const a=j*M+i,b=a+1,c=a+M,e=c+1;idx.push(a,c,b,b,c,e)}
+    const idx=[];for(let j=0;j<N;j++)for(let i=0;i<N;i++){const a=j*M+i,b=a+1,c=a+M,e=c+1;/* u×v zeigt nach aussen → gegen den Uhrzeigersinn von aussen gesehen */idx.push(a,b,c,b,e,c)}
     for(let t=0;t<skirt.length;t++){const[a,sa]=skirt[t],[b,sb]=skirt[(t+1)%skirt.length];idx.push(a,sa,b,b,sa,sb,a,b,sa,b,sb,sa)}
     const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos.subarray(0,si*3),3));g.setAttribute('normal',new THREE.BufferAttribute(nor.subarray(0,si*3),3));g.setAttribute('color',new THREE.BufferAttribute(col.subarray(0,si*3),3));
     g.setAttribute('aMat',new THREE.BufferAttribute(mat.subarray(0,si*4),4));g.setAttribute('aPat',new THREE.BufferAttribute(pat.subarray(0,si*4),4));g.setAttribute('aCl',new THREE.BufferAttribute(cl.subarray(0,si*3),3));g.setIndex(idx);g.computeBoundingSphere();
@@ -51,10 +51,11 @@ const PLANETLOD=(()=>{
       if(nd.ready){nd.mesh.visible=true;nd.covered=true}else{enqueue(nd,-1e9+_c.copy(nd.c).multiplyScalar(S.R).distanceTo(cam)-nd.d*1e5);nd.covered=!!nd.kids&&nd.kids.every(k=>k.covered)}}}
   function hide(list){for(const k of list){if(k.mesh)k.mesh.visible=false;if(k.kids)hide(k.kids)}}
   /* budget in ms; force: so lange bauen bis nichts mehr aussteht (Ladebildschirm) */
-  function update(cam,budget,force){if(!S)return;const camLen=cam.length();for(let pass=0;pass<(force?40:1);pass++){S.queue.length=0;for(const r of S.roots){r.queued=false;clearQ(r)}
+  function update(cam,budget,force){if(!S)return;const camLen=cam.length();
+    /* nichts zu tun, solange die Kamera kaum wandert und keine Kachel aussteht */if(!force&&S.last&&S.idle&&S.last.distanceToSquared(cam)<.25)return;S.last=(S.last||new V()).copy(cam);for(let pass=0;pass<(force?40:1);pass++){S.queue.length=0;for(const r of S.roots){r.queued=false;clearQ(r)}
       for(const r of S.roots)walk(r,cam,camLen);if(!S.queue.length)break;S.queue.sort((a,b)=>a.pri-b.pri);const t0=performance.now();
       for(const nd of S.queue){if(nd.dead||nd.ready)continue;buildNode(nd);if(!force&&performance.now()-t0>budget)break}}
-    for(const r of S.roots)walk(r,cam,camLen)}
+    S.queue.length=0;for(const r of S.roots){clearQ(r)}for(const r of S.roots)walk(r,cam,camLen);S.idle=!S.queue.length}
   function clearQ(nd){nd.queued=false;if(nd.kids)for(const k of nd.kids)clearQ(k)}
   /* ---------- Höhe exakt aus dem sichtbaren Mesh ---------- */
   const _o=new V(),_e1=new V(),_e2=new V(),_pv=new V(),_tv=new V(),_qv=new V(),_A=new V(),_B=new V(),_C=new V();

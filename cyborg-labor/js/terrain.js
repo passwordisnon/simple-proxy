@@ -278,6 +278,15 @@ function buildTerrainMesh(fns,detail){const def=fns.def;const R=fns.R,sea=fns.se
   g.setAttribute('color',new THREE.BufferAttribute(col,3));g.setAttribute('aMat',new THREE.BufferAttribute(mat,4));g.setAttribute('aPat',new THREE.BufferAttribute(pat,4));
   const mesh=new THREE.Mesh(g,groundMaterial(fns));mesh.receiveShadow=true;mesh.name='planet';return mesh}
 
+/* Gleiche Boden-Attribute wie buildTerrainMesh, aber je Vertex für die LOD-Kacheln (planet.js) */
+function terrainVattr(fns){const def=fns.def,sea=fns.sea;const tmp=new THREE.Color(),tmp2=new THREE.Color();const PATI={gras:0,sand:1,schnee:2,moos:3,staub:3};
+  const builds=fns.places.filter(pl=>pl.build&&pl.build!=='residence');
+  return(d,h,n,k,col,pat,mat,cl)=>{const b=fns.biomeAt(d,h);const B=BIOMES[b];const t=Math.max(0,Math.min(1,(h-sea)/4));tmp.set(B.g[0]).lerp(tmp2.set(B.g[1]),t);
+    if(h<sea-.2)tmp.set(def.bed||'#E6D2A0').lerp(tmp2.set(B.g[0]),.25);else tmp.offsetHSL(0,-.1,-.035);
+    col[k*3]=tmp.r;col[k*3+1]=tmp.g;col[k*3+2]=tmp.b;const pi=h<sea+.05?1:PATI[B.pat];pat[k*4]=pat[k*4+1]=pat[k*4+2]=pat[k*4+3]=0;pat[k*4+pi]=1;
+    let path=0;if(h>sea+.2){const rd=fns.roadDist(d);path=sstep(.026,.016,rd)}for(const pl of builds){const dd=angle(d,pl.dir);if(dd<pl.r)path=Math.max(path,sstep(pl.r*.95,pl.r*.7,dd)*(pl.build==='plaza'?1:.8))}
+    const slope=1-n.dot(d);const c=sstep(.12,.3,slope)*(h>sea-.3?1:.4);mat[k*4]=c;mat[k*4+1]=path*(1-c);mat[k*4+2]=h>sea-.1&&h<sea+.18?sstep(sea+.18,sea+.02,h):0;mat[k*4+3]=0;
+    tmp.set(B.cliff);cl[k*3]=tmp.r;cl[k*3+1]=tmp.g;cl[k*3+2]=tmp.b}}
 function buildWaterMesh(fns,detail){const def=fns.def;let wg=new THREE.IcosahedronGeometry(fns.R+fns.sea,detail);const wp=wg.attributes.position;const dep=new Float32Array(wp.count);const v=new THREE.Vector3();
   for(let i=0;i<wp.count;i++){v.fromBufferAttribute(wp,i).normalize();dep[i]=fns.sea-fns.hAt(v)}wg.setAttribute('depth',new THREE.BufferAttribute(dep,1));
   const wu={uT:{value:0},uShallow:{value:new THREE.Color(def.water)},uDeep:{value:new THREE.Color(def.deep)},uFoam:{value:new THREE.Color('#ffffff')},uIce:{value:fns.pid==='frost'?1:0}};
