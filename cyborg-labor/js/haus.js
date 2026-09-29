@@ -313,6 +313,7 @@ const HAUS=(()=>{
     garage:[['space','rover',1.6,'fs',0],['space','machine_generator',1.2,'s',PI/2],['space','barrels',1,'dc',0],['survival','workbench',1.8,'d',0]],
     pflanzen:[['nature','crops_cornStageC',1.3,'fs',0],['nature','pot_large',1.4,'d',0],['nature','flower_yellowA',1.4,'df',0],['nature','plant_bushLarge',1.5,'cs',0],['nature','crop_pumpkin',1.3,'f',0]],
     mode:[['town','stall-bench',1,'df',PI/2],['nature','pot_large',1.3,'d',0],['nature','flower_redA',1.4,'d',0],['nature','plant_bushDetailed',1.4,'c',0],['town','lantern',1,'c',0]],
+    casino:[['town','lantern',1,'dc',0],['town','fountain-round',.8,'f',0],['nature','pot_large',1.3,'d',0],['nature','plant_bushDetailed',1.4,'c',0],['castle','flag',1.6,'c',0]],
     praxis:[['town','stall-bench',1,'df',PI/2],['nature','pot_large',1.3,'d',0],['nature','plant_bushDetailed',1.4,'c',0],['town','lantern',1,'c',0]],
     tiere:[['town','fence-curved',1,'f',0],['nature','log_stack',1.3,'s',0],['town','cart',1,'s',0],['pirate','barrel',.33,'d',0],['nature','stump_round',1.4,'f',0]]};
   /* Gartentor: zwei feste Pfosten + Flügel an einem Scharnier (Gruppe H.gate.pivot, wird in der Welt animiert) */
@@ -386,6 +387,7 @@ const HAUS=(()=>{
     else if(plan.fam!=='pueblo')plan.fp=Object.assign({},base.fp||{},{dims:[[3,2],[3,3],[4,2],[2,3]],tall:.85,maxFl:3,noWings:false,tower:kind==='rathaus'||kind==='museum'?1:.15,towerExtra:kind==='rathaus'?1:0});
     else plan.big=1;
     if(kind==='mode')plan.pal={wall:'#FFF4EA',sand:'#FFF4EA',sandD:'#F4E2D4',roof:'#E88CB0',roofB:'#E88CB0',roof2:'#D8708E',trim:'#FFFFFF',wood:'#F2D6C8',woodL:'#F8E4DA',wood2:'#D8B8A8'},plan.mushPal={cap:'#F2A0C0',stem:'#FFF6EE'};
+    if(kind==='casino')plan.pal={wall:'#FFF0D8',sand:'#FFF0D8',sandD:'#F4DCC0',roof:'#C8284A',roofB:'#C8284A',roof2:'#A81E3C',trim:'#FFD85A',wood:'#8A5A44',woodL:'#A87A5A',wood2:'#6E4634'},plan.mushPal={cap:'#C8284A',stem:'#FFF0D8'};
     if(kind==='praxis')plan.pal={wall:'#F7FBFA',sand:'#F7FBFA',sandD:'#E6F0EE',roof:'#7FCFC0',roofB:'#7FCFC0',roof2:'#6CC4B4',trim:'#FFFFFF',wood:'#D4E6E2',woodL:'#E2EFEC',wood2:'#BCD4CF'},plan.mushPal={cap:'#7FCFC0',stem:'#FBFDFD'};
     return build(pid,opt.seed||hashS(pid+kind),Object.assign({},opt,{plan}))}
   /* Praxis: seitlich abstehendes, leuchtendes Apothekenkreuz neben der Tür (Platz wird gegen alle Bauteile geprüft) */
