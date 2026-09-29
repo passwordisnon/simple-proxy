@@ -188,6 +188,7 @@ function makePlanetFns(pid,extra){const def=PLANETS[pid];const seed={kompost:1,s
     if(oc>0){/* Inseln: einzelne Buckel im Meer, manche ragen hoch hinaus */const isl=Math.max(0,N2(q.x*.42+7,q.y*.42,q.z*.42)-.16)*15*MAC.isl;h=h*(1-oc)+oc*(sea-3.4+isl+Math.max(0,h-1)*.3)}
     const mm=sstep(MAC.m,MAC.m+.22,N2(p.x*1.9+3,p.y*1.9,p.z*1.9))*(1-oc)*(1-V);
     if(mm>0){/* Gebirge: Grate aus Rauschen, stufig durch die Terrassen → begehbar */const ridge=1-Math.abs(N3(q.x*.2,q.y*.2+9,q.z*.2));h+=mm*(2+ridge*ridge*ridge*9)}
+    /* Dorfgebiet: keine trockenen Mulden zwischen den Häusern */if(V>0)h+=V*Math.max(0,sea+.95-h);
     return h}
   const terr=pid!=='frost'&&pid!=='wueste'?1:pid==='wueste'?.5:.35;
   function hAt(p){let h=raw(p);/* Terrassen im Tierdorf-Stil: flache Stufen, steile Kanten */

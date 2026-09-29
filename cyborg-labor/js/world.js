@@ -225,7 +225,7 @@ const GAME=(()=>{
   /* ---------- Spieler ---------- */
   let me=null;const input={x:0,y:0,run:false,joy:null};let camYaw=0,camPitch=.42,camDist=8.5,camF=new V3(1,0,0);let tapTarget=null;
   function avatarData(){const own=HOMES.avatar();const d=sanitize(own||JSON.parse(JSON.stringify(S)));d.id='__me';if(!d.name.trim())d.name=SAVE.nick||'Du';return d}
-  function spawnMe(){if(me)dropEnt('__me');const start=SAVE.lastPos&&SAVE.lastPos.planet===G_.id?new V3(...SAVE.lastPos.p).normalize():(G_.places.find(p=>p.id==='platz')||{dir:new V3(0,1,0)}).dir.clone().applyAxisAngle(new V3(1,0,0),.13).normalize();
+  function spawnMe(){if(me)dropEnt('__me');const start=SAVE.lastPos&&SAVE.lastPos.planet===G_.id?new V3(...SAVE.lastPos.p).normalize():(G_.places.find(p=>p.id==='platz')||{dir:new V3(0,1,0)}).dir.clone().applyAxisAngle(new V3(1,0,0),6/G_.R).normalize();
     me=makeEnt(avatarData(),{kind:'me',p:start,q:HIGH?.9:.6,me:true});me.lbl.textContent=me.d.name;camSnap=true;camF=tangentTo(me.p,new V3(0,0,-1));if(camF.lengthSq()<.5)camF=tangentTo(me.p,new V3(1,0,0))}
 
   /* ================= Welt-API für Fähigkeiten (W) ================= */
