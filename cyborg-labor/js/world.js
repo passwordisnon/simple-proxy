@@ -460,7 +460,7 @@ const GAME=(()=>{
   /* Ankunft: neben der Raketenstation; auf neuen Planeten (und manchmal sonst) gibt es eine Bruchlandung */
   async function arrive(pid){if(typeof MYPLANET!=='undefined')MYPLANET.onArrive(pid);planetId=pid;SAVE.planet=pid;const tp=townPlaces(pid).find(p=>p.id==='rakete');if(tp){const d=dirLL(tp.lat-4.5*46/PLANETS[pid].R,tp.lon);SAVE.lastPos={planet:pid,p:[d.x,d.y,d.z]}}
     const first=!(SAVE.visited||{})[pid];SAVE.visited=Object.assign(SAVE.visited||{},{[pid]:true});persist();await loadPlanet(pid);SND.music(G_.def.music);UI.toast('Willkommen auf dem '+G_.def.n+'!');
-    if(!PLANETS[pid].mine&&!SAVE.rocketBroken&&(first&&pid!=='kompost'||Math.random()<.2))setTimeout(()=>REPAIR.crash(),900)}
+    if(!PLANETS[pid].mine&&!SAVE.rocketShield&&!SAVE.rocketBroken&&(first&&pid!=='kompost'||Math.random()<.2))setTimeout(()=>REPAIR.crash(),900)}
   function fadeOut(fn){const f=$('fade');f.classList.add('on');setTimeout(async()=>{await fn();setTimeout(()=>f.classList.remove('on'),120)},380)}
   async function loadPlanet(pid){try{if(typeof HAUS!=='undefined'&&!HAUS.ready)await HAUS.load()}catch(e){console.warn('Bausätze',e)}/* alte Szene abbauen */for(const id of[...ents.keys()])dropEnt(id);me=null;W.props.length=0;parts.length=0;
     if(scene){scene.traverse(o=>{if(o.geometry)o.geometry.dispose()});}
