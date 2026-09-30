@@ -383,15 +383,27 @@ function terrainVattr(fns){const def=fns.def,sea=fns.sea;const tmp=new THREE.Col
     tmp.set(B.cliff);cl[k*3]=tmp.r;cl[k*3+1]=tmp.g;cl[k*3+2]=tmp.b}}
 function buildWaterMesh(fns,detail){const def=fns.def;let wg=new THREE.IcosahedronGeometry(fns.R+fns.sea,detail);const wp=wg.attributes.position;const dep=new Float32Array(wp.count);const v=new THREE.Vector3();
   for(let i=0;i<wp.count;i++){v.fromBufferAttribute(wp,i).normalize();dep[i]=fns.sea-fns.hAt(v)}wg.setAttribute('depth',new THREE.BufferAttribute(dep,1));
-  const wu={uT:{value:0},uShallow:{value:new THREE.Color(def.water)},uDeep:{value:new THREE.Color(def.deep)},uFoam:{value:new THREE.Color('#ffffff')},uIce:{value:fns.pid==='frost'?1:0}};
-  const wm=new THREE.ShaderMaterial({uniforms:wu,transparent:true,fog:false,vertexShader:`attribute float depth;varying float vD;varying vec3 vP;varying vec3 vN;varying vec3 vV;void main(){vD=depth;vP=position;vec4 mv=modelViewMatrix*vec4(position,1.);vV=-mv.xyz;vN=normalMatrix*normal;gl_Position=projectionMatrix*mv;}`,
-    fragmentShader:`uniform float uT;uniform float uIce;uniform vec3 uShallow,uDeep,uFoam;varying float vD;varying vec3 vP;varying vec3 vN;varying vec3 vV;
+  const wu={uT:{value:0},uShallow:{value:new THREE.Color(def.water)},uDeep:{value:new THREE.Color(def.deep)},uFoam:{value:new THREE.Color('#ffffff')},uIce:{value:fns.pid==='frost'?1:0},
+    uSky:{value:new THREE.Color(def.sky?def.sky[0]:'#9fd8ff')},uSun:{value:new THREE.Vector3(.4,.8,.3)},uRain:{value:0}};
+  /* Wasser nach dem Vorbild von folio-2025: Tiefenfarbe, Lichtnetze im Flachen, Uferwellen entlang der Tiefenlinien,
+     schaumiger Rand mit Rauschen, Sonnenglitzern, Himmelsspiegelung am flachen Blickwinkel, Regentropfen-Ringe */
+  const wm=new THREE.ShaderMaterial({uniforms:wu,transparent:true,fog:false,vertexShader:`attribute float depth;varying float vD;varying vec3 vP;void main(){vD=depth;vP=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+    fragmentShader:`uniform float uT;uniform float uIce;uniform float uRain;uniform vec3 uShallow,uDeep,uFoam,uSky,uSun;varying float vD;varying vec3 vP;
     float h3(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
-    void main(){if(vD<-0.02)discard;float d=clamp(vD/1.8,0.,1.);vec3 c=mix(uShallow,uDeep,smoothstep(.1,.9,d));
-     float w=sin(vP.x*1.1+uT*1.1)*sin(vP.z*.9-uT*.9)+sin(vP.y*1.4+uT*.7);float band=step(.93,fract(w*.5+uT*.05));c=mix(c,vec3(1.),band*.16*(1.-d)*(1.-uIce));
-     float foam=1.-smoothstep(.0,.14+.05*sin(uT*2.+vP.x*3.+vP.z*2.),vD);float ring=step(.55,fract(vD*4.5-uT*.45))*(1.-smoothstep(.08,.4,vD));c=mix(c,uFoam,max(foam,ring*.5*(1.-uIce)));
+    float h2(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+    float vn(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(h3(i),h3(i+vec3(1,0,0)),f.x),mix(h3(i+vec3(0,1,0)),h3(i+vec3(1,1,0)),f.x),f.y),mix(mix(h3(i+vec3(0,0,1)),h3(i+vec3(1,0,1)),f.x),mix(h3(i+vec3(0,1,1)),h3(i+vec3(1,1,1)),f.x),f.y),f.z);}
+    void main(){if(vD<-0.02)discard;float d=clamp(vD/2.2,0.,1.);vec3 up=normalize(vP);
+     vec3 c=mix(uShallow*1.06,uDeep,smoothstep(.04,.95,d));
+     /* Lichtnetze im Flachen */vec3 q=vP*.85;float ca=abs(sin(q.x*1.7+uT*.8+sin(q.z*1.3+uT*.6)))*abs(sin(q.z*1.9-uT*.7+sin(q.y*1.1+uT*.4)));c+=vec3(.85,1.,.98)*pow(ca,7.)*.3*(1.-smoothstep(.1,.6,d))*(1.-uIce);
+     /* Uferwellen: Bänder entlang der Tiefe, laufen zum Ufer, mit Rauschen unterbrochen */float n=vn(vP*.6+vec3(0.,uT*.1,0.));float rb=fract(vD*1.9-uT*.32+n*.5);
+     float band=smoothstep(.0,.05,rb)*smoothstep(.15,.07,rb)*(1.-smoothstep(.15,1.1,vD))*step(.35,n);
+     float foam=1.-smoothstep(.0,.1+.08*n+.03*sin(uT*2.+vP.x*3.),vD);c=mix(c,uFoam,max(foam,band*.75)*(1.-uIce));
+     /* Regentropfen: kleine Ringe in Zellen */if(uRain>.01){vec2 g=floor(vP.xz*1.3+vP.y*.7);vec2 f=fract(vP.xz*1.3+vP.y*.7)-.5;float hr=h2(g);float ph=fract(uT*1.4+hr*7.);float rr=length(f-vec2(h2(g+1.3),h2(g+2.7))*.4+.2);
+       float ring=smoothstep(.05,.0,abs(rr-ph*.45))*(1.-ph)*step(1.-uRain*.8,h2(g+5.1));c=mix(c,uFoam,ring*.7);}
+     /* Sonnenglitzern und Himmelsspiegelung */vec3 V=normalize(cameraPosition-vP);vec3 N=normalize(up+vec3(sin(vP.x*2.1+uT*1.3),sin(vP.y*1.7-uT),cos(vP.z*2.3+uT*1.1))*.05);vec3 H=normalize(normalize(uSun)+V);
+     float sp=pow(max(dot(N,H),0.),260.);c+=vec3(1.,.98,.9)*smoothstep(.35,.8,sp)*.9*(1.-uIce);float fr=pow(1.-max(dot(up,V),0.),4.);c=mix(c,uSky*1.05,fr*.45);
      if(uIce>.5){float cr=step(.985,h3(floor(vP*2.)));c=mix(c,vec3(.95,.98,1.),.35+.2*cr);}
-     float fr=pow(1.-clamp(dot(normalize(vN),normalize(vV)),0.,1.),3.);c+=fr*.16;gl_FragColor=vec4(c,mix(.8,.94,d));}`});
+     gl_FragColor=vec4(c,mix(.8,.95,d));}`});
   const m=new THREE.Mesh(wg,wm);m.renderOrder=2;return{mesh:m,U:wu}}
 
 /* ================= Grasbüschel (flauschig, gebogen) ================= */
