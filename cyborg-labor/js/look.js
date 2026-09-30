@@ -77,7 +77,7 @@ void main(){vec3 c=texture2D(tColor,vUv).rgb;
     R.setRenderTarget(T.scene);R.clear();R.render(scene,cam);
     const U=gradeMat.uniforms;U.tColor.value=T.scene.texture;U.tDepth.value=T.scene.depthTexture;U.res.value.set(w,h);U.near.value=cam.near;U.far.value=cam.far;U.time.value=t%10;
     if(o.fog)U.fogCol.value.copy(o.fog);U.fogNear.value=o.fogNear??60;U.fogFar.value=o.fogFar??220;U.fogAmt.value=o.fogAmt??.5;U.aoStr.value=o.ao??.6;U.inkStr.value=o.ink??.85;U.inkPx.value=Math.max(1,1.3*(w/Math.max(1,R.domElement.clientWidth||w)));
-    if(o.night!=null){const n=o.night;U.shadowTint.value.set('#C8C0FF').lerp(new THREE.Color('#8FA0FF'),n);U.lightTint.value.set('#FFF1DC').lerp(new THREE.Color('#FFE2B8'),n);U.sat.value=1.02-n*.12}
+    if(o.shadowTint){U.shadowTint.value.set(o.shadowTint);U.lightTint.value.set(o.lightTint||'#FFF1DC');U.sat.value=o.sat??1.04}else if(o.night!=null){const n=o.night;U.shadowTint.value.set('#C8C0FF').lerp(new THREE.Color('#8FA0FF'),n);U.lightTint.value.set('#FFF1DC').lerp(new THREE.Color('#FFE2B8'),n);U.sat.value=1.02-n*.12}
     const A=aoMat.uniforms;A.tDepth.value=T.scene.depthTexture;A.res.value.set(w>>1,h>>1);A.near.value=cam.near;A.far.value=cam.far;quad.material=aoMat;R.setRenderTarget(T.ao);R.render(qScene,qCam);U.tAO.value=T.ao.texture;
     quad.material=gradeMat;R.setRenderTarget(T.a);R.render(qScene,qCam);
     if(T.bloom&&o.bloom!==false){T.bloom.strength=o.bloomStr??.28;T.bloom.renderToScreen=false;T.bloom.render(R,null,T.a,0,false)}
