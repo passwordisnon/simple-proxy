@@ -18,7 +18,10 @@ Status: ✔ erledigt · ◐ teilweise · ☐ offen. Wird bei jedem Schritt aktua
 - ✔ Insekten-KI: umherstreifen, aufmerksam, aufgeschreckt, eingegraben; Schleichen hilft
 - ✔ Fangbuch: unveränderliche Einträge je Fang (Ort, Wetter, Zeit, Grösse, Bauart), Rekorde
 - ✔ Audio: getrennte Busse für Musik, Welt/Werkzeug, Stimmen, Umgebung, Menü
-- ☐ Weiter: Wasser (Schaum, Tiefe), Figuren-Qualität, Gebäude-Detail, Himmel, Tag/Nacht-Farbstimmungen, alle Innenräume
+- ✔ Wasser mit Kaustik, Tiefenringen, Schaum, Regenringen; gemalte Wolken; lebendiger Dorfplatz mit Beeten und Signatur-Bäumen
+- ✔ Innenräume und Labor laufen durch dieselbe Bildpipeline: Lichtschleier aus Fenstern mit Sprossenschatten, Staub im Licht, weicher Hintergrund, Figurenlicht; Labor-Bühne als Diorama mit echtem Gras
+- ✔ Brunnen: behauene Steine, Wasser mit Wellenringen und Schaum, fliessende Strahlen, Tröpfchen und Aufprallringe
+- ☐ Weiter: Figuren-Qualität (Rumpfformen), Gebäude-Detail, Himmel, Tag/Nacht-Farbstimmungen
 
 ## Figuren
 - ✔ Alle Körperteile im Cozy-Stil, Rümpfe neu (Tierfiguren-Look), nur noch eine Rumpfform (keine 2–3 Segmente)
@@ -62,11 +65,16 @@ Status: ✔ erledigt · ◐ teilweise · ☐ offen. Wird bei jedem Schritt aktua
 - ✔ Raketen-Schutzmodul: Geschenk der Bürgermeisterin nach dem ersten Auftrag auf Kompost (keine Abstürze mehr)
 - ✔ Raumstationen im All (Nova, Aurora, Komet) mit Rennen: Tor-Ringe, Boost-Felder, 2 Runden, KI-Raketen, Mehrspieler über den Rennraum der Station, Preisgeld und Bestzeiten
 - ✔ Planeten-Grundgerüst: jeder neue Planet ist an alle Systeme angeschlossen (Dorf, Bewohner:innen, Sprache, Wetter, Kleidung, Höhlen, Tierpark-Sektor, Lexikon, Karte, Weltraum, Museum)
-- ◐ 30 Planeten: die 6 Start-Planeten + 3 gewünschte + 21 einzigartige
+- ◐ 30 Planeten: die 6 Start-Planeten + 3 gewünschte + 21 einzigartige (jetzt 14 von 30)
   - ✔ Urzeit-Tal: Vulkane, Farnwälder, Bernsteinstrände, 6 Dinos (Quaternius), Dino-Eier schlüpfen zu Begleitern, nächtlicher Zeitriss mit Meteoritenschauer und Fossilien
   - ✔ Dschungel-Welt: Lianen-Vorhänge wachsen über Nacht nach, Schwing-Lianen über Flüsse, drei Tempel mit Schiebe-Rätseln und Schatzkammer, 7 Tiere, Pfahlhäuser
   - ✔ Metro-Stadt (New-Donk-City-Stil): Art-déco-Wolkenkratzer, Ringstrassen mit Verkehr, Taxis an vier Ständen, abendliches Jazz-Festival zum Mitjammen, Fassaden klettern mit Stadt-Medaillen
-  - ☐ 21 weitere: Riesengarten, Wolkenarchipel, Bibliotheks-Planet, Uhrwerk-Mond, Klang-Planet, Origami-Planet, Laternen-Planet, Traum-Planet, Solarpunk-Stadt, Wetterwerk-Planet, Schnecken-Planet, Nest-Planet, Tee-Planet, Leuchtquallen-Tiefsee, Magnet-Planet, Würfel-Planet, Irrlicht-Moor, Vulkan-Schmiede, Honig-Waben-Planet, Spiegel-Planet, Wander-Karawane
+  - ✔ Riesengarten: du bist winzig zwischen Riesen-Grashalmen, Klee und verlorenen Knöpfen; Pusteblumen-Gleitflug, Morgentau sammeln, Blumentopf-/Teetassen-/Fingerhut-Häuser
+  - ✔ Wolkenarchipel: Inseln über einem Wolkenmeer, Wolkenkissen schleudern dich von Insel zu Insel, Regenbogen nach dem Regen mit Topf am Ende, Ballon-/Windmühlen-/Wolkenhäuser
+  - ✔ Bibliotheks-Planet: Bücherbäume, Tintenseen, sechs verlorene Geschichten (18 Seiten) zum grossen Lesepult bringen, nachts schwebende Buchstaben, Bücherhäuser
+  - ✔ Uhrwerk-Mond: Zahnrad-Plateaus, sechs Aufzieh-Wächter aufziehen, grosses Glockenspiel, Kuckuck zur vollen Stunde, Uhrenhäuser
+  - ✔ Klang-Planet: Harfenbäume, Glockenblumen, Klangsteine zum Drüberlaufen, vier Liedtafeln nachspielen, Konzert, Instrumenten-Häuser
+  - ☐ 16 weitere: Origami-Planet, Laternen-Planet, Traum-Planet, Solarpunk-Stadt, Wetterwerk-Planet, Schnecken-Planet, Nest-Planet, Tee-Planet, Leuchtquallen-Tiefsee, Magnet-Planet, Würfel-Planet, Irrlicht-Moor, Vulkan-Schmiede, Honig-Waben-Planet, Spiegel-Planet, Wander-Karawane
 - ☐ Monde als besuchbare Orte
 
 ## Story & Spielinhalt
