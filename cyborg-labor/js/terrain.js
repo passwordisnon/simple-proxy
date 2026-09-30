@@ -204,6 +204,8 @@ function parkFrame(c,pole){const toV=pole.clone().addScaledVector(c,-c.dot(pole)
 function parkLocal(p,c,F,R){const d=p.clone().addScaledVector(c,-c.dot(p));return[d.dot(F.toV)*R,d.dot(F.side)*R]}
 function parkSector(u,v){const a=(Math.atan2(v,u)+2*Math.PI)%(2*Math.PI);return Math.floor(a/(Math.PI/3))%6}
 function parkDir(c,F,R,u,v){return c.clone().addScaledVector(F.toV,u/R).addScaledVector(F.side,v/R).normalize()}
+/* Daten des eigenen Planeten – oder beim Besuch die des Freundes */
+function MP(){if(typeof MYPLANET!=='undefined'&&MYPLANET.visiting)return MYPLANET.visiting.mp;return typeof SAVE!=='undefined'?SAVE.myPlanet:null}
 const TOWN_RING=[['museum','museum'],['laden','shop'],['bar','bar'],['studio','studio'],['rathaus','rathaus'],['garage','garage'],['pflanzen','pflanzen'],['rakete','rocket'],['tiere','tiere'],['praxis','praxis'],['mode','mode'],['casino','casino']];
 function townPlaces(pid){if(PLANETS[pid]&&PLANETS[pid].mine)return[];const R=PLANETS[pid].R;const pl=PLACES[pid].find(p=>p.build==='plaza');const h=pl?pl.h:.8;const d=27,lat=90-d/R*180/PI;const off={kompost:0,schrott:20,korallen:40,frost:10,wueste:30,pilz:50}[pid]||0;
   return TOWN_RING.map(([id,build],i)=>({id,n:id,lat,lon:off+i*360/TOWN_RING.length,r:(build==="rocket"?3.6:6.2)/R,h,build}))}
@@ -243,8 +245,8 @@ function makePlanetFns(pid,extra){const def=PLANETS[pid];const seed={kompost:1,s
   const terr=pid!=='frost'&&pid!=='wueste'?1:pid==='wueste'?.5:.35;
   function hAt(p){let h=raw(p);
     /* Terraforming (eigener Planet): Hügel und Senken aus dem Spielstand; Bauplätze bleiben flach, danach Terrassen wie überall */
-    if(def.mine&&typeof SAVE!=='undefined'&&SAVE.myPlanet&&SAVE.myPlanet.edits.length){let keep=0;for(const pl of places){if(pl.pond||pl.park)continue;const d=angle(p,pl.dir);if(d<pl.r*1.6)keep=Math.max(keep,sstep(pl.r*1.6,pl.r*1.05,d))}
-      if(keep<1)for(const e of SAVE.myPlanet.edits){const d=Math.acos(Math.max(-1,Math.min(1,p.x*e.d[0]+p.y*e.d[1]+p.z*e.d[2])))*R/e.r;if(d<2.2)h+=e.dh*Math.exp(-d*d*1.6)*(1-keep)}}
+    if(def.mine&&MP()&&MP().edits.length){let keep=0;for(const pl of places){if(pl.pond||pl.park)continue;const d=angle(p,pl.dir);if(d<pl.r*1.6)keep=Math.max(keep,sstep(pl.r*1.6,pl.r*1.05,d))}
+      if(keep<1)for(const e of MP().edits){const d=Math.acos(Math.max(-1,Math.min(1,p.x*e.d[0]+p.y*e.d[1]+p.z*e.d[2])))*R/e.r;if(d<2.2)h+=e.dh*Math.exp(-d*d*1.6)*(1-keep)}}
     /* Terrassen im Tierdorf-Stil: flache Stufen, steile Kanten */
     if(h>sea+.25){const k=(h-sea)/step;const f=k-Math.floor(k);const t=(Math.floor(k)+sstep(.4,.6,f))*step+sea;h=h*(1-terr)+t*terr}
     for(const pl of places){const d=angle(p,pl.dir);if(pl.pond){if(d<pl.r*1.35){const t=sstep(pl.r*1.35,pl.r*.5,d);h=h*(1-t)+(sea-1.1)*t}}
@@ -257,7 +259,7 @@ function makePlanetFns(pid,extra){const def=PLANETS[pid];const seed={kompost:1,s
   const PEAK={kompost:'schneefeld',schrott:'kristallfeld',korallen:'felsinsel',frost:'polarhuegel',wueste:'canyon',pilz:'moorwiese'};
   function biomeAt(p,h){if(h===undefined)h=hAt(p);
     if(park){const d=angle(p,park.dir);if(d<park.r*1.04){const[u,v]=parkLocal(p,park.dir,parkF,R);if(d<park.r*.2||(u>0&&Math.abs(v)<1.6))return'parkweg';return PARK.biome[parkSector(u,v)]}}
-    if(def.mine){const S=(typeof SAVE!=='undefined'&&SAVE.myPlanet&&SAVE.myPlanet.paint)||[];let b=null;for(const s of S){const d=Math.acos(Math.max(-1,Math.min(1,p.x*s.d[0]+p.y*s.d[1]+p.z*s.d[2])))*R;if(d<s.r+N(p.x*9,p.y*9,p.z*9)*1.4)b=s.b}
+    if(def.mine){const S=(MP()&&MP().paint)||[];let b=null;for(const s of S){const d=Math.acos(Math.max(-1,Math.min(1,p.x*s.d[0]+p.y*s.d[1]+p.z*s.d[2])))*R;if(d<s.r+N(p.x*9,p.y*9,p.z*9)*1.4)b=s.b}
       if(h<sea+.45&&b!=='duenen')return b&&BIOMES[b]&&b!=='oedland'?(b==='schneefeld'?'eisufer':'strand'):'oedland';return b&&BIOMES[b]?b:'oedland'}
     /* Klimazonen: grosses Klimafeld (kalt / heiss) und Feuchte (Dschungel); das Dorf bleibt gemässigt */
     {const ang=Math.acos(Math.max(-1,Math.min(1,p.y)));if(ang>vilR*2.1&&h>sea+.25){const Cl=N(p.x*.9+21,p.y*.9-7,p.z*.9+3)*.8+N2(p.x*2.2+4,p.y*2.2,p.z*2.2)*.2;const Wt=N3(p.x*1.6-9,p.y*1.6+2,p.z*1.6);const Z=CLIMATE[pid];

@@ -22,7 +22,7 @@ const SOCIAL=(()=>{
   function nick(){return clean(SAVE.nick||S.name||'Gast',24)||'Gast'}
   function send(t){const me=GAME.me;if(tab==='fr'){const to=$('chatTo').value;const f=SAVE.friends.find(x=>x.pid===to);if(!f){UI.toast('Füge zuerst jemanden als Freund:in hinzu.');return}
       addMsg('fr',nick()+' → '+f.nick,t,'me');if(f.bot){setTimeout(()=>addMsg('fr',f.nick,pick([...BOT_CHAT.react,'hab grad keine zeit, bin am angeln','schreib ich dir gleich','du bist lustig haha']),'bot'),1500+Math.random()*2500)}
-      else{const r=frRooms.get(f.pid);if(r){pushMsg(r.msgs,t,to);r.room.presence({c:r.msgs}).catch(()=>{})}else addMsg('fr','System',`${f.nick} ist gerade nicht online oder hat dich noch nicht hinzugefügt.`,'sys')}return}
+      else{const r=frRooms.get(f.pid);if(r){pushMsg(r.msgs,t,to);r.room.presence({c:r.msgs,mp:MYPLANET.encode()}).catch(()=>{})}else addMsg('fr','System',`${f.nick} ist gerade nicht online oder hat dich noch nicht hinzugefügt.`,'sys')}return}
     addMsg('all',nick(),t,'me');if(me)GAME.say(me,t,4);pushMsg(myMsgs,t);presT=0;
     /* KI reagiert manchmal */if(Math.random()<.5){const b=pick(bots);if(b)setTimeout(()=>{const line=pick(BOT_CHAT.react);addMsg('all',b.d.name,line,'bot');GAME.say(b,line,3)},1200+Math.random()*2000)}}
   function pushMsg(arr,t,to){arr.push({i:rid().slice(0,6),t:Date.now(),m:t,...(to?{to}:{})});while(arr.length>3)arr.shift()}
@@ -31,7 +31,12 @@ const SOCIAL=(()=>{
   let bots=[];let botChatT=8;
   function randomCyborg(name,seed){const r=srand(seed);const pk=a=>a[Math.floor(r()*a.length)];const d=sanitize({name,body:{seg:1+Math.floor(r()*3),size:.9+r()*.3,skin:pk(SKINS).id,color:Math.floor(r()*SKIN_COLORS.length),shape:pk(TORSOS).id,pattern:pk(PATTERNS).id,color2:Math.floor(r()*SKIN_COLORS.length)},
       parts:{kopf:pk(PARTS.kopf.filter(p=>p.k!=='none')).id,augen:pk(PARTS.augen.filter(p=>p.k!=='none')).id,arme:pk(PARTS.arme).id,beine:pk(PARTS.beine.filter(p=>!['kabel','wurzeln','stamm','pilzstiel','blumentopf'].includes(p.id))).id,extras:[pk(PARTS.extras).id]}});d.id='bot-'+seed;return d}
-  function spawnBots(pid){bots.forEach(b=>GAME.dropEnt(b.d.id));bots=[];const n=pid==='kompost'?5:3;const names=[...BOT_NAMES].sort(()=>Math.random()-.5);
+  function spawnBots(pid){bots.forEach(b=>GAME.dropEnt(b.d.id));bots=[];
+    if(PLANETS[pid]&&PLANETS[pid].mine){/* eigener Planet: nur befreundete KI kommt ab und zu zu Besuch */if(MYPLANET.visiting)return;const fr=SAVE.friends.filter(f=>f.bot);if(!fr.length)return;
+      const come=fr.filter(()=>Math.random()<.5).slice(0,2);if(!come.length)return;const pad=(GAME.G.places.find(x=>x.build==='rocket')||GAME.G.places[0]).dir;
+      come.forEach((f,i)=>{const d=randomCyborg(f.nick,hashStr(f.nick+'kompost').length*97);d.id=f.pid;const e=GAME.makeEnt(d,{kind:'bot',tag:'Besuch',p:GAME.W.near(pad,1.5+i)});e.bot={task:null,t:3+Math.random()*4};bots.push(e)});
+      setTimeout(()=>{UI.toast(come.map(f=>f.nick).join(' und ')+(come.length>1?' sind':' ist')+' zu Besuch auf „'+(SAVE.myPlanet&&SAVE.myPlanet.name||'deinem Planeten')+'“!',3200);addMsg('all',come[0].nick,pick(['hey, schöner planet!!','wow, hast du das alles selbst gemacht?','ich wollt dich mal besuchen :)']),'bot')},2200);return}
+    const n=pid==='kompost'?5:3;const names=[...BOT_NAMES].sort(()=>Math.random()-.5);
     for(let i=0;i<n;i++){const d=randomCyborg(names[i],hashStr(names[i]+pid).length*97+i);const e=GAME.makeEnt(d,{kind:'bot',tag:'KI',p:GAME.W.near((pick(GAME.G.places.filter(x=>x.build))||{dir:new V3(0,1,0)}).dir,1)});e.bot={task:null,t:2+Math.random()*4};bots.push(e)}
     setTimeout(()=>{const b=pick(bots);if(b)addMsg('all',b.d.name,pick(BOT_CHAT.hello),'bot')},2500)}
   function stepBots(dt){for(const e of bots){const B=e.bot;B.t-=dt;if(B.t>0||e.goal||e.life)continue;B.t=8+Math.random()*14;const r=Math.random();
@@ -56,7 +61,7 @@ const SOCIAL=(()=>{
     s.pid=clean(pr.pid,40);s.nick=clean(pr.n,24)||'Jemand';s.pr=pr;
     /* Chat */for(const m of Array.isArray(pr.c)?pr.c:[]){if(!m||!m.i||s.seen.has(m.i))continue;s.seen.add(m.i);if(Date.now()-(+m.t||0)>120000)continue;const txt=clean(m.m,140);if(!txt)continue;addMsg('all',s.nick,txt,'');if(s.ent)GAME.say(s.ent,txt,4)}
     /* Kunst */if(pr.art&&typeof pr.art==='object'){const a=sanitizeArt({name:clean(pr.art.n,32),by:s.nick,pal:pr.art.pal,px:pr.art.px});if(a)peerArt.set(p.peer,a)}
-    /* Figur */const samePlace=pr.pl===GAME.G.id&&!pr.in&&GAME.mode==='outdoor';if(!samePlace){if(s.ent){GAME.dropEnt(s.ent.d.id);s.ent=null}return}
+    /* Figur */const samePlace=pr.pl===MYPLANET.placeId()&&!pr.in&&GAME.mode==='outdoor';if(!samePlace){if(s.ent){GAME.dropEnt(s.ent.d.id);s.ent=null}return}
     const lk=JSON.stringify(pr.lk||'');if(s.ent&&s.lk!==lk){GAME.dropEnt(s.ent.d.id);s.ent=null}
     if(!s.ent){const d=fromLooks(pr.lk||{},s.nick)||randomCyborg(s.nick,7);d.id='peer-'+p.peer;d.name=s.nick;const p0=vec(pr.p);if(!p0)return;s.ent=GAME.makeEnt(d,{kind:'peer',tag:'online',p:p0});s.lk=lk;s.ent.peer=p.peer}
     const e=s.ent;const tp=vec(pr.p),td=vec(pr.d);if(tp)e.tp=tp;if(td)e.td=td;e.tsp=+pr.sp||0;if(pr.em&&pr.emT&&pr.emT!==e.lastEmT){e.lastEmT=pr.emT;if(EMOTES[pr.em])doEmote(e,pr.em,true)}
@@ -64,12 +69,12 @@ const SOCIAL=(()=>{
   const vec=a=>Array.isArray(a)&&a.length===3&&a.every(Number.isFinite)?new V3(a[0],a[1],a[2]).normalize():null;
   function dropPeer(peer){const s=peersSeen.get(peer);if(s&&s.ent)GAME.dropEnt(s.ent.d.id);peersSeen.delete(peer);peerArt.delete(peer)}
   function stepPeer(e,dt){if(e.tp){const a=GAME.angle(e.p,e.tp);if(a>.3/GAME.G.R*40){e.p.copy(e.tp)}else if(a>1e-5){e.p.lerp(e.tp,Math.min(1,dt*8)).normalize()}}if(e.td){e.dir.lerp(e.td,Math.min(1,dt*8));e.dir.copy(GAME.tangentTo(e.p,e.dir))}e.speed=e.tsp||0}
-  async function joinFriend(pid,nk){if(!room||frRooms.has(pid))return;const name='fr-'+hashStr([SAVE.pid,pid].sort().join('|'));try{const r=await room.join(name);const entry={room:r,msgs:[],seen:new Set()};frRooms.set(pid,entry);
-      r.onPeers(ch=>{for(const p of[...ch.joined,...ch.updated]){if(p.isMe)continue;for(const m of Array.isArray(p.presence.c)?p.presence.c:[]){if(!m||!m.i||entry.seen.has(m.i))continue;entry.seen.add(m.i);if(m.to&&m.to!==SAVE.pid)continue;const t=clean(m.m,140);if(t)addMsg('fr',nk,t,'')}}});
+  async function joinFriend(pid,nk){if(!room||frRooms.has(pid))return;const name='fr-'+hashStr([SAVE.pid,pid].sort().join('|'));try{const r=await room.join(name);const entry={room:r,msgs:[],seen:new Set(),nick:nk};frRooms.set(pid,entry);r.presence({c:entry.msgs,mp:MYPLANET.encode()}).catch(()=>{});
+      r.onPeers(ch=>{for(const p of[...ch.joined,...ch.updated]){if(p.isMe)continue;if(p.presence&&p.presence.mp)entry.mp=MYPLANET.decode(p.presence.mp);entry.online=true;for(const m of Array.isArray(p.presence.c)?p.presence.c:[]){if(!m||!m.i||entry.seen.has(m.i))continue;entry.seen.add(m.i);if(m.to&&m.to!==SAVE.pid)continue;const t=clean(m.m,140);if(t)addMsg('fr',nk,t,'')}}});
       addMsg('fr','System',`${nk} ist online. Ihr könnt euch jetzt privat schreiben.`,'sys')}catch(e){}}
   /* Präsenz senden */
   function frame(dt,t){stepBots(dt);if(!room||!connected)return;presT-=dt;if(presT>0)return;presT=.12;const me=GAME.me;if(!me)return;
-    const r3=v=>[+v.x.toFixed(4),+v.y.toFixed(4),+v.z.toFixed(4)];const pr={v:1,pid:SAVE.pid,n:nick(),pl:GAME.G.id,in:GAME.mode==='interior'?INTERIOR.kind:null,p:r3(me.p),d:r3(me.dir),sp:+(me.speed||0).toFixed(1),lk:looks(S),c:myMsgs,fr:SAVE.friends.filter(f=>!f.bot).map(f=>f.pid).slice(0,12),em:emote.id,emT:emote.t,art:myArt};
+    const r3=v=>[+v.x.toFixed(4),+v.y.toFixed(4),+v.z.toFixed(4)];const pr={v:1,pid:SAVE.pid,n:nick(),pl:MYPLANET.placeId(),in:GAME.mode==='interior'?INTERIOR.kind:null,p:r3(me.p),d:r3(me.dir),sp:+(me.speed||0).toFixed(1),lk:looks(S),c:myMsgs,fr:SAVE.friends.filter(f=>!f.bot).map(f=>f.pid).slice(0,12),em:emote.id,emT:emote.t,art:myArt};
     const s=JSON.stringify(pr);if(s===lastPres)return;if(s.length>3900){pr.art=null}lastPres=s;room.presence(pr).catch(()=>{})}
   function emoteOut(id){emote={id,t:Date.now()};presT=0}
   function publishArt(a){myArt={n:a.name,pal:a.pal,px:a.px};presT=0}
@@ -80,7 +85,7 @@ const SOCIAL=(()=>{
     add('Gerade hier');const list=el('div','grid');const rows=[];for(const s of peersSeen.values())rows.push({pid:s.pid,nick:s.nick,online:true});for(const b of bots)rows.push({pid:b.d.id,nick:b.d.name,bot:true,ent:b});
     if(!rows.length)w.body.append(el('p','empty','Niemand da.'));rows.forEach(r=>{const isF=SAVE.friends.some(f=>f.pid===r.pid);const c=el('div','card');c.append(el('span',null,r.nick),el('span','sub',r.bot?'KI-Mitspieler:in':'online'));
       const b=btn(isF?'Befreundet':'Freund:in werden','small'+(isF?'':' primary'),()=>{if(isF)return;SAVE.friends.push({pid:r.pid,nick:r.nick,bot:!!r.bot});persist();SND.play('j_success');UI.toast(r.nick+' hinzugefügt'+(r.bot?'':'. Sobald ihr euch beide hinzugefügt habt, geht der private Chat.'));w.close();playersWin()});c.append(b);list.append(c)});w.body.append(list);
-    add('Deine Freundesliste');if(!SAVE.friends.length)w.body.append(el('p','empty','Noch leer.'));SAVE.friends.forEach(f=>{const row=el('div','row');row.style.alignItems='center';row.append(el('span',null,f.nick+(f.bot?' (KI)':'')),btn('Entfernen','small danger',()=>{SAVE.friends=SAVE.friends.filter(x=>x!==f);persist();w.close();playersWin()}));w.body.append(row)});
+    add('Deine Freundesliste');if(!SAVE.friends.length)w.body.append(el('p','empty','Noch leer.'));SAVE.friends.forEach(f=>{const row=el('div','row');row.style.alignItems='center';const fr=frRooms.get(f.pid);row.append(el('span',null,f.nick+(f.bot?' (KI)':'')),...(fr&&fr.mp?[btn('Planet besuchen','small primary',()=>{w.close();MYPLANET.visit(f.pid,f.nick,fr.mp)})]:[]),btn('Entfernen','small danger',()=>{SAVE.friends=SAVE.friends.filter(x=>x!==f);persist();w.close();playersWin()}));w.body.append(row)});
     w.body.append(el('p','note','Privater Chat: Tab «Freund:innen» im Chat. Der Chat ist für alle in eurer Klasse gedacht, bitte freundlich bleiben.'))}
   function brag(kind,def){if(def.rarity>=4&&bots.length){const b=pick(bots);setTimeout(()=>{addMsg('all',b.d.name,pick(['whoa, gratuliere!','omg der ist selten!!','neid!!','nice fang!']),'bot')},1500)}}
   return{connect,frame,stepPeer,toggleChat,botTalk,emote:emoteOut,publishArt,onlineArt,onPlanet,playersWin,brag,addMsg,get bots(){return bots}};

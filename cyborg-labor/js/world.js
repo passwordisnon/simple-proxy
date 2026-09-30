@@ -189,7 +189,7 @@ const GAME=(()=>{
         if(pl.build==='plaza')obj=buildPlaza(pl);
         else if(TOWN.kinds.includes(pl.build))obj=TOWN.build(pl.build,G_.id,M);
         else if(pl.build==='rocket'&&window.buildRocketPad){obj=buildRocketPad(M);try{ROCKET.dress(obj.userData.rocket,M)}catch(e){console.warn('Rakete',e)}}
-        else if(pl.build==='house'&&window.buildHouse){obj=buildHouse(SAVE.house.style,M);G_.houseObj=obj}
+        else if(pl.build==='house'&&window.buildHouse){const vis=G_.def.mine&&MYPLANET.visiting;obj=buildHouse(vis?(vis.mp.house||SAVE.house.style):SAVE.house.style,M);if(!vis)G_.houseObj=obj;else obj.userData.visitHouse=vis.nick}
         else if(pl.build==='residence')obj=HOMES.build(pl,M);
       }catch(e){console.warn('Gebäude',pl.build,e)}QF=1;
       if(!obj){obj=new THREE.Group();P(obj,G.bx(3,2.4,3,.4),M.c('#FFE3B8'),[0,1.2,0]);P(obj,G.co(2.6,1.6),M.c('#F0556E'),[0,3.2,0])}
@@ -391,7 +391,7 @@ const GAME=(()=>{
   function doAction(){if(mode==='space'){if(!UI.anyOpen())SPACE.action();return}if(launchT)return;if(!me||UI.anyOpen()||ACT.busy())return;const t=promptTarget;SND.init();
     if(!t){if(ACT.busy())return;me.emote='hop';me.jump=.9;return}
     switch(t.kind){case 'talk':talkTo(t.ent);break;case 'tree':ACT.shake(t.ref);break;case 'rock':ACT.hitRock(t.ref);break;case 'fish':ACT.fish(t.p);break;
-      case 'shop':BUILDINGS.enter('shop');break;case 'museum':INTERIOR.enter('museum');break;case 'house':INTERIOR.enter('house');break;case 'studio':PAINT.open();break;case 'rocket':travelMenu();break;
+      case 'shop':BUILDINGS.enter('shop');break;case 'museum':INTERIOR.enter('museum');break;case 'house':if(G_.def.mine&&MYPLANET.visiting){UI.toast('Das Haus von '+MYPLANET.visiting.nick+' ist abgeschlossen. Klopf doch mal im Chat an!',2800);break}INTERIOR.enter('house');break;case 'studio':PAINT.open();break;case 'rocket':travelMenu();break;
       case 'board':boardMenu();break;case 'stage':ACT.party();break;case 'mail':mailMenu();break;default:if(t.act)t.act()}}
   async function talkTo(e){if(e.kind==='bot'||e.kind==='villager'){await LIFE.interact(e);return}e.talking=true;const old=e.dir.clone();e.lookAt=me;e.stop=99;me.dir.copy(tangentTo(me.p,e.p.clone().sub(me.p)));
     const d=e.d;const nm=d.name||'Namenlos';const pn=SAVE.nick||S.name||'du';const fill=s=>s.replace('{p}',pn);const voice=voiceFor(d);SAVE.stats.talks++;
@@ -458,9 +458,9 @@ const GAME=(()=>{
   function doTravel(pid){fadeOut(async()=>{SND.play('whoosh');await arrive(pid)})}
   function landOn(pid){fadeOut(async()=>{mode='outdoor';SND.play('whoosh');await arrive(pid)})}
   /* Ankunft: neben der Raketenstation; auf neuen Planeten (und manchmal sonst) gibt es eine Bruchlandung */
-  async function arrive(pid){planetId=pid;SAVE.planet=pid;const tp=townPlaces(pid).find(p=>p.id==='rakete');if(tp){const d=dirLL(tp.lat-4.5*46/PLANETS[pid].R,tp.lon);SAVE.lastPos={planet:pid,p:[d.x,d.y,d.z]}}
+  async function arrive(pid){if(typeof MYPLANET!=='undefined')MYPLANET.onArrive(pid);planetId=pid;SAVE.planet=pid;const tp=townPlaces(pid).find(p=>p.id==='rakete');if(tp){const d=dirLL(tp.lat-4.5*46/PLANETS[pid].R,tp.lon);SAVE.lastPos={planet:pid,p:[d.x,d.y,d.z]}}
     const first=!(SAVE.visited||{})[pid];SAVE.visited=Object.assign(SAVE.visited||{},{[pid]:true});persist();await loadPlanet(pid);SND.music(G_.def.music);UI.toast('Willkommen auf dem '+G_.def.n+'!');
-    if(!SAVE.rocketBroken&&(first&&pid!=='kompost'||Math.random()<.2))setTimeout(()=>REPAIR.crash(),900)}
+    if(!PLANETS[pid].mine&&!SAVE.rocketBroken&&(first&&pid!=='kompost'||Math.random()<.2))setTimeout(()=>REPAIR.crash(),900)}
   function fadeOut(fn){const f=$('fade');f.classList.add('on');setTimeout(async()=>{await fn();setTimeout(()=>f.classList.remove('on'),120)},380)}
   async function loadPlanet(pid){try{if(typeof HAUS!=='undefined'&&!HAUS.ready)await HAUS.load()}catch(e){console.warn('Bausätze',e)}/* alte Szene abbauen */for(const id of[...ents.keys()])dropEnt(id);me=null;W.props.length=0;parts.length=0;
     if(scene){scene.traverse(o=>{if(o.geometry)o.geometry.dispose()});}
