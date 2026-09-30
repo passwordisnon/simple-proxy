@@ -19,7 +19,7 @@ const HOMES=(()=>{
     pilz:{skins:['myzel','moos','schleim','kompost'],heads:['pilzhut','schnecke','moosball','bluete','kohl','gehirnglas','qualle','frosch'],names:['Sporella','Lamellix','Moosi','Glimmer','Hutzel','Myko'],
       house:{shapes:['pilz','rund'],walls:['moos','lehm'],wallCols:['#F6EEDC','#DCC8F0','#C8F0D8'],roofCols:['#E8505B','#8E6BD1','#FF8FB8'],win:['rund']},deco:['leuchtpilzgruppe','pilzgruppe','sporenblume']}};
   /* ---------- einheimische Bewohner:innen ---------- */
-  const natCache={};
+  THEME.heim=THEME.kompost;const natCache={};
   /* mindestens 20 Bewohner:innen je Planet (auf Kompost zusammen mit den eigenen Figuren) */const SYL=['Bi','Lu','Mo','Pi','Ra','Fi','Nu','Ko','Za','Wi','Ti','Mel','Pom','Zu','Fla','Kri'];const SYL2=['ppel','mmel','xi','nja','bo','lo','schka','ri','mo','dle','ffi','ks'];
   function natives(pid,need){const key=pid+':'+(need??20);if(natCache[key])return natCache[key];const T=THEME[pid];const r=srand(hashStr('nat'+pid).length*131+pid.length);const pk=a=>a[Math.floor(r()*a.length)];const out=[];
     const N=need??20;const used=new Set();for(let i=0;i<N;i++){const legs=PARTS.beine.filter(p=>!['kabel','wurzeln','stamm','pilzstiel','blumentopf'].includes(p.id));
@@ -27,7 +27,7 @@ const HOMES=(()=>{
         parts:{kopf:pk(T.heads),augen:pk(PARTS.augen.filter(p=>p.k!=='none')).id,arme:pk(PARTS.arme).id,beine:pk(legs).id,extras:[pk(PARTS.extras).id]}});d.id='nat-'+pid+'-'+i;d.native=true;out.push(d)}
     return natCache[key]=out}
   function activeId(){return SAVE.activeChar||null}
-  function residents(pid){if(pid==='kompost'){const own=allCreatures().filter(d=>d.id!==activeId());return own.concat(natives(pid,Math.max(0,20-own.length)))}return natives(pid,20)}
+  function residents(pid){if(PLANETS[pid]&&PLANETS[pid].mine)return((SAVE.myPlanet&&SAVE.myPlanet.guests)||[]).map(d=>Object.assign({},d));if(pid==='kompost'){const own=allCreatures().filter(d=>d.id!==activeId());return own.concat(natives(pid,Math.max(0,20-own.length)))}return natives(pid,20)}
   /* ---------- Bauplätze: vor dem Gelände-Aufbau wählen, damit der Boden flach wird ---------- */
   function spots(pid,fns0){const list=residents(pid);const r=srand(hashStr('home'+pid).length*977+3);const out=[];const R=fns0.R;const taken=fns0.places.map(p=>p.dir);
     const c0=fns0.places[0].dir,maxA=Math.min(1.25,(list.length>12?96:72)/R);const t0=new THREE.Vector3().crossVectors(c0,Math.abs(c0.y)>.9?new THREE.Vector3(1,0,0):new THREE.Vector3(0,1,0)).normalize();

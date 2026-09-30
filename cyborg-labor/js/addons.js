@@ -10,9 +10,15 @@ const ADDONS=(()=>{
   const B=(g,w,h,d,rad,mat,p,r,sc)=>P(g,G.bx(w,h,d,rad),mat,p,r,sc),C=(g,rt,rb,h,mat,p,r,sc)=>P(g,G.cy(rt,rb,h),mat,p,r,sc),S=(g,r,mat,p,sc)=>P(g,G.s(r),mat,p,null,sc);
   const HK=()=>window.HOUSEKIT;const wallMat=(...a)=>HK().wallMat(...a),houseDoor=(...a)=>HK().houseDoor(...a),houseWin=(...a)=>HK().houseWin(...a),Wd=(...a)=>HK().Wd(...a),darker=(...a)=>HK().darker(...a);
   const DEFS=[
-    {id:'gewaechshaus',n:'Gewächshaus',price:8000,d:'Setzlinge aus allen Planeten werden hier zu Topfpflanzen.'},
-    {id:'labor',n:'Labor',price:10000,d:'Brau Tränke: schneller laufen, höher springen, funkeln, Pflanzen wachsen lassen.'},
-    {id:'sternwarte',n:'Sternwarte',price:14000,d:'Jede Nacht ein neues Sternbild entdecken.'}];
+    {id:'gewaechshaus',n:'Gewächshaus',price:1500,need:{ast:20,stein_klein:15,unkraut:6},d:'Setzlinge aus allen Planeten werden hier zu Topfpflanzen.'},
+    {id:'labor',n:'Labor',price:2500,need:{schraube:12,kabelrest:8,stein_klein:10,leuchtspore:3},d:'Brau Tränke: schneller laufen, höher springen, funkeln, Pflanzen wachsen lassen.'},
+    {id:'sternwarte',n:'Sternwarte',price:3500,need:{ast:15,stein_klein:25,eiskristall:3,feder:5},d:'Jede Nacht ein neues Sternbild entdecken.'}];
+  /* Baumaterial: in der Welt aufsammeln (Äste, Kiesel, Schrauben, Kristalle …) */
+  const have=id=>{const it=SAVE.bag.find(x=>x.kind==='item'&&x.id===id);return it?it.n:0};
+  const missing=D=>Object.entries(D.need||{}).filter(([id,n])=>have(id)<n).map(([id,n])=>(n-have(id))+'× '+itemName('item',id));
+  const needText=D=>Object.entries(D.need||{}).map(([id,n])=>Math.min(n,have(id))+'/'+n+' '+itemName('item',id)).join(' · ');
+  function build(D){const miss=missing(D);if(miss.length){SND.play('error');UI.toast('Dir fehlt noch: '+miss.join(', ')+'.',3600);return false}if(SAVE.money<D.price){SND.play('error');UI.toast('Dazu brauchst du noch '+fmt(D.price)+' Taler.');return false}
+    for(const[id,n]of Object.entries(D.need||{}))bagTake('item',id,n);money(-D.price);return true}
   const def=id=>DEFS.find(d=>d.id===id);
   const owned=()=>((SAVE.house&&SAVE.house.style&&SAVE.house.style.addons)||[]).filter(def);
   const night=()=>{const h=GAMETIME.hour();return h>=20||h<5};
@@ -195,5 +201,5 @@ const ADDONS=(()=>{
   INTERIOR.kinds.gewaechshaus={bg:'#E6F6E0',music:'home',build:buildGH,frame:frameGH};
   INTERIOR.kinds.labor={bg:'#2A3440',music:'museum',build:buildLab,frame:frameLab}}
   regPots();
-  return{DEFS,def,owned,attach,observe,starBook,CONST,RECIPES,regPots}
+  return{DEFS,def,owned,attach,build,needText,missing,observe,starBook,CONST,RECIPES,regPots}
 })();

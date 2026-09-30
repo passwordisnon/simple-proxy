@@ -95,6 +95,7 @@ const BIOMES={
   riffstrand:{n:'Riffstrand',g:['#FFE8B8','#F7DCA2'],cliff:'#E0B888',pat:'sand',grass:null,
     trees:[['kokospalme_klein',1]],treeD:.15,deco:[['koralle',2,{water:true}],['muschel_deko',2],['treibholz',1]],decoD:1.5,rocks:[['kiesel',2]],rockD:.5,litter:[['muschel',2],['sanddollar',.5],['seeglas',.5]]},
   /* --- Frost-Stern --- */
+  oedland:{n:'Ödland',g:['#C8B8A0','#B8A890'],cliff:'#9A8A78',pat:'sand',grass:'#B8A888',grassD:.04,trees:[['totholz',1]],treeD:.06,deco:[['wuestenstein',2],['duenengras',1]],decoD:.5,rocks:[['stein',1],['felsen',.4]],rockD:.5,litter:[['stein_klein',1]]},
   parkweg:{n:'Parkweg',g:['#EAD8B0','#DECB9E'],cliff:'#C8A878',pat:'sand',grass:null,grassD:0,trees:[],treeD:0,deco:[],decoD:0,rocks:[],rockD:0,litter:[]},
   schneefeld:{n:'Schneefeld',g:['#F6F9FF','#E8F0FF'],cliff:'#A9BCE0',pat:'schnee',grass:'#E4EEFF',grassD:.2,
     trees:[['schneetanne',1],['winterbirke',1],['schneebusch',2]],treeD:.35,deco:[['schneehaufen',2],['gefrorener_busch',1],['schneemann',.12]],decoD:1.5,
@@ -144,9 +145,17 @@ const PLANETS={
   wueste:{n:'Dünen-Planet',R:126,R0:42,sea:-.35,music:'shop',sky:['#9fd4ff','#ffe0b8'],fog:'#ffe8cc',water:'#5FD0D8',deep:'#3AA0C0',step:1.5,shop:'wueste',
     desc:'Dünen, Oasen, Canyons voller Kakteen.',weather:'sand',orbit:[82,5.2],size:.95,col:['#F7CB90','#5FD0D8']},
   pilz:{n:'Sporen-Mond',R:108,R0:36,sea:-.2,music:'home',sky:['#6e5aa8','#f4b8d8'],fog:'#b8a0d8',water:'#7FDCC8',deep:'#4A9AA0',step:.9,shop:'pilz',
-    desc:'Riesenpilze, Leuchtsporen, Moorwiesen.',weather:'sporen',orbit:[96,.6],size:.8,col:['#8070AC','#7FDCC8']}
+    desc:'Riesenpilze, Leuchtsporen, Moorwiesen.',weather:'sporen',orbit:[96,.6],size:.8,col:['#8070AC','#7FDCC8']},
+  /* Dein eigener kleiner Planet: startet als Ödland, wird per Terraforming gestaltet */
+  heim:{n:'Mein Planet',R:52,R0:52,sea:-.25,music:'home',sky:['#a8d8ff','#ffe6f0'],fog:'#d8ecff',water:'#62CCEA',deep:'#3E9BD1',step:1.0,shop:'kompost',
+    desc:'Dein eigener kleiner Planet. Forme Hügel, Teiche und Landschaften und lade Bewohner:innen ein.',weather:'blueten',orbit:[33,3.3],size:.55,col:['#C8B8A0','#62CCEA'],mine:true}
 };
 const PLACES={
+  heim:[
+    {id:'platz',n:'Landeplatz',lat:90,lon:0,r:.14,h:.9,build:'plaza'},
+    {id:'rakete',n:'Raketenstart',lat:77,lon:90,r:.07,h:.9,build:'rocket'},
+    {id:'haus',n:'Dein Haus',lat:76,lon:250,r:.1,h:.9,build:'house'},
+    {id:'tierpark',n:'Tierpark',lat:58,lon:170,r:.3,h:.9,build:'zoopark',park:true}],
   kompost:[
     {id:'platz',n:'Dorfplatz',lat:90,lon:0,r:.15,h:.9,build:'plaza'},
     
@@ -154,7 +163,6 @@ const PLACES={
     
     
     {id:'haus',n:'Dein Haus',lat:57,lon:300,r:.09,h:.9,build:'house'},
-    {id:'tierpark',n:'Tierpark',lat:61,lon:180,r:.5,h:.9,build:'zoopark',park:true},
     {id:'teich',n:'Teich',lat:48,lon:110,r:.09,pond:true},
     {id:'teich2',n:'Seerosen-Teich',lat:44,lon:250,r:.08,pond:true},
     {id:'see',n:'Waldsee',lat:20,lon:20,r:.12,pond:true}],
@@ -197,12 +205,12 @@ function parkLocal(p,c,F,R){const d=p.clone().addScaledVector(c,-c.dot(p));retur
 function parkSector(u,v){const a=(Math.atan2(v,u)+2*Math.PI)%(2*Math.PI);return Math.floor(a/(Math.PI/3))%6}
 function parkDir(c,F,R,u,v){return c.clone().addScaledVector(F.toV,u/R).addScaledVector(F.side,v/R).normalize()}
 const TOWN_RING=[['museum','museum'],['laden','shop'],['bar','bar'],['studio','studio'],['rathaus','rathaus'],['garage','garage'],['pflanzen','pflanzen'],['rakete','rocket'],['tiere','tiere'],['praxis','praxis'],['mode','mode'],['casino','casino']];
-function townPlaces(pid){const R=PLANETS[pid].R;const pl=PLACES[pid].find(p=>p.build==='plaza');const h=pl?pl.h:.8;const d=27,lat=90-d/R*180/PI;const off={kompost:0,schrott:20,korallen:40,frost:10,wueste:30,pilz:50}[pid]||0;
+function townPlaces(pid){if(PLANETS[pid]&&PLANETS[pid].mine)return[];const R=PLANETS[pid].R;const pl=PLACES[pid].find(p=>p.build==='plaza');const h=pl?pl.h:.8;const d=27,lat=90-d/R*180/PI;const off={kompost:0,schrott:20,korallen:40,frost:10,wueste:30,pilz:50}[pid]||0;
   return TOWN_RING.map(([id,build],i)=>({id,n:id,lat,lon:off+i*360/TOWN_RING.length,r:(build==="rocket"?3.6:6.2)/R,h,build}))}
 /* ================= Höhenfeld & Biome je Planet ================= */
 function makePlanetFns(pid,extra){const def=PLANETS[pid];const seed={kompost:1,schrott:2,korallen:3,frost:4,wueste:5,pilz:6}[pid];const N=perlin3(seed),N2=perlin3(seed+40),N3=perlin3(seed+80);
   /* Ortsgrössen sind als Winkel angegeben (für den alten Radius R0): Gebäude behalten ihre echte Grösse, Seen wachsen etwas mit */
-  const ks=(def.R0||def.R)/def.R;const places=PLACES[pid].map(pl=>Object.assign({dir:dirLL(pl.lat,pl.lon)},pl,{r:pl.r*(pl.build?ks:Math.min(1,ks*1.7))})).concat(townPlaces(pid).map(pl=>Object.assign({dir:dirLL(pl.lat,pl.lon)},pl))).concat(extra||[]);const R=def.R,sea=def.sea,step=def.step;
+  const ks=(def.R0||def.R)/def.R;const places=PLACES[pid].filter(pl=>!(pl.build==='house'&&!def.mine&&typeof SAVE!=='undefined'&&SAVE.myPlanet)).map(pl=>Object.assign({dir:dirLL(pl.lat,pl.lon)},pl,{r:pl.r*(pl.build?ks:Math.min(1,ks*1.7))})).concat(townPlaces(pid).map(pl=>Object.assign({dir:dirLL(pl.lat,pl.lon)},pl))).concat(extra||[]);const R=def.R,sea=def.sea,step=def.step;
   const fbm=(p,f,o)=>N(p.x*f+o,p.y*f,p.z*f)*.6+N(p.x*f*2.1,p.y*f*2.1+o,p.z*f*2.1)*.28+N(p.x*f*4.3,p.y*f*4.3,p.z*f*4.3+o)*.12;
   const park=places.find(p=>p.park);let parkF=null,parkRad=0;if(park){parkF=parkFrame(park.dir,places[0].dir);parkRad=park.r*R;
     for(let i=0;i<6;i++)if(PARK.pond[i]){const a=(i+.5)*Math.PI/3;places.push({id:'parkteich'+i,n:'Tierpark-Teich',dir:parkDir(park.dir,parkF,R,Math.cos(a)*parkRad*.66,Math.sin(a)*parkRad*.66),r:3.4/R,pond:true,parkPond:true})}}
@@ -220,8 +228,10 @@ function makePlanetFns(pid,extra){const def=PLANETS[pid];const seed={kompost:1,s
       case 'frost':{h=fbm(q,1.2,5)*2.2+.9;const ridge=1-Math.abs(N2(q.x*2.2,q.y*2.2,q.z*2.2));h+=Math.pow(ridge,6)*2.4-.4;break}
       case 'wueste':{h=fbm(q,1.1,9)*1.6+.9;/* Dünen: Wellen quer zum Wind */const w=Math.sin((p.x*.8+p.z*.6)*R*.55+N2(q.x*2,q.y*2,q.z*2)*4)*.35;h+=w*sstep(.2,-.2,N3(q.x*1.5,q.y*1.5,q.z*1.5));
         /* Tafelberge */const mesa=N3(q.x*2.4,q.y*2.4,q.z*2.4);if(mesa>.28)h+=2.6*sstep(.28,.34,mesa);break}
-      case 'pilz':{h=fbm(q,1.6,4)*2+.7;break}}
+      case 'pilz':{h=fbm(q,1.6,4)*2+.7;break}
+      case 'heim':{h=fbm(q,1.4,6)*1.3+.7;break}}
     /* ---- Grossform: Kontinente, Ozeane mit Inseln, Gebirge (das Dorf am Nordpol bleibt geschützt) ---- */
+    if(def.mine)return h;
     const a=Math.acos(Math.max(-1,Math.min(1,p.y)));const V=sstep(vilR*1.9,vilR,a);
     const cont=N3(p.x*1.4+11,p.y*1.4,p.z*1.4)*.75+N(p.x*3.1,p.y*3.1+5,p.z*3.1)*.25;
     const oc=sstep(MAC.oc+.05,MAC.oc-.1,cont)*(1-V);
@@ -231,7 +241,11 @@ function makePlanetFns(pid,extra){const def=PLANETS[pid];const seed={kompost:1,s
     /* Dorfgebiet: keine trockenen Mulden zwischen den Häusern */if(V>0)h+=V*Math.max(0,sea+.95-h);
     return h}
   const terr=pid!=='frost'&&pid!=='wueste'?1:pid==='wueste'?.5:.35;
-  function hAt(p){let h=raw(p);/* Terrassen im Tierdorf-Stil: flache Stufen, steile Kanten */
+  function hAt(p){let h=raw(p);
+    /* Terraforming (eigener Planet): Hügel und Senken aus dem Spielstand; Bauplätze bleiben flach, danach Terrassen wie überall */
+    if(def.mine&&typeof SAVE!=='undefined'&&SAVE.myPlanet&&SAVE.myPlanet.edits.length){let keep=0;for(const pl of places){if(pl.pond||pl.park)continue;const d=angle(p,pl.dir);if(d<pl.r*1.6)keep=Math.max(keep,sstep(pl.r*1.6,pl.r*1.05,d))}
+      if(keep<1)for(const e of SAVE.myPlanet.edits){const d=Math.acos(Math.max(-1,Math.min(1,p.x*e.d[0]+p.y*e.d[1]+p.z*e.d[2])))*R/e.r;if(d<2.2)h+=e.dh*Math.exp(-d*d*1.6)*(1-keep)}}
+    /* Terrassen im Tierdorf-Stil: flache Stufen, steile Kanten */
     if(h>sea+.25){const k=(h-sea)/step;const f=k-Math.floor(k);const t=(Math.floor(k)+sstep(.4,.6,f))*step+sea;h=h*(1-terr)+t*terr}
     for(const pl of places){const d=angle(p,pl.dir);if(pl.pond){if(d<pl.r*1.35){const t=sstep(pl.r*1.35,pl.r*.5,d);h=h*(1-t)+(sea-1.1)*t}}
       else if(d<pl.r*1.6){const t=sstep(pl.r*1.6,pl.r*1.05,d);h=h*(1-t)+(pl.h??.8)*t}}
@@ -243,6 +257,8 @@ function makePlanetFns(pid,extra){const def=PLANETS[pid];const seed={kompost:1,s
   const PEAK={kompost:'schneefeld',schrott:'kristallfeld',korallen:'felsinsel',frost:'polarhuegel',wueste:'canyon',pilz:'moorwiese'};
   function biomeAt(p,h){if(h===undefined)h=hAt(p);
     if(park){const d=angle(p,park.dir);if(d<park.r*1.04){const[u,v]=parkLocal(p,park.dir,parkF,R);if(d<park.r*.2||(u>0&&Math.abs(v)<1.6))return'parkweg';return PARK.biome[parkSector(u,v)]}}
+    if(def.mine){const S=(typeof SAVE!=='undefined'&&SAVE.myPlanet&&SAVE.myPlanet.paint)||[];let b=null;for(const s of S){const d=Math.acos(Math.max(-1,Math.min(1,p.x*s.d[0]+p.y*s.d[1]+p.z*s.d[2])))*R;if(d<s.r+N(p.x*9,p.y*9,p.z*9)*1.4)b=s.b}
+      if(h<sea+.45&&b!=='duenen')return b&&BIOMES[b]&&b!=='oedland'?(b==='schneefeld'?'eisufer':'strand'):'oedland';return b&&BIOMES[b]?b:'oedland'}
     /* Klimazonen: grosses Klimafeld (kalt / heiss) und Feuchte (Dschungel); das Dorf bleibt gemässigt */
     {const ang=Math.acos(Math.max(-1,Math.min(1,p.y)));if(ang>vilR*2.1&&h>sea+.25){const Cl=N(p.x*.9+21,p.y*.9-7,p.z*.9+3)*.8+N2(p.x*2.2+4,p.y*2.2,p.z*2.2)*.2;const Wt=N3(p.x*1.6-9,p.y*1.6+2,p.z*1.6);const Z=CLIMATE[pid];
       if(Z){if(Cl<-.24&&Z.cold)return Z.cold;if(Cl>.26&&Z.hot)return Z.hot;if(Wt>.22&&Z.wet&&h<sea+5)return Z.wet}}}if(h>sea+6.5&&PEAK[pid]&&BIOMES[PEAK[pid]])return PEAK[pid];const T=N2(p.x*1.1+5,p.y*1.1,p.z*1.1),M=N3(p.x*1.25,p.y*1.25+3,p.z*1.25);const nearPond=places.some(pl=>pl.pond&&angle(p,pl.dir)<pl.r*2.2);const low=h<sea+.55;

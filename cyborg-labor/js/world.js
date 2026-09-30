@@ -95,7 +95,7 @@ const GAME=(()=>{
       /* grosse Planeten: Wolken ziehen mit dem Spieler mit (weit entfernte tauchen vorn wieder auf) */if(c.p.dot(me?me.p:c.p)<lim){c.p.copy(randAround(Math.random,110,me.p));c.sp=.03+Math.random()*.03}c.g.position.copy(c.p).multiplyScalar(G_.R+(c.h||9));c.g.quaternion.setFromUnitVectors(UPV,c.p)}}
 
   /* ---------- Natur verstreuen: Biome, ohne Überschneidungen ---------- */
-  function makeNature(type,opt,seed){const n=NATURE[type];const g=new THREE.Group();QF=HIGH?.7:.5;try{if(n)n.b(g,M,Object.assign({planet:G_.id},opt||{}),srand(seed||1));else P(g,G.s(.3),M.c('#7CC46A'),[0,.3,0])}catch(e){console.warn('Natur',type,e)}QF=1;addOutlines(g);if(!g.userData.tick)mergeGroup(g,g.userData.fruits);return g}
+  function makeNature(type,opt,seed){const n=NATURE[type];const g=new THREE.Group();QF=HIGH?.7:.5;try{if(n)n.b(g,M,Object.assign({planet:G_.def&&G_.def.mine?'kompost':G_.id},opt||{}),srand(seed||1));else P(g,G.s(.3),M.c('#7CC46A'),[0,.3,0])}catch(e){console.warn('Natur',type,e)}QF=1;addOutlines(g);if(!g.userData.tick)mergeGroup(g,g.userData.fruits);return g}
   function addObst(p,r,ref){return SCATTER.obstAdd(p.clone().normalize().multiplyScalar(G_.R+(G_.hExact||G_.hAt)(p)),r,ref)}
   function obstAround(p,rad){return SCATTER.obstNear(p.clone().multiplyScalar(G_.R+G_.hAt(p)),rad||3)}
   function flatAt(p,rad){const hf=G_.hExact||G_.hAt;const h=hf(p);const t1=tangentTo(p,new V3(1,0,0)),t2=new V3().crossVectors(p,t1);const a=rad/G_.R;let m=0;
@@ -429,7 +429,7 @@ const GAME=(()=>{
   function travelMenu(){if(REPAIR.broken()){REPAIR.repairAt();return}const w=UI.win('Raketenstation',{size:'narrow'});
     w.body.append(el('p',null,'Steig ein und flieg selbst durchs Sonnensystem – oder nimm den Autopiloten. Achtung: Auf neuen Planeten gibt es oft eine Bruchlandung!'));
     w.foot.append(btn('Selbst fliegen','primary',()=>{w.close();travel('__space')}),btn('Rakete anpassen',null,()=>{w.close();ROCKET.customize()}));
-    w.body.append(el('h3',null,'Autopilot'));const gr=el('div','grid');for(const[id,p]of Object.entries(PLANETS)){const c=el('button','card'+(id===G_.id?' sel':''));c.type='button';const sw=el('div','ph');sw.style.background=`radial-gradient(circle at 40% 35%,#fff8 0 12%,transparent 13%),radial-gradient(circle,${p.col[0]} 0 45%,${p.col[1]} 46%)`;c.append(sw,el('span',null,p.n),el('span','sub',p.desc+((SAVE.visited||{})[id]?'':' · noch nie besucht')));
+    w.body.append(el('h3',null,'Autopilot'));const gr=el('div','grid');for(const[id,p]of Object.entries(PLANETS)){if(p.mine&&!SAVE.myPlanet)continue;const c=el('button','card'+(id===G_.id?' sel':''));c.type='button';const sw=el('div','ph');sw.style.background=`radial-gradient(circle at 40% 35%,#fff8 0 12%,transparent 13%),radial-gradient(circle,${p.col[0]} 0 45%,${p.col[1]} 46%)`;c.append(sw,el('span',null,p.n),el('span','sub',p.desc+((SAVE.visited||{})[id]?'':' · noch nie besucht')));
       c.onclick=()=>{w.close();if(id!==G_.id)travel(id);else UI.toast('Du bist schon hier.')};gr.append(c)}w.body.append(gr)}
   function boardMenu(){const w=UI.win('Anschlagbrett',{size:'narrow'});const n=allCreatures().length;
     w.body.append(el('p',null,`Auf dem Kompost-Planeten wohnen ${n} Cyborgs${showExamples?` (davon ${EXAMPLES.length} Beispiele)`:''}.`));

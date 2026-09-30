@@ -129,7 +129,7 @@ const SPACE=(()=>{
     camLight=new THREE.DirectionalLight('#D8D0FF',.35);sc.add(camLight,camLight.target);
     fx={sky:SPACEFX.sky(),stars:SPACEFX.stars(3200)};sc.add(fx.sky,fx.stars);
     sun=SPACEFX.sun();sc.add(sun);
-    planets=[];moons=[];let si=1;for(const[pid,d]of Object.entries(PLANETS)){const[dist,ph]=d.orbit;const r=2.4+d.size*2.6;const g=SPACEFX.planet(pid,r,si*3.7);si++;
+    planets=[];moons=[];let si=1;for(const[pid,d]of Object.entries(PLANETS)){if(d.mine&&!SAVE.myPlanet)continue;const[dist,ph]=d.orbit;const r=2.4+d.size*2.6;const g=SPACEFX.planet(pid,r,si*3.7);si++;
       g.userData.body.rotation.z=.2;let ring=null;if(['schrott','pilz','wueste'].includes(pid)){ring=SPACEFX.ring(pid,r);g.add(ring)}
       const lbl=el('div','lbl planetlbl');lbl.textContent=d.n;$('labels').append(lbl);lbl.style.display='none';
       sc.add(SPACEFX.orbit(dist,SPACEFX.pal(pid).atmo));sc.add(g);

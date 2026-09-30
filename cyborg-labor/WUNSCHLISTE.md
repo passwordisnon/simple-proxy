@@ -43,7 +43,7 @@ Status: ✔ erledigt · ◐ teilweise · ☐ offen. Wird bei jedem Schritt aktua
 - ✔ Praxis Dr. Bolzen (echte Klinik), Labor nur über den Doktor
 - ✔ Boutique mit Monsieur Boulon (niedlicher französischer Roboter)
 - ✔ Lampen als Lichtquellen, dunkle gemütliche Räume
-- ✔ Viel mehr Hausgegenstände (~250 Möbel) + Anbauten: Sternwarte (Sternbilder), Gewächshaus (Topfpflanzen aus allen Planeten), Labor (Tränke)
+- ✔ Viel mehr Hausgegenstände (~250 Möbel) + Anbauten auf dem eigenen Planeten, gebaut aus gesammeltem Material: Sternwarte (Sternbilder), Gewächshaus (Topfpflanzen aus allen Planeten), Labor (Tränke)
 
 ## Rakete & Weltall
 - ✔ Einsteigen, steuerbare Rakete, 3D-Sonnensystem, schöne Weltall-Grafik
@@ -55,10 +55,10 @@ Status: ✔ erledigt · ◐ teilweise · ☐ offen. Wird bei jedem Schritt aktua
 - ✔ Einstieg beim Doktor (Operation, Name), Tutorial eingebaut, Erinnerungs-Splitter
 - ✔ Cy-Phone im GTA-Stil, Beamer-Übersicht mit Ausgang
 - ✔ Geld schwerer zu verdienen (Marktsättigung)
-- ☐ Eigener Planet früh in der Story (Haus, Animal-Crossing-Spiel, KI einladen, Freunde besuchen)
+- ◐ Eigener Planet früh in der Story: Geschenk der Bürgermeisterin, eigener Name, dein Haus zieht dorthin, Anbauten nur dort, Tierpark dort, Bewohner:innen einladen (mit Haus); Freunde-Besuch offen
 - ◐ Jobs (Handy-App: Jazz-Bar, Gärtnerei, Lager, Post mit Rängen und Lohn); Wirtschaft mit Marktsättigung; weitere Missionen offen
 - ✔ Casino: Glücks-Salon in jedem Dorf mit Madame Jeton (Automat, Glücksrad, Höher oder Tiefer, Tageslimit)
 - ✔ Tierpark draussen (offene Wiese neben dem Dorf, 6 Biom-Zonen je Planet mit Teichen, Tiere streifen frei umher und lassen sich streicheln) + Aquarium-Pavillon mit allen Fischen und Insekten, 133 Arten, Meilenstein-Belohnungen
 - ◐ Fossilien finden (Relikte beim Graben)
-- ☐ Terraforming
+- ✔ Terraforming (Terraform-App: Hügel, Berg, Teich, Glätten, Landschaften besuchter Planeten malen; Terrassen-Stil)
 - ✔ Hausbau-Werkzeug

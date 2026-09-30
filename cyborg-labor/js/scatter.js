@@ -37,7 +37,7 @@ const SCATTER=(()=>{
     for(let x=cx-rr;x<=cx+rr;x++)for(let y=cy-rr;y<=cy+rr;y++)for(let z=cz-rr;z<=cz+rr;z++){const a=obst.get(x+','+y+','+z);if(a)for(const o of a)out.push(o)}return out}
   /* ---------- Prototypen ---------- */
   function proto(type,opt,variant){const k=type+'|'+variant+'|'+(opt?JSON.stringify(opt):'');if(protos.has(k))return protos.get(k);
-    const n=NATURE[type];const g=new THREE.Group();const small=n&&(n.size==='tiny'||n.size==='small'||(n.r||.15)<.35);QF=small?(HIGH?.3:.22):(HIGH?.5:.36);try{if(n)n.b(g,M,Object.assign({planet:GAME.G.id},opt||{}),srand(variant*131+7));else P(g,G.s(.3),M.c('#7CC46A'),[0,.3,0])}catch(e){console.warn('Natur',type,e)}QF=1;
+    const n=NATURE[type];const g=new THREE.Group();const small=n&&(n.size==='tiny'||n.size==='small'||(n.r||.15)<.35);QF=small?(HIGH?.3:.22):(HIGH?.5:.36);try{if(n)n.b(g,M,Object.assign({planet:GAME.G.def&&GAME.G.def.mine?'kompost':GAME.G.id},opt||{}),srand(variant*131+7));else P(g,G.s(.3),M.c('#7CC46A'),[0,.3,0])}catch(e){console.warn('Natur',type,e)}QF=1;
     addOutlines(g);g.updateMatrixWorld(true);const fruitSet=new Set();(g.userData.fruits||[]).forEach(f=>f.traverse(o=>fruitSet.add(o)));const blinkSet=new Set();(g.userData.blink||[]).forEach(f=>blinkSet.add(f));
     /* Einfarbige Toon-Materialien werden als Vertex-Farben eingebacken: ein Material je Pflanze statt zehn → viel weniger Draw-Calls */
     const buckets=new Map();const colGeo=paintGeo;
