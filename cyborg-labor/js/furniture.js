@@ -1004,15 +1004,52 @@ function buildSignpost(m,text){const g=new THREE.Group();const lines=String(text
     const sh=shp([[-.08*dir,-h/2],[w*dir-.18*dir,-h/2],[w*dir,0],[w*dir-.18*dir,h/2],[-.08*dir,h/2]]);P(a,G.puff(sh,.06,.02),Wd(m,PAL.oak),[0,0,.02]);
     decal(a,m,signTex('sp'+t,t,{bg:cols[i%3][0],fg:cols[i%3][1],border:false,w:384,h:96}),'sp'+t,.98,.24,[dir*.52,0,.075])});
   return finish(g,[0,0,.8],.3,'sign')}
-function buildFountain(m){const g=new THREE.Group();const ticks=[];const st=m.c(PAL.stone),st2=m.c('#CFC8DA');
+/* Brunnen-Wasser: Wellenringe von den Einschlagstellen, Tiefe zur Mitte, Glitzer, Schaumrand (unbeleuchtet, eigene Uhr) */
+const FOUNT={U:{uT:{value:0}},
+  water(R,hits){return new THREE.ShaderMaterial({uniforms:{uT:FOUNT.U.uT,uR:{value:R},uHit:{value:hits}},transparent:true,depthWrite:false,
+    vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+    fragmentShader:`uniform float uT;uniform float uR;uniform float uHit;varying vec2 vUv;
+      float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+      float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}
+      void main(){vec2 q=(vUv-.5)*2.;float r=length(q);if(r>1.)discard;float d=r*uR;
+        vec3 deep=vec3(.16,.52,.72),shal=vec3(.42,.84,.92);vec3 c=mix(deep,shal,smoothstep(.1,1.,r));
+        float ring=sin((abs(d-uHit)*9.-uT*5.))*.5+.5;ring*=exp(-abs(d-uHit)*2.2);c+=vec3(.9,1.,1.)*pow(ring,3.)*.35;
+        float ca=n(q*uR*3.+vec2(uT*.4,uT*.3))*n(q*uR*4.-vec2(uT*.3,-uT*.2));c+=vec3(.7,.95,1.)*smoothstep(.28,.5,ca)*.25;
+        float foam=smoothstep(.1,.0,abs(d-uHit))*(.6+.4*n(q*uR*12.+uT*2.));c=mix(c,vec3(1.),foam*.7);
+        float sp=step(.985,h(floor(q*uR*18.)+floor(uT*3.)))*.8;c+=sp;
+        c=mix(c,vec3(1.),smoothstep(.93,1.,r)*.5);gl_FragColor=vec4(c,.92);}`})},
+  jet(){return new THREE.ShaderMaterial({uniforms:{uT:FOUNT.U.uT},transparent:true,depthWrite:false,
+    vertexShader:'varying vec2 vUv;varying vec3 vN;varying vec3 vV;void main(){vUv=uv;vec4 mv=modelViewMatrix*vec4(position,1.);vN=normalize(normalMatrix*normal);vV=normalize(-mv.xyz);gl_Position=projectionMatrix*mv;}',
+    fragmentShader:`uniform float uT;varying vec2 vUv;varying vec3 vN;varying vec3 vV;void main(){float fr=1.-abs(dot(vN,vV));
+      float st=smoothstep(.55,1.,sin(vUv.x*38.-uT*14.+vUv.y*6.2832)*.5+.5);vec3 c=mix(vec3(.62,.9,1.),vec3(1.),st*.7+fr*.5);
+      float a=(.35+fr*.5+st*.25)*smoothstep(1.,.86,vUv.x);gl_FragColor=vec4(c,a);}`})}};
+function stoneTex(){return ctex('ashlar',256,128,(x,w,h)=>{x.fillStyle='#8E87A0';x.fillRect(0,0,w,h);const r=srand(3);const rows=4,bh=h/rows;
+  for(let j=0;j<rows;j++){let px=-(j%2)*18;while(px<w){const bw=34+r()*26;const t=.84+r()*.12;const cc=Math.round(200*t),cb=Math.round(214*t);x.fillStyle=`rgb(${cc},${Math.round(cc*.97)},${cb})`;
+    x.beginPath();x.roundRect?x.roundRect(px+2,j*bh+2,bw-4,bh-4,5):x.rect(px+2,j*bh+2,bw-4,bh-4);x.fill();
+    const g=x.createLinearGradient(0,j*bh,0,j*bh+bh);g.addColorStop(0,'rgba(255,255,255,.22)');g.addColorStop(.3,'rgba(255,255,255,0)');g.addColorStop(1,'rgba(60,40,90,.18)');x.fillStyle=g;x.fillRect(px+2,j*bh+2,bw-4,bh-4);
+    for(let k=0;k<5;k++){x.fillStyle='rgba(80,60,110,.15)';x.beginPath();x.arc(px+r()*bw,j*bh+r()*bh,1+r()*2,0,TAU);x.fill()}
+    if(r()<.3){x.fillStyle='rgba(120,170,90,.35)';x.beginPath();x.ellipse(px+bw*r(),j*bh+bh-4,8+r()*8,3,0,0,TAU);x.fill()}px+=bw}}})}
+function buildFountain(m){const g=new THREE.Group();const ticks=[];const tx=stoneTex().clone();tx.needsUpdate=true;tx.wrapS=tx.wrapT=THREE.RepeatWrapping;tx.repeat.set(10,3.2);
+  const st=cozy({map:tx,color:'#ffffff',rim:.12}),st2=m.c('#D8D0E4');
   P(g,G.la([[0,0],[1.45,0],[1.5,.06],[1.5,.5],[1.35,.55],[1.28,.5],[1.28,.18],[0,.18]]),st,[0,0,0]);P(g,G.to(1.4,.09),st2,[0,.52,0],[PI/2,0,0]);
-  const wa=m.c(PAL.aqua,{gloss:1});C(g,1.29,1.29,.06,wa,[0,.4,0]);C(g,.2,.28,1.1,st,[0,.9,0]);P(g,G.la([[0,0],[.1,0],[.55,.12],[.6,.26],[.52,.3],[0,.2]]),st2,[0,1.4,0]);C(g,.48,.48,.03,wa,[0,1.66,0]);
-  C(g,.08,.12,.4,st,[0,1.8,0]);const fish=grp(g,[0,2.05,0]);S(fish,.18,m.gloss(PAL.coral),[0,0,0],[1,1.1,.9]);P(fish,G.puff(sshp([[0,0],[-.12,.16],[.12,.16]]),.04),m.gloss(PAL.coral),[0,-.22,0],[PI,0,0]);face(fish,m,[0,.03,.16],.3,{mouth:false});P(fish,G.to(.04,.015),m.c(PAL.ink),[0,-.06,.16]);
-  const sp=m.c('#CFF4FF',{opacity:.7});const jets=[];for(let i=0;i<4;i++){const a=i/4*TAU+PI/4;const j=P(g,G.tu([[Math.cos(a)*.12,2.0,Math.sin(a)*.12],[Math.cos(a)*.4,2.1,Math.sin(a)*.4],[Math.cos(a)*.52,1.72,Math.sin(a)*.52]],.03,.035,16),sp);jets.push(j)}
-  for(let i=0;i<6;i++){const a=i/6*TAU;const j=P(g,G.tu([[Math.cos(a)*.6,1.62,Math.sin(a)*.6],[Math.cos(a)*.75,1.3,Math.sin(a)*.75],[Math.cos(a)*.85,.45,Math.sin(a)*.85]],.025,.04,16),sp)}
-  const drops=range(6,(t,i)=>{const d=S(g,.05,m.c(PAL.white),[0,0,0]);return d});ticks.push(t=>drops.forEach((d,i)=>{const f=(t*.7+i/6)%1,a=i/6*TAU+.5;d.position.set(Math.cos(a)*(.7+f*.2),1.6-f*1.15,Math.sin(a)*(.7+f*.2));d.scale.setScalar(1-f*.5)}));
+  const surf=(r,y,hit)=>{const w=new THREE.Mesh(new THREE.CircleGeometry(r,48),FOUNT.water(r,hit));w.rotation.x=-PI/2;w.position.y=y;w.userData.noOutline=true;w.userData.noMerge=true;w.renderOrder=2;g.add(w);return w};
+  surf(1.29,.42,.85);C(g,.2,.28,1.1,st2,[0,.9,0]);P(g,G.la([[0,0],[.1,0],[.55,.12],[.6,.26],[.52,.3],[0,.2]]),st2,[0,1.4,0]);surf(.5,1.67,.12);
+  C(g,.08,.12,.4,st2,[0,1.8,0]);const fish=grp(g,[0,2.05,0]);S(fish,.18,m.gloss(PAL.coral),[0,0,0],[1,1.1,.9]);P(fish,G.puff(sshp([[0,0],[-.12,.16],[.12,.16]]),.04),m.gloss(PAL.coral),[0,-.22,0],[PI,0,0]);face(fish,m,[0,.03,.16],.3,{mouth:false});P(fish,G.to(.04,.015),m.c(PAL.ink),[0,-.06,.16]);
+  const jm=FOUNT.jet();const jet=pts=>{const j=P(g,G.tu(pts,.03,.035,16),jm);j.userData.noOutline=true;j.userData.noMerge=true;j.castShadow=false;return j};
+  for(let i=0;i<4;i++){const a=i/4*TAU+PI/4;jet([[Math.cos(a)*.12,2.0,Math.sin(a)*.12],[Math.cos(a)*.4,2.12,Math.sin(a)*.4],[Math.cos(a)*.5,1.7,Math.sin(a)*.5]])}
+  const outer=[];for(let i=0;i<6;i++){const a=i/6*TAU;jet([[Math.cos(a)*.6,1.62,Math.sin(a)*.6],[Math.cos(a)*.75,1.3,Math.sin(a)*.75],[Math.cos(a)*.85,.45,Math.sin(a)*.85]]);outer.push(a)}
+  /* Spritzer: Tröpfchen auf Wurfbahnen + Aufprallringe */
+  const N=72,pos=new Float32Array(N*3),seeds=[];for(let i=0;i<N;i++)seeds.push([Math.random(),Math.random(),Math.random()]);const pg=new THREE.BufferGeometry();pg.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  const dotT=ctex('fdrop',32,32,(x,w,h)=>{const gr=x.createRadialGradient(w/2,h/2,0,w/2,h/2,w/2);gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.5,'rgba(220,245,255,.7)');gr.addColorStop(1,'rgba(220,245,255,0)');x.fillStyle=gr;x.fillRect(0,0,w,h)});
+  const drops=new THREE.Points(pg,new THREE.PointsMaterial({map:dotT,size:.07,transparent:true,depthWrite:false,color:'#F2FCFF'}));drops.frustumCulled=false;drops.userData.noOutline=true;drops.userData.noMerge=true;g.add(drops);
+  const ringM=new THREE.MeshBasicMaterial({color:'#FFFFFF',transparent:true,opacity:.6,depthWrite:false});const rings=range(6,(t,i)=>{const r=new THREE.Mesh(new THREE.RingGeometry(.06,.1,20),ringM.clone());r.rotation.x=-PI/2;r.userData.noOutline=true;r.userData.noMerge=true;g.add(r);return r});
+  ticks.push(t=>{FOUNT.U.uT.value=t;for(let i=0;i<N;i++){const[a0,b0,c0]=seeds[i];const top=i<24;const f=(t*(top?.9:1.2)+a0)%1;let x,y,z;
+      if(top){const a=b0*TAU;const v=.5+c0*.4;x=Math.cos(a)*(.15+f*.45*v);z=Math.sin(a)*(.15+f*.45*v);y=2.05+f*.35-f*f*.75}
+      else{const a=outer[i%6]+(b0-.5)*.25;const r=.85+f*(.12+c0*.2);x=Math.cos(a)*r;z=Math.sin(a)*r;y=.44+f*(.28+c0*.2)-f*f*(.5+c0*.2)}
+      pos[i*3]=x;pos[i*3+1]=Math.max(.42,y);pos[i*3+2]=z}pg.attributes.position.needsUpdate=true;
+    rings.forEach((r,i)=>{const f=(t*.8+i*.37)%1,a=outer[i];r.position.set(Math.cos(a)*.86,.43,Math.sin(a)*.86);r.scale.setScalar(1+f*3.2);r.material.opacity=.55*(1-f)})});
   for(let i=0;i<5;i++){const a=i/5*TAU+.3;P(g,G.puff(flowerShape(.07,5),.02),m.c([PAL.pink,PAL.white,PAL.lemon][i%3]),[Math.cos(a)*1.0,.44,Math.sin(a)*1.0],[-PI/2,0,0]);P(g,G.circ(.14),m.c(PAL.leaf),[Math.cos(a)*1.0+.05,.435,Math.sin(a)*1.0],[-PI/2,0,0])}
-  return finish(g,[0,0,2.0],1.55,'fountain',ticks)}
+  const out=finish(g,[0,0,2.0],1.55,'fountain',ticks);out.traverse(o=>{if(o.userData.noMerge)o.castShadow=false});return out}
 function buildBridge(m,len){len=Math.max(2,+len||4);const g=new THREE.Group();const wd=Wd(m,PAL.oak),dk=Wd(m,PAL.wood),Wb=1.6,hh=Math.min(.7,len*.12);const deck=x=>{const t=x/len+.5;return .12+hh*Math.sin(Math.max(0,Math.min(1,t))*PI)};
   const n=Math.round(len/.28),parts=[];for(let i=0;i<n;i++){const x=-len/2+(i+.5)*len/n;const y=deck(x);const s=(deck(x+.01)-deck(x-.01))/.02;parts.push([G.bx(len/n-.03,.08,Wb,.03),[x,y,0],[0,0,Math.atan(s)]])}mergeInto(g,wd,parts);
   both(z=>{const beam=range(14,(t)=>{const x=-len/2+t*len;return[x,deck(x)-.08,z*(Wb/2-.1)]});P(g,G.tu(beam,.07,.07,40),dk);
