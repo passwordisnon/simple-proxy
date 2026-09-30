@@ -9,6 +9,17 @@ Status: ✔ erledigt · ◐ teilweise · ☐ offen. Wird bei jedem Schritt aktua
 - ✔ Boden hochauflösend, Steine, Äste, Natur überall
 - ✔ Flackern bei hoher Grafik behoben
 
+## AAA-Cozy-Look (höchste Priorität)
+- ✔ Alles bisher gilt als nicht gut genug: Look auf kommerzielles Niveau heben, Kits/Repos recherchieren, alles ersetzen, was im Weg steht
+- ✔ Recherche: folio-2025 (Bruno Simon), Codrops-Gras, ACNH-UI, Outline-Techniken, Audio-Busse (docs/LOOK-RESEARCH.md)
+- ✔ Bildpipeline: farbige Umgebungsverdeckung, Tuschelinien, Dunst, Farbgebung, Miniatur-Unschärfe, Vignette, Bloom
+- ✔ Dichter Grasteppich (Wind, Spieler drückt Gras beiseite), Blätterkronen aus Blatt-Karten, Kopfsteinpflaster, schmale Wege
+- ✔ Oberfläche: Feder-Physik für alle Übergänge, Verläufe, Tiefe, Streifen-Kopfzeilen, Silhouetten statt „???"
+- ✔ Insekten-KI: umherstreifen, aufmerksam, aufgeschreckt, eingegraben; Schleichen hilft
+- ✔ Fangbuch: unveränderliche Einträge je Fang (Ort, Wetter, Zeit, Grösse, Bauart), Rekorde
+- ✔ Audio: getrennte Busse für Musik, Welt/Werkzeug, Stimmen, Umgebung, Menü
+- ☐ Weiter: Wasser (Schaum, Tiefe), Figuren-Qualität, Gebäude-Detail, Himmel, Tag/Nacht-Farbstimmungen, alle Innenräume
+
 ## Figuren
 - ✔ Alle Körperteile im Cozy-Stil, Rümpfe neu (Tierfiguren-Look), nur noch eine Rumpfform (keine 2–3 Segmente)
 - ✔ Teile umfärben (Kopf, Augen, Arme, Beine, Extras)
@@ -48,8 +59,15 @@ Status: ✔ erledigt · ◐ teilweise · ☐ offen. Wird bei jedem Schritt aktua
 ## Rakete & Weltall
 - ✔ Einsteigen, steuerbare Rakete, 3D-Sonnensystem, schöne Weltall-Grafik
 - ✔ Rakete anpassbar, Absturz nach Landung, Teile suchen (Kompass folgt der Kamera)
-- ☐ 30+ einzigartige Planeten mit Monden und Raumstationen
-- ☐ Mondstationen, Raketen-Rennen
+- ✔ Raketen-Schutzmodul: Geschenk der Bürgermeisterin nach dem ersten Auftrag auf Kompost (keine Abstürze mehr)
+- ✔ Raumstationen im All (Nova, Aurora, Komet) mit Rennen: Tor-Ringe, Boost-Felder, 2 Runden, KI-Raketen, Mehrspieler über den Rennraum der Station, Preisgeld und Bestzeiten
+- ✔ Planeten-Grundgerüst: jeder neue Planet ist an alle Systeme angeschlossen (Dorf, Bewohner:innen, Sprache, Wetter, Kleidung, Höhlen, Tierpark-Sektor, Lexikon, Karte, Weltraum, Museum)
+- ◐ 30 Planeten: die 6 Start-Planeten + 3 gewünschte + 21 einzigartige
+  - ✔ Urzeit-Tal: Vulkane, Farnwälder, Bernsteinstrände, 6 Dinos (Quaternius), Dino-Eier schlüpfen zu Begleitern, nächtlicher Zeitriss mit Meteoritenschauer und Fossilien
+  - ☐ Dschungel: Lianen schwingen, Tempel-Schieberätsel, Dschungel wächst über Nacht nach (Bausätze bereit: Quaternius Nature + Ruinen)
+  - ☐ Metro (New-Donk-City-Stil): Taxis, Jazz-Festival, Fassaden klettern (Bausätze bereit: Kenney City + Car Kit)
+  - ☐ 21 weitere: Riesengarten, Wolkenarchipel, Bibliotheks-Planet, Uhrwerk-Mond, Klang-Planet, Origami-Planet, Laternen-Planet, Traum-Planet, Solarpunk-Stadt, Wetterwerk-Planet, Schnecken-Planet, Nest-Planet, Tee-Planet, Leuchtquallen-Tiefsee, Magnet-Planet, Würfel-Planet, Irrlicht-Moor, Vulkan-Schmiede, Honig-Waben-Planet, Spiegel-Planet, Wander-Karawane
+- ☐ Monde als besuchbare Orte
 
 ## Story & Spielinhalt
 - ✔ Einstieg beim Doktor (Operation, Name), Tutorial eingebaut, Erinnerungs-Splitter
