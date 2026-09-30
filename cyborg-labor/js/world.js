@@ -51,7 +51,7 @@ const GAME=(()=>{
   const surfR=(p,water)=>{const h=G_.hAt(p);return G_.R+(water&&h<G_.sea?G_.sea:h)};
   const onSurf=(p,off,water)=>p.clone().multiplyScalar(surfR(p,water)+(off||0));
   const isLand=p=>G_.hAt(p)>G_.sea+.05;
-  function placeObj(o,p,yaw,off){o.position.copy(onSurf(p,off||0));o.quaternion.setFromUnitVectors(UPV,p);if(yaw)o.rotateY(yaw)}
+  function placeObj(o,p,yaw,off){o.position.copy(onSurf(p,off||0));o.quaternion.setFromUnitVectors(UPV,p);if(yaw)o.rotateY(yaw);/* Planeten-Objekte ohne Eltern gehören in die aktuelle Planetenszene */if(!o.userData._placed){o.userData._placed=1;if(!o.parent&&G_.scene)G_.scene.add(o)}}
   function faceTo(o,p,dirWorld){o.up.copy(p);o.lookAt(o.position.clone().add(dirWorld))}
   /* Zufallspunkt im Umkreis (grosse Planeten: Dinge erscheinen dort, wo gespielt wird, nicht verstreut über den ganzen Planeten) */
   function randAround(r,rad,center){const c=center||(me?me.p:((G_.places||[]).find(p=>p.id==='platz')||{dir:UPV}).dir);const t=tangentTo(c,new V3(r()-.5,r()-.5,r()-.5));if(!isFinite(t.x))return c.clone();const ang=Math.sqrt(r())*rad/G_.R;return c.clone().applyAxisAngle(new V3().crossVectors(c,t).normalize(),ang).normalize()}
