@@ -110,7 +110,9 @@ const ADDONS=(()=>{
     /* Planetenmobile an der Decke */const mob=grp(sc,[2.2,H-.2,-.8]);bt(mob,[0,0,0],[0,-.5,0],.012,M.c(PAL.ink));const arm=grp(mob,[0,-.5,0]);const cols=['#FF9E6E','#8FD0FF','#C6A9FF','#FFD85A'];
     cols.forEach((c,i)=>{const a=i/4*TAU;bt(arm,[0,0,0],[Math.sin(a)*.7,0,Math.cos(a)*.7],.012,M.gold());bt(arm,[Math.sin(a)*.7,0,Math.cos(a)*.7],[Math.sin(a)*.7,-.35,Math.cos(a)*.7],.008,M.c(PAL.ink));S(arm,.14+i*.02,M.c(c,{gloss:.8}),[Math.sin(a)*.7,-.45,Math.cos(a)*.7])});
     if(true){P(arm,G.to(.24,.02),M.c('#F2D9A6'),[Math.sin(0)*.7,-.45,Math.cos(0)*.7],[PI/2.4,0,0])}addOutlines(mob);sc.userData.mobile=arm;
-    INTERIOR.lamp(sc,'steh',3.2,0,-2.6,{col:'#FFC88A',i:1.1,d:7});INTERIOR.lamp(sc,'steh',-3.3,0,1.8,{col:'#FFC88A',i:.9,d:6});
+    /* Kenney-Möbel: Bücherregal, Sessel, Bücherstapel */const fm=(id,x,z,ry)=>{try{const g=INTERIOR.furnModel(id);if(!g)return null;g.position.set(x,0,z);g.rotation.y=ry||0;sc.add(g);return g}catch(e){return null}};
+    if(fm('k_furn_bookcaseOpen',-W/2+.45,.6,PI/2))Cl.push({x0:-W/2,x1:-W/2+.9,z0:-.2,z1:1.4});if(fm('k_furn_loungeChair',2.6,1.4,-2.4))Cl.push({x0:2.1,x1:3.1,z0:.9,z1:1.9});
+    INTERIOR.lamp(sc,'steh',3.2,0,-2.6,{col:'#FFC88A',i:1.1,d:7});INTERIOR.lamp(sc,'steh',-3.4,0,2.9,{col:'#FFC88A',i:.9,d:6});
     A.push({x:0,z:-.3,r:1.3,label:'Durch das Teleskop schauen',act:observe});A.push({x:-2.6,z:-1.6,r:1.1,label:'Sternbilder-Buch',act:starBook});
     return{W,D,camD:9.5}}
 
@@ -181,6 +183,8 @@ const ADDONS=(()=>{
     /* Tafel mit Formeln */const tafel=ctex('lab-tafel',256,160,(x,w,h)=>{x.fillStyle='#2E4A44';x.fillRect(0,0,w,h);x.strokeStyle='#C8A070';x.lineWidth=8;x.strokeRect(0,0,w,h);x.fillStyle='#EAF6F0';x.font='18px "Trebuchet MS",sans-serif';
       ['Fisch + 40 T = flink','Insekt + 40 T = hüpf','Relikt + 40 T = funkel','Frucht + 40 T = wachs'].forEach((s,i)=>x.fillText(s,18,34+i*32))});
     const tb=new THREE.Mesh(new THREE.PlaneGeometry(2.2,1.36),new THREE.MeshBasicMaterial({map:tafel}));tb.position.set(2.7,2.15,-D/2+.02);tb.scale.setScalar(.82);tb.userData.noOutline=true;sc.add(tb);
+    {const fm=(id,x,z,ry)=>{try{const g=INTERIOR.furnModel(id);if(!g)return null;g.position.set(x,0,z);g.rotation.y=ry||0;sc.add(g);return g}catch(e){return null}};
+      if(fm('k_furn_bookcaseClosedWide',W/2-.45,.8,-PI/2))Cl.push({x0:W/2-.9,x1:W/2,z0:0,z1:1.6});if(fm('k_furn_chairDesk',2.4,-1.8,PI))Cl.push({x0:2,x1:2.8,z0:-2.2,z1:-1.4});fm('k_furn_cardboardBoxClosed',-W/2+.5,-1.5,.3)}
     INTERIOR.lamp(sc,'steh',-3.4,0,1.8,{col:'#FFE0A8',i:.9,d:6});sc.userData.lab={liq,bub,col,light,boil:0};
     A.push({x:0,z:.1,r:1.4,label:'Trank brauen',act:brewWin});return{W,D,camD:9.5}}
   function frameLab(dt,t){const u=INTERIOR.scene&&INTERIOR.scene.userData.lab;if(!u)return;u.boil=Math.max(0,u.boil-dt);if(u.boil<=0)u.col.lerp(new THREE.Color('#7FEAA8'),dt*.5);
