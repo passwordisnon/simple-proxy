@@ -177,7 +177,7 @@ const BIBLIOTHEK=(()=>{let W_=null,pages=[],desk=null,letters=[];const M=()=>mak
   function onLoad(W){W_=W;pages=[];letters=[];const m=M();const st=S();const r=srand(3131);
     /* 18 Seiten: je Buch drei, weit verteilt */BOOKS.forEach((b,bi)=>{st.got[b.id]=st.got[b.id]||[];for(let k=0;k<3;k++){if(st.got[b.id].includes(k))continue;let d=null;for(let t=0;t<200&&!d;t++){const c=new V(r()*2-1,r()*2-1,r()*2-1).normalize();if(c.y>.92||!GAME.isLand(c))continue;if(pages.some(p=>angle(p.d,c)*W.R<18))continue;d=c}
       if(!d)continue;const g=pageModel(m,b.col);GAME.placeObj(g,d,r()*6,0);const Pg={b,k,d,g};pages.push(Pg);W.inter.push({kind:'seite',p:d,r:1.4,label:'Verlorene Seite aufheben ('+b.n+')',act:()=>takePage(Pg)})}});
-    /* Grosses Lesepult nahe am Dorfplatz */const pl=W.places[0];const tg=GAME.tangentTo(pl.dir,new V(0,0,1));const dd=pl.dir.clone().addScaledVector(tg,9/W.R).normalize();const g=new THREE.Group();
+    /* Grosses Lesepult nahe am Dorfplatz */const pl=W.places[0];const dd=PLANETKIT.freeSpot(W,pl.dir,10,40,2.5);const g=new THREE.Group();
     P(g,G.cy(.9,1,.3),m.c('#8A5E42'),[0,.15,0]);P(g,G.cy(.12,.16,1.4),m.c('#A0704C'),[0,1,0]);const q=grp(g,[0,1.8,0],[-.45,0,0]);P(q,G.bx(1.6,.08,1.1,.03),m.c('#A0704C'),[0,0,0]);book(q,m,1.3,.14,.9,'#C8566E',[0,.1,0],[0,0,0]);
     both(s=>{P(g,G.cy(.04,.04,1.8),m.c('#2E3A3E'),[s*1.2,.9,0]);P(g,G.s(.14),m.glow('#FFE3A0',2),[s*1.2,1.85,0])});addOutlines(g);GAME.placeObj(g,dd,0,0);GAME.addObst(dd,1);desk={d:dd,g};
     W.inter.push({kind:'lesepult',p:dd,r:2.2,label:'Am grossen Lesepult vorlesen lassen',act:readDesk});

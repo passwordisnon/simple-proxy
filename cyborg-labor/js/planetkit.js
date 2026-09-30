@@ -24,5 +24,11 @@ const PLANETKIT=(()=>{
     if(typeof MYPLANET!=='undefined')set(MYPLANET.BIO,o.terraform);
     if(typeof WEATHER!=='undefined')set(WEATHER.PLAN,o.weather);
     list.push(id)}
-  return{add,list}
+  /* Freier Platz nahe einem Ort: Land, keine Hindernisse im Umkreis rad (für Planeten-Bauten wie Klangsteine oder Lesepult) */
+  function freeSpot(W,center,minD,maxD,rad){const t1=GAME.tangentTo(center,new THREE.Vector3(0,0,1)),t2=center.clone().cross(t1);const R=W.R;
+    for(let d=minD;d<=maxD;d+=3)for(let k=0;k<16;k++){const a=k/16*TAU+d*.37;const c=center.clone().addScaledVector(t1,Math.cos(a)*d/R).addScaledVector(t2,Math.sin(a)*d/R).normalize();if(!GAME.isLand(c)||W.hAt(c)<W.sea+.5)continue;
+      const wp=c.clone().multiplyScalar(R+W.hAt(c));const near=GAME.obstAround(c,rad+2).filter(o=>!o.wp||o.wp.distanceTo(wp)<rad+(o.r||1));if(near.length)continue;
+      /* flach genug? */let ok=true;const h0=W.hAt(c);for(let j=0;j<6&&ok;j++){const b=j/6*TAU;const e=c.clone().addScaledVector(t1,Math.cos(b)*rad/R).addScaledVector(t2,Math.sin(b)*rad/R).normalize();if(Math.abs(W.hAt(e)-h0)>.8)ok=false}if(ok)return c}
+    return center.clone().addScaledVector(t1,minD/R).normalize()}
+  return{add,list,freeSpot}
 })();
