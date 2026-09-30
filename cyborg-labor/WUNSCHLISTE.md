@@ -64,8 +64,8 @@ Status: ✔ erledigt · ◐ teilweise · ☐ offen. Wird bei jedem Schritt aktua
 - ✔ Planeten-Grundgerüst: jeder neue Planet ist an alle Systeme angeschlossen (Dorf, Bewohner:innen, Sprache, Wetter, Kleidung, Höhlen, Tierpark-Sektor, Lexikon, Karte, Weltraum, Museum)
 - ◐ 30 Planeten: die 6 Start-Planeten + 3 gewünschte + 21 einzigartige
   - ✔ Urzeit-Tal: Vulkane, Farnwälder, Bernsteinstrände, 6 Dinos (Quaternius), Dino-Eier schlüpfen zu Begleitern, nächtlicher Zeitriss mit Meteoritenschauer und Fossilien
-  - ☐ Dschungel: Lianen schwingen, Tempel-Schieberätsel, Dschungel wächst über Nacht nach (Bausätze bereit: Quaternius Nature + Ruinen)
-  - ☐ Metro (New-Donk-City-Stil): Taxis, Jazz-Festival, Fassaden klettern (Bausätze bereit: Kenney City + Car Kit)
+  - ✔ Dschungel-Welt: Lianen-Vorhänge wachsen über Nacht nach, Schwing-Lianen über Flüsse, drei Tempel mit Schiebe-Rätseln und Schatzkammer, 7 Tiere, Pfahlhäuser
+  - ✔ Metro-Stadt (New-Donk-City-Stil): Art-déco-Wolkenkratzer, Ringstrassen mit Verkehr, Taxis an vier Ständen, abendliches Jazz-Festival zum Mitjammen, Fassaden klettern mit Stadt-Medaillen
   - ☐ 21 weitere: Riesengarten, Wolkenarchipel, Bibliotheks-Planet, Uhrwerk-Mond, Klang-Planet, Origami-Planet, Laternen-Planet, Traum-Planet, Solarpunk-Stadt, Wetterwerk-Planet, Schnecken-Planet, Nest-Planet, Tee-Planet, Leuchtquallen-Tiefsee, Magnet-Planet, Würfel-Planet, Irrlicht-Moor, Vulkan-Schmiede, Honig-Waben-Planet, Spiegel-Planet, Wander-Karawane
 - ☐ Monde als besuchbare Orte
 
