@@ -236,7 +236,17 @@ const GAME=(()=>{
     const add=(o,x,z,yaw,label,kind)=>{if(!o)return;addOutlines(o);o.position.set(x,0,z);o.rotation.y=yaw||0;g.add(o);if(label){const off=new V3(x,0,z+(o.userData.r||1)+.6);o.userData._lbl={label,kind,off}}};
     add(fn('buildFountain',M),0,0,0);add(fn('buildNoticeBoard',M),-3.4,-2.4,.5,'Anschlagbrett','board');
     add(fn('buildBench',M),-3.6,2.6,2.4);add(fn('buildBench',M),3.2,3.0,-2.4);add(fn('buildStreetLamp',M),-1.8,3.6,0);add(fn('buildStreetLamp',M),2.2,-.4,0);add(fn('buildMailbox',M),-1.5,-3.8,.3,'Briefkasten','mail');
-    add(fn('buildSignpost',M,G_.def.n),1.2,3.4,.2);g.children.forEach(o=>{smartMerge(o);if(o.userData.tick)G_.ticks.push(o)});
+    add(fn('buildSignpost',M,G_.def.n),1.2,3.4,.2);
+    /* Leben auf dem Platz: Blumenbeete, Schattenbäume des Planeten, Lichterketten */
+    const B0=BIOMES[G_.biomeAt(pl.dir.clone().applyAxisAngle(new V3(1,0,0),14/G_.R).normalize())]||BIOMES.wiese;const treeT=G_.def.plazaTree||{kompost:'kirschbaum',heim:'kirschbaum',frost:'schneetanne',wueste:'palme',korallen:'palme',pilz:'riesenpilz',schrott:'antennenbaum',urzeit:'baumfarn',dschungel:'urwaldpalme2',metro:'parkbaum'}[G_.id]||(B0.trees&&B0.trees.length?B0.trees[0][0]:'eiche');const FL=['#FF8FB1','#FFD35C','#FFFFFF','#C6A9FF','#FF9E6E'];
+    for(let i=0;i<5;i++){const a=i/5*TAU+.3;const bed=new THREE.Group();P(bed,G.cy(1.05,1.15,.28),M.c('#C9B8A0'),[0,.14,0]);P(bed,G.cy(.95,.95,.06),M.c('#6E4A3A'),[0,.29,0]);
+      for(let k=0;k<14;k++){const b=k*2.4,rr=.25+(k%3)*.25;const f=grp(bed,[Math.cos(b)*rr,.32,Math.sin(b)*rr]);P(f,G.cy(.015,.015,.22),M.c('#5FA84E'),[0,.11,0]);P(f,G.s(.09),M.c(FL[(k+i)%FL.length],{rim:.6}),[0,.25,0],null,[1,.7,1]);P(f,G.s(.035),M.c('#FFE06A'),[0,.29,0])}
+      bed.userData.r=1.2;add(bed,Math.cos(a)*6.4,Math.sin(a)*6.4,0)}
+    for(let i=0;i<6;i++){const a=i/6*TAU+.82;const tr=makeNature(treeT,{},40+i);tr.userData.r=.6;add(tr,Math.cos(a)*9.2,Math.sin(a)*9.2,i)}
+    /* Lichterkette zwischen den Laternen und dem Wegweiser */{const lights=new THREE.Group();const pts=[[-1.8,3.9,3.6],[1.2,3.2,3.4],[2.2,3.9,-.4],[-3.4,3,-2.4],[-1.8,3.9,3.6]];const bm=M.c('#3B3450');const cols=['#FFE08A','#FF8FB1','#8FE0FF','#B8F08A'];
+      for(let k=0;k<pts.length-1;k++){const A=new V3(...pts[k]),Bp=new V3(...pts[k+1]);const n=12;let prev=null;for(let j=0;j<=n;j++){const t=j/n;const p=A.clone().lerp(Bp,t);p.y-=Math.sin(t*PI)*.6;if(prev)bt(lights,[prev.x,prev.y,prev.z],[p.x,p.y,p.z],.012,bm);if(j%2)P(lights,G.s(.07),M.glow(cols[j%4],1.6),[p.x,p.y-.06,p.z]);prev=p}}
+      lights.userData.noOutline=true;lights.userData.r=.01;g.add(lights)}
+    g.children.forEach(o=>{smartMerge(o);if(o.userData.tick)G_.ticks.push(o)});
     return g}
 
   /* ================= Figuren ================= */
