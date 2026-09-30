@@ -331,7 +331,7 @@ const FAUNA=(()=>{
   function lexikon(){const w=UI.win('Tierlexikon',{size:'wide'});const seen=SAVE.faunaSeen||{};const all=Object.entries(S);const n=all.filter(([k])=>seen[k]).length;
     w.body.append(el('p',null,`Du hast ${n} von ${all.length} Tierarten getroffen. Donna Haraway nennt Tiere, mit denen wir zusammenleben, „companion species“ – Gefährt:innen. Wir werden nicht allein, sondern immer mit anderen.`));
     for(const pid of Object.keys(PLANETS)){const list=all.filter(([,s])=>s.planet===pid);if(!list.length)continue;w.body.append(el('h3',null,PLANETS[pid].n));const gr=el('div','grid');
-      for(const[k,s]of list){const c=el('div','card');const img=seen[k]?animalThumb(k):el('div','thumb-q','?');if(seen[k]){c.append(img,el('b',null,s.n),el('span','sub',s.fact))}else c.append(img,el('b',null,'???'),el('span','sub','Noch nicht getroffen'));gr.append(c)}w.body.append(gr)}}
+      for(const[k,s]of list){const c=el('div','card');const img=animalThumb(k);if(seen[k]){c.append(img,el('b',null,s.n),el('span','sub',s.fact))}else{img.classList.add('silhouette');c.classList.add('unknown');c.append(img,el('b',null,'Unbekannt'),el('span','sub',(s.night?'Nachts':'Tagsüber')+' · '+((BIOMES[(s.biomes||[])[0]]||{}).n||'irgendwo')))}gr.append(c)}w.body.append(gr)}}
   function animalThumb(k){const s=S[k];return UI.objThumb('tier-'+k,(g,m)=>{const a=buildAnimal(s.a,m);a.userData.tick(1.3,false,0,'');g.add(a)})}
   function onPlanet(pid){try{spawn(pid)}catch(e){console.warn('Fauna',e)}}
   function list(){return animals}

@@ -179,7 +179,7 @@ const ACT=(()=>{
     const T=[['fish','Fische',FISH,'fish'],['bug','Insekten',BUGS,'bugs'],['relic','Fundstücke',RELICS,'relics']];
     function show(k){tabs.replaceChildren(...T.map(([id,n])=>{const b=el('button',null,n);b.type='button';b.setAttribute('aria-selected',id===k);b.onclick=()=>show(id);return b}));
       const[,n,arr,key]=T.find(x=>x[0]===k);const got=arr.filter(x=>SAVE.caught[key][x.id]).length;body.replaceChildren(el('p','sub',`${got} von ${arr.length} entdeckt · Planeten: Kompost, Schrott-Mond, Korallen-Welt`));
-      const gr=el('div','grid');arr.forEach(x=>{const has=SAVE.caught[key][x.id];const c=el('button','card'+(has?'':' off'));c.type='button';c.append(has?itemThumb(k,x.id):el('div','ph'),el('span',null,has?x.n:'???'),el('span','sub',(PLANETS[x.planet]||{n:'überall'}).n+(x.where?' · '+x.where:'')));
+      const gr=el('div','grid');arr.forEach(x=>{const has=SAVE.caught[key][x.id];const c=el('button','card'+(has?'':' unknown'));c.type='button';const th=itemThumb(k,x.id);if(!has)th.classList.add('silhouette');c.append(th,el('span',null,has?x.n:'Unbekannt'),el('span','sub',(PLANETS[x.planet]||{n:'überall'}).n+(x.where?' · '+x.where:'')));
         if(SAVE.donated[key].includes(x.id))c.append(el('span','badge g','Museum'));
         c.onclick=()=>{if(!has)return;const b=UI.win(x.n,{size:'narrow'});const img=itemThumb(k,x.id);img.style.cssText='width:150px;height:150px;border-radius:16px;background:var(--seaL);align-self:center';b.body.append(img,el('p',null,x.fact||''),el('p','sub',`Gefangen: ${has}× · Wert ${fmt(x.price)} Taler`+(x.size?` · Grösse ${x.size}`:'')+(x.time&&x.time!=='immer'?` · nur ${x.time==='nacht'?'nachts':'tagsüber'}`:'')))};gr.append(c)});body.append(gr)}
     show(tab)}

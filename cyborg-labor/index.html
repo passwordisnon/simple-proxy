@@ -283,6 +283,8 @@ body:not(.coarse) #hbA{display:none}
   .hud .tl{top:8px;left:8px}.clock{padding:4px 10px 6px}.clock b{font-size:19px}
   .ticker{top:70px}
 }
+.card img.silhouette{background:radial-gradient(circle at 50% 38%,#fff 0 28%,#F0F8FF 62%,#E2EEFA 100%);filter:none;-webkit-mask:none}.card img.silhouette{filter:brightness(0) opacity(.28)}.card.unknown .silhouette{background:transparent}
+.card.unknown b{color:var(--ink3);letter-spacing:.04em}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 /* Blasen-Menü um die Figur (Echtzeit, kein Fenster) */
 .bubmenu{position:absolute;left:0;top:0;width:0;height:0;z-index:30;pointer-events:none;transition:opacity .15s}
@@ -323,6 +325,61 @@ body:not(.coarse) #hbA{display:none}
 @media (max-width:640px){.phone.gta{right:8px;bottom:78px;width:220px;height:420px}}
 .ovexit{position:absolute;top:70px;left:50%;transform:translateX(-50%);z-index:36;box-shadow:0 6px 16px rgba(60,40,80,.25)}
 .top .tabs{display:none}
+</style>
+<style id="polish">
+/* ================= Politur: Tiefe, Verläufe, Federn (motion.js) ================= */
+:root{--hi:rgba(255,255,255,.75);--drop:0 2px 0 rgba(120,90,60,.14),0 6px 14px rgba(90,70,40,.12);--drop-lg:0 6px 0 rgba(120,90,60,.16),0 22px 48px rgba(60,40,20,.26);--spring:cubic-bezier(.34,1.56,.64,1);--spring-dur:420ms}
+/* Papier mit feinem Korn und warmem Verlauf */
+.win,.talk .box,.phone:not(.gta){background:linear-gradient(180deg,#FFFCF3 0%,var(--paper) 40%,#FFF1DA 100%);box-shadow:var(--drop-lg),inset 0 2px 0 var(--hi)}
+.win{border:3px solid #F3DDB8;animation:winIn var(--spring-dur) var(--spring) both;transform-origin:50% 60%}
+.veil{animation:veilIn .22s ease-out both;backdrop-filter:blur(2px) saturate(1.1);-webkit-backdrop-filter:blur(2px) saturate(1.1)}
+.veil.m-out{animation:veilOut .18s ease-in both}.veil.m-out .win{animation:winOut .18s ease-in both}
+@keyframes winIn{from{opacity:0;transform:translateY(24px) scale(.86)}to{opacity:1;transform:none}}
+@keyframes winOut{to{opacity:0;transform:translateY(12px) scale(.94)}}
+@keyframes veilIn{from{opacity:0}}@keyframes veilOut{to{opacity:0}}
+/* Kopfzeile der Fenster: wandernde Streifen wie im Nook-Phone */
+.win .wh{background:repeating-linear-gradient(-45deg,rgba(255,211,92,.16) 0 14px,rgba(255,211,92,0) 14px 28px) 0 0/40px 40px,linear-gradient(180deg,#FFF6DE,#FFEFD0);animation:stripes 3.2s linear infinite;border-bottom:3px dashed var(--line)}
+@keyframes stripes{to{background-position:40px 0,0 0}}
+.win .wh h3{text-shadow:0 2px 0 #fff}
+/* Knöpfe: Verlauf, Glanzkante, Tiefe; federn beim Überfahren und Drücken */
+.btn,.iconbtn,.xbtn,.ptabs button,.talk .choices button{transition:transform var(--spring-dur) var(--spring),box-shadow .2s,filter .2s,background-color .2s}
+.btn{background:linear-gradient(180deg,#FFFBF1,var(--paper2));box-shadow:inset 0 -3px 0 var(--line2),inset 0 2px 0 var(--hi),var(--drop)}
+.btn:hover,.iconbtn:hover,.xbtn:hover{transform:translateY(-2px) scale(1.03)}
+.btn:active,.iconbtn:active,.xbtn:active{transform:translateY(2px) scale(.96,.92);transition-duration:.06s}
+.btn.primary{background:linear-gradient(180deg,#8FDA7C,var(--leaf) 55%,#5CB04C);box-shadow:inset 0 -4px 0 var(--leafD),inset 0 2px 0 rgba(255,255,255,.5),0 3px 10px rgba(79,156,66,.35);text-shadow:0 1px 0 rgba(0,0,0,.15)}
+.btn.pink{background:linear-gradient(180deg,#FFB2C9,var(--pink));box-shadow:inset 0 -4px 0 #e06d92,inset 0 2px 0 rgba(255,255,255,.5),0 3px 10px rgba(224,109,146,.3)}
+.btn.sea{background:linear-gradient(180deg,#8ADBF4,var(--sea));box-shadow:inset 0 -4px 0 #3aa3c9,inset 0 2px 0 rgba(255,255,255,.5),0 3px 10px rgba(58,163,201,.3)}
+.iconbtn{background:linear-gradient(180deg,#FFFBF1,var(--paper2));box-shadow:inset 0 2px 0 var(--hi),var(--drop)}
+.xbtn{background:linear-gradient(180deg,#FFFBF1,var(--paper2));box-shadow:inset 0 -3px 0 var(--line2),inset 0 2px 0 var(--hi)}
+.xbtn:hover{transform:rotate(90deg) scale(1.08)}
+/* Karten: weiche Verläufe, heben sich beim Überfahren, Auswahl pulsiert */
+.card{background:linear-gradient(180deg,#FFFFFF,#FFF9EE);box-shadow:inset 0 2px 0 var(--hi),var(--drop);transition:transform var(--spring-dur) var(--spring),box-shadow .2s,border-color .2s}
+.card:hover{transform:translateY(-4px) rotate(-.6deg);box-shadow:inset 0 2px 0 var(--hi),0 4px 0 rgba(120,90,60,.14),0 14px 26px rgba(90,70,40,.18)}
+.card.sel{background:linear-gradient(180deg,#F1FFE6,var(--leafL));animation:selPulse 1.8s ease-in-out infinite}
+@keyframes selPulse{50%{box-shadow:0 0 0 4px rgba(108,192,90,.25),var(--drop)}}
+.card img,.card .ph{background:radial-gradient(circle at 50% 38%,#fff 0 28%,#F0F8FF 62%,#E2EEFA 100%);box-shadow:inset 0 -3px 0 rgba(120,150,190,.12)}
+.grid>*{animation:cardIn var(--spring-dur) var(--spring) both}
+.grid>*:nth-child(1){animation-delay:.02s}.grid>*:nth-child(2){animation-delay:.04s}.grid>*:nth-child(3){animation-delay:.06s}.grid>*:nth-child(4){animation-delay:.08s}.grid>*:nth-child(5){animation-delay:.1s}.grid>*:nth-child(6){animation-delay:.12s}.grid>*:nth-child(7){animation-delay:.14s}.grid>*:nth-child(8){animation-delay:.16s}.grid>*:nth-child(n+9){animation-delay:.18s}
+@keyframes cardIn{from{opacity:0;transform:translateY(12px) scale(.9)}}
+/* Dialog: Sprechblase federt auf, Namensschild wippt */
+.talk .box{border:3px solid #F3DDB8;animation:talkIn var(--spring-dur) var(--spring) both}
+@keyframes talkIn{from{opacity:0;transform:translateY(20px) scale(.9,.8)}}
+.talk .name{background:linear-gradient(180deg,#FFB2C9,var(--pink));animation:nameIn .5s var(--spring) .08s both}
+@keyframes nameIn{from{opacity:0;transform:translateY(8px) rotate(-10deg) scale(.7)}}
+.talk .choices button{background:linear-gradient(180deg,#FFFFFF,var(--paper));animation:cardIn var(--spring-dur) var(--spring) both}
+.talk .choices button:hover,.talk .choices button:focus-visible{transform:translateX(-6px) scale(1.03);background:linear-gradient(180deg,#FFFBE6,var(--sunL))}
+/* Toast und Hinweise */
+.toast{background:linear-gradient(180deg,#6E5747,var(--ink));animation:toastIn var(--spring-dur) var(--spring) both;box-shadow:0 4px 0 rgba(0,0,0,.15),0 12px 30px rgba(60,40,20,.3)}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(-18px) scale(.85)}}
+.pill{background:linear-gradient(180deg,#FFFBF1,var(--paper2));box-shadow:inset 0 2px 0 var(--hi)}
+.tabs button{transition:transform var(--spring-dur) var(--spring),background .2s}.tabs button:hover{transform:translateY(-1px)}
+.tabs button[aria-selected="true"]{background:linear-gradient(180deg,#8FDA7C,var(--leaf) 60%,#5CB04C)}
+.ptabs button[aria-selected="true"]{background:linear-gradient(180deg,#9A8170,var(--ink2))}
+.lbl{box-shadow:0 2px 0 rgba(120,90,60,.2),0 4px 10px rgba(60,40,20,.12)}
+/* Feder-Hüpfer (MOTION.pop) */
+.m-pop{animation:mPop var(--spring-dur) var(--spring)}
+@keyframes mPop{0%{transform:scale(.9,.86)}100%{transform:none}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 </style>
 
 <div class="app" id="app">
@@ -453,6 +510,7 @@ body:not(.coarse) #hbA{display:none}
 <script src="js/abilities.js"></script>
 <script src="js/data.js"></script>
 <script src="js/audio.js"></script>
+<script src="js/motion.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/lab.js"></script>
 <script src="js/look.js"></script>

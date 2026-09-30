@@ -57,14 +57,14 @@ function ICON(name,cls){return`<svg class="ico ${cls||''}" viewBox="0 0 24 24" f
 function iconEl(name,cls){const s=el('span','icw');s.innerHTML=ICON(name,cls);return s}
 const UI={};
 /* ---------- Toast ---------- */
-let toastT=0;UI.toast=function(m,ms){const t=$('toast');t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,ms||2600)};
+let toastT=0;UI.toast=function(m,ms){const t=$('toast');t.textContent=m;t.hidden=false;t.style.animation='none';void t.offsetWidth;t.style.animation='';clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,ms||2600)};
 
 /* ---------- Fenster ---------- */
 const openWins=[];
 UI.win=function(title,o){o=o||{};const veil=el('div','veil');const w=el('div','win'+(o.size?' '+o.size:''));w.setAttribute('role','dialog');w.setAttribute('aria-label',title);
   const h=el('div','wh');const t=el('h3',null,title);const x=el('button','xbtn');x.innerHTML=ICON('close');x.setAttribute('aria-label','Schliessen');h.append(t,x);
   const b=el('div','wb');const f=el('div','wf');w.append(h,b);if(o.foot!==false)w.append(f);veil.append(w);document.body.append(veil);
-  const api={veil,win:w,body:b,foot:f,title:t,closed:false,close(){if(api.closed)return;api.closed=true;veil.remove();openWins.splice(openWins.indexOf(api),1);SND.play('close',{vol:.6});o.onClose&&o.onClose()}};
+  const api={veil,win:w,body:b,foot:f,title:t,closed:false,close(){if(api.closed)return;api.closed=true;if(typeof MOTION!=='undefined')MOTION.out(veil,'m-out',170);else veil.remove();openWins.splice(openWins.indexOf(api),1);SND.play('close',{vol:.6});o.onClose&&o.onClose()}};
   x.onclick=()=>api.close();veil.addEventListener('pointerdown',e=>{if(e.target===veil&&o.dismiss!==false)api.close()});openWins.push(api);SND.play('open',{vol:.6});
   if(o.foot===false)f.remove();return api};
 UI.anyOpen=()=>openWins.length>0||!$('talk').hidden;
