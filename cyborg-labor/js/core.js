@@ -229,9 +229,11 @@ function cuteEye(g,c,x,y,z,r,o){o=o||{};const m=c.m;const e=grp(g,[x,y,z]);
 function cheeks(g,c,o){o=o||{};const H=c.H;const y=o.y??(H.faceY-H.r*.28),sp=o.sp??.62,z=H.front*(o.z??.86);
   both(x=>{const m=P(g,G.s(H.r*.15),c.m.cheek(),[x*H.r*sp,y,z],[0,x*.55,0],[1.2,.7,.25]);m.userData.noOutline=true;m.castShadow=false})}
 /* Mund: 'smile' | 'open' | 'cat' | 'o' | 'beak' */
-function mouth(g,c,kind,o){o=o||{};const H=c.H,m=c.m;const y=o.y??(H.faceY-H.r*.42),z=H.front*(o.z??.94),w=H.r*(o.w??.16);
+/* Sprechende Teile ohne echten Mund: Schnabel/Kiefer klappt (hinge), Lippen/Membran pumpt (pulse) */
+function talkPart(o,mode,amp){o.userData.mouth=true;o.userData.mode=mode;o.userData.amp=amp;o.userData.r0=o.rotation.x;o.userData.s0=o.scale.x;return o}
+function mouth(g,c,kind,o){o=o||{};const H=c.H,m=c.m;const y=o.y??(H.faceY-H.r*.42),z=o.zAbs??H.front*(o.z??.94),w=H.r*(o.w??.16);
   /* Mund als eigene Gruppe: beim Sprechen öffnet er sich (sichtbarer Innenmund, Kiefer-Wippen) */
-  const q=new THREE.Group();q.position.set(0,y,z);q.userData.mouth=true;q.userData.y0=y;q.userData.w=w;g.add(q);
+  const q=new THREE.Group();q.position.set(o.x||0,y,z);q.userData.mouth=true;q.userData.y0=y;q.userData.w=w;g.add(q);
   if(kind==='open'){P(q,G.s(w*1.1),m.c('#B8475F'),[0,0,0],null,[1.2,.9,.35]);P(q,G.s(w*.6),m.c(PAL.pink),[0,-w*.35,w*.12],null,[1,.5,.3])}
   else if(kind==='o'){P(q,G.to(w*.55,w*.18),m.c(PAL.ink),[0,0,0])}
   else if(kind==='cat'){both(x=>P(q,G.to(w*.5,w*.13,PI),m.c(PAL.ink),[x*w*.5,0,0],[0,0,PI]))}

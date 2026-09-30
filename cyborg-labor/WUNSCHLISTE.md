@@ -13,7 +13,7 @@ Status: ✔ erledigt · ◐ teilweise · ☐ offen. Wird bei jedem Schritt aktua
 - ✔ Alle Körperteile im Cozy-Stil, Rümpfe neu (Tierfiguren-Look), nur noch eine Rumpfform (keine 2–3 Segmente)
 - ✔ Teile umfärben (Kopf, Augen, Arme, Beine, Extras)
 - ✔ Münder bewegen sich beim Sprechen (Axolotl-Lächeln, Katze ohne Nasen-Clipping), Blinzeln
-- ◐ Münder für die letzten 13 Köpfe (Wippen als Ersatz)
+- ✔ Alle 54 Köpfe sprechen sichtbar: Schnäbel und Kiefer klappen, Fischlippen, Kamerablende, Lautsprecher-Membran und Gasmaskenfilter pumpen, Bildschirm-Köpfe zeigen einen Mund
 - ✔ Figuren so gross, dass Türen passen; Fenster innen
 - ✔ Kleidung: Hüte, Oberteile, Hals, Gesicht; je Planet passende Mode
 

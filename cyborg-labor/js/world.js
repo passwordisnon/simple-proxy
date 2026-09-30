@@ -354,7 +354,7 @@ const GAME=(()=>{
   /* Mund: bewegt sich beim Sprechen (Sprechblase oder Dialog) im Silbenrhythmus */
   function animMouth(e,t){blink(e,t);const ms=e.g.userData.mouths||[];const talking=(e.talking&&UI.typing)||(e.sayT>0&&!e.bub.classList.contains('emote'))||(e===me&&e.chatT>0);
     const k=talking?Math.max(0,Math.sin(t*15+e.phase))*.8+Math.max(0,Math.sin(t*23+e.phase*2))*.3:0;if(!ms.length){/* Köpfe ohne Mund (Schnabel, Bildschirm, Lautsprecher): sanftes Wippen im Sprechrhythmus */e.g.scale.y*=1+k*.035;e.g.scale.x*=1-k*.015;return}
-    for(const q of ms){const u=q.userData;if(u.smile){if(u.open){u.open.visible=k>.08;u.open.scale.y=Math.max(.1,k)}continue}
+    for(const q of ms){const u=q.userData;if(u.mode==='hinge'){q.rotation.x=u.r0+k*u.amp;continue}if(u.mode==='pulse'){q.scale.setScalar(u.s0*(1+k*u.amp));continue}if(u.smile){if(u.open){u.open.visible=k>.08;u.open.scale.y=Math.max(.1,k)}continue}
       /* nach unten öffnen (nicht in die Nase wachsen) */q.scale.set(1+k*.12,1+k*.9,1);if(u.y0!=null)q.position.y=u.y0-k*.9*(u.w||0)*.55;if(u.open)u.open.visible=k>.25}}
   function poseEnt(e,dt,t){const h=G_.hAt(e.p);let base=h;const inWater=h<G_.sea;if(e.boat)base=G_.sea+.1+Math.sin(t*1.6)*.05;else if(inWater)base=e.fly?G_.sea:G_.sea-.25;let alt=e.move.alt?e.move.alt*CS*1.1+Math.sin(t*1.5+e.phase)*.1:0;
     const moving=e.speed>.1;if(e.move.hop&&moving)alt+=Math.abs(Math.sin(t*5+e.phase))*e.move.hop*CS*1.2;if(e.jump>0)alt+=Math.sin((1-e.jump/.9)*PI)*(e.hop>0?1.9:.9);
