@@ -102,10 +102,10 @@ const ACT=(()=>{
       await showCatch('relic',rel,first)},1000)}
   /* ---------- Insektennetz ---------- */
   function swingNet(b){if(!b.alive)return;const me=GAME.me;busyState='net';me.act=1;SND.play('whoosh',{vol:.8});
-    const d=GAME.angle(me.p,b.p)*GG().R;const scared=b.flee>0;const ok=d<2.1&&!scared&&Math.random()<(b.def.rarity>=4?.7:.92);
-    setTimeout(async()=>{busyState=null;if(!ok){b.flee=3;SND.play('j_fail',{vol:.6});UI.toast(scared?'Zu hektisch, es ist weggeflogen.':'Knapp daneben!');return}
+    const d=GAME.angle(me.p,b.p)*GG().R;const scared=b.st==='startled'||b.st==='burrowed';const ok=d<2.1&&!scared&&Math.random()<(b.def.rarity>=4?.7:.92)*(b.st==='alert'?.8:1);
+    setTimeout(async()=>{busyState=null;if(!ok){b.st='startled';b.stT=3.5;SND.play('j_fail',{vol:.6});UI.toast(scared?'Zu hektisch, es ist weggeflogen.':'Knapp daneben!');return}
       b.alive=false;b.g.parent&&b.g.parent.remove(b.g);bugs.splice(bugs.indexOf(b),1);if(!bagAdd('bug',b.def.id)){UI.toast('Tasche voll!');return}
-      const first=!SAVE.caught.bugs[b.def.id];SAVE.caught.bugs[b.def.id]=(SAVE.caught.bugs[b.def.id]||0)+1;SAVE.stats.bugs++;persist();await showCatch('bug',b.def,first)},380)}
+      const first=!SAVE.caught.bugs[b.def.id];SAVE.caught.bugs[b.def.id]=(SAVE.caught.bugs[b.def.id]||0)+1;SAVE.stats.bugs++;const rec=LEDGER.record('bug',b.def,b.p);persist();await showCatch('bug',b.def,first,rec)},380)}
   /* ---------- Angeln ---------- */
   let fishing=null;
   function waterAhead(me){if(!me||busyState)return null;for(const dist of[2.2,3.2,4.2]){const q=me.p.clone().applyAxisAngle(new V3().crossVectors(me.p,me.dir).normalize(),dist/GG().R).normalize();if(GG().hAt(q)<GG().sea-.2&&GG().hAt(me.p)>GG().sea-.15)return q}return null}
@@ -135,13 +135,13 @@ const ACT=(()=>{
   function reelIn(){const F=fishing;if(!F)return;if(F.phase==='bite'){endFish(true)}else if(F.phase==='wait'&&F.nib>0){endFish(false,'Zu früh gezogen, der Fisch ist weg.')}else endFish(false,null)}
   async function endFish(ok,msg){const F=fishing;fishing=null;const sc=GAME.scene;[F.rod,F.bob,F.line,F.sh].forEach(o=>{sc.remove(o);disposeTree(o)});SND.play('reel',{vol:.8});
     if(!ok){busyState=null;if(msg){UI.toast(msg);SND.play('j_fail',{vol:.5})}return}
-    const f=F.f;if(!bagAdd('fish',f.id)){busyState=null;UI.toast('Tasche voll! Der Fisch schwimmt zurück.');return}const first=!SAVE.caught.fish[f.id];SAVE.caught.fish[f.id]=(SAVE.caught.fish[f.id]||0)+1;persist();
-    GAME.W.fx(F.p,'wasser',16,F.p.clone().multiplyScalar(GG().R+GG().sea+.3));busyState='show';await showCatch('fish',f,first);busyState=null}
+    const f=F.f;if(!bagAdd('fish',f.id)){busyState=null;UI.toast('Tasche voll! Der Fisch schwimmt zurück.');return}const first=!SAVE.caught.fish[f.id];SAVE.caught.fish[f.id]=(SAVE.caught.fish[f.id]||0)+1;const rec=LEDGER.record('fish',f,F.p);persist();
+    GAME.W.fx(F.p,'wasser',16,F.p.clone().multiplyScalar(GG().R+GG().sea+.3));busyState='show';await showCatch('fish',f,first,rec);busyState=null}
   /* ---------- Fang-Anzeige ---------- */
-  async function showCatch(kind,def,first){const big=def.rarity>=4||def.size==='XL';SND.jingle(big?'j_catch_big':'j_catch');const me=GAME.me;me.jump=.9;
+  async function showCatch(kind,def,first,rec){const big=def.rarity>=4||def.size==='XL';SND.jingle(big?'j_catch_big':'j_catch');const me=GAME.me;me.jump=.9;
     const wrap=el('div','catch');const img=itemThumb(kind,def.id);wrap.append(img);document.body.append(wrap);UI.pumpThumbs();
     const nick=SAVE.nick||S.name||'Ich';const text=def.text||`Ich hab ${def.n} gefunden!`;
-    await UI.talk(nick,[text+(first?'  (Neu im Lexikon!)':'')],{voice:GAME.voiceFor(avatarLike()),color:'var(--leaf)'});wrap.remove();
+    await UI.talk(nick,[text+(first?'  (Neu im Lexikon!)':'')+(rec?'<span class="langnote">'+rec.size.toFixed(1)+' cm'+(rec.record&&!first?' – neuer Rekord!':'')+'</span>':'')],{voice:GAME.voiceFor(avatarLike()),color:'var(--leaf)'});wrap.remove();
     if(first&&GAME.W)GAME.W.fx(me.p,'stern',10);SOCIAL.brag&&SOCIAL.brag(kind,def)}
   const avatarLike=()=>({id:SAVE.pid,name:SAVE.nick,body:S.body,parts:S.parts,info:{}});
   /* ---------- Tanzparty ---------- */
@@ -150,12 +150,23 @@ const ACT=(()=>{
   function frame(dt,t){stepFishing(dt,t);
     if(party>0){party-=dt;if(Math.random()<dt*3)GAME.W.fx(GAME.me.p,pick(['konfetti','note']),3);if(GAME.me.dance<=0&&GAME.me.speed<.1)GAME.me.dance=2;if(party<=0)SND.music(GG().def.music)}
     /* Insekten bewegen */const me=GAME.me;
-    for(const b of bugs){if(!b.alive)continue;b.ph+=dt;const run=me&&me.speed>5&&GAME.angle(me.p,b.p)*GG().R<4;if(run&&b.flee<=0&&(b.def.rarity||2)>=2){b.flee=4;GAME.W.fx(b.p,'staub',3)}
-      if(b.flee>0){b.flee-=dt;const away=GAME.tangentTo(b.p,b.p.clone().sub(me.p));if(isFinite(away.x))b.p.applyAxisAngle(new V3().crossVectors(b.p,away).normalize(),dt*3/GG().R).normalize();if(b.flee<=0&&GAME.angle(b.p,me.p)*GG().R>18){b.p.copy(GAME.W.near(me.p,2))}}
-      else if(b.fly){const wob=new V3(Math.sin(b.ph*1.3),Math.sin(b.ph*1.7)*.5,Math.cos(b.ph*1.1));b.p.copy(b.home.clone().add(GAME.tangentTo(b.home,wob).multiplyScalar(.04))).normalize()}
-      if(b.flee>0&&b.anchor)b.anchor=null;
+    /* Insekten: Zustandsautomat (umherstreifen → aufmerksam → aufgeschreckt / eingegraben), Lärm = Tempo der Spielfigur, seltene Arten sind empfindlicher */
+    const noise=me?(me.speed>5?1:me.speed>2.4?.55:me.speed>.1?.16:0):0;const Rg=GG().R;
+    for(const b of bugs){if(!b.alive)continue;b.ph+=dt;const d=me?GAME.angle(me.p,b.p)*Rg:99;const sens=1+((b.def.rarity||2)-1)*.35;const detR=(1.6+noise*3.4)*sens;b.st=b.st||'wander';b.stT=(b.stT||0)-dt;
+      const ground=!b.fly&&!b.anchor&&['boden','erde','stein'].includes(b.def.where);
+      if(b.st==='wander'){if(d<detR&&noise>.12){b.st='alert';b.stT=.8/sens;b.g.userData.twitch=1}
+        else if(b.fly){const wob=new V3(Math.sin(b.ph*1.3),Math.sin(b.ph*1.7)*.5,Math.cos(b.ph*1.1));b.p.copy(b.home.clone().add(GAME.tangentTo(b.home,wob).multiplyScalar(.04))).normalize()}
+        else if(!b.anchor){/* krabbeln: kurze Strecken, Pausen */if(!b.wdir||b.stT<-1.5){b.wdir=GAME.tangentTo(b.p,new V3().randomDirection());b.stT=0}if(Math.sin(b.ph*1.9)>0&&GAME.angle(b.p,b.home)*Rg<2.2){b.p.applyAxisAngle(new V3().crossVectors(b.p,b.wdir).normalize(),dt*.45/Rg).normalize()}else if(GAME.angle(b.p,b.home)*Rg>=2.2)b.wdir=GAME.tangentTo(b.p,b.home.clone().sub(b.p))}}
+      else if(b.st==='alert'){/* erstarrt, zuckt; wer schleicht, darf näher */if((d<detR*.65&&noise>.4)||(d<1.1&&noise>.15)){b.st='startled';b.stT=4}else if(b.stT<=0)b.st=d>detR?'wander':(noise>.3?'startled':'alert'),b.stT=b.st==='alert'?.6:4}
+      if(b.st==='startled'){if(b.anchor)b.anchor=null;if(ground&&!b.dug&&Math.random()<.5){b.st='burrowed';b.stT=7+Math.random()*6;b.dug=true;b.g.visible=false;GAME.W.fx(b.p,'staub',8);SND.play('soft',{vol:.4,rate:1.6})}
+        else{const away=GAME.tangentTo(b.p,b.p.clone().sub(me?me.p:b.home));if(isFinite(away.x))b.p.applyAxisAngle(new V3().crossVectors(b.p,away).normalize(),dt*(b.fly?5:3.2)/Rg).normalize();
+          if(b.stT<=0){b.st='wander';b.home.copy(b.p);if(me&&GAME.angle(b.p,me.p)*Rg>18){b.p.copy(GAME.W.near(me.p,2));b.home.copy(b.p)}}}}
+      else if(b.st==='burrowed'){if(b.stT<=0){const np=GAME.W.near(b.p,.02+Math.random()*.02);if(np)b.p.copy(np);b.home.copy(b.p);b.st='wander';b.dug=false;b.g.visible=true;GAME.W.fx(b.p,'staub',6)}continue}
+      b.flee=b.st==='startled'?Math.max(.1,b.stT):0;
       if(b.anchor){/* klettert am Stamm: Bauch zum Stamm, Kopf nach oben */const out=GAME.tangentTo(b.p,b.p.clone().sub(b.anchor.p));b.g.position.copy(GAME.onSurf(b.p,.75+Math.sin(b.ph*.8)*.12));const zx=b.p,yx=out,xx=new V3().crossVectors(yx,zx);b.g.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(xx,yx,zx))}
-      else GAME.placeObj(b.g,b.p,b.ph*(b.fly?1.5:.3),b.fly?1.1+Math.sin(b.ph*3)*.25:.06);b.g.visible=!me||GAME.angle(b.p,me.p)*GG().R<30}
+      else{const lift=b.fly?(b.st==='startled'?1.1+(4-b.stT)*.9:1.1+Math.sin(b.ph*3)*.25):.06;const yaw=b.st==='alert'&&me?Math.atan2(1,0):b.ph*(b.fly?1.5:.3);GAME.placeObj(b.g,b.p,yaw,lift)}
+      /* aufmerksam: kurzes Zucken */if(b.st==='alert'){const k=1+Math.max(0,Math.sin(b.ph*28))*.08;b.g.scale.setScalar(.32*k)}else if(b.g.scale.x!==.32)b.g.scale.setScalar(.32);
+      b.g.visible=!me||d<30}
     /* gefallenes Obst hüpft kurz */for(const x of pickups){if(x.g.userData.drop!=null&&x.g.userData.drop<1){x.g.userData.drop+=dt*2.5;const u=x.g.userData.drop;x.g.position.copy(GAME.onSurf(x.p,Math.max(0,(1-u)*2.2*Math.abs(Math.cos(u*PI*1.5)))-.02))}}
     /* Nachwachsen */respawnT-=dt;if(respawnT<=0){respawnT=45;if(bugs.length<8)spawnBugs(3);if(pickups.filter(p=>['muschel','jakobsmuschel','schneckenhaus','sanddollar','koralle_stueck','seeglas'].includes(p.id)).length<4)spawnShells(3);if(digs.length<3)spawnDigs(2);if(pickups.filter(p=>p.litter).length<14)spawnLitter(6);
       for(const tr of GG().trees){if(!tr.hasFruit&&tr.regrow&&Date.now()>tr.regrow&&tr.inst.pr.hasFruit){tr.hasFruit=true;SCATTER.setFruit(tr.inst,true)}}}}
@@ -179,7 +190,7 @@ const ACT=(()=>{
     const T=[['fish','Fische',FISH,'fish'],['bug','Insekten',BUGS,'bugs'],['relic','Fundstücke',RELICS,'relics']];
     function show(k){tabs.replaceChildren(...T.map(([id,n])=>{const b=el('button',null,n);b.type='button';b.setAttribute('aria-selected',id===k);b.onclick=()=>show(id);return b}));
       const[,n,arr,key]=T.find(x=>x[0]===k);const got=arr.filter(x=>SAVE.caught[key][x.id]).length;body.replaceChildren(el('p','sub',`${got} von ${arr.length} entdeckt · Planeten: Kompost, Schrott-Mond, Korallen-Welt`));
-      const gr=el('div','grid');arr.forEach(x=>{const has=SAVE.caught[key][x.id];const c=el('button','card'+(has?'':' unknown'));c.type='button';const th=itemThumb(k,x.id);if(!has)th.classList.add('silhouette');c.append(th,el('span',null,has?x.n:'Unbekannt'),el('span','sub',(PLANETS[x.planet]||{n:'überall'}).n+(x.where?' · '+x.where:'')));
+      const gr=el('div','grid');arr.forEach(x=>{const has=SAVE.caught[key][x.id];const c=el('button','card'+(has?'':' unknown'));c.type='button';const th=itemThumb(k,x.id);if(!has)th.classList.add('silhouette');const bst=has&&(key==='fish'||key==='bugs')?LEDGER.best(key==='fish'?'fish':'bug',x.id):null;if(bst)c.title='Rekord: '+LEDGER.describe(bst);c.append(th,el('span',null,has?x.n+(bst?' · '+bst.size.toFixed(1)+' cm':''):'Unbekannt'),el('span','sub',(PLANETS[x.planet]||{n:'überall'}).n+(x.where?' · '+x.where:'')));
         if(SAVE.donated[key].includes(x.id))c.append(el('span','badge g','Museum'));
         c.onclick=()=>{if(!has)return;const b=UI.win(x.n,{size:'narrow'});const img=itemThumb(k,x.id);img.style.cssText='width:150px;height:150px;border-radius:16px;background:var(--seaL);align-self:center';b.body.append(img,el('p',null,x.fact||''),el('p','sub',`Gefangen: ${has}× · Wert ${fmt(x.price)} Taler`+(x.size?` · Grösse ${x.size}`:'')+(x.time&&x.time!=='immer'?` · nur ${x.time==='nacht'?'nachts':'tagsüber'}`:'')))};gr.append(c)});body.append(gr)}
     show(tab)}

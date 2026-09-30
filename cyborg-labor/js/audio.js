@@ -10,7 +10,9 @@ const SND=(()=>{
   for(let i=0;i<5;i++){FILES['step_grass'+i]=1;FILES['step_wood'+i]=1}
   const GROUPS={step_grass:5,step_wood:5};
   const MUSIC={world:'mus_world',lab:'mus_lab',shop:'mus_shop',home:'mus_home',museum:'mus_museum',town:'mus_town'};
-  let ctx=null,master,musicBus,sfxBus,voiceBus,ambBus;const buf={};const loading={};
+  let ctx=null,master,musicBus,sfxBus,voiceBus,ambBus,uiBus;
+  /* Bus-Zuordnung: Menü-Klänge laufen getrennt von Werkzeug-/Weltgeräuschen (eigener Regler, eigene Dynamik) */
+  const UI_SOUNDS=new Set(['click','select','open','close','confirm','toggle','page','pep','error','soft']);const buf={};const loading={};
   let st={on:true,music:.55,sfx:.8,voice:.7};try{Object.assign(st,JSON.parse(localStorage.getItem('cyborg-labor-audio')||'{}'))}catch(e){}
   const save=()=>{try{localStorage.setItem('cyborg-labor-audio',JSON.stringify(st))}catch(e){}};
   let curMusic=null,curTrack='',wantTrack='',amb={};
@@ -21,6 +23,7 @@ const SND=(()=>{
     sfxBus=ctx.createGain();sfxBus.gain.value=st.sfx;sfxBus.connect(comp);
     voiceBus=ctx.createGain();voiceBus.gain.value=st.voice;voiceBus.connect(comp);
     ambBus=ctx.createGain();ambBus.gain.value=st.sfx*.6;ambBus.connect(comp);
+    uiBus=ctx.createGain();uiBus.gain.value=st.ui??.7;const uiHp=ctx.createBiquadFilter();uiHp.type='highpass';uiHp.frequency.value=180;uiBus.connect(uiHp);uiHp.connect(master);
     ['click','select','open','close','confirm','pickup','place','step_grass0','step_grass1','step_grass2','coins','chat','talk'].forEach(load);
     if(wantTrack)music(wantTrack)}
   function load(name){if(buf[name]||loading[name])return loading[name];if(!ctx)return null;
@@ -30,7 +33,7 @@ const SND=(()=>{
   function play(name,o){if(!ctx||!st.on)return;o=o||{};const n=resolve(name);const b=buf[n];if(!b){load(n);return}
     const src=ctx.createBufferSource();src.buffer=b;src.playbackRate.value=(o.rate||1)*(o.jitter?1+(Math.random()-.5)*o.jitter:1);
     const g=ctx.createGain();g.gain.value=o.vol??1;let node=src;node.connect(g);
-    if(o.pan&&ctx.createStereoPanner){const p=ctx.createStereoPanner();p.pan.value=Math.max(-1,Math.min(1,o.pan));g.connect(p);p.connect(sfxBus)}else g.connect(sfxBus);
+    const bus=o.bus==='ui'||(!o.bus&&UI_SOUNDS.has(name))?uiBus:o.bus==='amb'?ambBus:sfxBus;if(o.pan&&ctx.createStereoPanner){const p=ctx.createStereoPanner();p.pan.value=Math.max(-1,Math.min(1,o.pan));g.connect(p);p.connect(bus)}else g.connect(bus);
     src.start();return src}
   function music(track){wantTrack=track;if(!ctx)return;if(track===curTrack)return;curTrack=track;const file=MUSIC[track]||track;
     const old=curMusic;if(old){const t=ctx.currentTime;old.g.gain.cancelScheduledValues(t);old.g.gain.setValueAtTime(old.g.gain.value,t);old.g.gain.linearRampToValueAtTime(0,t+1.6);setTimeout(()=>{try{old.src.stop()}catch(e){}},1800)}
@@ -72,6 +75,6 @@ const SND=(()=>{
       const g=ctx.createGain();g.gain.value=0;const lfo=ctx.createOscillator();lfo.frequency.value=kind==='meer'?.13:.07;const lg=ctx.createGain();lg.gain.value=kind==='meer'?.35:.2;lfo.connect(lg);lg.connect(g.gain);lfo.start();
       src.connect(f);f.connect(g);g.connect(ambBus);src.start();a=amb[kind]={g,level:0};}
     const t=ctx.currentTime;a.g.gain.setTargetAtTime(Math.max(0,level)*.5,t,.6)}
-  function set(k,v){st[k]=v;save();if(!ctx)return;if(k==='on')master.gain.setTargetAtTime(v?1:0,ctx.currentTime,.05);if(k==='music')musicBus.gain.value=v;if(k==='sfx'){sfxBus.gain.value=v;ambBus.gain.value=v*.6}if(k==='voice')voiceBus.gain.value=v}
+  function set(k,v){st[k]=v;save();if(!ctx)return;if(k==='on')master.gain.setTargetAtTime(v?1:0,ctx.currentTime,.05);if(k==='music')musicBus.gain.value=v;if(k==='sfx'){sfxBus.gain.value=v;ambBus.gain.value=v*.6}if(k==='ui'&&uiBus)uiBus.gain.value=v;if(k==='voice')voiceBus.gain.value=v}
   return{init,play,music,jingle,duck,voice,ambience,set,get st(){return st},get ready(){return!!ctx},load};
 })();
