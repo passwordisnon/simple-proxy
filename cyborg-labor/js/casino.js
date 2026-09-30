@@ -82,6 +82,9 @@ const CASINO=(()=>{
     function cashOut(){if(!live)return;live=false;const got=Math.floor(pot);win(got);SND.play('j_success');info.textContent='Eingestrichen: '+got+' Jetons. Du hast jetzt '+st().chips+'.';ui()}
     x.fillStyle='#2E6A4E';x.fillRect(0,0,440,220);info.textContent='Einsatz: 2 Jetons. Jede richtige Ansage macht den Topf 1,3-mal grösser (höchstens 5 Runden).';ui();draw(false)}
 
+  /* ---------- Greifautomat: 1 Jeton, manchmal ein Plüschtier ---------- */
+  function claw(){if(!bet(1))return;SND.play('select',{rate:.7});UI.toast('Der Greifer senkt sich …',1200);setTimeout(()=>{if(Math.random()<.22){const id=['k_furn_bear','k_furn_pillowBlue','k_furn_pillow','k_holiday_snowman-hat'].find(i=>findFurn(i)&&Math.random()<.6)||'k_furn_bear';
+      if(findFurn(id)&&bagAdd('furn',id)){SND.jingle('j_success');UI.toast('Erwischt! '+itemName('furn',id)+' ist jetzt in deiner Tasche.',2800);return}}SND.play('soft',{rate:.6});UI.toast('Knapp daneben! Das Plüschtier rutscht aus dem Greifer.',2200)},1300)}
   /* ---------- Innenraum ---------- */
   function machine(i){const u=INTERIOR.scene&&INTERIOR.scene.userData.casino;if(u)u.pull=.6}
   function slotModel(M,col){const g=new THREE.Group();B(g,.9,1.3,.7,.12,M.c(col,{gloss:.7}),[0,.65,0]);P(g,G.cy(.45,.45,.7,false),M.c(col,{gloss:.7}),[0,1.3,0],[PI/2,0,0],[1,1,1]);
@@ -90,27 +93,29 @@ const CASINO=(()=>{
     B(g,.7,.08,.3,.03,M.c('#FFFDF7'),[0,.72,.42]);const lv=grp(g,[.5,.9,0]);bt(lv,[0,0,0],[0,.5,0],.03,M.steel());S(lv,.08,M.c('#E8405A',{gloss:1}),[0,.55,0]);
     const bulbs=[];for(let i=0;i<7;i++){const a=PI*(i/6);const b=S(g,.045,M.glow('#FFE38A',1.6),[Math.cos(a)*.42,1.3+Math.sin(a)*.42,.36]);bulbs.push(b)}g.userData.bulbs=bulbs;g.userData.lever=lv;return g}
   function build(sc){const W=12,D=9,H=3.8;INTERIOR.makeRoom(sc,W,D,H,'streifen','teppich',{trim:'#C98A2B',windows:false});const A=INTERIOR.actions,Cl=INTERIOR.colliders;const M=makeMats({skin:'haut',color:0});
-    sc.traverse(o=>{if(o.isHemisphereLight){o.intensity=.55;o.color.set('#FFE6D8')}});
+    sc.traverse(o=>{if(o.isHemisphereLight){o.intensity=.72;o.color.set('#FFF0E6')}});{const L=new THREE.DirectionalLight('#FFE8D8',.28);L.position.set(2,7,6);sc.add(L)}
     /* Leuchtschrift */const neon=ctex('casino-neon',512,128,(x,w,h)=>{x.clearRect(0,0,w,h);x.font='bold 74px "Nunito","Trebuchet MS",sans-serif';x.textAlign='center';x.shadowColor='#FF6FA8';x.shadowBlur=24;x.fillStyle='#FFD2E6';x.fillText('Glücks-Salon',w/2,90)});
     const nm=new THREE.Mesh(new THREE.PlaneGeometry(4,1),new THREE.MeshBasicMaterial({map:neon,transparent:true,toneMapped:false,color:new THREE.Color(1.6,1.3,1.5)}));nm.position.set(0,3.05,-D/2+.03);nm.userData.noOutline=true;sc.add(nm);
-    /* Automaten links */const cols=['#FF8FB1','#56C6B6','#FFB84A'];const machines=[];cols.forEach((c,i)=>{const m=slotModel(M,c);m.position.set(-W/2+.8,0,-2.4+i*1.7);m.rotation.y=PI/2;sc.add(m);addOutlines(m);machines.push(m);Cl.push({x0:-W/2,x1:-W/2+1.3,z0:-2.4+i*1.7-.5,z1:-2.4+i*1.7+.5});
-      const stl=grp(sc,[-W/2+1.7,0,-2.4+i*1.7]);C(stl,.2,.2,.08,M.c('#E8405A',{gloss:.6}),[0,.62,0]);bt(stl,[0,0,0],[0,.6,0],.03,M.gold());C(stl,.18,.2,.04,M.gold(),[0,.02,0]);addOutlines(stl);
-      A.push({x:-W/2+1.9,z:-2.4+i*1.7,r:.9,label:'Spielautomat',act:slot})});
-    /* Glücksrad an der rechten Wand */const wg=grp(sc,[W/2-.25,2.1,-1],[0,-PI/2,0]);const disc=new THREE.Mesh(new THREE.CircleGeometry(1.1,48),new THREE.MeshBasicMaterial({map:wheelTex()}));disc.userData.noOutline=true;wg.add(disc);
-    P(wg,G.to(1.12,.07),M.gold(),[0,0,.02]);S(wg,.12,M.gold(),[0,0,.05]);P(wg,G.co(.14,.3),M.c('#E8405A',{gloss:.8}),[0,1.28,.08],[0,0,PI]);for(let i=0;i<16;i++){const a=i/16*TAU;S(wg,.04,M.glow('#FFE38A',1.4),[Math.cos(a)*1.22,Math.sin(a)*1.22,.04])}sc.userData.wheel=disc;
-    A.push({x:W/2-1.4,z:-1,r:1.2,label:'Glücksrad drehen',act:wheel});
+    /* Kenney Mini Arcade (CC0): Automaten, Glücksrad, Kasse, Greifautomat, Flipper */
+    const kp=(nm,x,z,ry,sc)=>{if(typeof KIT==='undefined'||!KIT.has('arcade',nm))return null;const bb=KIT.bounds('arcade',nm);const m=KIT.mesh('arcade',nm,KIT.ORIG);m.scale.setScalar(sc);m.position.set(-(bb[0]+bb[3])/2*sc,-bb[1]*sc,-(bb[2]+bb[5])/2*sc);const g=grp(sc0,[x,0,z],[0,ry,0]);g.add(m);return g};const sc0=sc;
+    const machines=[];for(let i=0;i<4;i++){const z=-3.1+i*1.45;const m=kp('gambling-machine',-W/2+.75,z,1.25,2.3)||(()=>{const q=slotModel(M,['#FF8FB1','#56C6B6','#FFB84A','#C6A9FF'][i]);q.position.set(-W/2+.8,0,z);q.rotation.y=PI/2;sc.add(q);addOutlines(q);return q})();machines.push(m);
+      Cl.push({x0:-W/2,x1:-W/2+1.4,z0:z-.55,z1:z+.55});const stl=grp(sc,[-W/2+1.75,0,z]);C(stl,.2,.2,.08,M.c('#E8405A',{gloss:.6}),[0,.62,0]);bt(stl,[0,0,0],[0,.6,0],.03,M.gold());C(stl,.18,.2,.04,M.gold(),[0,.02,0]);addOutlines(stl);
+      A.push({x:-W/2+1.95,z,r:.8,label:'Spielautomat',act:slot})}
+    kp('prize-wheel',W/2-.9,-1,-.95,3.3);Cl.push({x0:W/2-1.6,x1:W/2,z0:-2,z1:0});sc.userData.wheel=null;A.push({x:W/2-2.1,z:-1,r:1.2,label:'Glücksrad drehen',act:wheel});
+    kp('claw-machine',-W/2+1.2,-D/2+.95,0,2.3);kp('prizes',-W/2+3.2,-D/2+.45,0,2.1);Cl.push({x0:-W/2,x1:-W/2+4.2,z0:-D/2,z1:-D/2+1.8});A.push({x:-W/2+1.2,z:-D/2+2.3,r:1,label:'Greifautomat (1 Jeton)',act:claw});
+    kp('pinball',W/2-1.3,-D/2+1,0,2.3);kp('vending-machine',-W/2+.75,3.3,1.3,2.3);Cl.push({x0:W/2-2.1,x1:W/2,z0:-D/2,z1:-D/2+1.9},{x0:-W/2,x1:-W/2+1.4,z0:2.7,z1:3.9});
     /* Kartentisch mit Madame Jeton */const tb=grp(sc,[1.2,0,-3]);P(tb,G.cy(1.3,1.3,.12),M.c('#2E8A5E'),[0,.82,0],null,[1,1,.6]);P(tb,G.to(1.3,.08),Wd(M,'#8A5A44'),[0,.86,0],[PI/2,0,0],[1,.6,1]);C(tb,.25,.35,.8,Wd(M,'#8A5A44'),[0,.4,0]);
     for(let i=0;i<3;i++)B(tb,.26,.02,.36,.01,M.c(i===1?'#8E6BD1':'#FFFDF7'),[-.5+i*.5,.9,.3],[0,(i-1)*.2,0]);for(let i=0;i<5;i++)C(tb,.07,.07,.03,M.c(['#E8405A','#56C6B6','#FFD85A'][i%3]),[.8,.9+i*.032,-.2]);addOutlines(tb);Cl.push({x0:-.2,x1:2.6,z0:-3.9,z1:-2.2});
     try{const md=buildCreature(madame(),{q:HIGH?.65:.45,noShadow:!HIGH,blob:false,merge:true});md.scale.setScalar(CS);md.position.set(1.2,0,-4.0);sc.add(md);sc.userData.madame=md}catch(e){console.warn('Madame',e)}
     A.push({x:1.2,z:-1.6,r:1.2,label:'Höher oder Tiefer (Madame Jeton)',act:hilo});
-    /* Kasse vorne rechts */const k=grp(sc,[W/2-1.6,0,2.6]);B(k,1.6,1.0,.7,.06,Wd(M,'#8A5A44'),[0,.5,0]);B(k,1.7,.08,.8,.03,M.gold(),[0,1.04,0]);for(let i=0;i<4;i++)C(k,.08,.08,.04+i*.03,M.c(['#E8405A','#FFD85A'][i%2]),[-.5+i*.18,1.1+i*.015,0]);
-    const sg=ctex('casino-kasse',256,64,(x,w,h)=>{x.fillStyle='#3B3450';x.fillRect(0,0,w,h);x.fillStyle='#FFE38A';x.font='bold 36px "Nunito","Trebuchet MS",sans-serif';x.textAlign='center';x.fillText('KASSE',w/2,45)});
-    const sm=new THREE.Mesh(new THREE.PlaneGeometry(.9,.22),new THREE.MeshBasicMaterial({map:sg}));sm.position.set(0,.7,.36);sm.userData.noOutline=true;k.add(sm);addOutlines(k);Cl.push({x0:W/2-2.5,x1:W/2-.7,z0:2.2,z1:3});
+    /* Kasse vorne rechts (Kenney-Kassentheke) mit Schild */const kk=kp('cash-register',W/2-1.6,2.7,PI,2.1);if(!kk){const k=grp(sc,[W/2-1.6,0,2.6]);B(k,1.6,1.0,.7,.06,Wd(M,'#8A5A44'),[0,.5,0]);addOutlines(k)}
+    const sg=ctex('casino-kasse',256,64,(x,w,h)=>{x.fillStyle='#3B3450';x.beginPath();x.roundRect(0,0,w,h,16);x.fill();x.fillStyle='#FFE38A';x.font='bold 36px "Nunito","Trebuchet MS",sans-serif';x.textAlign='center';x.fillText('KASSE',w/2,45)});
+    const sm=new THREE.Mesh(new THREE.PlaneGeometry(1.1,.28),new THREE.MeshBasicMaterial({map:sg,transparent:true}));sm.position.set(W/2-1.6,.55,2.12);sm.rotation.y=0;sm.userData.noOutline=true;sc.add(sm);Cl.push({x0:W/2-2.7,x1:W/2-.5,z0:2.1,z1:3.3});
     A.push({x:W/2-1.6,z:1.6,r:1.1,label:'Jetons tauschen',act:cashier});
     /* Lampen, Pflanzen, Samtkordel */INTERIOR.lamp(sc,'steh',-W/2+.6,0,3.4,{col:'#FFC88A',i:1,d:7});INTERIOR.lamp(sc,'steh',W/2-.6,0,-3.9,{col:'#FFC88A',i:1,d:7});
     for(const x of[-1.4,1.4]){const p=grp(sc,[x,0,3.9]);bt(p,[0,0,0],[0,.9,0],.04,M.gold());S(p,.07,M.gold(),[0,.94,0])}{const rope=new THREE.CatmullRomCurve3([new V3(-1.4,.88,3.9),new V3(0,.6,3.9),new V3(1.4,.88,3.9)]);P(sc,new THREE.TubeGeometry(rope,16,.035,6),M.c('#C8284A'))}
     sc.userData.casino={machines,pull:0};return{W,D,camD:12}}
-  function frame(dt,t){const sc=INTERIOR.scene;if(!sc)return;const u=sc.userData.casino;if(u){u.pull=Math.max(0,u.pull-dt);u.machines.forEach((m,i)=>{m.userData.bulbs.forEach((b,k)=>{b.visible=((Math.floor(t*4)+k+i)%3)!==0});m.userData.lever.rotation.x=u.pull>0?Math.sin(u.pull/.6*PI)*.9:0})}
+  function frame(dt,t){const sc=INTERIOR.scene;if(!sc)return;const u=sc.userData.casino;if(u){u.pull=Math.max(0,u.pull-dt);u.machines.forEach((m,i)=>{(m.userData.bulbs||[]).forEach((b,k)=>{b.visible=((Math.floor(t*4)+k+i)%3)!==0});if(m.userData.lever)m.userData.lever.rotation.x=u.pull>0?Math.sin(u.pull/.6*PI)*.9:0})}
     const md=sc.userData.madame;if(md&&md.userData.tick)md.userData.tick(t,false,UI.typing?.4:0)}
   function enter(){INTERIOR.enter('casino');const c=st();setTimeout(()=>{if(!c.greeted){c.greeted=true;persist();say(['Bienvenue im Glücks-Salon, Schätzchen! Ich bin Madame Jeton.','An der Kasse tauschst du Taler in Jetons – höchstens '+DAYMAX+' pro Tag, damit es ein Spass bleibt.','Und denk dran: Die Bank gewinnt auf Dauer ein kleines bisschen.'])}},900)}
   if(typeof INTERIOR!=='undefined')INTERIOR.kinds.casino={bg:'#2A1E34',music:'museum',build,frame};
