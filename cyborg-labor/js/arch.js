@@ -190,10 +190,10 @@ const ARCH=(()=>{
     frost:{museum:['eispalast',{}],shop:['igludorf',{}],bar:['blockhaus',{}],studio:['jurte',{}],rathaus:['observatorium',{}],garage:['blockhaus',{}],pflanzen:['iglu',{}],tiere:['jurte',{}]},
     wueste:{museum:['karawanserei',{}],shop:['zelt',{}],bar:['zwiebel',{}],studio:['felsen',{}],rathaus:['windturm',{}],garage:['terrassen',{floors:2}],pflanzen:['zelt',{}],tiere:['terrassen',{floors:3}]},
     pilz:{museum:['stumpf',{}],shop:['pilzhaus',{}],bar:['wurzel',{}],studio:['glocke',{}],rathaus:['sporenturm',{}],garage:['doppelpilz',{}],pflanzen:['glocke',{}],tiere:['pilzhaus',{}]}};
-  function make(pid,recipe,seed,o){const set=REC[pid]||REC.kompost;const f=set[recipe]||Object.values(set)[0];const r=srand(seed);let res;try{res=f(makeMatsCached(),r,o||{})}catch(e){console.warn('Arch',pid,recipe,e);const g=new THREE.Group();P(g,G.bx(3,2.4,3,.3),makeMatsCached().c('#FFE3B8'),[0,1.2,0]);res={g,door:[0,2.4],r:2.4,top:2.4}}return res}
+  function make(pid,recipe,seed,o){const set=PT(REC,pid);const f=set[recipe]||Object.values(set)[0];const r=srand(seed);let res;try{res=f(makeMatsCached(),r,o||{})}catch(e){console.warn('Arch',pid,recipe,e);const g=new THREE.Group();P(g,G.bx(3,2.4,3,.3),makeMatsCached().c('#FFE3B8'),[0,1.2,0]);res={g,door:[0,2.4],r:2.4,top:2.4}}return res}
   let MM=null;const makeMatsCached=()=>MM||(MM=makeMats({skin:'haut',color:0}));
-  function recipes(pid){return Object.keys(REC[pid]||REC.kompost)}
-  function forTown(pid,kind){const e=(TOWNMAP[pid]||TOWNMAP.kompost)[kind];if(!e)return null;return make(pid,e[0],hashNum(pid+kind),e[1])}
+  function recipes(pid){return Object.keys(PT(REC,pid))}
+  function forTown(pid,kind){const e=PT(TOWNMAP,pid)[kind];if(!e)return null;return make(pid,e[0],hashNum(pid+kind),e[1])}
   function forHouse(pid,seed){const list=recipes(pid);const r=srand(seed);const rec=list[Math.floor(r()*list.length)];return Object.assign(make(pid,rec,seed+7,{}),{recipe:rec})}
   const hashNum=s=>{let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return(h>>>0)%1000003};
   return{make,forTown,forHouse,recipes,REC,TOWNMAP,hashNum,lantern,stairs}

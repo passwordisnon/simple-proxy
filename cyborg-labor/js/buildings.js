@@ -217,6 +217,6 @@ const BUILDINGS=(()=>{
   /* ================= Raketen-Garage ================= */
   function garage(){if(typeof ROCKET!=='undefined')ROCKET.customize();else UI.toast('Die Garage wird gerade eingerichtet.')}
   function enter(k){INTERIOR.enter(k)}
-  return{enter,plants,plantHere,pets,garage,onPlanet,drinks}
+  return{enter,plants,plantHere,pets,garage,onPlanet,drinks,WALL,FLOOR,MAYORS,LORE}
 })();
 function B2(g,w,h,d,p,col){return P(g,G.bx(w,h,d,.05),makeMats({skin:'haut',color:0}).c(col),p)}

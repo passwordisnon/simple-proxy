@@ -80,6 +80,6 @@ const CLOTHES=(()=>{
   /* zufälliges, aber stimmiges Outfit (Bewohner:innen) */
   function random(r,pid){const o={col:{}};const pk=a=>a[Math.floor(r()*a.length)];const pool=pid&&PLANET[pid]?L.filter(x=>PLANET[pid].includes(x.id)||(r()<.1&&PARIS.includes(x.id))):L;const of=sl=>{const l=pool.filter(x=>x.slot===sl);return l.length?pk(l).id:null};if(r()<.7)o.hat=of('hat');if(r()<.75)o.top=of('top');if(r()<.45)o.neck=of('neck');if(r()<.25)o.face=of('face');for(const k of['hat','top','neck','face'])if(!o[k])delete o[k];
     const base=Math.floor(r()*SKIN_COLORS.length);for(const s of['hat','top','neck','face'])if(r()<.5)o.col[s]=(base+Math.floor(r()*3))%SKIN_COLORS.length;return o}
-  const forPlanet=pid=>L.filter(x=>(PLANET[pid]||PLANET.kompost).includes(x.id)||PARIS.includes(x.id));
+  const forPlanet=pid=>L.filter(x=>PT(PLANET,pid).includes(x.id)||PARIS.includes(x.id));
   return{SLOTS,LIST:L,find,dress,sanitize:sanitizeClothes,random,forPlanet,PLANET,PARIS}
 })();

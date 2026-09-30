@@ -13,7 +13,15 @@ const FAUNA=(()=>{
 
   /* ================= Tier-Baukasten =================
      Einheiten: Körper ~1 hoch, Blick nach +z. a = Aussehen. */
-  function buildAnimal(a,m){const g=new THREE.Group();const R={legs:[],ears:[],eyes:[],wings:[],fins:[],tail:null,head:null,body:null,gills:[]};
+  /* Bausatz-Tiere (z. B. Urzeit-Dinos von Quaternius): festes Modell, Bewegung durch Wiegen, Nicken und Hüpfen */
+  function kitAnimal(a){const g=new THREE.Group();const piv=new THREE.Group();g.add(piv);const[pack,name]=a.kit;const b=KIT.bounds(pack,name);
+    const mm=KIT.mesh(pack,name,a.pal||KIT.ORIG);if(!mm){P(piv,G.s(.4),M.c(a.col||'#8FD06B'),[0,.4,0]);return g}const h=b[4]-b[1];const k=(a.h||1)/h;mm.scale.setScalar(k);mm.position.set(-(b[0]+b[3])/2*k,-b[1]*k,-(b[2]+b[5])/2*k);piv.add(mm);
+    g.userData.R={legs:[],ears:[],eyes:[],wings:[],fins:[],tail:null,head:null,body:piv,by:0,gills:[]};
+    g.userData.tick=(t,moving,act,mode)=>{const sp=a.gaitSpeed||7;if(mode==='sleep'){piv.rotation.set(0,0,.08);piv.scale.set(1,.92+Math.sin(t*1.5)*.02,1);piv.position.y=0;return}
+      piv.scale.set(1,1,1);if(moving){piv.position.y=Math.abs(Math.sin(t*sp))*.06*(a.h||1);piv.rotation.z=Math.sin(t*sp)*.07;piv.rotation.x=Math.sin(t*sp*2)*.025}
+      else{piv.position.y=mode==='happy'?Math.abs(Math.sin(t*8))*.12:0;piv.rotation.z=Math.sin(t*1.2)*.02;piv.rotation.x=(mode==='eat'?.18+Math.sin(t*6)*.06:Math.sin(t*.9)*.03)}};
+    return g}
+  function buildAnimal(a,m){if(a.kit)return kitAnimal(a);const g=new THREE.Group();const R={legs:[],ears:[],eyes:[],wings:[],fins:[],tail:null,head:null,body:null,gills:[]};
     const col=a.col,bel=a.belly||shade(col,1.25),dark=shade(col,.62);const cm=m.c(col,{rim:.55,rimColor:a.rimCol||'#fff6ec'}),bm=m.c(bel,{rim:.4}),dm=m.c(a.dark||dark);
     const [rx,ry,rz]=a.body||[.42,.36,.5];const by=a.by??(a.legs&&a.legs.n?(a.legs.len||.2)+ry*.8:ry*.9);
     const body=grp(g,[0,by,0]);R.body=body;R.by=by;

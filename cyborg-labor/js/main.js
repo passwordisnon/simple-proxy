@@ -16,7 +16,7 @@ const MAIN=(()=>{
   /* GTA-artig: das Handy gleitet unten rechts hoch, das Spiel läuft weiter; Pfeiltasten + Enter, Esc/Tab/Rücktaste steckt es weg */
   let phoneEl=null;
   function phone(){if(phoneEl){phoneEl.close();return}TUT.ev('phone');const ph=el('div','phone gta');ph.setAttribute('role','dialog');ph.setAttribute('aria-label','Cy-Phone');
-    const pid=(GAME.G&&GAME.G.id)||'kompost';const WP={kompost:['#9FE08A','#6FC4E8'],schrott:['#B9A8E8','#6FE3C8'],korallen:['#7FE0F0','#FFD9A0'],frost:['#CFE3FF','#9FB0F0'],wueste:['#FFD39A','#F08A6A'],pilz:['#B89AE8','#F2A8D0']}[pid]||['#C9E5FF','#FFC7D8'];
+    const pid=(GAME.G&&GAME.G.id)||'kompost';const WP={kompost:['#9FE08A','#6FC4E8'],schrott:['#B9A8E8','#6FE3C8'],korallen:['#7FE0F0','#FFD9A0'],frost:['#CFE3FF','#9FB0F0'],wueste:['#FFD39A','#F08A6A'],pilz:['#B89AE8','#F2A8D0']}[pid]||PLANETS[pid]&&PLANETS[pid].phone||['#C9E5FF','#FFC7D8'];
     const scr=el('div','ph-scr');scr.style.background=`linear-gradient(165deg,${WP[0]},${WP[1]})`;const notch=el('div','ph-notch');
     const bar=el('div','ph-bar');const tm=el('span','ph-time',GAMETIME.str());bar.append(tm,el('span','ph-sig','●●●● '+(GAME.G&&GAME.G.def?GAME.G.def.n.split('-')[0]:'')),el('span',null,fmt(SAVE.money)+' T'));
     const clock=el('div','ph-clock');clock.append(el('b',null,GAMETIME.str()),el('span',null,(GAME.G&&GAME.G.def?GAME.G.def.n:'')));

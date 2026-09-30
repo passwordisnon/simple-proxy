@@ -44,6 +44,7 @@ const LANG=(()=>{
     else if(st.kind==='wave'){x.beginPath();x.arc(0,0,s*(.25+r()*.15),r()*TAU,r()*TAU+PI*(1+r()));x.stroke();if(r()<.7){x.beginPath();x.moveTo(-s*.35,s*.3);x.quadraticCurveTo(0,s*(r()-.2),s*.35,s*.3);x.stroke()}x.beginPath();x.arc(R()*.6,-s*.35,s*.06,0,TAU);x.fill()}
     else if(st.kind==='rune'){x.beginPath();x.moveTo(0,-s*.45);x.lineTo(0,s*.45);x.stroke();for(let i=0;i<2;i++){const y=(r()-.5)*s*.7;x.beginPath();x.moveTo(0,y);x.lineTo((r()<.5?-1:1)*s*.3,y+(r()-.5)*s*.4);x.stroke()}}
     else if(st.kind==='glyph'){const k=Math.floor(r()*4);x.beginPath();if(k===0){x.ellipse(0,-s*.1,s*.2,s*.28,0,0,TAU)}else if(k===1){x.moveTo(-s*.3,s*.35);x.lineTo(0,-s*.4);x.lineTo(s*.3,s*.35)}else if(k===2){x.moveTo(-s*.3,-s*.3);x.lineTo(s*.3,-s*.3);x.moveTo(0,-s*.3);x.lineTo(0,s*.4)}else{x.arc(0,0,s*.3,PI,0)}x.stroke();x.beginPath();x.moveTo(-s*.35,s*.42);x.lineTo(s*.35,s*.42);x.stroke()}
+    else if(st.draw)st.draw(x,s,r,R);
     else{/* spore */for(let i=0;i<3;i++){x.beginPath();x.arc(R()*.8,R()*.8,s*(.07+r()*.1),0,TAU);i===0?x.stroke():x.fill()}x.beginPath();x.moveTo(R()*.6,-s*.4);x.bezierCurveTo(R(),0,R(),0,R()*.6,s*.4);x.stroke()}
     x.restore()}
   /* Schild-Textur: Planetenschrift in eigener Farbe (Kompost: normale Schrift) */
@@ -69,7 +70,7 @@ const LANG=(()=>{
     const halo=P(g,G.s(.08),m.glow(st.glow,2),[0,2.7,0]);g.userData.tick=t=>{pl.material.opacity=.6+.4*Math.sin(t*2);/* pl2 teilt das Material */halo.position.y=2.7+Math.sin(t*1.5)*.08};return g}
   /* Ruine um den Wortstein: Säulenring, Mauerreste, Trümmer, Altar, Statuenkopf (Kenney Graveyard/Castle/Nature) */
   const RSTONE={schrott:'#8C93A8',korallen:'#E8D2BC',frost:'#C8D8F0',wueste:'#E0B888',pilz:'#A890C8'};
-  function ruin(pid,seed,R){const g=new THREE.Group();const cols=[];if(typeof KIT==='undefined')return{g,cols};const r=srand(seed%2147483646+1);const sc=RSTONE[pid]||'#A8A4B8';
+  function ruin(pid,seed,R){const g=new THREE.Group();const cols=[];if(typeof KIT==='undefined')return{g,cols};const r=srand(seed%2147483646+1);const sc=PT(RSTONE,pid,'#A8A4B8');
     const dk=(h,k)=>'#'+new THREE.Color(h).multiplyScalar(k).getHexString();
     const pal={stone:sc,wall:sc,trim:dk(sc,1.08),sand:sc,sandD:dk(sc,.9),metal:dk(sc,.8),metalD:dk(sc,.65),dark:'#4a3f5e',plant:'#7CC46A',plantD:'#5AA85A',wood:'#9C7A5A',woodL:'#B08A66',wood2:'#7A5A44',roof:dk(sc,.85),roofB:dk(sc,.85),roof2:dk(sc,.85),light:STYLE[pid].glow,glass:STYLE[pid].glow,line:'#4a3a5e'};
     const sag=(x,z)=>-(x*x+z*z)/(2*R);
@@ -86,5 +87,5 @@ const LANG=(()=>{
     if(r()<.7){const a=r()*TAU;const x=Math.cos(a)*(RR+1.6),z=Math.sin(a)*(RR+1.6);add('nature','statue_head',x,z,-a-PI/2,S*1.4);cols.push([x,z,.9])}
     if(r()<.5){const a=r()*TAU;const x=Math.cos(a)*(RR+1.2),z=Math.sin(a)*(RR+1.2);add('nature','statue_obelisk',x,z,r()*6,S*1.5);cols.push([x,z,.4])}
     return{g,cols}}
-  return{ruin,STYLE,VOCAB,has,alien,garble,frac,learn,known,knows,bonus,signTex,read,stone,stoneModel,glyph}
+  return{ruin,STYLE,RSTONE,VOCAB,has,alien,garble,frac,learn,known,knows,bonus,signTex,read,stone,stoneModel,glyph}
 })();

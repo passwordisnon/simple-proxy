@@ -452,3 +452,7 @@ const GAMETIME=(()=>{const SPEED=60;/* Spielsekunden pro echte Sekunde */let bas
   function skip(toH){const b=t0();b.game=toH*3600;b.real=Date.now();save()}
   const str=()=>{const s=secs();return String(Math.floor(s/3600)).padStart(2,'0')+':'+String(Math.floor(s/60)%60).padStart(2,'0')};
   setInterval(save,15000);return{hour,str,skip,SPEED}})();
+/* Planeten-Grundgerüst: jeder Planet kann in jeder Tabelle eigene Einträge haben; fehlt einer, gilt der seines Vorbild-Planeten (base), sonst Kompost */
+function PB(pid){const d=typeof PLANETS!=='undefined'&&PLANETS[pid];return d&&d.base||pid}
+function PT(T,pid,dflt){if(!T)return dflt;if(T[pid]!==undefined)return T[pid];const b=PB(pid);if(T[b]!==undefined)return T[b];return dflt!==undefined?dflt:T.kompost}
+function hashNum(s){let h=2166136261;s=String(s);for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return(h>>>0)%1000003}

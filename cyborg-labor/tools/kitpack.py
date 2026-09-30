@@ -129,6 +129,35 @@ def piece(path):
     for ni in scene['nodes']: walk(ni, I4)
     return P, C, I
 
+def piece_obj(path):
+    """Wavefront OBJ + MTL (Quaternius): Farbe je Material aus Kd."""
+    mats = {}; cur = None
+    mtl = os.path.splitext(path)[0] + '.mtl'
+    if os.path.exists(mtl):
+        for ln in open(mtl, errors='ignore'):
+            t = ln.split()
+            if not t: continue
+            if t[0] == 'newmtl': cur = ' '.join(t[1:]); mats[cur] = (.8, .8, .8)
+            elif t[0] == 'Kd' and cur:
+                c = tuple(lin2srgb(float(x)) for x in t[1:4])
+                # graue Platzhalter für Textur-Materialien: Farbe aus dem Namen
+                low = cur.lower(); hint = next((v for k, v in (('leaf', (.42, .72, .36)), ('green', (.48, .76, .4)), ('grass', (.5, .78, .4)), ('moss', (.45, .7, .38))) if k in low), None)
+                if hint and max(c) - min(c) < .05: c = hint
+                mats[cur] = c
+    V = []; P = []; C = []; I = []; col = (.8, .8, .8)
+    for ln in open(path, errors='ignore'):
+        t = ln.split()
+        if not t: continue
+        if t[0] == 'v': V.append(tuple(float(x) for x in t[1:4]))
+        elif t[0] == 'usemtl': col = mats.get(' '.join(t[1:]), (.8, .8, .8))
+        elif t[0] == 'f':
+            ids = [int(x.split('/')[0]) for x in t[1:]]
+            ids = [i - 1 if i > 0 else len(V) + i for i in ids]
+            base = len(P)
+            for i in ids: P.append(V[i]); C.append(col)
+            for k in range(1, len(ids) - 1): I.extend((base, base + k, base + k + 1))
+    return P, C, I
+
 def pack(P, C, I):
     # palette: quantise colours, then tag roles
     pal = []; pidx = []; look = {}
@@ -153,11 +182,11 @@ def main():
         path = None
         for root, _, files in os.walk(kit):
             for f in files:
-                if os.path.splitext(f)[0] == n and f.endswith(('.glb', '.gltf')):
+                if os.path.splitext(f)[0] == n and f.endswith(('.glb', '.gltf', '.obj')):
                     path = os.path.join(root, f); break
             if path: break
         if not path: print('missing', n, file=sys.stderr); continue
-        res[n] = pack(*piece(path))
+        res[n] = pack(*(piece_obj(path) if path.endswith('.obj') else piece(path)))
     json.dump(res, open(out, 'w'), separators=(',', ':'))
     print(out, len(res), 'pieces', os.path.getsize(out)//1024, 'KB')
 

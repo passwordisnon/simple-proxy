@@ -18,7 +18,7 @@ const SPACEFX=(()=>{
     frost:{deep:'#4A86C8',water:'#8FD0F0',shore:'#F4F8FF',land:'#D8E6FA',land2:'#B4CCEE',high:'#8FB0E0',cap:'#F4F8FF',atmo:'#CFE0FF',cloud:.5,sea:.42,capA:.55,freq:2.4},
     wueste:{deep:'#2E8EAE',water:'#5FD0D8',shore:'#FFE3B0',land:'#F7CB90',land2:'#E8A870',high:'#C9784E',cap:'#FFF3E0',atmo:'#FFD6A8',cloud:.3,sea:.3,capA:.92,freq:2.0,dunes:1},
     pilz:{deep:'#3A8E9A',water:'#7FDCC8',shore:'#E6D4F6',land:'#9482C4',land2:'#C08ED2',high:'#F4B8D8',cap:'#FDE8F6',atmo:'#F4B8D8',cloud:.35,sea:.42,capA:.9,freq:2.8}};
-  const pal=pid=>PAL[pid]||PAL.kompost;
+  const pal=pid=>PLANETS[pid]&&PLANETS[pid].space||PT(PAL,pid);
 
   /* ---------- Gemalter Himmel: Farbverlauf + Nebel ---------- */
   function sky(){const m=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,uniforms:{uT:{value:0},cTop:{value:lin('#3A2F86')},cMid:{value:lin('#5B4AA8')},cBot:{value:lin('#243066')},n1:{value:lin('#E07AB8')},n2:{value:lin('#5FD0D8')},n3:{value:lin('#9A7AE8')},n4:{value:lin('#FFB38A')}},

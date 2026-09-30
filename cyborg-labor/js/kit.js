@@ -36,14 +36,14 @@ const KIT=(()=>{
   /* Bausätze mit Ursprung in der Kachelecke auf die Mitte schieben */const SHIFT={space:[-2,0,-1.5]};
   const has=(pack,name)=>!!(packs[pack]&&packs[pack][name.split('#')[0]]);
   const geoCache=new Map();
-  function palKey(pal){return Object.keys(pal).sort().map(k=>k+pal[k]).join('')}
+  function palKey(pal){return Object.keys(pal).sort().map(k=>k+(typeof pal[k]==='object'?JSON.stringify(pal[k]):pal[k])).join('')}
   /* Geometrie mit Rollenfarben; flache Normalen für die Fläche, weiche Normalen für die Konturhülle */
   /* Namenszusatz '#cap': nur Dreiecke oberhalb der Stiel-Höhe (Pilzhut ohne Stiel) */
   function geo(pack,name0,pal){const[name,mod]=name0.split('#');const P0=packs[pack]&&packs[pack][name];if(!P0)return null;const key=pack+'/'+name0+'/'+palKey(pal);if(geoCache.has(key))return geoCache.get(key);
     let P=P0;if(mod==='cap'){const I=[];for(let t=0;t<P0.i.length;t+=3){const ys=[P0.i[t],P0.i[t+1],P0.i[t+2]].map(v=>P0.p[v*3+1]/1000);if(Math.max(...ys)>.03)I.push(P0.i[t],P0.i[t+1],P0.i[t+2])}P=Object.assign({},P0,{i:I})}
     const n=P.p.length/3;const pos=new Float32Array(n*3);for(let i=0;i<n*3;i++)pos[i]=P.p[i]/1000;
     /* pal==='orig': Originalfarben des Bausatzes behalten (Natur-Bausatz ist schon pastellig) */
-    const cols=pal.orig?P.pal.map(p=>{const c=new THREE.Color(p[0]);c.offsetHSL(0,-.04,-.02);return[c.r,c.g,c.b]}):P.cls.map(({role,shade})=>{const c=new THREE.Color(pal[role]||BASE[role]||'#ff00ff');return[c.r*shade,c.g*shade,c.b*shade]});
+    const cols=pal.byHex?P.pal.map(p=>{const c=new THREE.Color(pal.byHex[p[0]]||p[0]);return[c.r,c.g,c.b]}):pal.orig?P.pal.map(p=>{const c=new THREE.Color(p[0]);c.offsetHSL(0,-.04,-.02);return[c.r,c.g,c.b]}):P.cls.map(({role,shade})=>{const c=new THREE.Color(pal[role]||BASE[role]||'#ff00ff');return[c.r*shade,c.g*shade,c.b*shade]});
     const col=new Float32Array(n*3);for(let i=0;i<n;i++){const c=cols[P.c[i]];col[i*3]=Math.min(1,c[0]);col[i*3+1]=Math.min(1,c[1]);col[i*3+2]=Math.min(1,c[2])}
     let g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setAttribute('color',new THREE.BufferAttribute(col,3));g.setIndex(P.i);
     g=g.toNonIndexed();g.computeVertexNormals();g.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(g.attributes.position.count*2),2));

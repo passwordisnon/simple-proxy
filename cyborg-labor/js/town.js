@@ -67,7 +67,7 @@ const TOWN=(()=>{
     else if(pid==='pilz'){at(-L,Z,q=>{for(let i=0;i<3;i++){const s=.14+i*.06;const qq=grp(q,[(i-1)*.25,0,(i%2)*.15]);C(qq,s*.35,s*.45,s*2.2,m.c('#FFF1DA'),[0,s*1.1,0]);P(qq,G.hs(s*1.1),m.c(['#E8505B','#8E6BD1','#F7B84B'][i],{gloss:.7}),[0,s*2.2,0],null,[1,.7,1])}});at(L,Z,q=>{range(4,(t,i)=>{bt(q,[0,0,0],[Math.cos(i*1.6)*.2,.6+i*.1,Math.sin(i*1.6)*.2],.02,m.c('#6DAE55'));S(q,.07,m.glow('#7FFFD4',2),[Math.cos(i*1.6)*.2,.62+i*.1,Math.sin(i*1.6)*.2])})});
       for(const sd of[-1,1])tu(g,range(6,t=>[sd*(W/2+.04),.3+t*2,D/2-.3+Math.sin(t*7)*.2]),.03,m.c('#5E9B4A'))}}
   /* ---------- Gebäude ---------- */
-  function base(pid,kind,m,dims){const st=STY[pid]||STY.kompost;const r=srand(parseInt(hashStr(pid+kind).slice(0,6),36));const wc=st.walls[Math.floor(r()*st.walls.length)],rc=st.roofs[Math.floor(r()*st.roofs.length)];
+  function base(pid,kind,m,dims){const st=PT(STY,pid);const r=srand(parseInt(hashStr(pid+kind).slice(0,6),36));const wc=st.walls[Math.floor(r()*st.walls.length)],rc=st.roofs[Math.floor(r()*st.roofs.length)];
     const g=new THREE.Group();const[W,D,H]=dims;const top=shell(g,m,st,W,D,H,wc);return{g,st,r,wc,rc,W,D,H,top}}
   const B_={
     museum(pid,m){const b=base(pid,'museum',m,[6.8,4.6,3.3]);const{g,st,W,D,H,top}=b;const ry=roof(g,m,st,W,D,top,b.rc);const dp=door(g,m,st,0,D);
@@ -127,7 +127,7 @@ const TOWN=(()=>{
       const bone=grp(g,[-W/2-.5,.05,zf(D)+.4]);C(bone,.05,.05,.4,m.c('#FFFBF0'),[0,.05,0],[0,0,PI/2]);for(const x of[-1,1])for(const z of[-1,1])S(bone,.07,m.c('#FFFBF0'),[x*.2,.05,z*.05]);
       sign(g,m,st,pid,'tiere',NAMES[pid].tiere,W,D,top-.35,{bd:'#FFB27A'});planetDeco(g,m,st,pid,W,D,b.r);return finish(g,[1.1,0,zf(D)+1.2],Math.max(W,D)*.62,'tiere')}};
   /* Neu: Grundform aus dem Architektur-Generator (je Planet eigene Bauformen), dazu frei stehendes Schild und Vorplatz-Deko je Gebäudeart */
-  function yardSign(g,m,pid,kind,text,x,z){const st=STY[pid]||STY.kompost;const q=grp(g,[x,0,z],[0,x>0?-.35:.35,0]);for(const sx of[-.75,.75])C(q,.06,.07,1.5,Wd(m,'#8A5A44'),[sx,.75,0]);
+  function yardSign(g,m,pid,kind,text,x,z){const st=PT(STY,pid);const q=grp(g,[x,0,z],[0,x>0?-.35:.35,0]);for(const sx of[-.75,.75])C(q,.06,.07,1.5,Wd(m,'#8A5A44'),[sx,.75,0]);
     const lt=typeof LANG!=='undefined'?LANG.signTex(pid,'ys-'+kind,text,{h:.6/Math.min(2.6,Math.max(1.6,text.length*.13))}):null;
     signBoard(q,m,'ys-'+pid+'-'+kind,text,Math.min(2.6,Math.max(1.6,text.length*.13)),.6,[0,1.45,.02],{board:m.c(st.trim),bg:'#FFFBF0',fg:'#5B4A3E',bd:st.roofs[0],tex:lt})}
   function yard(g,m,pid,kind,dx,dz,r,ticks){const at=(x,z,f,ry)=>{const q=grp(g,[x,0,z],[0,ry||0,0]);f(q);return q};const L=dx-2.2,Rr=dx+2.2,Z=dz-.2;
@@ -136,7 +136,7 @@ const TOWN=(()=>{
     else if(kind==='bar'){for(const x of[L,Rr])C(g,.05,.06,2.8,m.c('#3B3450'),[x,1.4,Z+.6]);const lm=[m.glow('#FFE27A',2),m.glow('#FF8FB8',2),m.glow('#7FDCE6',2)];P(g,G.tu(range(9,t=>[L+t*(Rr-L),2.6-Math.sin(t*PI)*.4,Z+.6]),.012),m.c('#3B3450'));range(9,(t,i)=>S(g,.07,lm[i%3],[L+t*(Rr-L),2.55-Math.sin(t*PI)*.4,Z+.6]));
       at(L+.4,Z-.4,q=>{C(q,.35,.35,.05,m.c('#3B3450'),[0,.75,0]);C(q,.05,.05,.74,m.steel(),[0,.37,0]);S(q,.05,m.glow('#FFD27A',2),[0,.85,0])});const ns=at(Rr-.2,Z-.6,q=>{C(q,.05,.05,2.2,m.steel(),[0,1.1,0]);B(q,1.6,.5,.1,.06,m.c('#3B3450'),[0,2.2,0]);decal(q,m,signTex('barneon-'+pid,NAMES[pid].bar,{bg:'#3B3450',fg:'#FFE27A',bd:'#FF6FB0',glow:'#FF6FB0',w:512,h:160}),'bn-'+pid,1.5,.45,[0,2.2,.06],null,true)})}
     else if(kind==='studio'){at(Rr,Z,q=>{for(const x of[-1,1])bt(q,[x*.3,0,0],[x*.12,1.5,-.1],.03,Wd(m,PAL.wood));bt(q,[0,0,-.45],[0,1.4,-.1],.03,Wd(m,PAL.wood));B(q,.7,.55,.04,.02,m.c('#FFFBF0'),[0,1.05,-.02],[-.12,0,0]);for(let i=0;i<4;i++)S(q,.05,m.c(['#F0556E','#56C6B6','#FFE27A','#8E6BD1'][i]),[-.2+i*.13,1.08+(i%2)*.1,.02])},-.4);at(L,Z,q=>{for(let i=0;i<3;i++)C(q,.14,.14,.26,m.c(['#F0556E','#56C6B6','#FFE27A'][i],{gloss:.6}),[i*.32-.32,.13,0])})}
-    else if(kind==='rathaus'){for(const[x,c]of[[L,'#F0556E'],[Rr,(STY[pid]||STY.kompost).roofs[0]]]){const f=flagOn(grp(g,[x,0,Z]),m,[0,0,0],c);g.children[g.children.length-1].scale.setScalar(2.6);ticks.push(f)}at(dx,dz+.8,q=>{for(let i=0;i<2;i++)B(q,2.2-i*.4,.14,.5,.03,m.c('#BDB6C8'),[0,.07+i*.14,-i*.3])})}
+    else if(kind==='rathaus'){for(const[x,c]of[[L,'#F0556E'],[Rr,PT(STY,pid).roofs[0]]]){const f=flagOn(grp(g,[x,0,Z]),m,[0,0,0],c);g.children[g.children.length-1].scale.setScalar(2.6);ticks.push(f)}at(dx,dz+.8,q=>{for(let i=0;i<2;i++)B(q,2.2-i*.4,.14,.5,.03,m.c('#BDB6C8'),[0,.07+i*.14,-i*.3])})}
     else if(kind==='garage'){at(L-.3,Z-.4,q=>{C(q,.7,.8,.1,m.c(PAL.slate),[0,.05,0]);const rk=typeof ROCKET!=='undefined'?ROCKET.build(ROCKET.spec(),m):null;if(rk){rk.scale.setScalar(.55);rk.position.y=.1;q.add(rk)}});at(Rr,Z,q=>{for(let i=0;i<3;i++)P(q,G.to(.28,.12),m.rubber(),[0,.12+i*.24,0],[PI/2,0,0])});at(Rr+.9,Z-.6,q=>{B(q,.5,1.2,.4,.06,m.c('#F0556E',{gloss:.6}),[0,.6,0]);B(q,.3,.3,.05,.02,m.c('#FFFBF0'),[0,.9,.21]);P(q,G.tu([[.25,.6,0],[.5,.4,.2],[.45,0,.3]],.03),m.c('#3B3450'))})}
     else if(kind==='pflanzen'){for(let i=0;i<5;i++){at(dx-2.4+i*1.2,Z+.3,q=>{C(q,.22,.16,.34,m.c(PAL.terracotta),[0,.17,0]);S(q,.24,m.c('#6DAE55',{rim:.6}),[0,.5,0],[1,.8,1]);for(let j=0;j<3;j++)S(q,.07,m.c(['#FF8FB8','#FFE27A','#C6A9FF','#FF7E6B','#7FDCE6'][(i+j)%5]),[Math.cos(j*2.1)*.16,.64,Math.sin(j*2.1)*.16])})}at(Rr+.4,Z-.8,q=>{B(q,1.2,.35,.7,.04,Wd(m,'#C98C5A'),[0,.18,0]);B(q,1.1,.08,.6,.02,m.c('#8A5E42'),[0,.36,0]);for(let i=0;i<4;i++)S(q,.1,m.c('#7CC46A'),[-.4+i*.27,.45,0])})}
     else if(kind==='tiere'){at(Rr,Z-.3,q=>{B(q,.9,.7,.8,.06,Wd(m,'#E0876A'),[0,.35,0]);const s2=new THREE.Shape();s2.moveTo(-.55,0);s2.lineTo(.55,0);s2.lineTo(0,.45);s2.closePath();P(q,new THREE.ExtrudeGeometry(s2,{depth:.95,bevelEnabled:false}),m.c('#8E6BD1'),[0,.7,-.475]);P(q,G.puff(archShape(.4,.45,.2),.04),m.c('#3B3450'),[0,0,.41])},-.5);
@@ -146,10 +146,10 @@ const TOWN=(()=>{
   function build(kind,pid,m){if(kind==='rocket')return null;
     /* Bausatz-Gebäude (einzigartig je Planet und Art, sauber geprüft) */
     if(typeof HAUS!=='undefined'&&HAUS.ready&&kind!=='plaza'){try{const U=1.9;const res=HAUS.civic(pid,kind,{sagR:(GAME.G.R+.8)/U});const g=new THREE.Group();const w=new THREE.Group();w.rotation.y=PI;w.scale.setScalar(U);w.add(res.g);g.add(w);
-      const rot=(x,z)=>[-x*U,-z*U];const[dx,dz]=rot(res.door[0],res.door[1]);const nm=(NAMES[pid]||NAMES.kompost)[kind]||kind;
+      const rot=(x,z)=>[-x*U,-z*U];const[dx,dz]=rot(res.door[0],res.door[1]);const nm=PT(NAMES,pid)[kind]||kind;
       if(res.sign){const[sx,sz]=rot(res.sign[0],res.sign[1]);yardSign(g,m,pid,kind,nm,sx,sz);g.userData.signPos=[sx,sz];g.userData.signText=nm+'. '+(SIGNTXT[kind]||'Willkommen!')}
       finish(g,[dx,0,dz],res.bodyR*U,kind,[]);Object.assign(g.userData,{name:nm,doorExact:true,obstR:.3,colliders:res.colliders.map(c=>[...rot(c[0],c[1]),c[2]*U]),style:res.style});return g}catch(e){console.warn('Bausatz-Gebäude',kind,e)}}QF=Math.min(QF||1,HIGH?.7:.45);const res=ARCH.forTown(pid,kind);if(!res)return null;const g=new THREE.Group();g.add(res.g);const ticks=[];if(res.g.userData.tick){const t0=res.g.userData.tick;ticks.push(t0)}
-    const[dx,dz]=res.door;yardSign(g,m,pid,kind,(NAMES[pid]||NAMES.kompost)[kind]||kind,dx+(dx>0?-2.1:2.1),dz-.1);try{yard(g,m,pid,kind,dx,dz,res.r,ticks)}catch(e){console.warn('Vorplatz',kind,e)}
-    finish(g,[dx,0,dz],res.r,kind,ticks);g.userData.name=(NAMES[pid]||NAMES.kompost)[kind]||kind;return g}
+    const[dx,dz]=res.door;yardSign(g,m,pid,kind,PT(NAMES,pid)[kind]||kind,dx+(dx>0?-2.1:2.1),dz-.1);try{yard(g,m,pid,kind,dx,dz,res.r,ticks)}catch(e){console.warn('Vorplatz',kind,e)}
+    finish(g,[dx,0,dz],res.r,kind,ticks);g.userData.name=PT(NAMES,pid)[kind]||kind;return g}
   return{build,NAMES,STY,kinds:[...Object.keys(B_),'praxis','mode','casino']}
 })();

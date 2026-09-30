@@ -29,7 +29,7 @@ const WEATHER=(()=>{
     korallen:[['klar',3],['blasen',2],['regen',2],['gewitter',1]],frost:[['klar',2],['schnee',3],['sturm',1],['polar',2],['nebel',1]],
     wueste:[['klar',2],['hitze',3],['sand',2],['regen',.5]],pilz:[['sporen',3],['nebel',2],['klar',1],['regen',1]]};
   let W=null;
-  function pickNext(pid,cur){const L=PLAN[pid]||PLAN.kompost;let tot=0;for(const[k,w]of L)if(k!==cur)tot+=w;let r=Math.random()*tot;for(const[k,w]of L){if(k===cur)continue;r-=w;if(r<=0)return k}return L[0][0]}
+  function pickNext(pid,cur){const L=PT(PLAN,pid);let tot=0;for(const[k,w]of L)if(k!==cur)tot+=w;let r=Math.random()*tot;for(const[k,w]of L){if(k===cur)continue;r-=w;if(r<=0)return k}return L[0][0]}
   /* Partikel-Stile */
   const PS={regen:{col:'#CFE2FF',size:.16,fall:-9,side:.3,tex:'streak',n:900},schnee:{col:'#ffffff',size:.2,fall:-1.3,side:.6,tex:'dot',n:900},sand:{col:'#F2CFA0',size:.12,fall:-.3,side:2,tex:'dot',n:1100},
     sporen:{col:'#B8FFE8',size:.16,fall:-.5,side:.5,tex:'dot',n:700,add:1},funken:{col:'#FFE27A',size:.13,fall:.7,side:.4,tex:'dot',n:500,add:1},blasen:{col:'#E8FAFF',size:.2,fall:.9,side:.3,tex:'ring',n:500},
@@ -46,12 +46,12 @@ const WEATHER=(()=>{
     for(let i=0;i<3;i++){const mesh=new THREE.Mesh(new THREE.PlaneGeometry(90,14,80,1),m);mesh.position.set(0,26+i*3,-30+i*14);mesh.rotation.x=-.5;g.add(mesh)}g.userData.m=m;return g}
   /* ---------- Himmel: Ringe und Monde, vom Boden aus sichtbar ---------- */
   function skyBodies(G_){const g=new THREE.Group();const pid=G_.id;const R=G_.R;
-    const ringCols={schrott:['#C9D2E6','#8D8AAE'],pilz:['#D6BCFF','#9C7FD6'],wueste:['#F2D6A6','#C9975E']}[pid];
+    const ringCols=PLANETS[pid].ringCols||{schrott:['#C9D2E6','#8D8AAE'],pilz:['#D6BCFF','#9C7FD6'],wueste:['#F2D6A6','#C9975E']}[pid];
     if(ringCols){const geo=new THREE.RingGeometry(R*1.9,R*3.1,160,6);const m=new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,fog:false,uniforms:{a:{value:new THREE.Color(ringCols[0])},b:{value:new THREE.Color(ringCols[1])},r0:{value:R*1.9},r1:{value:R*3.1},uN:{value:0}},
         vertexShader:'varying vec3 vL;void main(){vL=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
         fragmentShader:'uniform vec3 a,b;uniform float r0,r1,uN;varying vec3 vL;float hh(float x){return fract(sin(x*127.1)*43758.5453);}void main(){float t=(length(vL.xy)-r0)/(r1-r0);float bi=floor(t*26.);float n=hh(bi+3.);float al=step(.2,n)*smoothstep(0.,.05,t)*smoothstep(1.,.92,t)*(.45+.4*hh(bi+9.));if(al<.02)discard;vec3 c=mix(a,b,step(.55,n));c*=mix(1.,.55,uN);gl_FragColor=vec4(c,al*(1.-uN*.35));}'});
       const ring=new THREE.Mesh(geo,m);ring.rotation.x=PI/2+1.05;ring.rotation.y=.35;g.add(ring);g.userData.ring=m}
-    /* Monde */const nm={kompost:1,schrott:2,korallen:1,frost:2,wueste:1,pilz:2}[pid]||1;const moons=[];const cols=['#E6DDF2','#F2D8C0','#C8DCF0','#F0C8D8'];
+    /* Monde */const nm=PLANETS[pid].moons??{kompost:1,schrott:2,korallen:1,frost:2,wueste:1,pilz:2}[pid]??1;const moons=[];const cols=['#E6DDF2','#F2D8C0','#C8DCF0','#F0C8D8'];
     for(let i=0;i<nm;i++){const r=R*(.12+i*.05);const mg=new THREE.Group();const body=new THREE.Mesh(new THREE.SphereGeometry(r,32,18),cozy({color:cols[(i+pid.length)%4],rim:.9,rimColor:'#ffffff'}));mg.add(body);
       for(let k=0;k<6;k++){const d=new V().randomDirection();const c=new THREE.Mesh(new THREE.CircleGeometry(r*(.12+Math.random()*.14),14),cozy({color:new THREE.Color(cols[(i+pid.length)%4]).multiplyScalar(.85)}));c.position.copy(d.clone().multiplyScalar(r*1.004));c.lookAt(d.multiplyScalar(r*3));mg.add(c)}
       addOutlines(mg);g.add(mg);moons.push({g:mg,d:R*(3.4+i*1.4),a:i*2.3+1.2,s:.008+i*.004,tilt:1.1+i*.2})}

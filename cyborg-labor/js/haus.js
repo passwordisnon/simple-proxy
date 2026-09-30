@@ -14,7 +14,7 @@ const HAUS=(()=>{
     frost:{roof:['#F4F8FF','#EEF3FF','#F8F4FF','#6E8FD8','#D86E7A'],wall:['#F4F8FF','#EAF0FA','#FFF6EE','#E6EEF8'],wood:['#B07A5A','#9C6A4E','#C08A68'],stone:['#B8C4D8','#C4CEE0','#AAB8CC'],trim:['#FFFFFF'],plant:['#5FA88E','#4E9A82'],snow:['#F4FAFF']},
     wueste:{roof:['#E07A4E','#5FB8B0','#E8B04E','#C75A5A','#6E9AD0'],wall:['#FBE3C0','#F6D6AC','#FFEBD0','#F2D2B4'],wood:['#B8784E','#A56A44','#C98A5A'],stone:['#E0BE94','#D4AE84','#E8CCA4'],trim:['#FFF6E4','#FFFFFF'],plant:['#7CB86A','#6AA85E']},
     pilz:{roof:['#C06EC0','#E07A9A','#6EB8C0','#8E6ED8','#E0A05A'],wall:['#F2E6FA','#FBEAF2','#E6F0F8','#F6EEE0'],wood:['#9C6E88','#8A6E9C','#A87A6E'],stone:['#B8A8CC','#C4B4D4','#A89CC0'],trim:['#FFF4FF','#FFFFFF'],plant:['#7FDCC8','#8CCB8A']}};
-  function palette(pid,r){const T=THEMES[pid]||THEMES.kompost;const roof=pick(r,T.roof),wall=pick(r,T.wall),wood=pick(r,T.wood),stone=pick(r,T.stone),trim=pick(r,T.trim);
+  function palette(pid,r){const T=PT(THEMES,pid);const roof=pick(r,T.roof),wall=pick(r,T.wall),wood=pick(r,T.wood),stone=pick(r,T.stone),trim=pick(r,T.trim);
     const c=h=>new THREE.Color(h);const dk=(h,k)=>'#'+c(h).multiplyScalar(k).getHexString();
     /* leichte Farbton-Abweichung je Haus, damit auch gleiche Wahl nicht identisch wirkt */const jit=h=>{const x=c(h);x.offsetHSL((r()-.5)*.03,(r()-.5)*.06,(r()-.5)*.04);return'#'+x.getHexString()};
     return{roof:jit(roof),roofB:jit(roof),roof2:jit(roof),wall:jit(wall),trim,sand:jit(wall),sandD:dk(wall,.9),wood:jit(wood),woodL:jit(wood),wood2:dk(wood,.9),stone:jit(stone),
@@ -246,6 +246,21 @@ const HAUS=(()=>{
     return{g,occ,put,tryPut,begin,rollback,commit,edgeT:(x,z,d)=>{const[dx,dz]=DV[d];return{x:x+.9*dx,z:z+.9*dz,ry:ROT[d]+PI}},F:{edge:'mush'},st:{},pal:palette(pid,r),parts:[],cells,fl:(x,z)=>cellFl.get(x+','+z)||0,cellFl,
       door:[0,-dr+.5],base:0,minX:Math.min(...xs),maxX:Math.max(...xs),minZ:Math.min(...zs),maxZ:Math.max(...zs),r,issues,roofChim:true,style:kind}}
 
+  /* ---------- Eigene Bau-Familien der neuen Planeten (Planeten-Dateien registrieren sie in HAUS.FAMX) ----------
+     body(pid,r,plan,API) baut das Gebäude mit Tür nach −z und liefert {g, R (Grundradius), top, door:[x,z], walls:[Box3...], style} */
+  const FAMX={};
+  function makeX(pid,seed,plan){const r=rng(seed*2654435761+577);const occ=[];let txn=null;const issues=[];const g=new THREE.Group();
+    const B0=FAMX[plan.fam](pid,r,plan,API);g.add(B0.g);for(const b of B0.walls)occ.push({b,cat:'wall',part:0,name:'koerper'});
+    const dz=B0.door[1];occ.push({b:new THREE.Box3(new V(B0.door[0]-.45,0,dz-.5),new V(B0.door[0]+.45,1,dz+.1)),cat:'attach',part:-1,name:'tuer'});
+    const put=()=>null;const tryPut=(cat,pack,name,x,y,z,ry,sc,pl)=>{if(!KIT.has(pack,name))return null;const m=KIT.mesh(pack,name,pack==='nature'?KIT.ORIG:(pl||palette(pid,r)));m.position.set(x,y,z);m.rotation.y=ry||0;if(sc!=null)typeof sc==='number'?m.scale.setScalar(sc):m.scale.set(sc[0],sc[1],sc[2]);
+      const b=boxOf(m,pack,name);for(const o of occ){if(depth(b,o.b)>tolOf(cat,o.cat))return null}g.add(m);const o={b,cat,part:-1,name,m};occ.push(o);if(txn)txn.push(o);return m};
+    const begin=()=>{txn=[]};const rollback=()=>{for(const o of txn){g.remove(o.m);occ.splice(occ.indexOf(o),1)}txn=null};const commit=()=>{txn=null};
+    const R=B0.R;const cells=[];const cr=Math.ceil(R);for(let x=-cr;x<=cr;x++)for(let z=-cr;z<=cr;z++)if(Math.hypot(x,z)<=R)cells.push([x,z]);
+    const cellFl=new Map(cells.map(c=>[c[0]+','+c[1],1]));const xs=cells.map(c=>c[0]),zs=cells.map(c=>c[1]);
+    return{g,occ,put,tryPut,begin,rollback,commit,edgeT:(x,z,d)=>{const[dx,dz]=DV[d];return{x:x+.9*dx,z:z+.9*dz,ry:ROT[d]+PI}},F:{edge:'mush'},st:{},pal:palette(pid,r),parts:[],cells,fl:(x,z)=>cellFl.get(x+','+z)||0,cellFl,
+      door:[B0.door[0],dz+.5],base:0,minX:Math.min(...xs),maxX:Math.max(...xs),minZ:Math.min(...zs),maxZ:Math.max(...zs),r,issues,roofChim:true,style:B0.style||plan.fam,xwalls:B0.walls}}
+  const API={rng,pick,palette:(pid,r)=>palette(pid,r),archDoor,roundWindow,shadeC:(c,k)=>shadeC(c,k),boxOf,V};
+
   /* ---------- Anbauten mit Sinn: Balkon mit Tür + Stützen (+ Treppe), Aussenkamin, Vordach, Turm ---------- */
   function attachments(H,plan){const{put,tryPut,begin,rollback,commit,edgeT,r,pal,stonePal,base,door,balc,fl,cellFl}=H;const T='town';
     /* Rundturm-Anbau (Piraten-Bausatz) am Giebel */
@@ -330,7 +345,7 @@ const HAUS=(()=>{
     const zf=minZ-2;/* Zaunreihe */
     /* Weg von der Tür (oder Treppe) zum Tor */
     if(base>0){const ok=H.F.edge==='station'?tryPut('attach','station','stairs-small-center',door[0],0,door[1]-.7,PI,[1,base/.3,1]):tryPut('attach',T,'stairs-wood',door[0],0,door[1]-1,ROT.pz,[1,base,1]);if(!ok)H.issues.push('keine Treppe')}
-    const GD=GARDEN[pid]||GARDEN.kompost;
+    const GD=PT(GARDEN,pid);
     for(let z=door[1]-(base>0&&H.F.edge!=='station'?2:1);z>=zf;z--){if(GD.path==='path_stone')tryPut('path','nature','path_stone',door[0],0,z,PI/2,[1,1,.9]);else tryPut('path',T,'planks-half',door[0]-.25,0,z,0)}
     /* Laterne neben dem Weg */
     /* Platz für das Namensschild neben dem Weg reservieren */
@@ -354,7 +369,7 @@ const HAUS=(()=>{
     if(GD.veg&&!base&&r()<.45){for(const sx of[maxX+1.55,minX-1.55].sort(()=>r()-.5)){begin();const z0=minZ+(maxZ>minZ?.5:0);let ok=!!tryPut('yard','nature','crops_dirtRow',sx,0,z0,PI/2,[1.2,1,1]);
         if(ok)for(const dz of[-.35,0,.35])tryPut('veg','nature',pick(r,GD.veg),sx,.02,z0+dz,r()*6,1);if(ok){commit();break}else rollback()}}
     /* Deko auf festen Plätzen */
-    const P=plan.civic?(CIVIC[plan.civic]||[]).concat((PROPS[pid]||PROPS.kompost).slice(0,2)):(PROPS[pid]||PROPS.kompost);const zf2=zf;const slots=[];
+    const P=plan.civic?(CIVIC[plan.civic]||[]).concat(PT(PROPS,pid).slice(0,2)):PT(PROPS,pid);const zf2=zf;const slots=[];
     for(const s2 of[-1,1])slots.push({t:'d',x:door[0]+1.2*s2,z:door[1]-1.3});
     const fenced=!!H.fenced;if(fenced)slots.push({t:'c',x:minX-.55,z:zf2+.35},{t:'c',x:maxX+.55,z:zf2+.35});else slots.push({t:'c',x:minX-1.5,z:minZ-1.3},{t:'c',x:maxX+1.5,z:minZ-1.3});
     for(let z=minZ;z<=maxZ;z++){slots.push({t:'s',x:minX-1.45,z,side:-1},{t:'s',x:maxX+1.45,z,side:1})}
@@ -382,8 +397,9 @@ const HAUS=(()=>{
     wueste:[{fam:'pueblo',fence:null,noLantern:1},{fam:'pueblo',fence:null,noLantern:1},{fam:'pueblo',fence:null,noLantern:1},{fam:'pueblo',fence:null}],
     pilz:[{fam:'mush'},{fam:'mush',fence:null},{fam:'mush'},{fam:'mush',stack:false}]};
   /* Öffentliche Gebäude: grössere Grundrisse, höher, Turm für Rathaus/Museum, offener Vorplatz */
-  function civic(pid,kind,opt){opt=opt||{};const plans=(PLAN[pid]||PLAN.kompost).filter(p=>!p.base||pid==='korallen'||pid==='schrott');const base=plans[hashS(kind+pid)%plans.length];const plan=Object.assign({},base,{civic:kind,fence:null,noBalcony:kind!=='bar'&&kind!=='studio'});
+  function civic(pid,kind,opt){opt=opt||{};const plans=PT(PLAN,pid).filter(p=>!p.base||pid==='korallen'||pid==='schrott');const base=plans[hashS(kind+pid)%plans.length];const plan=Object.assign({},base,{civic:kind,fence:null,noBalcony:kind!=='bar'&&kind!=='studio'});
     if(plan.fam==='mush')Object.assign(plan,{big:1,stack:kind==='rathaus'||kind==='museum'});
+    else if(FAMX[plan.fam])plan.big=1;
     else if(plan.fam!=='pueblo')plan.fp=Object.assign({},base.fp||{},{dims:[[3,2],[3,3],[4,2],[2,3]],tall:.85,maxFl:3,noWings:false,tower:kind==='rathaus'||kind==='museum'?1:.15,towerExtra:kind==='rathaus'?1:0});
     else plan.big=1;
     if(kind==='mode')plan.pal={wall:'#FFF4EA',sand:'#FFF4EA',sandD:'#F4E2D4',roof:'#E88CB0',roofB:'#E88CB0',roof2:'#D8708E',trim:'#FFFFFF',wood:'#F2D6C8',woodL:'#F8E4DA',wood2:'#D8B8A8'},plan.mushPal={cap:'#F2A0C0',stem:'#FFF6EE'};
@@ -408,10 +424,10 @@ const HAUS=(()=>{
     H.issues.push('kein Platz für Praxis-Kreuz');return false}
   const hashS=s=>{let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return(h>>>0)%1000003};
   const REJ={};function rej(plan,iss){for(const i of iss){const k=(plan.fam||'town')+': '+i.replace(/@.*/,'');REJ[k]=(REJ[k]||0)+1}}
-  function build(pid,seed,opt){opt=opt||{};const plans=PLAN[pid]||PLAN.kompost;let last=null,tries=0;
+  function build(pid,seed,opt){opt=opt||{};const plans=PT(PLAN,pid);let last=null,tries=0;
     for(;tries<24;tries++){const s=seed+tries*7919;const r=rng(s+99);const plan=Object.assign({},opt.plan||plans[(opt.index!=null?opt.index:Math.floor(r()*plans.length))%plans.length]);
-      const H=plan.fam==='pueblo'?makePueblo(pid,s,plan):plan.fam==='mush'?makeMush(pid,s,plan):make(pid,s,plan);if(H.issues.length){rej(plan,H.issues);last={H,plan};continue}
-      if(plan.fam!=='pueblo'&&plan.fam!=='mush')attachments(H,plan);yard(H,pid,plan);const fl=plan.fam==='mush'?[]:floating(H);if(fl.length){H.issues.push(...fl.map(f=>'schwebt '+f));rej(plan,H.issues);last={H,plan};continue}
+      const H=FAMX[plan.fam]?makeX(pid,s,plan):plan.fam==='pueblo'?makePueblo(pid,s,plan):plan.fam==='mush'?makeMush(pid,s,plan):make(pid,s,plan);if(H.issues.length){rej(plan,H.issues);last={H,plan};continue}
+      if(!FAMX[plan.fam]&&plan.fam!=='pueblo'&&plan.fam!=='mush')attachments(H,plan);yard(H,pid,plan);const fl=plan.fam==='mush'||FAMX[plan.fam]?[]:floating(H);if(fl.length){H.issues.push(...fl.map(f=>'schwebt '+f));rej(plan,H.issues);last={H,plan};continue}
       last={H,plan};break}
     const{H,plan}=last;if(plan.civic==='praxis')try{praxisSign(H)}catch(e){console.warn('Praxis-Schild',e)}const bb=new THREE.Box3();for(const o of H.occ)if(['wall','roof','struct'].includes(o.cat))bb.union(o.b);const c=center(H.g,H.door,bb.isEmpty()?null:bb);const ctr=c.ctr;
     /* Krümmung des Planeten: Gartenteile am Boden folgen der Kugel (sonst schweben die Ränder) */
@@ -422,12 +438,13 @@ const HAUS=(()=>{
       if(['wall','roof','struct','tower','chim'].includes(o.cat)){for(const x of[x0,x1])for(const z of[z0,z1])bodyR=Math.max(bodyR,Math.hypot(x,z)*(o.cat==='roof'?.8:1))}
       else if(['yard','chain'].includes(o.cat)&&o.name!=='schild'&&o.name!=='gartentor'&&b.max.y-b.min.y>.15){const cx=(x0+x1)/2,cz=(z0+z1)/2,w=x1-x0,d=z1-z0;if(Math.max(w,d)>1.3){const n=Math.ceil(Math.max(w,d)/.9);for(let i=0;i<n;i++){const t=(i+.5)/n;cols.push([w>d?x0+w*t:cx,w>d?cz:z0+d*t,Math.max(.22,Math.min(w,d)/2+.12)])}}else cols.push([cx,cz,Math.max(.18,Math.max(w,d)*.45)])}}
     /* Hauskörper: ein Kreis je Rasterzelle (deckt die Ecken ab), Pilze: Stielkreis */
-    if(plan.fam==='mush'){const sb=H.occ.find(o=>o.name==='stiel').b;cols.push([(sb.min.x+sb.max.x)/2-ctr.x,(sb.min.z+sb.max.z)/2-ctr.z,(sb.max.x-sb.min.x)/2]);const an=H.occ.find(o=>o.name==='anbau');if(an){const b=an.b;cols.push([(b.min.x+b.max.x)/2-ctr.x,(b.min.z+b.max.z)/2-ctr.z,(b.max.x-b.min.x)*.32])}}
+    if(FAMX[plan.fam]){for(const b of H.xwalls){const w=b.max.x-b.min.x,d=b.max.z-b.min.z;cols.push([(b.min.x+b.max.x)/2-ctr.x,(b.min.z+b.max.z)/2-ctr.z,Math.min(w,d)*.5])}}
+    else if(plan.fam==='mush'){const sb=H.occ.find(o=>o.name==='stiel').b;cols.push([(sb.min.x+sb.max.x)/2-ctr.x,(sb.min.z+sb.max.z)/2-ctr.z,(sb.max.x-sb.min.x)/2]);const an=H.occ.find(o=>o.name==='anbau');if(an){const b=an.b;cols.push([(b.min.x+b.max.x)/2-ctr.x,(b.min.z+b.max.z)/2-ctr.z,(b.max.x-b.min.x)*.32])}}
     else{for(const[x,z]of H.cells)cols.push([x-ctr.x,z-ctr.z,.74]);for(const o of H.occ)if(o.cat==='tower'||o.cat==='chim'||(o.cat==='struct')){const b=o.b;cols.push([(b.min.x+b.max.x)/2-ctr.x,(b.min.z+b.max.z)/2-ctr.z,Math.max(.2,Math.min(b.max.x-b.min.x,b.max.z-b.min.z)*.5)])}}
     const S=unit;const gt=H.gate?{pivot:H.gate.pivot,x:(H.gate.x-.42-ctr.x)*S,z:(H.gate.z-ctr.z)*S,w:H.gate.w*S}:null;const yd=H.yard?{x0:(H.yard.x0-ctr.x)*S,x1:(H.yard.x1-ctr.x)*S,z0:(H.yard.z0-ctr.z)*S,z1:(H.yard.z1-ctr.z)*S,gin:[(H.yard.gin[0]-ctr.x)*S,(H.yard.gin[1]-ctr.z)*S],gout:[(H.yard.gout[0]-ctr.x)*S,(H.yard.gout[1]-ctr.z)*S]}:null;const sign=H.sign?[(H.sign[0]-ctr.x)*S,(H.sign[1]-ctr.z)*S]:null;
     if(H.unit){H.g.scale.setScalar(H.unit)}return{g:H.g,unit,yard:yd,gate:gt,bodyR:bodyR*S,colliders:cols.map(c2=>[c2[0]*S,c2[1]*S,c2[2]*S]),sign,door:[c.door[0]*S,c.door[1]*S],size:c.size.clone().multiplyScalar(S),pal:H.pal,issues:H.issues,tries,style:(plan.fam||'town')+(H.style?'-'+H.style:'')+(plan.mushroom?'+pilzdach':'')+(plan.base?'+stelzen':'')+(H.round?(plan.fam==='pueblo'?'+kuppelturm':'+rundturm'):'')+(H.chim?'+kamin':'')+(H.balc&&!H.balcFailed?'+balkon':'')}}
   function center(g,door,body){const box=new THREE.Box3().setFromObject(g);const ctr=(body||box).getCenter(new V());ctr.y=0;g.children.forEach(c=>{c.position.x-=ctr.x;c.position.z-=ctr.z});return{ctr,door:[door[0]-ctr.x,door[1]-.5-ctr.z],size:box.getSize(new V())}}
   const PACKS=['town','holiday','pirate','nature','survival','station','modular','castle','plat','space','furn','food','graveyard','resto','market','cave','arcade'];let ready=false;
   function load(){return Promise.all(PACKS.map(p=>KIT.load(p))).then(()=>{ready=true;if(window.KITFURN)KITFURN.fix()})}
-  return{build,civic,palette,THEMES,rng,REJ,load,PACKS,get ready(){return ready}}
+  return{build,civic,palette,THEMES,PROPS,GARDEN,PLAN,FAMX,rng,REJ,load,PACKS,get ready(){return ready}}
 })();

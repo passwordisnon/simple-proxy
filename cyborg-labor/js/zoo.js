@@ -71,7 +71,7 @@ const ZOO=(()=>{
     P(gate,G.bx(3.6,1.05,.12,.06),Wd(M,'#8A5A44'),[0,3.35,0]);addOutlines(gate);orient(gate,at(rad,0),F.toV);root.add(gate);GAME.addObst(at(rad,3),.6);GAME.addObst(at(rad,-3),.6);
     /* Laternen und Bänke am Weg */const lamp=typeof buildStreetLamp==='function'?buildStreetLamp:window.buildStreetLamp,bench=typeof buildBench==='function'?buildBench:window.buildBench;
     for(let u=rad*.35;u<rad-2;u+=6.5)for(const sg of[-1,1]){if(lamp&&((u/6.5|0)+(sg>0?1:0))%2===0){const l=lamp(M);addOutlines(l);orient(l,at(u,sg*2.4),F.toV);root.add(l);GAME.addObst(at(u,sg*2.4),.3)}else if(bench){const b=bench(M);addOutlines(b);orient(b,at(u,sg*2.7),F.side.clone().multiplyScalar(-sg));root.add(b);GAME.addObst(at(u,sg*2.7),.6)}}
-    /* Schilder je Sektor */const sd=SAVE.faunaSeen||{};PARK.planets.forEach((pid,i)=>{const a=(i+.5)*PI/3;const d=at(Math.cos(a)*rad*.32,Math.sin(a)*rad*.32);const have=Object.keys(FAUNA.S).filter(k=>FAUNA.S[k].planet===pid&&sd[k]).length,all=Object.keys(FAUNA.S).filter(k=>FAUNA.S[k].planet===pid).length;
+    /* Schilder je Sektor */const sd=SAVE.faunaSeen||{};PARK.planets.forEach((pid,i)=>{const[cu,cv,a,r0]=PARK.center(i,rad);const d=at(Math.cos(a)*(r0+1.3),Math.sin(a)*(r0+1.3));const have=Object.keys(FAUNA.S).filter(k=>FAUNA.S[k].planet===pid&&sd[k]).length,all=Object.keys(FAUNA.S).filter(k=>FAUNA.S[k].planet===pid).length;
       const g=new THREE.Group();P(g,G.cy(.07,.08,1.4),Wd(M,'#8A5A44'),[0,.7,0]);const t=ctex('park-sek-'+pid+have,320,110,(x,w,h)=>{x.fillStyle='#FFFDF7';x.beginPath();x.roundRect(4,4,w-8,h-8,18);x.fill();x.strokeStyle='#8A5A44';x.lineWidth=6;x.stroke();x.fillStyle='#5B4A3E';x.textAlign='center';x.font='bold 34px "Nunito","Trebuchet MS",sans-serif';x.fillText(PLANETS[pid].n,w/2,48);x.font='26px "Nunito","Trebuchet MS",sans-serif';x.fillText(have+' von '+all+' Arten',w/2,86)});
       for(const zz of[.05,-.05]){const m=new THREE.Mesh(new THREE.PlaneGeometry(1.5,.52),new THREE.MeshBasicMaterial({map:t}));m.position.set(0,1.45,zz);if(zz<0)m.rotation.y=PI;m.userData.noOutline=true;g.add(m)}P(g,G.bx(1.6,.6,.08,.03),Wd(M,'#8A5A44'),[0,1.45,0]);
       addOutlines(g);const out=at(Math.cos(a),Math.sin(a)).sub(c);orient(g,d,c.clone().sub(d).add(out.multiplyScalar(0)));root.add(g);GAME.addObst(d,.3)});
@@ -83,11 +83,11 @@ const ZOO=(()=>{
     GG.inter.push({kind:'parkhaus',p:at(3.9,0),r:1.6,label:'Aquarium-Pavillon betreten',act:enter});GG.inter.push({kind:'parkguide',p:at(rad-3.5,0),r:1.8,label:'Tierpark-Führer (Arten und Belohnungen)',act:guide});
     /* Tiere: jede getroffene Art streift in ihrem Planeten-Sektor umher (Wassertiere im Sektor-Teich) */
     for(const[k,sp]of Object.entries(FAUNA.S)){if(!sd[k])continue;const i=PARK.planets.indexOf(sp.planet);if(i<0)continue;const n2=sp.herd?2:1;for(let j=0;j<n2;j++){const g=new THREE.Group();const inner=FAUNA.buildAnimal(sp.a,M);inner.scale.setScalar((sp.size||1)*.62);g.add(inner);addOutlines(g);root.add(g);
-      const A={k,sp,g,inner,i,water:!!sp.water&&PARK.pond[i],d:new THREE.Vector3(),tgt:null,idle:Math.random()*3,hop:0,ph:Math.random()*9};pick(A,true);A.d.copy(A.tgt);park.animals.push(A);
+      const A={k,sp,g,inner,i,water:!!sp.water&&PARK.pondOf(sp.planet),d:new THREE.Vector3(),tgt:null,idle:Math.random()*3,hop:0,ph:Math.random()*9};pick(A,true);A.d.copy(A.tgt);park.animals.push(A);
       GG.inter.push({kind:'parkpet',p:A.d,r:1.5,label:'Streicheln: '+sp.n,act:()=>{A.hop=.7;A.idle=2.5;SND.play('cloth',{vol:.6});GAME.W.fx(A.d,'herz',6);SAVE.stats.pets=(SAVE.stats.pets||0)+1;persist()}})}}}
   const G_s=r=>G.s(r);
-  function pick(A,first){const a0=A.i*PI/3,a1=a0+PI/3;const a=a0+.12+Math.random()*(PI/3-.24);let r;if(A.water){const pa=(A.i+.5)*PI/3;const pr=park.rad*.66;const q=Math.random()*TAU,rr=Math.random()*2;A.tgt=parkDir(park.c,park.F,GAME.G.R,Math.cos(pa)*pr+Math.cos(q)*rr,Math.sin(pa)*pr+Math.sin(q)*rr);return}
-    r=park.rad*(.3+Math.random()*.6);A.tgt=parkDir(park.c,park.F,GAME.G.R,Math.cos(a)*r,Math.sin(a)*r)}
+  function pick(A,first){if(A.water){const[cu,cv]=PARK.center(A.i,park.rad);const q=Math.random()*TAU,rr=Math.random()*1.4;A.tgt=parkDir(park.c,park.F,GAME.G.R,cu+Math.cos(q)*rr,cv+Math.sin(q)*rr);return}
+    const[u,v]=PARK.rand(A.i,park.rad);A.tgt=parkDir(park.c,park.F,GAME.G.R,u,v)}
   function parkTick(dt,t){if(!park||park.scene!==GAME.G.scene||GAME.mode!=='outdoor')return;const G=GAME.G,me=GAME.me;if(!me)return;if(GAME.angle(me.p,park.c)*G.R>park.rad+45)return;
     if(park.pav)park.pav.children.forEach(o=>{if(o.userData.fish!=null){const i=o.userData.fish;const a=t*.5+i;o.position.x=Math.sin(a)*.9;o.position.z=Math.cos(a)*.9;o.rotation.y=a+PI/2}});
     for(const A of park.animals){A.idle-=dt;A.hop=Math.max(0,A.hop-dt);let mv=false;

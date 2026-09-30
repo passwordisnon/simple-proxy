@@ -11,7 +11,7 @@ const CAVES=(()=>{
   const ROCK={kompost:['#B8A48E','#8E7A68','#5E4E48',['#B8E4D8','#D6EEE6','#A8D4C8']],schrott:['#A8A4C4','#7C7898','#4E4A68',['#C8C8EE','#DCD8F4','#B4B8E4']],
     korallen:['#F0CFB0','#D0A080','#8E6A5A',['#B8E8EE','#D4F2F4','#A4DCE4']],frost:['#DCE6F4','#A8B8D0','#6E7E9A',['#CFE6FA','#E6F2FC','#B8D6F2']],
     wueste:['#E8A878','#C07850','#7E4A38',['#F2D2B4','#F8E2CC','#E8C0A0']],pilz:['#A898C0','#7A6A8E','#4A3E5E',['#DCC8F0','#EAD8F6','#CAB4E8']]};
-  const rockOf=pid=>ROCK[pid]||ROCK.kompost;
+  const rockOf=pid=>PT(ROCK,pid);
   function pal(pid){const[l,m,d]=rockOf(pid);return{wood:m,woodL:l,wood2:m,sand:l,sandD:m,stone:l,dark:m,wall:l,trim:l,roof:m,roof2:d,roofB:d,metal:'#9AA4B8',metalD:'#6E7890',light:'#FFD27A',plant:'#6FBF7A',plantD:'#4E9A5E',glass:'#DDF4FF',snow:l}}
   let cur=null;
   const pid=()=>(GAME.G&&GAME.G.id)||'kompost';
