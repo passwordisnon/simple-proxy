@@ -58,7 +58,7 @@ Status: ✔ erledigt · ◐ teilweise · ☐ offen. Wird bei jedem Schritt aktua
 - ☐ Eigener Planet früh in der Story (Haus, Animal-Crossing-Spiel, KI einladen, Freunde besuchen)
 - ◐ Jobs (Handy-App: Jazz-Bar, Gärtnerei, Lager, Post mit Rängen und Lohn); Wirtschaft mit Marktsättigung; weitere Missionen offen
 - ✔ Casino: Glücks-Salon in jedem Dorf mit Madame Jeton (Automat, Glücksrad, Höher oder Tiefer, Tageslimit)
-- ◐ Zoo / Aquarium / Terrarium mit 100+ Arten
+- ✔ Zoo / Aquarium / Terrarium mit 133 Arten (Tierpark im Gebäude der Tierhandlung, Meilenstein-Belohnungen)
 - ◐ Fossilien finden (Relikte beim Graben)
 - ☐ Terraforming
 - ✔ Hausbau-Werkzeug
