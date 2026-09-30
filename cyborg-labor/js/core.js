@@ -310,7 +310,7 @@ function outlineColorOf(mat){let c;if(mat.userData&&mat.userData.metal){c=new TH
   else if(mat.color){c=mat.map?new THREE.Color('#6a5a6a'):mat.color.clone()}else c=new THREE.Color('#5a4a6a');
   const hsl={};c.getHSL(hsl);const chroma=hsl.s*(1-Math.abs(2*hsl.l-1));/* fast weisse Farben: graue statt knallbunte Linie */
   return new THREE.Color().setHSL(hsl.h,Math.min(1,chroma*.9+.1),Math.max(.1,hsl.l*.38))}
-function addOutlines(root,opt){opt=opt||{};const list=[];root.traverse(o=>{if(!o.isMesh||o.userData.noOutline||o.userData.hull||o.userData.furShell)return;const m=o.material;if(!m||Array.isArray(m))return;
+function addOutlines(root,opt){opt=opt||{};const list=[];root.traverse(o=>{if(!o.isMesh||o.userData.noOutline||o.userData.hull||o.userData.furShell||o.children.some(c=>c.userData.hull))return;const m=o.material;if(!m||Array.isArray(m))return;
     if(m.transparent||m.side===THREE.DoubleSide||m.userData.ghost||m.userData.glow||m.userData.flat||m.userData.glass||m.userData.outline)return;
     const t=o.geometry.type;if(t==='PlaneGeometry'||t==='ShapeGeometry'||t==='CircleGeometry'||t==='RingGeometry'||o.geometry.userData.openTube&&false)return;
     o.geometry.computeBoundingSphere();const rad=o.geometry.boundingSphere.radius*Math.max(o.scale.x,o.scale.y,o.scale.z);if(rad<(opt.min||.012))return;list.push(o)});
@@ -335,8 +335,8 @@ function occInject(s){s.uniforms.uOcA=OCC.a;s.uniforms.uOcB=OCC.b;s.uniforms.uOc
    #endif`);
   s.fragmentShader='uniform vec3 uOcA;uniform vec3 uOcB;uniform float uOcOn;varying vec3 vOcW;\n'+s.fragmentShader.replace(/void main\(\) \{/,`void main() {
    if(uOcOn>.5){vec3 ab=uOcB-uOcA;float L=length(ab);float t=clamp(dot(vOcW-uOcA,ab)/(L*L),0.,1.);float d=length(vOcW-(uOcA+ab*t));
-    if(t<1.-1.1/L&&d<1.7){float th=smoothstep(1.7,.7,d)*smoothstep(0.,.12,t);vec2 f=mod(floor(gl_FragCoord.xy),4.);
-     float b=mod(f.x*4.+f.y*11.,16.)/16.;if(b<th*.9)discard;}}`)}
+    if(t<1.-1.1/L&&d<1.7){float th=smoothstep(1.7,.7,d)*smoothstep(0.,.12,t);vec2 c=fract(gl_FragCoord.xy/6.+vec2(0.,floor(gl_FragCoord.x/6.)*.5))-.5;
+     if(th>.88||length(c)<th*.72)discard;}}`)}
 function vcMat(ds,gl){const k=(ds?'d':'')+(gl?'g':'');if(VCM[k])return VCM[k];const m=cozy({color:'#ffffff',vertexColors:true,side:ds?THREE.DoubleSide:THREE.FrontSide,rim:.4,gloss:gl?.6:0});
   const prev=m.onBeforeCompile;m.onBeforeCompile=s=>{prev(s);occInject(s)};m.customProgramCacheKey=()=>'cozyVC';return VCM[k]=m}
 function vcHull(){if(VCM.h)return VCM.h;const m=new THREE.MeshBasicMaterial({color:'#ffffff',vertexColors:true,side:THREE.BackSide});m.userData.keep=true;m.userData.outline=true;

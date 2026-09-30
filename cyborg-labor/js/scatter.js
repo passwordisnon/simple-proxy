@@ -41,15 +41,15 @@ const SCATTER=(()=>{
     addOutlines(g);g.updateMatrixWorld(true);const fruitSet=new Set();(g.userData.fruits||[]).forEach(f=>f.traverse(o=>fruitSet.add(o)));const blinkSet=new Set();(g.userData.blink||[]).forEach(f=>blinkSet.add(f));
     /* Einfarbige Toon-Materialien werden als Vertex-Farben eingebacken: ein Material je Pflanze statt zehn → viel weniger Draw-Calls */
     const buckets=new Map();const colGeo=paintGeo;
-    g.traverse(o=>{if(!o.isMesh||o.userData.hull||!o.visible)return;let geo=o.geometry.index?o.geometry.toNonIndexed():o.geometry.clone();for(const a of Object.keys(geo.attributes))if(!['position','normal','uv'].includes(a))geo.deleteAttribute(a);
+    g.traverse(o=>{if(!o.isMesh||o.userData.hull||!o.visible)return;const vck=!!(o.material&&o.material.vertexColors&&!canBake(o.material));let geo=o.geometry.index?o.geometry.toNonIndexed():o.geometry.clone();for(const a of Object.keys(geo.attributes))if(!['position','normal','uv'].concat(vck?['color']:[]).includes(a))geo.deleteAttribute(a);
       if(!geo.attributes.uv)geo.setAttribute('uv',new THREE.Float32BufferAttribute(new Float32Array(geo.attributes.position.count*2),2));geo.clearGroups();geo.applyMatrix4(o.matrixWorld);
       const mt=o.material;const hull=o.children.find(c=>c.userData.hull);const fr=fruitSet.has(o),bl=blinkSet.has(o);
       const bake=canBake(mt);
-      let kk;if(bake){colGeo(geo,mt.color);kk='VC'+(mt.side===THREE.DoubleSide?'d':'')+(mt.userData.gloss>0?'g':'')+'|'+(fr?1:0)+'|'+(bl?1:0)}else{colGeo(geo,new THREE.Color(1,1,1));kk=mt.uuid+'|'+(hull?hull.material.uuid:'')+'|'+(fr?1:0)+'|'+(bl?1:0)}
+      let kk;if(bake){colGeo(geo,mt.color);kk='VC'+(mt.side===THREE.DoubleSide?'d':'')+(mt.userData.gloss>0?'g':'')+'|'+(fr?1:0)+'|'+(bl?1:0)}else{if(!vck)colGeo(geo,new THREE.Color(1,1,1));kk=mt.uuid+'|'+(hull?hull.material.uuid:'')+'|'+(fr?1:0)+'|'+(bl?1:0)}
       if(!buckets.has(kk))buckets.set(kk,{mat:bake?vcMat(mt.side===THREE.DoubleSide,mt.userData.gloss>0):mt,vc:bake,hull:!bake&&hull&&hull.material,fruit:fr,blink:bl,list:[],hl:[],cast:!o.userData.noShadow&&!(n&&n.decal)});
-      const b=buckets.get(kk);b.list.push(geo);if(bake&&hull){const hg=geo.clone();colGeo(hg,hull.material.color,hull.material.userData.ow??OUTLINE_BASE*.75);b.hl.push(hg)}});
+      const b=buckets.get(kk);b.list.push(geo);if(vck&&hull){let hg=hull.geometry.index?hull.geometry.toNonIndexed():hull.geometry.clone();for(const a of Object.keys(hg.attributes))if(!['position','normal','uv','color','ow'].includes(a))hg.deleteAttribute(a);hg.applyMatrix4(o.matrixWorld);b.hl.push(hg);b.kitHull=true}else if(bake&&hull){const hg=geo.clone();colGeo(hg,hull.material.color,hull.material.userData.ow??OUTLINE_BASE*.75);b.hl.push(hg)}});
     const parts=[];for(const b of buckets.values()){const geo=THREE.BufferGeometryUtils.mergeBufferGeometries(b.list,false);b.list.forEach(x=>x.dispose());if(!geo)continue;geo.computeBoundingSphere();
-      let hull=b.hull,hullGeo=null;if(b.vc&&b.hl.length){hullGeo=THREE.BufferGeometryUtils.mergeBufferGeometries(b.hl,false);b.hl.forEach(x=>x.dispose());hull=vcHull()}
+      let hull=b.hull,hullGeo=null;if((b.vc||b.kitHull)&&b.hl.length){hullGeo=THREE.BufferGeometryUtils.mergeBufferGeometries(b.hl,false);b.hl.forEach(x=>x.dispose());hull=b.kitHull?b.hull:vcHull()}
       parts.push({geo,mat:b.mat,hull,hullGeo,fruit:b.fruit,blink:b.blink,cast:b.cast})}
     const box=new THREE.Box3().setFromObject(g);const pr={parts,info:n||{},h:box.max.y,small:box.max.y<.9&&Math.max(box.max.x-box.min.x,box.max.z-box.min.z)<1.4,hasFruit:parts.some(p=>p.fruit),fruitIds:(g.userData.fruits||[]).map(f=>f.name)};protos.set(k,pr);disposeTree(g);return pr}
   /* ---------- Hinzufügen ---------- */
