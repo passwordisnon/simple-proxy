@@ -20,13 +20,13 @@ const GAME=(()=>{
   function buildOutdoor(pid){
     const def=PLANETS[pid];let homeSpots=[];try{homeSpots=HOMES.spots(pid,makePlanetFns(pid))}catch(e){console.warn('Häuser',e)}const fns=makePlanetFns(pid,homeSpots);const Rr=def.R;Object.assign(G_,{id:pid,def,hAt:fns.hAt,biomeAt:fns.biomeAt,places:fns.places,R:Rr,sea:def.sea,paths:fns.roads,roadDist:fns.roadDist,fns});
     const sc=new THREE.Scene();sc.background=skyTex(def.sky[0],def.sky[1],pid);sc.fog=new THREE.Fog(def.fog,Math.min(Rr*.7,62),Math.min(Rr*1.9,175));
-    const hemi=new THREE.HemisphereLight('#dff1ff','#f0c9a8',.52);sc.add(hemi);
+    const hemi=new THREE.HemisphereLight('#dff1ff','#d6e6b0',.52);sc.add(hemi);
     const sun=new THREE.DirectionalLight('#fff3de',1.0);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-22,right:22,top:22,bottom:-22,near:1,far:110});sun.shadow.bias=-.0006;sun.shadow.normalBias=.04;sc.add(sun);sc.add(sun.target);
     const fill=new THREE.DirectionalLight('#c9d8ff',.18);sc.add(fill);
     const detail=Math.round(Rr*(HIGH?3.4:2.3));
     /* Gelände: LOD-Kacheln (feine Kacheln am Spieler, grobe in der Ferne); beim Aufbau zählt die exakte Höhenfunktion */
     if(typeof PLANETLOD!=='undefined'){const gm=groundMaterial(fns);const W0=buildWaterMesh(fns,1);W0.mesh.geometry.dispose();G_.water=null;G_.waterU=W0.U;
-      PLANETLOD.create(fns,gm,sc,{vattr:terrainVattr(fns),fine:HIGH?.32:.55,water:W0.mesh.material});const pz=(fns.places.find(p=>p.build==='plaza')||{dir:UPV}).dir;PLANETLOD.update(pz.clone().multiplyScalar(Rr+12),0,true);
+      PLANETLOD.create(fns,gm,sc,{vattr:terrainVattr(fns),fine:HIGH?.32:.55,water:W0.mesh.material,grass:def.mine&&!HIGH?null:{per:HIGH?3:1}});const pz=(fns.places.find(p=>p.build==='plaza')||{dir:UPV}).dir;PLANETLOD.update(pz.clone().multiplyScalar(Rr+12),0,true);
       G_.planet=PLANETLOD.S.group;G_.groundU=gm.userData.U;G_.hAt=fns.hAt;G_.lod=true}
     else{const planet=buildTerrainMesh(fns,detail);sc.add(planet);G_.planet=planet;G_.hAt=makeSurface(planet,fns);G_.groundU=planet.material.userData.U;G_.lod=false}
     G_.hExact=G_.hAt;
@@ -75,13 +75,13 @@ const GAME=(()=>{
   const grassU={value:0};let tuftGeo=null,tuftMat=null;
   /* Gras für einen Chunk: ein InstancedMesh (Streaming) */
   function grassFor(r,N,sample){tuftGeo=tuftGeo||tuftGeometry();tuftMat=tuftMat||grassMaterial(grassU);const list=[];const col=new THREE.Color();
-    for(let i=0;i<N;i++){const p=sample();if(!p)continue;const h=hEx(p);if(h<G_.sea+.15)continue;const b=BIOMES[G_.biomeAt(p,h)];if(!b.grass||r()>b.grassD)continue;if(G_.roadDist(p)<.02||nearPlace(p,.85))continue;
+    for(let i=0;i<N;i++){const p=sample();if(!p)continue;const h=hEx(p);if(h<G_.sea+.15)continue;const b=BIOMES[G_.biomeAt(p,h)];if(!b.grass||r()>b.grassD)continue;if(G_.roadDist(p)*G_.R<1.3||nearPlace(p,.85))continue;
       if(Math.abs(hEx(p.clone().applyAxisAngle(UPV,.004))-h)>.25)continue;col.set(b.grass).offsetHSL((r()-.5)*.03,(r()-.5)*.08,(r()-.5)*.08);list.push({p,h,s:.75+r()*.7,yaw:r()*TAU,c:col.clone()})}
     if(!list.length)return null;const m4=new THREE.Matrix4(),q=new THREE.Quaternion(),q2=new THREE.Quaternion(),sv=new V3();const im=new THREE.InstancedMesh(tuftGeo,tuftMat,list.length);im.frustumCulled=false;im.receiveShadow=true;
     list.forEach((t,i)=>{q.setFromUnitVectors(UPV,t.p);q2.setFromAxisAngle(UPV,t.yaw);q.multiply(q2);sv.set(t.s,t.s*(.8+t.s*.3),t.s);m4.compose(t.p.clone().multiplyScalar(G_.R+t.h-.02),q,sv);im.setMatrixAt(i,m4);im.setColorAt(i,t.c)});im.userData.small=true;return im}
   function buildGrass(){if(SCATTER.streaming)return;tuftGeo=tuftGeo||tuftGeometry();tuftMat=tuftMat||grassMaterial(grassU);const r=srand(5);const area=4*PI*G_.R*G_.R;const N=Math.round(area*(HIGH?.55:.22));
     const per=new Map();const col=new THREE.Color(),tmp=new THREE.Color();
-    for(let i=0;i<N;i++){const p=new V3(r()*2-1,r()*2-1,r()*2-1).normalize();const h=G_.hAt(p);if(h<G_.sea+.15)continue;const b=BIOMES[G_.biomeAt(p,h)];if(!b.grass||r()>b.grassD)continue;if(G_.roadDist(p)<.02||nearPlace(p,.85))continue;
+    for(let i=0;i<N;i++){const p=new V3(r()*2-1,r()*2-1,r()*2-1).normalize();const h=G_.hAt(p);if(h<G_.sea+.15)continue;const b=BIOMES[G_.biomeAt(p,h)];if(!b.grass||r()>b.grassD)continue;if(G_.roadDist(p)*G_.R<1.3||nearPlace(p,.85))continue;
       if(Math.abs(G_.hAt(p.clone().applyAxisAngle(UPV,.004))-h)>.25)continue;
       const c=SCATTER.chunkOf(p);let a=per.get(c);if(!a)per.set(c,a=[]);col.set(b.grass).offsetHSL((r()-.5)*.03,(r()-.5)*.08,(r()-.5)*.08);a.push({p,s:.75+r()*.7,yaw:r()*TAU,c:col.clone()})}
     const m4=new THREE.Matrix4(),q=new THREE.Quaternion(),q2=new THREE.Quaternion(),sv=new V3();
@@ -519,7 +519,7 @@ const GAME=(()=>{
     /* Figuren */
     for(const e of ents.values()){try{if(e===me||e.kind==='peer'){}else stepVillager(e,dt,t);if(e.kind==='peer')SOCIAL.stepPeer(e,dt)}catch(err){if(!e.errLogged){e.errLogged=1;console.warn('Figur',e.d&&e.d.id,err)}}}
     const camP=cam.position.clone().normalize();for(const e of ents.values()){const vis=overview?e.p.dot(camP)>.1:e===me||(e.p.dot(camP)>.55&&angle(e.p,me?me.p:e.p)*G_.R<40);e.g.visible=vis;e.shadow.visible=vis;if(vis)poseEnt(e,dt,t)}
-    stepProps(dt,t);stepParts(dt);if(G_.def.tick&&mode==='outdoor')try{G_.def.tick(dt,t,G_,me)}catch(e){if(!G_._tickErr){G_._tickErr=1;console.warn('Planet-Tick',e)}}stepClouds(dt);SCATTER.step(dt);if(typeof WEATHER!=='undefined')WEATHER.frame(dt,t,G_,me);else stepWeather(dt,t);if(G_.groundU)G_.groundU.uT.value=t;SCATTER.update(overview?cam.position.clone().normalize():(me?me.p:UPV),t,HIGH);stepBall(dt);stepLaunch(dt);poseBoats(dt,t);stepGates(dt);if(typeof JOBS!=='undefined')JOBS.tick(dt);if(typeof ZOO!=='undefined')ZOO.parkTick(dt,t);for(const o of G_.ticks){try{o.userData.tick(t,false,0)}catch(e){}}
+    stepProps(dt,t);stepParts(dt);if(typeof GRASS!=='undefined')GRASS.frame(t,me&&me.g.position);if(typeof FOLIAGE!=='undefined')FOLIAGE.frame(t);if(G_.def.tick&&mode==='outdoor')try{G_.def.tick(dt,t,G_,me)}catch(e){if(!G_._tickErr){G_._tickErr=1;console.warn('Planet-Tick',e)}}stepClouds(dt);SCATTER.step(dt);if(typeof WEATHER!=='undefined')WEATHER.frame(dt,t,G_,me);else stepWeather(dt,t);if(G_.groundU)G_.groundU.uT.value=t;SCATTER.update(overview?cam.position.clone().normalize():(me?me.p:UPV),t,HIGH);stepBall(dt);stepLaunch(dt);poseBoats(dt,t);stepGates(dt);if(typeof JOBS!=='undefined')JOBS.tick(dt);if(typeof ZOO!=='undefined')ZOO.parkTick(dt,t);for(const o of G_.ticks){try{o.userData.tick(t,false,0)}catch(e){}}
     if(me){if(me.boost>0)me.boost-=dt;if(me.hop>0)me.hop-=dt;if(me.glitter>0){me.glitter-=dt;if(Math.random()<dt*6)W.fx(me.p,'funke',1,me.g.position.clone().addScaledVector(me.p,.8+Math.random()*.6))}}
     if(me&&!overview){OCC.a.value.copy(cam.position);OCC.b.value.copy(me.g.position).addScaledVector(me.p,.9);OCC.on.value=1}else OCC.on.value=0;ACT.frame(dt,t);REPAIR.frame(dt,t);if((typeof FAUNA!=='undefined'))try{FAUNA.step(dt,t)}catch(e){console.warn('Fauna',e)}SOCIAL.frame(dt,t);grassU.value=t;G_.waterU.uT.value=t;
     ecoT-=dt;if(ecoT<=0){ecoT=1;ecoTick()}grassU.value=t;
@@ -535,7 +535,8 @@ const GAME=(()=>{
     /* Prompt */
     promptTarget=busy||document.querySelector('.bubmenu')?null:findTarget();const pr=$('prompt');if(promptTarget&&!UI.anyOpen()){pr.hidden=false;pr.innerHTML='';const k=el('kbd',null,'E');pr.append(k,document.createTextNode(promptTarget.label));$('hbA').textContent=shortLabel(promptTarget)}else{pr.hidden=true;$('hbA').textContent='Hüpfen'}
     if(G_.lod)PLANETLOD.update(cam.position,HIGH?4:2.5);if(G_.stream)SCATTER.stream(overview?cam.position.clone().normalize():(me?me.p:UPV),HIGH?5:3);
-    if(HIGH)comp.render();else R.render(scene,cam);labels()}
+    if(typeof LOOK!=='undefined'&&LOOK.enabled){const fg=scene.fog;LOOK.render(R,scene,cam,{fog:fg&&fg.color,fogNear:fg?Math.max(40,fg.near*1.2):60,fogFar:fg?fg.far*1.1:220,fogAmt:overview?0:.45,night:G_.night||0,tilt:overview?.3:(HIGH?.8:0),bloom:HIGH,ao:HIGH?.65:.5,ink:.7})}
+    else if(HIGH)comp.render();else R.render(scene,cam);labels()}
   /* Kamera-Kollision: Strahl vom Kopf zur Wunschposition gegen nahe Gebäude; Kamera rückt vor die Wand (schnell rein, langsam wieder raus) und bleibt über dem Boden */
   const _rc=new THREE.Raycaster();let camClip=99;
   function camCollide(target,want,dt){const dir=want.clone().sub(target);const L=dir.length();if(L<.01)return want;dir.divideScalar(L);const objs=[];
@@ -556,7 +557,7 @@ const GAME=(()=>{
   const DAYKEYS=[/* Stunde, Himmel oben, Horizont, Sonnenfarbe, Sonne, Umgebungslicht, Himmelslicht, Nebel */
     [0,'#141A44','#2E3470','#8FA0FF',.22,'#7A88E8',.32,'#2E3266'],[4.6,'#1B2150','#3A3A78','#8FA0FF',.22,'#7A88E8',.32,'#343872'],
     [5.6,'#3B3E86','#C98AA8','#FFA88A',.3,'#B8A0E0',.36,'#8A7AAE'],[6.4,'#6E86D8','#FFB892','#FFB58A',.55,'#F0C8D8',.42,'#E8B8A8'],
-    [7.6,null,'#FFE3C2','#FFE2B8',.85,'#E6F0FF',.5,null],[12,null,null,'#FFF6E2',1,'#DFF1FF',.52,null],[16.8,null,null,'#FFEFD2',.96,'#E4EEFF',.52,null],
+    [7.6,null,'#FFE3C2','#FFE2B8',.82,'#D6DCFF',.66,null],[12,null,null,'#FFF4DE',.92,'#CDD6FF',.72,null],[16.8,null,null,'#FFECCE',.9,'#D2D8FF',.7,null],
     [18.4,'#7C8EE0','#FFC08A','#FFB070',.7,'#F2D0C8',.46,'#F0C8A8'],[19.4,'#5A5AB0','#FF9A7A','#FF9070',.45,'#D8A8D0',.4,'#B890B8'],
     [20.4,'#2E3278','#9A6AA8','#A08AE0',.28,'#9A90E0',.34,'#4E4A88'],[21.3,'#171D4A','#343A78','#8FA0FF',.22,'#7A88E8',.32,'#2E3266'],[24,'#141A44','#2E3470','#8FA0FF',.22,'#7A88E8',.32,'#2E3266']];
   const _ca=new THREE.Color(),_cb=new THREE.Color();

@@ -14,7 +14,7 @@ const PLANETLOD=(()=>{
   function faceUV(p){let f=0,bd=-2;for(let i=0;i<6;i++){const d=p.dot(FACES[i][0]);if(d>bd){bd=d;f=i}}const F=FACES[f];return{f,u:Math.atan(p.dot(F[1])/bd)/Q4,v:Math.atan(p.dot(F[2])/bd)/Q4}}
   let S=null;/* Zustand des aktuellen Planeten */
   function create(fns,mat,scene,o){dispose();o=o||{};const R=fns.R;const faceLen=R*Math.PI/2;let maxD=0;while(faceLen/Math.pow(2,maxD)/N>(o.fine||.55)&&maxD<9)maxD++;
-    S={fns,mat,scene,R,maxD,roots:[],queue:[],building:0,vattr:o.vattr,water:o.water||null,onReady:o.onReady||null,split:o.split||2.1,group:new THREE.Group(),frame:0,pending:new Set()};S.group.name='planet';scene.add(S.group);
+    S={fns,mat,scene,R,maxD,roots:[],queue:[],building:0,vattr:o.vattr,water:o.water||null,grass:o.grass||null,onReady:o.onReady||null,split:o.split||2.1,group:new THREE.Group(),frame:0,pending:new Set()};S.group.name='planet';scene.add(S.group);
     for(let f=0;f<6;f++)S.roots.push(node(f,-1,-1,2,0,null));return S}
   function node(f,u0,v0,s,d,parent){const c=dirOf(f,u0+s/2,v0+s/2);return{f,u0,v0,s,d,parent,kids:null,mesh:null,H:null,P:null,ready:false,want:false,c,len:s/2*S.R*Math.PI/2,queued:false,dead:false}}
   /* ---------- Kachel bauen ---------- */
@@ -38,6 +38,7 @@ const PLANETLOD=(()=>{
     const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos.subarray(0,si*3),3));g.setAttribute('normal',new THREE.BufferAttribute(nor.subarray(0,si*3),3));g.setAttribute('color',new THREE.BufferAttribute(col.subarray(0,si*3),3));
     g.setAttribute('aMat',new THREE.BufferAttribute(mat.subarray(0,si*4),4));g.setAttribute('aPat',new THREE.BufferAttribute(pat.subarray(0,si*4),4));g.setAttribute('aCl',new THREE.BufferAttribute(cl.subarray(0,si*3),3));g.setIndex(idx);g.computeBoundingSphere();
     const m=new THREE.Mesh(g,S.mat);m.receiveShadow=true;m.matrixAutoUpdate=false;m.userData.lod=nd.d;nd.mesh=m;nd.H=H;nd.P=P;nd.ready=true;m.visible=false;S.group.add(m);
+    /* Grasteppich auf den feinsten Kacheln */if(S.grass&&nd.d>=S.maxD&&typeof GRASS!=='undefined'){const gm=GRASS.forTile(M,pos,nor,col,pat,mat,H,sea,(nd.f*73856093)^(Math.round(nd.u0*1e4)*19349663)^(Math.round(nd.v0*1e4)*83492791),S.grass.per);if(gm)m.add(gm)}
     /* Wasser je Kachel (gleiche Auflösung wie der Boden, nur wo es Wasser gibt): Tiefe je Vertex für Schaum und Farbe */
     if(S.water){let lo=1e9;for(let i=0;i<nv;i++)if(H[i]<lo)lo=H[i];if(lo<sea+.02){const wr=R+sea;const wp=new Float32Array(nv*3),wn=new Float32Array(nv*3),wd=new Float32Array(nv);
         for(let i=0;i<nv;i++){const x=P[i*3],y=P[i*3+1],z=P[i*3+2];const l=Math.hypot(x,y,z)||1;wn[i*3]=x/l;wn[i*3+1]=y/l;wn[i*3+2]=z/l;wp[i*3]=wn[i*3]*wr;wp[i*3+1]=wn[i*3+1]*wr;wp[i*3+2]=wn[i*3+2]*wr;wd[i]=sea-H[i]}

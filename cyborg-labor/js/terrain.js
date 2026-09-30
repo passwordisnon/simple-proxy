@@ -228,7 +228,7 @@ function makePlanetFns(pid,extra){const def=PLANETS[pid];const seed={kompost:1,s
   const fbm=(p,f,o)=>N(p.x*f+o,p.y*f,p.z*f)*.6+N(p.x*f*2.1,p.y*f*2.1+o,p.z*f*2.1)*.28+N(p.x*f*4.3,p.y*f*4.3,p.z*f*4.3+o)*.12;
   const park=places.find(p=>p.park);let parkF=null,parkRad=0;if(park){parkF=parkFrame(park.dir,places[0].dir);parkRad=park.r*R;
     PARK.planets.forEach((pp,i)=>{if(!PARK.pondOf(pp))return;const[cu,cv,,r0,r1]=PARK.center(i,parkRad);places.push({id:'parkteich'+i,n:'Tierpark-Teich',dir:parkDir(park.dir,parkF,R,cu,cv),r:Math.min(3.2,(r1-r0)*.3)/R,pond:true,parkPond:true})})}
-  const plazaDir=places[0].dir;const roads=places.filter(p=>p.build&&p!==places[0]).map(p=>[plazaDir,p.dir]);
+  const plazaDir=places[0].dir;const roads=places.filter(p=>p.build&&p!==places[0]).map(p=>{const a=angle(plazaDir,p.dir);const k=Math.min(.9,places[0].r*.45/Math.max(a,1e-4));return[plazaDir.clone().lerp(p.dir,k).normalize(),p.dir]});
   /* Detail-Rauschen in Welt-Einheiten (Hügel bleiben gleich gross, auch wenn der Planet wächst): q = p * R/R0 */
   const k=R/(def.R0||R);const q=new THREE.Vector3();
   /* Grossform je Planet: oc = Meeresanteil (Kontinent-Schwelle), m = Gebirgs-Schwelle, isl = Inselstärke */
@@ -296,6 +296,8 @@ float vn(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
 float dots2(vec2 uv,float r){vec2 g=floor(uv);vec2 f=fract(uv)-.5;vec2 o=vec2(h21(g),h21(g+7.3))-.5;float s=.55+.6*h21(g+3.1);return smoothstep(r*s,r*s-.06,length(f-o*.45));}
 float cells2(vec2 uv){vec2 g=floor(uv),f=fract(uv);float d=9.;for(int j=-1;j<=1;j++)for(int i=-1;i<=1;i++){vec2 b=vec2(i,j);vec2 o=vec2(h21(g+b),h21(g+b+5.1));d=min(d,length(b+o-f));}return d;}
 float tri(vec3 p,vec3 w,float s,float r){return dots2(p.yz*s,r)*w.x+dots2(p.xz*s,r)*w.y+dots2(p.xy*s,r)*w.z;}
+vec2 cellsE(vec2 uv){vec2 g=floor(uv),f=fract(uv);float d1=9.,d2=9.;float id=0.;for(int j=-1;j<=1;j++)for(int i=-1;i<=1;i++){vec2 b=vec2(i,j);vec2 o=.5+.38*(vec2(h21(g+b),h21(g+b+5.1))-.5);float d=length(b+o-f);if(d<d1){d2=d1;d1=d;id=h21(g+b+2.3);}else if(d<d2)d2=d;}return vec2(d2-d1,id);}
+vec2 triE(vec3 p,vec3 w,float s){return cellsE(p.yz*s)*w.x+cellsE(p.xz*s)*w.y+cellsE(p.xy*s)*w.z;}
 float triC(vec3 p,vec3 w,float s){return cells2(p.yz*s)*w.x+cells2(p.xz*s)*w.y+cells2(p.xy*s)*w.z;}
 `;
 /* Gemalte Boden-Texturen (grau um 50 %, werden mit der Biomfarbe multipliziert); kachelbar, mit Mipmaps */
@@ -335,7 +337,7 @@ function groundMaterial(fns){const def=fns.def;const m=new THREE.MeshToonMateria
        /* Schnee: Glitzer */ float gl=tri(vObj+2.,w,5.,.07);c=mix(c,c+vec3(.16,.18,.22)*gl*(.6+.4*sin(uT*2.+dot(vObj,vec3(3.)))),vPat.z);c=mix(c,c*(.94+.1*mid),vPat.z);
        /* Moos/Staub: Flecken */ float bl=smoothstep(.45,.6,vn(vObj*1.1));c=mix(c,c*(.9+.14*bl),vPat.w);
        /* nasser Rand am Wasser */ c*=1.-.28*vMat.z;
-       /* Pflasterweg */ float cb=triC(vObj,w,2.2);vec3 pc=uPath*(.9+.14*vn(vObj*2.))*(1.-.2*smoothstep(.72,.82,cb))*(1.+.06*(1.-smoothstep(.2,.5,cb)));c=mix(c,pc,vMat.y);
+       /* Pflasterweg */ vec2 ce=triE(vObj,w,2.3);float gap=1.-smoothstep(.03,.11,ce.x);float dome=smoothstep(.0,.45,ce.x);vec3 pb=mix(uPath,dot(uPath,vec3(.33))*vec3(.96,.97,1.03),.45);vec3 pc=pb*mix(vec3(1.02,1.,.95),vec3(.93,.95,1.02),ce.y)*(.95+.06*vn(vObj*1.3));pc*=.95+.07*dome;pc=mix(pc,pc*vec3(.82,.8,.86),gap*(.35+.5*near));c=mix(c,pc,vMat.y);
        /* Klippen pro Pixel: Terrassen-Höhenlinie → scharfe, glatte Grasskante wie in Animal Crossing */
        float slope=1.-dot(normalize(vNo),n);float lev=(hh-uSea)/uStep+(vn(vObj*1.3)-.5)*.07;float fr=fract(lev);
        float ter=step(uSea+.28,hh)*smoothstep(.05,.14,slope)*uTerr;
@@ -357,7 +359,7 @@ function buildTerrainMesh(fns,detail){const def=fns.def;const R=fns.R,sea=fns.se
     const t=Math.max(0,Math.min(1,(h-sea)/4));tmp.set(B.g[0]).lerp(tmp2.set(B.g[1]),t);
     if(h<sea-.2)tmp.set(def.bed||'#E6D2A0').lerp(tmp2.set(B.g[0]),.25);else tmp.offsetHSL(0,-.1,-.035);
     col[i*3]=tmp.r;col[i*3+1]=tmp.g;col[i*3+2]=tmp.b;const pi=h<sea+.05?1:PATI[B.pat];pat[i*4+pi]=1;
-    const rd=fns.roadDist(v);mat[i*4+1]=h>sea+.2?sstep(.026,.016,rd):0;for(const pl of fns.places)if(pl.build&&pl.build!=='residence'){const d=angle(v,pl.dir);mat[i*4+1]=Math.max(mat[i*4+1],sstep(pl.r*.95,pl.r*.7,d)*(pl.build==='plaza'?1:.8))}
+    const rd=fns.roadDist(v)*fns.R;mat[i*4+1]=h>sea+.2?sstep(1.7,1.1,rd):0;for(const pl of fns.places)if(pl.build&&pl.build!=='residence'){const d=angle(v,pl.dir);mat[i*4+1]=Math.max(mat[i*4+1],pl.build==='plaza'?sstep(pl.r*.5,pl.r*.4,d):sstep(pl.r*.95,pl.r*.7,d)*.8)}
     mat[i*4+2]=h>sea-.1&&h<sea+.18?sstep(sea+.18,sea+.02,h):0;
     v.multiplyScalar(R+h);pos.setXYZ(i,v.x,v.y,v.z)}
   g.computeVertexNormals();const nr=g.attributes.normal;
@@ -376,7 +378,7 @@ function terrainVattr(fns){const def=fns.def,sea=fns.sea;const tmp=new THREE.Col
   return(d,h,n,k,col,pat,mat,cl)=>{const b=fns.biomeAt(d,h);const B=BIOMES[b];const t=Math.max(0,Math.min(1,(h-sea)/4));tmp.set(B.g[0]).lerp(tmp2.set(B.g[1]),t);
     if(h<sea-.2)tmp.set(def.bed||'#E6D2A0').lerp(tmp2.set(B.g[0]),.25);else tmp.offsetHSL(0,-.1,-.035);
     col[k*3]=tmp.r;col[k*3+1]=tmp.g;col[k*3+2]=tmp.b;const pi=h<sea+.05?1:PATI[B.pat];pat[k*4]=pat[k*4+1]=pat[k*4+2]=pat[k*4+3]=0;pat[k*4+pi]=1;
-    let path=0;if(h>sea+.2){const rd=fns.roadDist(d);path=sstep(.026,.016,rd)}for(const pl of builds){const dd=angle(d,pl.dir);if(dd<pl.r)path=Math.max(path,sstep(pl.r*.95,pl.r*.7,dd)*(pl.build==='plaza'?1:.8))}
+    let path=0;if(h>sea+.2){const rd=fns.roadDist(d)*fns.R;const wob=.25*Math.sin(d.x*97+d.z*53);path=sstep(1.7+wob,1.1+wob,rd)}for(const pl of builds){const dd=angle(d,pl.dir);if(dd<pl.r){if(pl.build==='plaza'){const wob=1+.12*Math.sin(d.x*61+d.z*37)+.08*Math.sin(d.y*83-d.x*29);path=Math.max(path,sstep(pl.r*.5*wob,pl.r*.4*wob,dd))}else path=Math.max(path,sstep(pl.r*.95,pl.r*.7,dd)*.8)}}
     const slope=1-n.dot(d);const c=sstep(.12,.3,slope)*(h>sea-.3?1:.4);mat[k*4]=c;mat[k*4+1]=path*(1-c);mat[k*4+2]=h>sea-.1&&h<sea+.18?sstep(sea+.18,sea+.02,h):0;mat[k*4+3]=0;
     tmp.set(B.cliff);cl[k*3]=tmp.r;cl[k*3+1]=tmp.g;cl[k*3+2]=tmp.b}}
 function buildWaterMesh(fns,detail){const def=fns.def;let wg=new THREE.IcosahedronGeometry(fns.R+fns.sea,detail);const wp=wg.attributes.position;const dep=new Float32Array(wp.count);const v=new THREE.Vector3();

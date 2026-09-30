@@ -79,7 +79,10 @@ const TEXC={};
 function ctex(key,w,h,draw){if(TEXC[key])return TEXC[key];const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.anisotropy=4;TEXC[key]=t;return t}
 
 /* ---------- Toon-Shading ---------- */
-const TOON_RAMP=(()=>{const d=new Uint8Array([95,95,95,255, 150,150,150,255, 215,215,215,255, 255,255,255,255]);const t=new THREE.DataTexture(d,4,1,THREE.RGBAFormat);t.minFilter=t.magFilter=THREE.NearestFilter;t.generateMipmaps=false;t.needsUpdate=true;return t})();
+/* Weicher Schattenverlauf (statt harter 4-Stufen-Kante): breite Schattenseite, sanfter Übergang, kleiner heller Sockel – nach dem Licht-Modell von folio-2025 */
+const TOON_RAMP=(()=>{const N=64;const d=new Uint8Array(N*4);const ss=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t)};
+  for(let i=0;i<N;i++){const x=i/(N-1);const v=.4+.46*ss(.32,.5,x)+.14*ss(.62,.8,x);const c=Math.round(v*255);d.set([c,c,c,255],i*4)}
+  const t=new THREE.DataTexture(d,N,1,THREE.RGBAFormat);t.minFilter=t.magFilter=THREE.LinearFilter;t.generateMipmaps=false;t.needsUpdate=true;return t})();
 const PBR_ONLY=['roughness','metalness','clearcoat','clearcoatRoughness','sheen','sheenColor','sheenRoughness','iridescence','iridescenceIOR','iridescenceThicknessRange','transmission','thickness','ior','envMapIntensity','bumpMap','bumpScale','specularIntensity','flatShading'];
 /* Cozy-Material: MeshToon + weicher Randlicht-Schimmer + optionaler Glanzpunkt (Plastik, Lack, Augen) */
 function cozy(o){

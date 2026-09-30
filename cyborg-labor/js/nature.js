@@ -54,7 +54,7 @@ function crystal(g,m,base,dir,r,h,col){const o=P(g,crysGeo(r,h),crysMat(m,col),b
 /* Stamm mit Wurzelfuss */
 function trunk(g,m,h,r,col){return P(g,G.la([[0,0],[r*1.75,0],[r*1.3,h*.06],[r*1.05,h*.2],[r*.9,h*.6],[r*.78,h],[0,h]],Q(16)),m.c(col||'#9C6B48'))}
 /* Laubwolke */
-function cloud(g,m,col,x,y,z,r,seed,sc){return P(g,G.blob(r,.06,2.4,seed),m.c(col,{rim:.55,rimColor:'#f2ffc8'}),[x,y,z],null,sc)}
+function cloud(g,m,col,x,y,z,r,seed,sc){if(typeof FOLIAGE!=='undefined')return FOLIAGE.crown(g,m,col,x,y,z,r,seed,sc);return P(g,G.blob(r,.06,2.4,seed),m.c(col,{rim:.55,rimColor:'#f2ffc8'}),[x,y,z],null,sc)}
 /* Punkt auf Ellipsoid-Oberfläche (für Früchte/Punkte) */
 function onBlob(c,rx,ry,rz,th,ph){const n=[Math.sin(th)*Math.cos(ph),Math.cos(th),Math.sin(th)*Math.sin(ph)];return{p:[c[0]+n[0]*rx,c[1]+n[1]*ry,c[2]+n[2]*rz],n}}
 /* Muschel-/Linsenkörper (zwei gewölbte Schalen mit Rippen, geschlossen) — Fächer nach +y, Scharnier bei 0 */
