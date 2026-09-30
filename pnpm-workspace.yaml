@@ -1,0 +1,3 @@
+# pnpm >= 10 reads overrides from here (the "pnpm" field in package.json is ignored)
+overrides:
+  rollup: npm:@rollup/wasm-node
