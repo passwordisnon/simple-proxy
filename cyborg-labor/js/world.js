@@ -56,7 +56,7 @@ const GAME=(()=>{
   /* Zufallspunkt im Umkreis (grosse Planeten: Dinge erscheinen dort, wo gespielt wird, nicht verstreut über den ganzen Planeten) */
   function randAround(r,rad,center){const c=center||(me?me.p:((G_.places||[]).find(p=>p.id==='platz')||{dir:UPV}).dir);const t=tangentTo(c,new V3(r()-.5,r()-.5,r()-.5));if(!isFinite(t.x))return c.clone();const ang=Math.sqrt(r())*rad/G_.R;return c.clone().applyAxisAngle(new V3().crossVectors(c,t).normalize(),ang).normalize()}
   function randLand(r,minH,maxH,tries,rad){for(let i=0;i<(tries||80);i++){const p=G_.stream?randAround(r,rad||90):new V3(r()*2-1,r()*2-1,r()*2-1).normalize();const h=G_.hAt(p);if(h>(minH??G_.sea+.3)&&h<(maxH??99))return p}return null}
-  const nearPlace=(p,pad)=>G_.places.some(pl=>angle(p,pl.dir)<pl.r*(pad||1.25))||(G_.paths||[]).some(([a,b])=>distToArc(p,a,b)<.05);
+  const nearPlace=(p,pad)=>G_.places.some(pl=>angle(p,pl.dir)<pl.r*(pl.park?.24:(pad||1.25)))||(G_.paths||[]).some(([a,b])=>distToArc(p,a,b)<.05);
 
   function smartMerge(o){const keep=[...(o.userData.keep||[]),o.userData.rocket,o.userData.flag].filter(Boolean);try{if(o.userData.tick)mergeCreature(o,keep);else mergeGroup(o,keep)}catch(e){console.warn('merge',e)}}
   /* ---------- Wasserball zum Kicken ---------- */
@@ -184,7 +184,7 @@ const GAME=(()=>{
       for(const s2 of[-1,1])addObst(pos.clone().addScaledVector(side,s2*1.3*k/G_.R).normalize(),.55*k);addObst(pos.clone().addScaledVector(back,1/G_.R).normalize(),1);
       const seed=hashStr(id).length*7919+out.length*131+G_.id.length;G_.inter.push({kind:'cave',p:p.clone().addScaledVector(front,.7/G_.R).normalize(),r:1.7,label:'Höhle betreten',act:()=>CAVES.enter({seed,id})});
       G_.places.push({id,n:'Höhle',dir:p.clone(),r:3.6/G_.R})}}
-  function buildPlaces(){for(const pl of G_.places){if(!pl.build)continue;const g=new THREE.Group();let obj=null;
+  function buildPlaces(){for(const pl of G_.places){if(!pl.build)continue;if(pl.build==='zoopark'){try{ZOO.buildPark(pl)}catch(e){console.warn('Tierpark',e)}continue}const g=new THREE.Group();let obj=null;
       QF=HIGH?.7:.42;try{
         if(pl.build==='plaza')obj=buildPlaza(pl);
         else if(TOWN.kinds.includes(pl.build))obj=TOWN.build(pl.build,G_.id,M);
@@ -211,7 +211,7 @@ const GAME=(()=>{
       const door=obj.userData.door?new V3(...obj.userData.door):new V3(0,0,rad+.8);door.y=0;const dl=Math.hypot(door.x,door.z)||1;const need=obj.userData.doorExact?0:rad+.9;if(dl<need){door.x*=need/dl;door.z*=need/dl;if(!door.x&&!door.z)door.z=need}
       const dw=g.localToWorld(door.clone());const dp=dw.clone().normalize();pl.doorP=dp;obj.traverse(o=>{if(o.isMesh)o.userData.place=pl})
       const label={museum:'Museum betreten',shop:'Laden betreten',studio:'Malen',rocket:'Reisen',house:'Nach Hause'}[pl.build];if(label)G_.inter.push({kind:pl.build,place:pl,p:dp,r:2.2,label});
-      const nm=obj.userData.name||'';const ext={praxis:['Praxis betreten',()=>INTERIOR.enter('klinik')],mode:['Boutique betreten',()=>INTERIOR.enter('boutique')],casino:['Glücks-Salon betreten',()=>CASINO.enter()],bar:['Jazz-Bar betreten',()=>BUILDINGS.enter('bar')],rathaus:['Rathaus betreten',()=>BUILDINGS.enter('rathaus')],garage:['Raketen-Garage',()=>BUILDINGS.garage()],pflanzen:['Gärtnerei',()=>BUILDINGS.plants()],tiere:['Tierpark betreten',()=>ZOO.enter()]}[pl.build];
+      const nm=obj.userData.name||'';const ext={praxis:['Praxis betreten',()=>INTERIOR.enter('klinik')],mode:['Boutique betreten',()=>INTERIOR.enter('boutique')],casino:['Glücks-Salon betreten',()=>CASINO.enter()],bar:['Jazz-Bar betreten',()=>BUILDINGS.enter('bar')],rathaus:['Rathaus betreten',()=>BUILDINGS.enter('rathaus')],garage:['Raketen-Garage',()=>BUILDINGS.garage()],pflanzen:['Gärtnerei',()=>BUILDINGS.plants()],tiere:['Tierhandlung',()=>BUILDINGS.pets()]}[pl.build];
       if(ext)G_.inter.push({kind:pl.build,place:pl,p:dp,r:2.2,label:ext[0]+(nm?' · '+nm:''),act:ext[1]});
       if(pl.build==='residence')G_.inter.push({kind:'home',place:pl,p:dp,r:2,label:'Bei '+pl.whoName+' klingeln',act:()=>HOMES.knock(pl)})
       if(obj.userData.signPos&&typeof LANG!=='undefined'){const sp=g.localToWorld(new V3(obj.userData.signPos[0],0,obj.userData.signPos[1]+.5)).normalize();const txt=obj.userData.signText;G_.inter.push({kind:'sign',place:pl,p:sp,r:1.3,label:'Schild lesen',act:()=>LANG.read(G_.id,txt)})}}
@@ -517,7 +517,7 @@ const GAME=(()=>{
     /* Figuren */
     for(const e of ents.values()){try{if(e===me||e.kind==='peer'){}else stepVillager(e,dt,t);if(e.kind==='peer')SOCIAL.stepPeer(e,dt)}catch(err){if(!e.errLogged){e.errLogged=1;console.warn('Figur',e.d&&e.d.id,err)}}}
     const camP=cam.position.clone().normalize();for(const e of ents.values()){const vis=overview?e.p.dot(camP)>.1:e===me||(e.p.dot(camP)>.55&&angle(e.p,me?me.p:e.p)*G_.R<40);e.g.visible=vis;e.shadow.visible=vis;if(vis)poseEnt(e,dt,t)}
-    stepProps(dt,t);stepParts(dt);stepClouds(dt);SCATTER.step(dt);if(typeof WEATHER!=='undefined')WEATHER.frame(dt,t,G_,me);else stepWeather(dt,t);if(G_.groundU)G_.groundU.uT.value=t;SCATTER.update(overview?cam.position.clone().normalize():(me?me.p:UPV),t,HIGH);stepBall(dt);stepLaunch(dt);poseBoats(dt,t);stepGates(dt);if(typeof JOBS!=='undefined')JOBS.tick(dt);for(const o of G_.ticks){try{o.userData.tick(t,false,0)}catch(e){}}
+    stepProps(dt,t);stepParts(dt);stepClouds(dt);SCATTER.step(dt);if(typeof WEATHER!=='undefined')WEATHER.frame(dt,t,G_,me);else stepWeather(dt,t);if(G_.groundU)G_.groundU.uT.value=t;SCATTER.update(overview?cam.position.clone().normalize():(me?me.p:UPV),t,HIGH);stepBall(dt);stepLaunch(dt);poseBoats(dt,t);stepGates(dt);if(typeof JOBS!=='undefined')JOBS.tick(dt);if(typeof ZOO!=='undefined')ZOO.parkTick(dt,t);for(const o of G_.ticks){try{o.userData.tick(t,false,0)}catch(e){}}
     if(me){if(me.boost>0)me.boost-=dt;if(me.hop>0)me.hop-=dt;if(me.glitter>0){me.glitter-=dt;if(Math.random()<dt*6)W.fx(me.p,'funke',1,me.g.position.clone().addScaledVector(me.p,.8+Math.random()*.6))}}
     if(me&&!overview){OCC.a.value.copy(cam.position);OCC.b.value.copy(me.g.position).addScaledVector(me.p,.9);OCC.on.value=1}else OCC.on.value=0;ACT.frame(dt,t);REPAIR.frame(dt,t);if((typeof FAUNA!=='undefined'))try{FAUNA.step(dt,t)}catch(e){console.warn('Fauna',e)}SOCIAL.frame(dt,t);grassU.value=t;G_.waterU.uT.value=t;
     ecoT-=dt;if(ecoT<=0){ecoT=1;ecoTick()}grassU.value=t;

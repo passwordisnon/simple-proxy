@@ -37,17 +37,11 @@ const ZOO=(()=>{
       bt(tg,[-.2,.1,.3],[.1,.55,.2],.03,M.c('#6B4A38'));S(tg,.12,M.c('#6FBF7A'),[.3,.18,-.4]);
       bl.slice(i*5,i*5+5).forEach((id,k)=>{const b=BUGS.find(q=>q.id===id);const g=model(b,M,.24);g.position.set((k%2?.18:-.18),.12+(k>2?.35:0),-.5+k*.25);g.rotation.y=k*1.3;tg.add(g);anim.bugs.push({g,ph:k+i,y:g.position.y})})}
     B(sc,.3,2.8,9,.04,Wd(M,'#8A5A44'),[-W/2+.18,1.4,0]);Cl.push({x0:-W/2,x1:-W/2+1.4,z0:-4.5,z1:4.5});sign('Terrarium · '+bl.length+'/'+BUGS.length,-W/2+.08,3.3,0,PI/2);
-    /* ---- Gehege je Planet ---- */const al=animalIds();const pens=Object.keys(PLANETS);const GRD={kompost:'#8FD07A',schrott:'#B8B4C8',korallen:'#F2DDB0',frost:'#EEF4FA',wueste:'#F0C890',pilz:'#C8B0E0'};
-    pens.forEach((pid,i)=>{const cx=-3.2+(i%3)*3.9,cz=-1.6+Math.floor(i/3)*3.6;const pw=3.3,pd=2.9;const pg=grp(sc,[cx,0,cz]);P(pg,G.bx(pw,.04,pd,.02),M.c(GRD[pid]||'#8FD07A'),[0,.02,0]);
-      const fence=Wd(M,'#C98C5A');for(const s of[-1,1]){B(pg,pw,.07,.07,.02,fence,[0,.55,s*pd/2]);B(pg,pw,.07,.07,.02,fence,[0,.3,s*pd/2]);B(pg,.07,.07,pd,.02,fence,[s*pw/2,.55,0]);B(pg,.07,.07,pd,.02,fence,[s*pw/2,.3,0])}
-      for(const[x,z]of[[-1,-1],[1,-1],[-1,1],[1,1],[0,-1],[0,1]])B(pg,.1,.7,.1,.03,fence,[x*pw/2,.35,z*pd/2]);
-      Cl.push({x0:cx-pw/2-.1,x1:cx+pw/2+.1,z0:cz-pd/2-.1,z1:cz+pd/2+.1});
-      const here=al.filter(k=>FAUNA.S[k].planet===pid);here.forEach((k,j)=>{const g=new THREE.Group();try{g.add(FAUNA.buildAnimal(FAUNA.S[k].a,M))}catch(e){}fit(g,.8);const o=new THREE.Group();o.add(g);o.position.set((j-(here.length-1)/2)*.6,0,(j%2?.4:-.4));pg.add(o);anim.animals.push({o,g,ph:j*2.1+i,cx:o.position.x,cz:o.position.z,r:Math.min(pw,pd)/2-.55})});
-      const t=ctex('zoo-pen-'+pid+here.length,256,64,(c,w,h)=>{c.fillStyle='#FFFDF7';c.beginPath();c.roundRect(2,2,w-4,h-4,14);c.fill();c.fillStyle='#5B4A3E';c.font='bold 24px "Nunito","Trebuchet MS",sans-serif';c.textAlign='center';c.fillText(PLANETS[pid].n.split('-')[0]+' · '+here.length,w/2,40)});
-      const sm=new THREE.Mesh(new THREE.PlaneGeometry(1.4,.35),new THREE.MeshBasicMaterial({map:t}));sm.position.set(0,.85,pd/2+.05);sm.userData.noOutline=true;pg.add(sm);bt(pg,[0,0,pd/2+.03],[0,.7,pd/2+.03],.03,fence);addOutlines(pg)});
+    /* ---- Mitte: Bänke zum Schauen (die Tiere leben draussen im Tierpark) ---- */for(const x of[-3,3])for(const z of[-1.2,1.8]){const b=grp(sc,[x,0,z]);B(b,2.2,.1,.6,.04,Wd(M,'#C98C5A'),[0,.5,0]);for(const s2 of[-1,1])B(b,.12,.5,.5,.03,Wd(M,'#8A5A44'),[s2*.9,.25,0]);addOutlines(b);Cl.push({x0:x-1.2,x1:x+1.2,z0:z-.4,z1:z+.4})}
+    {const pl2=grp(sc,[0,0,.3]);P(pl2,G.cy(.9,1,.5),M.c('#D98A5E'),[0,.25,0]);P(pl2,G.blob(1.1,.15,4,5),M.c('#6FBF7A'),[0,1,0],null,[1,.8,1]);addOutlines(pl2);Cl.push({x0:-1,x1:1,z0:-.7,z1:1.3})}
     /* ---- Tierhandlung und Pfleger vorne links ---- */const k=grp(sc,[-6.2,0,4.6]);B(k,2.4,1.0,.8,.06,Wd(M,'#C98C5A'),[0,.5,0]);B(k,2.5,.08,.9,.03,M.c('#FFFDF7'),[0,1.04,0]);for(let i=0;i<3;i++)C(k,.12,.1,.2,M.c(['#FF8FB1','#7FC8F0','#FFD85A'][i]),[-.7+i*.5,1.18,0]);addOutlines(k);Cl.push({x0:-7.5,x1:-4.9,z0:4.1,z1:5.1});
     try{const kp=buildCreature(keeper(),{q:HIGH?.6:.42,noShadow:!HIGH,blob:false,merge:true});kp.scale.setScalar(CS);kp.position.set(-6.2,0,3.9);sc.add(kp);sc.userData.keeper=kp}catch(e){console.warn('Pfleger',e)}
-    A.push({x:-6.2,z:5.7,r:1.2,label:'Tierhandlung',act:()=>BUILDINGS.pets()});A.push({x:-4.4,z:5.6,r:1.1,label:'Zoo-Führer (Arten und Belohnungen)',act:guide});
+    A.push({x:-4.4,z:5.6,r:1.1,label:'Zoo-Führer (Arten und Belohnungen)',act:guide});
     INTERIOR.lamp(sc,'steh',W/2-.7,0,5.6,{col:'#FFE0A8',i:.9,d:7});INTERIOR.lamp(sc,'steh',-W/2+.7,0,5.6,{col:'#FFE0A8',i:.9,d:7});
     for(const x of[W/2-1.2,W/2-1.2])for(const z of[-4.5,4.2]){const tr=grp(sc,[x,0,z]);C(tr,.14,.18,1.4,Wd(M,'#8A5A44'),[0,.7,0]);P(tr,G.blob(.8,.12,4,z|0),M.c('#6FBF7A'),[0,1.8,0],null,[1,.85,1]);addOutlines(tr);Cl.push({x0:x-.4,x1:x+.4,z0:z-.4,z1:z+.4})}
     QF=oldQ;sc.userData.zoo=anim;return{W,D,camD:15}}
@@ -57,11 +51,54 @@ const ZOO=(()=>{
     for(const a of u.animals){const k=t*.35+a.ph;const nx=a.cx*.4+Math.sin(k)*a.r*.8,nz=a.cz*.4+Math.sin(k*1.7)*a.r*.6;const dx=nx-a.o.position.x,dz=nz-a.o.position.z;const mv=Math.hypot(dx,dz)>.002;
       a.o.position.x=nx;a.o.position.z=nz;if(mv)a.o.rotation.y=Math.atan2(dx,dz);const an=a.g.children[0];if(an&&an.userData.tick)an.userData.tick(t+a.ph,mv,0,'')}
     const kp=sc.userData.keeper;if(kp&&kp.userData.tick)kp.userData.tick(t,false,UI.typing?.4:0)}
+
+  /* ================= Tierpark draussen: offene Wiese mit Biom-Sektoren ================= */
+  let park=null;
+  function buildPark(pl){const GG=GAME.G,R=GG.R,M=makeMats({skin:'haut',color:0});const c=pl.dir.clone();const pole=GG.places[0].dir;const F=parkFrame(c,pole);const rad=pl.r*R;
+    const at=(u,v)=>parkDir(c,F,R,u,v);const surf=(d,off)=>GAME.onSurf(d,off||0);
+    const orient=(g,d,fwd)=>{g.position.copy(surf(d));g.up.copy(d);const f=fwd.clone().addScaledVector(d,-fwd.dot(d)).normalize();g.lookAt(g.position.clone().add(f))};
+    const root=new THREE.Group();GG.scene.add(root);park={scene:GG.scene,root,animals:[],c,F,rad,pl};
+    /* Zaun: Pfosten + zwei Latten, weltfest auf dem Boden; Eingang zum Dorf hin offen */
+    const fz=new THREE.Group();const wood=M.c('#C98C5A'),dark=M.c('#8A5A44');const n=Math.round(TAU*rad/2.3);let prev=null;
+    for(let i=0;i<=n;i++){const a=i/n*TAU;const inGate=Math.abs(Math.atan2(Math.sin(a),Math.cos(a)))<3.2/rad;const d=at(Math.cos(a)*rad,Math.sin(a)*rad);const b=surf(d,-.05);const top=b.clone().addScaledVector(d,1.15);
+      if(inGate){prev=null;continue}bt(fz,[b.x,b.y,b.z],[top.x,top.y,top.z],.09,dark);P(fz,G_s(.12),dark,[top.x,top.y,top.z]);GAME.addObst(d,.35);
+      if(prev){for(const hh of[.45,.9]){const p0=prev.b.clone().addScaledVector(prev.d,hh),p1=b.clone().addScaledVector(d,hh);bt(fz,[p0.x,p0.y,p0.z],[p1.x,p1.y,p1.z],.055,wood)}
+        const mid=prev.d.clone().add(d).normalize();GAME.addObst(mid,.35)}prev={b,d}}
+    addOutlines(fz);fz.traverse(o=>{if(o.isMesh)o.castShadow=HIGH});try{mergeGroup(fz)}catch(e){}root.add(fz);
+    /* Eingangstor mit Schild */const gate=new THREE.Group();for(const sgn of[-1,1]){P(gate,G.bx(.7,2.8,.7,.12),M.c('#E8DCC8'),[sgn*3,1.4,0]);P(gate,G.bx(.9,.25,.9,.08),M.c('#CDBFA8'),[sgn*3,2.9,0]);P(gate,G.s(.28),M.c('#6FBF7A'),[sgn*3,3.2,0])}
+    P(gate,G.bx(6.9,.35,.45,.1),Wd(M,'#8A5A44'),[0,2.7,0]);const st=ctex('park-sign',512,128,(x,w,h)=>{x.fillStyle='#FFFDF7';x.beginPath();x.roundRect(6,6,w-12,h-12,30);x.fill();x.strokeStyle='#6FBF7A';x.lineWidth=10;x.stroke();x.fillStyle='#4E7A3A';x.font='bold 70px "Nunito","Trebuchet MS",sans-serif';x.textAlign='center';x.fillText('Tierpark',w/2,92)});
+    for(const zz of[.24,-.24]){const sm=new THREE.Mesh(new THREE.PlaneGeometry(3.4,.85),new THREE.MeshBasicMaterial({map:st,transparent:true}));sm.position.set(0,3.35,zz);if(zz<0)sm.rotation.y=PI;sm.userData.noOutline=true;gate.add(sm)}
+    P(gate,G.bx(3.6,1.05,.12,.06),Wd(M,'#8A5A44'),[0,3.35,0]);addOutlines(gate);orient(gate,at(rad,0),F.toV);root.add(gate);GAME.addObst(at(rad,3),.6);GAME.addObst(at(rad,-3),.6);
+    /* Laternen und Bänke am Weg */const lamp=typeof buildStreetLamp==='function'?buildStreetLamp:window.buildStreetLamp,bench=typeof buildBench==='function'?buildBench:window.buildBench;
+    for(let u=rad*.35;u<rad-2;u+=6.5)for(const sg of[-1,1]){if(lamp&&((u/6.5|0)+(sg>0?1:0))%2===0){const l=lamp(M);addOutlines(l);orient(l,at(u,sg*2.4),F.toV);root.add(l);GAME.addObst(at(u,sg*2.4),.3)}else if(bench){const b=bench(M);addOutlines(b);orient(b,at(u,sg*2.7),F.side.clone().multiplyScalar(-sg));root.add(b);GAME.addObst(at(u,sg*2.7),.6)}}
+    /* Schilder je Sektor */const sd=SAVE.faunaSeen||{};PARK.planets.forEach((pid,i)=>{const a=(i+.5)*PI/3;const d=at(Math.cos(a)*rad*.32,Math.sin(a)*rad*.32);const have=Object.keys(FAUNA.S).filter(k=>FAUNA.S[k].planet===pid&&sd[k]).length,all=Object.keys(FAUNA.S).filter(k=>FAUNA.S[k].planet===pid).length;
+      const g=new THREE.Group();P(g,G.cy(.07,.08,1.4),Wd(M,'#8A5A44'),[0,.7,0]);const t=ctex('park-sek-'+pid+have,320,110,(x,w,h)=>{x.fillStyle='#FFFDF7';x.beginPath();x.roundRect(4,4,w-8,h-8,18);x.fill();x.strokeStyle='#8A5A44';x.lineWidth=6;x.stroke();x.fillStyle='#5B4A3E';x.textAlign='center';x.font='bold 34px "Nunito","Trebuchet MS",sans-serif';x.fillText(PLANETS[pid].n,w/2,48);x.font='26px "Nunito","Trebuchet MS",sans-serif';x.fillText(have+' von '+all+' Arten',w/2,86)});
+      for(const zz of[.05,-.05]){const m=new THREE.Mesh(new THREE.PlaneGeometry(1.5,.52),new THREE.MeshBasicMaterial({map:t}));m.position.set(0,1.45,zz);if(zz<0)m.rotation.y=PI;m.userData.noOutline=true;g.add(m)}P(g,G.bx(1.6,.6,.08,.03),Wd(M,'#8A5A44'),[0,1.45,0]);
+      addOutlines(g);const out=at(Math.cos(a),Math.sin(a)).sub(c);orient(g,d,c.clone().sub(d).add(out.multiplyScalar(0)));root.add(g);GAME.addObst(d,.3)});
+    /* Aquarium-Pavillon in der Mitte (Fische und Insekten) */const pav=new THREE.Group();P(pav,G.cy(3.1,3.3,.3),M.c('#E8DCC8'),[0,.15,0]);for(let i=0;i<8;i++){const a=i/8*TAU;if(Math.abs(Math.atan2(Math.sin(a),Math.cos(a)))<.3)continue;P(pav,G.cy(.13,.15,2.6),M.c('#FFFDF7'),[Math.sin(a)*2.7,1.6,Math.cos(a)*2.7])}
+    P(pav,G.hs(3.0),M.c('#CFEFFA',{opacity:.38}),[0,2.8,0]);for(let i=0;i<8;i++)P(pav,G.to(3.0,.06,PI/2),M.c('#FFFDF7'),[0,2.85,0],[0,i/8*TAU,0]);P(pav,G.to(3.0,.12),M.c('#FFFDF7'),[0,2.85,0],[PI/2,0,0]);P(pav,G.s(.25),M.c('#FFD85A',{gloss:1}),[0,5.9,0]);
+    const tank=new THREE.Mesh(new THREE.CylinderGeometry(1.4,1.4,1.8,24),new THREE.MeshLambertMaterial({color:'#6FC4E8',transparent:true,opacity:.5}));tank.position.y=1.2;tank.userData.noOutline=true;pav.add(tank);
+    for(let i=0;i<6;i++){const f=new THREE.Group();P(f,G.s(.18),M.c(['#FF9E6E','#FFD85A','#FF8FB1'][i%3]),[0,0,0],null,[1.4,.8,.6]);P(f,G.co(.12,.2),M.c(['#FF9E6E','#FFD85A','#FF8FB1'][i%3]),[-.3,0,0],[0,0,PI/2]);f.position.set(Math.sin(i)*.9,.8+i*.18,Math.cos(i)*.9);f.userData.fish=i;pav.add(f)}
+    addOutlines(pav);orient(pav,c,F.toV);root.add(pav);GAME.addObst(c,3.1);park.pav=pav;
+    GG.inter.push({kind:'parkhaus',p:at(3.9,0),r:1.6,label:'Aquarium-Pavillon betreten',act:enter});GG.inter.push({kind:'parkguide',p:at(rad-3.5,0),r:1.8,label:'Tierpark-Führer (Arten und Belohnungen)',act:guide});
+    /* Tiere: jede getroffene Art streift in ihrem Planeten-Sektor umher (Wassertiere im Sektor-Teich) */
+    for(const[k,sp]of Object.entries(FAUNA.S)){if(!sd[k])continue;const i=PARK.planets.indexOf(sp.planet);if(i<0)continue;const n2=sp.herd?2:1;for(let j=0;j<n2;j++){const g=new THREE.Group();const inner=FAUNA.buildAnimal(sp.a,M);inner.scale.setScalar((sp.size||1)*.62);g.add(inner);addOutlines(g);root.add(g);
+      const A={k,sp,g,inner,i,water:!!sp.water&&PARK.pond[i],d:new THREE.Vector3(),tgt:null,idle:Math.random()*3,hop:0,ph:Math.random()*9};pick(A,true);A.d.copy(A.tgt);park.animals.push(A);
+      GG.inter.push({kind:'parkpet',p:A.d,r:1.5,label:'Streicheln: '+sp.n,act:()=>{A.hop=.7;A.idle=2.5;SND.play('cloth',{vol:.6});GAME.W.fx(A.d,'herz',6);SAVE.stats.pets=(SAVE.stats.pets||0)+1;persist()}})}}}
+  const G_s=r=>G.s(r);
+  function pick(A,first){const a0=A.i*PI/3,a1=a0+PI/3;const a=a0+.12+Math.random()*(PI/3-.24);let r;if(A.water){const pa=(A.i+.5)*PI/3;const pr=park.rad*.66;const q=Math.random()*TAU,rr=Math.random()*2;A.tgt=parkDir(park.c,park.F,GAME.G.R,Math.cos(pa)*pr+Math.cos(q)*rr,Math.sin(pa)*pr+Math.sin(q)*rr);return}
+    r=park.rad*(.3+Math.random()*.6);A.tgt=parkDir(park.c,park.F,GAME.G.R,Math.cos(a)*r,Math.sin(a)*r)}
+  function parkTick(dt,t){if(!park||park.scene!==GAME.G.scene||GAME.mode!=='outdoor')return;const G=GAME.G,me=GAME.me;if(!me)return;if(GAME.angle(me.p,park.c)*G.R>park.rad+45)return;
+    if(park.pav)park.pav.children.forEach(o=>{if(o.userData.fish!=null){const i=o.userData.fish;const a=t*.5+i;o.position.x=Math.sin(a)*.9;o.position.z=Math.cos(a)*.9;o.rotation.y=a+PI/2}});
+    for(const A of park.animals){A.idle-=dt;A.hop=Math.max(0,A.hop-dt);let mv=false;
+      if(A.idle<=0){const dist=GAME.angle(A.d,A.tgt)*G.R;if(dist<.4){A.idle=1.5+Math.random()*5;pick(A)}else{const sp=(A.sp.speed||.8)*.9*dt;const f=GAME.tangentTo(A.d,A.tgt.clone().sub(A.d));if(isFinite(f.x)){const ax=new THREE.Vector3().crossVectors(A.d,f).normalize();A.d.applyAxisAngle(ax,Math.min(sp,dist)/G.R).normalize();A.fwd=f;mv=true}}}
+      const h=A.water?G.sea-.12:G.hAt(A.d);A.g.position.copy(A.d).multiplyScalar(G.R+h+(A.hop>0?Math.sin(A.hop/.7*PI)*.5:0));A.g.up.copy(A.d);if(A.fwd)A.g.lookAt(A.g.position.clone().add(A.fwd));
+      if(A.inner.userData.tick)A.inner.userData.tick(t+A.ph,mv,0,A.hop>0?'happy':'')}}
   function guide(){const c=counts(),T=total();const Z=SAVE.zoo=SAVE.zoo||{got:[]};const w=UI.win('Zoo-Führer · '+T.have+'/'+T.all+' Arten',{size:'wide'});
     w.body.append(el('p',null,'Fische '+c.f+'/'+c.F+' · Insekten '+c.b+'/'+c.Bn+' · Tiere '+c.a+'/'+c.A+'. Jede neue Art zieht automatisch in den Tierpark ein: Fische und Insekten, sobald du sie einmal gefangen hast, Tiere, sobald du sie getroffen hast.'));
     const gr=el('div','grid');for(const[n,r]of MIL){const done=Z.got.includes(n),ok=T.have>=Math.min(n,T.all);const cd=el('div','card');cd.append(el('b',null,n+' Arten'),el('span','sub',fmt(r)+' Taler'),el('span','sub',done?'abgeholt':ok?'bereit!':'noch '+(Math.min(n,T.all)-T.have)));
       if(ok&&!done){const b=btn('Abholen','primary',()=>{Z.got.push(n);money(r);persist();SND.jingle('j_success');UI.talk(NM,['Wunderbar! '+n+' Arten im Tierpark!','Hier, '+fmt(r)+' Taler für deine Mühe.'],{voice:VOICE});w.close()});cd.append(b)}gr.append(cd)}w.body.append(gr)}
-  function enter(){INTERIOR.enter('zoo');const Z=SAVE.zoo=SAVE.zoo||{got:[]};if(!Z.hi){Z.hi=1;persist();setTimeout(()=>UI.talk(NM,['Willkommen im Tierpark!','Alle Fische, Insekten und Tiere, die du findest, bekommen hier ein Zuhause.','Das Tierzubehör verkaufe ich weiterhin da drüben an der Theke.'],{voice:VOICE}),900)}}
+  function enter(){INTERIOR.enter('zoo');const Z=SAVE.zoo=SAVE.zoo||{got:[]};if(!Z.hi){Z.hi=1;persist();setTimeout(()=>UI.talk(NM,['Willkommen im Tierpark!','Hier im Pavillon wohnen alle Fische und Insekten, die du gefangen hast.','Die Tiere, die du triffst, streifen draussen im Park durch ihre eigenen Landschaften.'],{voice:VOICE}),900)}}
   if(typeof INTERIOR!=='undefined')INTERIOR.kinds.zoo={bg:'#DDEFD8',music:'museum',build,frame};
-  return{enter,counts,total}
+  return{enter,counts,total,buildPark,parkTick}
 })();

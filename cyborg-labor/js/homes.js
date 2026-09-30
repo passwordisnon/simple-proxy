@@ -33,7 +33,7 @@ const HOMES=(()=>{
     const c0=fns0.places[0].dir,maxA=Math.min(1.25,(list.length>12?96:72)/R);const t0=new THREE.Vector3().crossVectors(c0,Math.abs(c0.y)>.9?new THREE.Vector3(1,0,0):new THREE.Vector3(0,1,0)).normalize();
     /* Bauplatz direkt im Umkreis des Dorfs ziehen (auch auf riesigen Planeten wohnen alle nah beisammen) */const inCap=()=>{const a=Math.acos(1-r()*(1-Math.cos(maxA))),ph=r()*TAU;return c0.clone().applyAxisAngle(t0,a).applyAxisAngle(c0,ph).normalize()};
     for(const d of list){let best=null;for(let i=0;i<220&&!best;i++){const p=inCap();const h=fns0.hAt(p);if(h<fns0.sea+.5)continue;
-        if(taken.some(q=>q.angleTo(p)*R<(out.length<3?17.5:16.5)))continue;let flat=true;const t1=new THREE.Vector3().crossVectors(p,new THREE.Vector3(0,0,1)).normalize(),t2=new THREE.Vector3().crossVectors(p,t1);
+        if(taken.some(q=>q.angleTo(p)*R<(out.length<3?17.5:16.5)))continue;if(fns0.places.some(q=>q.park&&q.dir.angleTo(p)<q.r*1.6+9/R))continue;let flat=true;const t1=new THREE.Vector3().crossVectors(p,new THREE.Vector3(0,0,1)).normalize(),t2=new THREE.Vector3().crossVectors(p,t1);
         for(const dd of[t1,t2,t1.clone().negate(),t2.clone().negate()]){const q=p.clone().addScaledVector(dd,6.5/R).normalize();if(Math.abs(fns0.hAt(q)-h)>1.3||fns0.hAt(q)<fns0.sea+.2)flat=false}if(!flat)continue;best=p}
       if(!best)continue;taken.push(best);const h=fns0.hAt(best);const step=PLANETS[pid].step;const hh=Math.max(fns0.sea+.5,Math.round((h-fns0.sea)/step)*step+fns0.sea);
       const lat=Math.asin(best.y)*180/PI,lon=Math.atan2(best.z,best.x)*180/PI;out.push({id:'home-'+d.id,n:'Haus von '+(d.name||'Namenlos'),dir:best,lat,lon,r:7.8/R,h:hh,build:'residence',who:d.id,whoName:d.name||'Namenlos',style:styleFor(pid,d)})}
