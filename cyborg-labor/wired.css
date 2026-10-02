@@ -201,3 +201,25 @@ body.beamer-on .hud,body.beamer-on #chat,body.beamer-on .tutcard,body.beamer-on 
 .bm-note:empty{display:none}
 .bm-empty{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);max-width:420px;text-align:center;font:400 18px/1.5 var(--system);color:#f2f6ff;background:rgba(11,21,48,.85);border-radius:20px;padding:18px 22px}
 @media (max-width:760px){.bm-card{left:12px;right:12px;width:auto;top:auto;bottom:96px;max-height:42%}.bm-arrow{width:60px;height:60px;margin-top:-30px}.bm-arrow.next{right:16px}}
+
+/* ---------- Cy-Phone als Ei-Gerät (Virtual-Pet / Digivice) ---------- */
+.phone.gta{width:280px;height:500px;padding:58px 30px 104px;border-radius:50% 50% 46% 46%/58% 58% 42% 42%;overflow:visible;
+  background:var(--gears) 0 0/120px 120px,radial-gradient(circle at 35% 25%,rgba(255,255,255,.35),transparent 40%),linear-gradient(160deg,#2fb5d9,#00799f 70%);
+  box-shadow:inset 0 6px 0 rgba(255,255,255,.35),inset 0 -10px 0 rgba(0,0,0,.2),0 4px 0 rgba(0,0,0,.2),var(--drop-lg)}
+.phone.gta .ph-loop{position:absolute;top:-14px;left:50%;width:34px;height:34px;margin-left:-17px;border-radius:50%;border:6px solid var(--chrome-mid);box-shadow:inset 0 1px 0 #fff;z-index:-1}
+.phone.gta .ph-scr{border-radius:14px;padding:22px 10px 8px;background:var(--lcd-bg);color:var(--lcd-ink);box-shadow:0 0 0 6px var(--chrome-mid),0 0 0 8px var(--chrome-lo),0 0 0 11px var(--ph-tint,#fff),inset 0 2px 6px rgba(0,0,0,.25)}
+.phone.gta .ph-scr::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(90deg,transparent 0 3px,rgba(0,0,0,.05) 3px 4px),repeating-linear-gradient(180deg,transparent 0 3px,rgba(0,0,0,.05) 3px 4px)}
+.phone.gta .ph-notch{top:6px;color:var(--lcd-ink);opacity:.8}
+.phone.gta .ph-piko{position:absolute;top:5px;right:10px;font:12px/1 var(--system);color:var(--lcd-ink)}
+.phone.gta .ph-bar,.phone.gta .ph-clock{color:var(--lcd-ink);text-shadow:none;font-family:var(--system)}
+.phone.gta .ph-clock b{font-size:34px}
+.phone.gta .app-i{color:var(--lcd-ink);text-shadow:none;font-family:var(--body);font-weight:800}
+.phone.gta .app-i b{width:42px;height:42px;border-radius:12px;box-shadow:var(--gel)}
+.phone.gta .app-i.sel b,.phone.gta .app-i:hover b{box-shadow:0 0 0 3px var(--lcd-ink),var(--gel)}
+.phone.gta .ph-home{background:var(--lcd-ink);opacity:.5}
+.phone.gta .ph-btns{position:absolute;left:0;right:0;bottom:34px;display:flex;justify-content:center;gap:18px}
+.phone.gta .ph-btns button{width:34px;height:34px;border:0;border-radius:50%;cursor:pointer;box-shadow:var(--gel);position:relative;overflow:hidden}
+.phone.gta .ph-btns button::before{content:"";position:absolute;left:6px;right:6px;top:3px;height:40%;border-radius:50%;background:linear-gradient(180deg,rgba(255,255,255,.75),rgba(255,255,255,0))}
+.phone.gta .ph-b1{background:var(--signal)}.phone.gta .ph-b2{background:var(--sun)}.phone.gta .ph-b3{background:var(--pink)}
+.phone.gta .ph-btns button:active{box-shadow:var(--well);transform:translateY(2px)}
+@media (max-height:640px){.phone.gta{height:440px;padding:46px 26px 90px}}

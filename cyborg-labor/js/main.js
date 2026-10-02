@@ -17,7 +17,7 @@ const MAIN=(()=>{
   let phoneEl=null;
   function phone(){if(phoneEl){phoneEl.close();return}TUT.ev('phone');const ph=el('div','phone gta');ph.setAttribute('role','dialog');ph.setAttribute('aria-label','Cy-Phone');
     const pid=(GAME.G&&GAME.G.id)||'kompost';const WP={kompost:['#9FE08A','#6FC4E8'],schrott:['#B9A8E8','#6FE3C8'],korallen:['#7FE0F0','#FFD9A0'],frost:['#CFE3FF','#9FB0F0'],wueste:['#FFD39A','#F08A6A'],pilz:['#B89AE8','#F2A8D0']}[pid]||PLANETS[pid]&&PLANETS[pid].phone||['#C9E5FF','#FFC7D8'];
-    const scr=el('div','ph-scr');scr.style.background=`linear-gradient(165deg,${WP[0]},${WP[1]})`;const notch=el('div','ph-notch');
+    const scr=el('div','ph-scr');/* WIRED: Ei-Gerät mit LCD; der Planet färbt nur noch den Rand des Bildschirms */scr.style.setProperty('--ph-tint',WP[0]);const notch=el('div','ph-notch');
     const bar=el('div','ph-bar');const tm=el('span','ph-time',GAMETIME.str());bar.append(tm,el('span','ph-sig','●●●● '+(GAME.G&&GAME.G.def?GAME.G.def.n.split('-')[0]:'')),el('span',null,fmt(SAVE.money)+' T'));
     const clock=el('div','ph-clock');clock.append(el('b',null,GAMETIME.str()),el('span',null,(GAME.G&&GAME.G.def?GAME.G.def.n:'')));
     const apps=el('div','apps');const list=[];const A=(ic,n,bg,fn)=>{const b=el('button','app-i');b.type='button';const i=el('b');i.innerHTML=ICON(ic);i.style.background=bg;b.append(i,el('span',null,n));b.onclick=()=>{go(fn)};apps.append(b);list.push(b)};
@@ -29,7 +29,10 @@ const MAIN=(()=>{
     A('chat','Chat','#8FD3FF',()=>SOCIAL.toggleChat(true));A('wave','Emotes','#FFE27A',()=>ACT.emoteMenu());A('map','Karte','#9FD86A',mapApp);
     A('globe','Bewohner','#FFC9A8',residentsApp);A('school','Klasse','#D9B5F2',teacherApp);A('gear','Optionen','#DDD3C4',settingsApp);
     const dock=el('div','ph-home');dock.title='Wegstecken';dock.onclick=close;
-    scr.append(notch,bar,clock,apps,dock);ph.append(scr);$('world').append(ph);mark();SND.play('open',{vol:.6});
+    const piko=el('span','ph-piko','(◕ᴗ◕)');piko.setAttribute('data-no-i18n','');piko.setAttribute('aria-hidden','true');
+    /* Ei-Gehäuse: Schlüsselring oben, drei Gel-Knöpfe unten (zurück, öffnen, wegstecken) */const loop=el('i','ph-loop');const gb=el('div','ph-btns');
+    [['ph-b1','Zurück',()=>{sel=(sel-1+list.length)%list.length;mark();list[sel].scrollIntoView({block:'nearest'});SND.play('click',{vol:.3,rate:1.4})}],['ph-b2','Öffnen',()=>list[sel].click()],['ph-b3','Wegstecken',close]].forEach(([c,l,f])=>{const b=el('button',c);b.type='button';b.setAttribute('aria-label',l);b.title=l;b.onclick=f;gb.append(b)});
+    scr.append(notch,piko,bar,clock,apps,dock);ph.append(loop,scr,gb);$('world').append(ph);mark();SND.play('open',{vol:.6});
     const tick=setInterval(()=>{tm.textContent=GAMETIME.str();clock.firstChild.textContent=GAMETIME.str()},1000);
     const cols=3;const kd=e=>{const k=e.key;if(k==='Escape'||k==='Tab'||k==='Backspace'){e.preventDefault();e.stopPropagation();close();return}
       const mv={ArrowRight:1,ArrowLeft:-1,ArrowDown:cols,ArrowUp:-cols}[k];if(mv!=null){e.preventDefault();e.stopPropagation();sel=(sel+mv+list.length)%list.length;mark();list[sel].scrollIntoView({block:'nearest'});SND.play('click',{vol:.3,rate:1.4});return}
