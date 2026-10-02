@@ -91,13 +91,14 @@ Status: ✔ erledigt · ◐ teilweise · ☐ offen. Wird bei jedem Schritt aktua
 
 ## WIRED 2.0 (geplant, Briefing v2 wartet auf Freigabe)
 - ☐ Fehler zuerst: nur ein Rumpf am Körper, Berge schneiden keine Wege mehr, nichts schwebt in der Luft
-- ☐ Lehrer-Beamer nur als Ansicht für die Modulaufgabe (ohne eigene Figur, ausserhalb der Geschichte): Startbildschirm "Spielen" / "Beamer-Ansicht", Klassenliste, Kamera fährt live zu jeder Schüler:innen-Figur, wechselt den Planeten, Steckbrief mit Angaben
-- ☐ Spielmenü: Speichern, Zurück ins Labor, Beamer-Ansicht, Einstellungen, Spiel verlassen
+- ◐ Lehrer-Beamer nur als Ansicht (mit Pfeilen links/rechts und Clicker-Tasten zum Wechseln) für die Modulaufgabe (ohne eigene Figur, ausserhalb der Geschichte): Startbildschirm "Spielen" / "Beamer-Ansicht", Klassenliste, Kamera fährt live zu jeder Schüler:innen-Figur, wechselt den Planeten, Steckbrief mit Angaben
+- ✔ Spielmenü: Speichern, Zurück ins Labor, Beamer-Ansicht, Einstellungen, Spiel verlassen
 - ☐ Candy-Mech-Look (Y2K-Niedlichkeit mit Mechanik): durchsichtiges Bonbon-Plastik mit sichtbaren Zahnrädern, Gel-Knöpfe, Sticker, Cy-Phone als Ei-Gerät
 - ☐ Neue Geschichte: Silvester 1999 23:59, NEMURI hält alle schlafend, Partner Piko, Risslinge als fangbare Glitch-Wesen, Kehrmaschinen, Akte Prolog bis Finale 00:00 mit zwei Enden
 - ☐ Klang und Musik komplett neu: Shibuya-kei-Spielzeugpop, Dreamcast/Toonami-Breakbeat, Riss-Brummen, Countdown-Melodie, Musik zerfällt mit der Geschichte
 - ☐ Glitch-Kern als Finalort, restliche Planeten, alle Inhalte verdoppeln (Körperteile, Gegenstände, Geschichte)
 - ☐ Ruinen in der Geschichte: Überreste von Kokon 95 und Kokon 97, Wortsteine sind Tagebuchzeilen früherer Schläfer:innen, unter der grössten Ruine der alte Serversaal, im Glitch-Kern das ganze Tagebuch
-- ☐ Mehrsprachig (Deutsch, English, 日本語 und mehr), japanische Zeichen auf Stickern und Schildern in jeder Sprache
+- ◐ Mehrsprachig in allen Sprachen: Deutsch, English, Français, Italiano von Hand, alle weiteren (rund 70) maschinell über den Chrome-Übersetzer auf dem Gerät oder Claude; Japanisch nur als Sticker-Schmuck
 - ☐ Klänge von 効果音ラボ und Musik von DOVA (gepackt, nicht als offene MP3)
 - ☐ Alte Spiele mit freien Grafiken nutzen: Glitch (CC0), Yo Frankie!/Blender (CC-BY), Hard Vacuum und Tyrian (CC-BY), Freedoom (BSD)
+- ☐ 30+ Planeten neu denken im WIRED-Stil, ausgehend von Urzeit, Metro und Dschungel

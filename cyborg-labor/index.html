@@ -381,10 +381,11 @@ body:not(.coarse) #hbA{display:none}
 @keyframes mPop{0%{transform:scale(.9,.86)}100%{transform:none}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 </style>
+<link rel="stylesheet" href="wired.css">
 
 <div class="app" id="app">
   <header class="top">
-    <div class="logo"><i></i>Cyborg-Labor</div>
+    <div class="logo"><i></i>Cyborg-Labor<span class="jp" data-no-i18n>サイボーグ・ラボ</span></div>
     <div class="tabs" role="tablist">
       <button id="tabLab" role="tab" aria-selected="true">Labor</button>
       <button id="tabWorld" role="tab" aria-selected="false">Welt</button>
@@ -456,6 +457,7 @@ body:not(.coarse) #hbA{display:none}
         <div class="ticker" id="ticker"></div>
         <div class="tr">
           <div class="money" id="money"><i></i><span>0</span></div>
+          <button class="hudbtn" id="hbMenu" title="Menü (Esc)"><span class="ic"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></span><span class="lb">Menü</span></button>
           <button class="hudbtn" id="hbChat"><span class="ic"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v10H10l-4 4v-4H4z"/></svg></span><span class="lb">Chat</span></button>
           <button class="hudbtn" id="hbPhone"><span class="ic"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="3"/><path d="M10 18h4"/></svg></span><span class="lb">Cy-Phone</span></button>
         </div>
@@ -511,6 +513,7 @@ body:not(.coarse) #hbA{display:none}
 <script src="js/data.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/motion.js"></script>
+<script src="js/i18n.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/lab.js"></script>
 <script src="js/look.js"></script>
@@ -542,6 +545,8 @@ body:not(.coarse) #hbA{display:none}
 <script src="js/myplanet.js"></script>
 <script src="js/caves.js"></script>
 <script src="js/story.js"></script>
+<script src="js/beamer.js"></script>
+<script src="js/start.js"></script>
 <script src="js/planetkit.js"></script>
 <script src="js/planets/urzeit.js"></script>
 <script src="js/planets/dschungel.js"></script>

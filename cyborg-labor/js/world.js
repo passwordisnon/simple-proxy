@@ -269,7 +269,7 @@ const GAME=(()=>{
   function say(e,txt,sec,emote){if(!e)return;txt=String(txt);if(e.d&&e.d.native&&typeof LANG!=='undefined'&&!txt.startsWith('icon:'))txt=LANG.garble(G_.id,txt);if(txt.startsWith('icon:')){e.bub.innerHTML=ICON(txt.slice(5));emote=true}else e.bub.textContent=txt;e.bub.classList.toggle('emote',!!emote);e.bub.hidden=false;e.sayT=sec||3.2}
 
   /* ---------- Spieler ---------- */
-  let me=null;const input={x:0,y:0,run:false,joy:null};let camYaw=0,camPitch=.42,camDist=8.5,camF=new V3(1,0,0);let tapTarget=null;
+  let me=null;const input={x:0,y:0,run:false,joy:null};let camYaw=0,camPitch=.42,camDist=8.5,camF=new V3(1,0,0);let tapTarget=null;let viewer=null;
   function avatarData(){const own=HOMES.avatar();const d=sanitize(Object.assign(JSON.parse(JSON.stringify(own||S)),SAVE.wear?{clothes:SAVE.wear}:{}));d.id='__me';if(!d.name.trim())d.name=SAVE.nick||'Du';return d}
   function spawnMe(){if(me)dropEnt('__me');const start=SAVE.lastPos&&SAVE.lastPos.planet===G_.id?new V3(...SAVE.lastPos.p).normalize():(G_.places.find(p=>p.id==='platz')||{dir:new V3(0,1,0)}).dir.clone().applyAxisAngle(new V3(1,0,0),6/G_.R).normalize();
     me=makeEnt(avatarData(),{kind:'me',p:start,q:HIGH?.9:.6,me:true});me.lbl.textContent=me.d.name;camSnap=true;camF=tangentTo(me.p,new V3(0,0,-1));if(camF.lengthSq()<.5)camF=tangentTo(me.p,new V3(1,0,0))}
@@ -496,7 +496,7 @@ const GAME=(()=>{
   /* ================= Eingabe ================= */
   const keys={};
   addEventListener('keydown',e=>{if(MAIN.tab!=='world')return;if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT')return;const k=e.key.toLowerCase();
-    if(k==='escape'){if(!UI.closeTop()&&INTERIOR.deco)INTERIOR.toggleDeco();return}
+    if(k==='escape'){if(!UI.closeTop()){if(INTERIOR.deco)INTERIOR.toggleDeco();else if(!viewer&&typeof START!=='undefined')START.menu()}return}
     if(UI.anyOpen())return;keys[k]=true;
     if(k==='e'||k===' '||k==='enter'){e.preventDefault();if(mode==='interior')INTERIOR.action();else doAction()}
     else if(k==='r'){ACT.emoteMenu()}else if(k==='i'){ACT.bag()}else if(k==='t'){e.preventDefault();SOCIAL.toggleChat(true)}else if(k==='tab'){e.preventDefault();MAIN.phone()}
@@ -527,7 +527,9 @@ const GAME=(()=>{
     /* Spieler-Eingabe */
     let ix=(keys['d']||keys['arrowright']?1:0)-(keys['a']||keys['arrowleft']?1:0),iy=(keys['w']||keys['arrowup']?1:0)-(keys['s']||keys['arrowdown']?1:0);
     if(input.joy){ix=input.joy.x;iy=input.joy.y}if(keys['q'])camYaw+=dt*1.8;if(keys['c'])camYaw-=dt*1.8;
-    const busy=UI.anyOpen()||ACT.busy()||!!launchT;if(busy){ix=0;iy=0}
+    const busy=UI.anyOpen()||ACT.busy()||!!launchT||!!viewer;if(busy){ix=0;iy=0}
+    /* Beamer-Ansicht: die eigene Figur ist ein unsichtbarer Geist, der an der gewählten Figur klebt (Kamera, Sonne, Streaming folgen ihr) */
+    if(viewer&&me){const tg=viewer();if(tg&&tg.p&&tg!==me){me.p.copy(tg.p);const d=tangentTo(me.p,tg.dir&&tg.dir.lengthSq()>.01?tg.dir:camF);if(isFinite(d.x))camF.lerp(d,Math.min(1,dt*1.5)).normalize()}tapTarget=null}
     /* Skript-Bewegung (Lianen-Schwung, Taxi, Fassaden-Klettern): Planeten-Dateien setzen me.script={from,to,dur,peak,t:0,done} */
     if(me&&me.script){const S=me.script;S.t=(S.t||0)+dt;const k=Math.min(1,S.t/S.dur);const e2=S.ease?S.ease(k):k;me.p.copy(S.from).lerp(S.to,e2).normalize();me.lift=(S.base||0)*(1-e2)+(S.baseTo||0)*e2+Math.sin(k*PI)*(S.peak||0);const dv=tangentTo(me.p,S.to.clone().sub(S.from));if(isFinite(dv.x))me.dir.copy(dv);ix=0;iy=0;if(k>=1){me.script=null;if(!S.keepLift)me.lift=0;S.done&&S.done()}}
     if(me){camF.copy(tangentTo(me.p,camF));if(!isFinite(camF.x))camF=tangentTo(me.p,new V3(1,0,0));if(Math.abs(camYaw)>1e-4){camF.applyAxisAngle(me.p,camYaw*.0+0);}
@@ -539,10 +541,10 @@ const GAME=(()=>{
       me.speed=spd;if(spd>0&&me.emote){me.emote=null;me.emoteT=0;me.dance=0}
       /* Schritte */
       if(spd>0&&!me.move.alt){stepT-=dt*spd*.55;if(stepT<=0){stepT=1;if(run&&Math.random()<.7)W.fx(me.p,'staub',2,onSurf(me.p,.15));const h=G_.hAt(me.p);if(h>G_.sea+.05)SND.play(h<G_.sea+.4?'step_grass':'step_grass',{vol:.28,jitter:.15});else SND.play('soft',{vol:.2,rate:1.4,jitter:.2})}}
-      SAVE.lastPos={planet:G_.id,p:[+me.p.x.toFixed(4),+me.p.y.toFixed(4),+me.p.z.toFixed(4)]}}
+      if(!viewer)SAVE.lastPos={planet:G_.id,p:[+me.p.x.toFixed(4),+me.p.y.toFixed(4),+me.p.z.toFixed(4)]}}
     /* Figuren */
     for(const e of ents.values()){try{if(e===me||e.kind==='peer'){}else stepVillager(e,dt,t);if(e.kind==='peer')SOCIAL.stepPeer(e,dt)}catch(err){if(!e.errLogged){e.errLogged=1;console.warn('Figur',e.d&&e.d.id,err)}}}
-    const camP=cam.position.clone().normalize();for(const e of ents.values()){const vis=overview?e.p.dot(camP)>.1:e===me||(e.p.dot(camP)>.55&&angle(e.p,me?me.p:e.p)*G_.R<40);e.g.visible=vis;e.shadow.visible=vis;if(vis)poseEnt(e,dt,t)}
+    const camP=cam.position.clone().normalize();for(const e of ents.values()){const vis=overview?e.p.dot(camP)>.1:e===me||(e.p.dot(camP)>.55&&angle(e.p,me?me.p:e.p)*G_.R<40);e.g.visible=vis;e.shadow.visible=vis;if(vis)poseEnt(e,dt,t)}if(viewer&&me){me.g.visible=false;me.shadow.visible=false}
     stepProps(dt,t);stepParts(dt);if(typeof GRASS!=='undefined')GRASS.frame(t,me&&me.g.position);if(typeof FOLIAGE!=='undefined')FOLIAGE.frame(t);if(G_.def.tick&&mode==='outdoor')try{G_.def.tick(dt,t,G_,me)}catch(e){if(!G_._tickErr){G_._tickErr=1;console.warn('Planet-Tick',e)}}stepClouds(dt);SCATTER.step(dt);if(typeof WEATHER!=='undefined')WEATHER.frame(dt,t,G_,me);else stepWeather(dt,t);if(G_.groundU)G_.groundU.uT.value=t;SCATTER.update(overview?cam.position.clone().normalize():(me?me.p:UPV),t,HIGH);stepBall(dt);stepLaunch(dt);poseBoats(dt,t);stepGates(dt);if(typeof JOBS!=='undefined')JOBS.tick(dt);if(typeof ZOO!=='undefined')ZOO.parkTick(dt,t);for(const o of G_.ticks){try{o.userData.tick(t,false,0)}catch(e){}}
     if(me){if(me.boost>0)me.boost-=dt;if(me.hop>0)me.hop-=dt;if(me.glitter>0){me.glitter-=dt;if(Math.random()<dt*6)W.fx(me.p,'funke',1,me.g.position.clone().addScaledVector(me.p,.8+Math.random()*.6))}}
     if(me&&!overview){OCC.a.value.copy(cam.position);OCC.b.value.copy(me.g.position).addScaledVector(me.p,.9);OCC.on.value=1}else OCC.on.value=0;ACT.frame(dt,t);REPAIR.frame(dt,t);if((typeof FAUNA!=='undefined'))try{FAUNA.step(dt,t)}catch(e){console.warn('Fauna',e)}SOCIAL.frame(dt,t);grassU.value=t;G_.waterU.uT.value=t;if(G_.waterU.uSun&&G_.sun){G_.waterU.uSun.value.copy(G_.sun.position).sub(G_.sun.target.position).normalize();G_.waterU.uRain.value=(typeof WEATHER!=='undefined'&&['regen','gewitter','sturm'].includes(WEATHER.cur))?1:0;if(G_.scene.fog)G_.waterU.uSky.value.copy(G_.scene.fog.color)}
@@ -557,10 +559,10 @@ const GAME=(()=>{
       /* Sonne folgt Spieler, steht aber je nach Tageszeit tief im Osten, hoch am Mittag, tief im Westen (lange Schatten am Morgen/Abend) */const sp=me.p.clone();const east=tangentTo(sp,new V3(.5,.2,.6));const north=new V3().crossVectors(sp,east).normalize();const el=G_.sunEl??.9,az=G_.sunAz??1.2;const sd=east.clone().multiplyScalar(Math.cos(az)*Math.cos(el)).addScaledVector(north,Math.sin(az)*Math.cos(el)*.35).addScaledVector(sp,Math.sin(el)).normalize();G_.sun.position.copy(me.g.position).addScaledVector(sd,60);G_.sun.target.position.copy(me.g.position);G_.fill.position.copy(me.g.position).addScaledVector(sp,10).addScaledVector(sd,-15)
       /* Ambiente */;const nearSea=G_.hAt(me.p)<G_.sea+.9?1:0;SND.ambience('meer',nearSea*.6);SND.ambience('wind',.25)}
     /* Prompt */
-    promptTarget=busy||document.querySelector('.bubmenu')?null:findTarget();const pr=$('prompt');if(promptTarget&&!UI.anyOpen()){pr.hidden=false;pr.innerHTML='';const k=el('kbd',null,'E');pr.append(k,document.createTextNode(promptTarget.label));$('hbA').textContent=shortLabel(promptTarget)}else{pr.hidden=true;$('hbA').textContent='Hüpfen'}
+    promptTarget=busy||viewer||document.querySelector('.bubmenu')?null:findTarget();const pr=$('prompt');if(promptTarget&&!UI.anyOpen()){pr.hidden=false;pr.innerHTML='';const k=el('kbd',null,'E');pr.append(k,document.createTextNode(promptTarget.label));$('hbA').textContent=shortLabel(promptTarget)}else{pr.hidden=true;$('hbA').textContent='Hüpfen'}
     if(G_.lod)PLANETLOD.update(cam.position,HIGH?4:2.5);if(G_.stream)SCATTER.stream(overview?cam.position.clone().normalize():(me?me.p:UPV),HIGH?5:3);
     if(typeof LOOK!=='undefined'&&LOOK.enabled){const fg=scene.fog;LOOK.render(R,scene,cam,{fog:fg&&fg.color,fogNear:fg?Math.max(40,fg.near*1.2):60,fogFar:fg?fg.far*1.1:220,fogAmt:overview?0:.45,night:G_.night||0,tilt:overview?.3:(HIGH?.8:0),bloom:HIGH,ao:HIGH?.65:.5,ink:.7})}
-    else if(HIGH)comp.render();else R.render(scene,cam);labels()}
+    else if(HIGH)comp.render();else R.render(scene,cam);labels();hideGhost()}
   /* Kamera-Kollision: Strahl vom Kopf zur Wunschposition gegen nahe Gebäude; Kamera rückt vor die Wand (schnell rein, langsam wieder raus) und bleibt über dem Boden */
   const _rc=new THREE.Raycaster();let camClip=99;
   function camCollide(target,want,dt){const dir=want.clone().sub(target);const L=dir.length();if(L<.01)return want;dir.divideScalar(L);const objs=[];
@@ -604,6 +606,7 @@ const GAME=(()=>{
       const top=tV.copy(e.g.position).addScaledVector(e.p,e.height+.3);top.project(cam);if(!show||top.z>1){e.lbl.style.display='none';e.bub.style.display='none';continue}
       const x=(top.x+1)/2*w,y=(1-top.y)/2*h;const nameOn=overview?e.kind!=='bot':e!==me&&(angle(e.p,me.p)*G_.R<7||e.kind!=='villager');e.lbl.style.display=nameOn?'':'none';if(nameOn&&e.life){if(!e.dia){e.dia=el('span','dia');e.lbl.prepend(e.dia)}e.dia.style.background=LIFE.EMO[e.life.emo].col}e.lbl.style.left=x+'px';e.lbl.style.top=y+'px';
       e.bub.style.display=e.bub.hidden?'none':'';e.bub.style.left=x+'px';e.bub.style.top=(y-(nameOn?24:4))+'px'}}
+  function hideGhost(){if(viewer&&me){me.lbl.style.display='none';me.bub.style.display='none'}}
   function labelsInterior(){const w=canvas.clientWidth,h=canvas.clientHeight;for(const e of ents.values()){if(!e.inside){e.lbl.style.display='none';e.bub.style.display='none';continue}const top=tV.copy(e.g.position).add(new V3(0,e.height+.3,0)).project(INTERIOR.cam);
       const x=(top.x+1)/2*w,y=(1-top.y)/2*h;e.lbl.style.display=e===me?'none':'';e.lbl.style.left=x+'px';e.lbl.style.top=y+'px';e.bub.style.display=e.bub.hidden?'none':'';e.bub.style.left=x+'px';e.bub.style.top=(y-24)+'px'}}
   function poseInside(e,dt,t){e.g.position.set(e.ix,0,e.iz);e.g.up.set(0,1,0);e.g.lookAt(e.ix+Math.sin(e.iyaw),0,e.iz+Math.cos(e.iyaw));const moving=e.speed>.1;const sq=moving?1+Math.sin(t*10)*.03:1+Math.sin(t*2)*.012;e.g.scale.set(CS,CS*sq,CS);animMouth(e,t);
@@ -616,6 +619,6 @@ const GAME=(()=>{
   let ovBtn=null;const ovKey=e=>{if(e.key==='Escape'&&overview){e.stopPropagation();toggleOverview()}};
   function toggleOverview(){overview=overview?null:{az:Math.atan2(cam.position.z,cam.position.x)};if(!overview)camSnap=true;
     /* gut sichtbarer Ausgang: Knopf oben in der Mitte + Esc */if(overview){ovBtn=btn('Übersicht beenden (Esc)','primary',()=>toggleOverview());ovBtn.classList.add('ovexit');$('world').append(ovBtn);addEventListener('keydown',ovKey,true)}else{if(ovBtn){ovBtn.remove();ovBtn=null}removeEventListener('keydown',ovKey,true)}UI.toast(overview?'Beamer-Übersicht: alle Cyborgs auf einen Blick. Nochmals drücken zum Beenden.':'Zurück zur Spielfigur');return!!overview}
-  return{registerAddons,_stepV:stepVillager,_stepGates:stepGates,_aim:(tgt,dist,pitch)=>{if(!me)return;camF.copy(tangentTo(me.p,tgt.clone().sub(me.p)));camYaw=0;if(dist)camDist=dist;if(pitch!=null)camPitch=pitch},addObst,obstAround,_load:loadPlanet,toggleOverview,get overview(){return!!overview},_joy:()=>input.joy,init,frame,resize,quality,travel,landOn,syncVillagers,onAvatarChanged,W,G:G_,ents,get me(){return me},get scene(){return scene},cam,R,say,makeEnt,dropEnt,moveEnt,onSurf,placeObj,angle,tangentTo,isLand,avatarData,randLand,randAround,note,
+  return{setViewer:(fn,dist,pitch)=>{viewer=fn||null;if(dist)camDist=dist;if(pitch!=null)camPitch=pitch;camSnap=true;if(!viewer&&me)me.g.visible=true},get viewer(){return!!viewer},registerAddons,_stepV:stepVillager,_stepGates:stepGates,_aim:(tgt,dist,pitch)=>{if(!me)return;camF.copy(tangentTo(me.p,tgt.clone().sub(me.p)));camYaw=0;if(dist)camDist=dist;if(pitch!=null)camPitch=pitch},addObst,obstAround,_load:loadPlanet,toggleOverview,get overview(){return!!overview},_joy:()=>input.joy,init,frame,resize,quality,travel,landOn,syncVillagers,onAvatarChanged,W,G:G_,ents,get me(){return me},get scene(){return scene},cam,R,say,makeEnt,dropEnt,moveEnt,onSurf,placeObj,angle,tangentTo,isLand,avatarData,randLand,randAround,note,
     get mode(){return mode},set mode(v){mode=v},showCard,talkTo,voiceFor,fadeOut,parts,makeNature,nearPlace,get camF(){return camF},camSide:(a)=>{camYaw=a},camFwd:()=>me?camF.clone().applyAxisAngle(me.p,camYaw):camF.clone(),get night(){return G_.night||0}};
 })();

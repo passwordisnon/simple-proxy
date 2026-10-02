@@ -73,13 +73,17 @@ const SOCIAL=(()=>{
       r.onPeers(ch=>{for(const p of[...ch.joined,...ch.updated]){if(p.isMe)continue;if(p.presence&&p.presence.mp)entry.mp=MYPLANET.decode(p.presence.mp);entry.online=true;for(const m of Array.isArray(p.presence.c)?p.presence.c:[]){if(!m||!m.i||entry.seen.has(m.i))continue;entry.seen.add(m.i);if(m.to&&m.to!==SAVE.pid)continue;const t=clean(m.m,140);if(t)addMsg('fr',nk,t,'')}}});
       addMsg('fr','System',`${nk} ist online. Ihr könnt euch jetzt privat schreiben.`,'sys')}catch(e){}}
   /* Präsenz senden */
-  function frame(dt,t){stepBots(dt);if(!room||!connected)return;presT-=dt;if(presT>0)return;presT=.12;const me=GAME.me;if(!me)return;
-    const r3=v=>[+v.x.toFixed(4),+v.y.toFixed(4),+v.z.toFixed(4)];const pr={v:1,pid:SAVE.pid,n:nick(),pl:MYPLANET.placeId(),in:GAME.mode==='interior'?INTERIOR.kind:null,p:r3(me.p),d:r3(me.dir),sp:+(me.speed||0).toFixed(1),lk:looks(S),c:myMsgs,fr:SAVE.friends.filter(f=>!f.bot).map(f=>f.pid).slice(0,12),em:emote.id,emT:emote.t,art:myArt};
+  function frame(dt,t){if(!viewer)stepBots(dt);if(!room||!connected||viewer)return;presT-=dt;if(presT>0)return;presT=.12;const me=GAME.me;if(!me)return;
+    const r3=v=>[+v.x.toFixed(4),+v.y.toFixed(4),+v.z.toFixed(4)];const pr={v:1,pid:SAVE.pid,n:nick(),pl:MYPLANET.placeId(),in:GAME.mode==='interior'?INTERIOR.kind:null,p:r3(me.p),d:r3(me.dir),sp:+(me.speed||0).toFixed(1),lk:looks(S),sb:{cy:clean(S.name,40),g:clean(S.group,40),s:clean(S.statement,200)},c:myMsgs,fr:SAVE.friends.filter(f=>!f.bot).map(f=>f.pid).slice(0,12),em:emote.id,emT:emote.t,art:myArt};
     const s=JSON.stringify(pr);if(s===lastPres)return;if(s.length>3900){pr.art=null}lastPres=s;room.presence(pr).catch(()=>{})}
   function emoteOut(id){emote={id,t:Date.now()};presT=0}
   function publishArt(a){myArt={n:a.name,pal:a.pal,px:a.px};presT=0}
   function onlineArt(){return[...peerArt.values()]}
-  function onPlanet(pid){spawnBots(pid);for(const[peer,s]of peersSeen){if(s.ent){GAME.dropEnt(s.ent.d.id);s.ent=null}}}
+  /* Beamer: Liste aller Mitspielenden mit Planet, Position und Steckbrief; der Beamer selbst sendet nichts */
+  let viewer=false;
+  function refresh(){for(const[peer,s]of peersSeen)if(s.pr)onPeer({peer,presence:s.pr})}
+  function peers(){return[...peersSeen.values()].filter(s=>s.pr).map(s=>({pid:s.pid,nick:s.nick,pl:s.pr.pl,inside:s.pr.in,p:vec(s.pr.p),lk:s.pr.lk,sb:s.pr.sb||{},ent:s.ent}))}
+  function onPlanet(pid){if(viewer){for(const[peer,s]of peersSeen){if(s.ent){GAME.dropEnt(s.ent.d.id);s.ent=null}}return}spawnBots(pid);for(const[peer,s]of peersSeen){if(s.ent){GAME.dropEnt(s.ent.d.id);s.ent=null}}}
   /* Spielerliste / Freund:innen */
   function playersWin(){const w=UI.win('Freund:innen & Mitspielende',{size:'narrow'});const add=(title)=>w.body.append(el('b',null,title));
     add('Gerade hier');const list=el('div','grid');const rows=[];for(const s of peersSeen.values())rows.push({pid:s.pid,nick:s.nick,online:true});for(const b of bots)rows.push({pid:b.d.id,nick:b.d.name,bot:true,ent:b});
@@ -88,5 +92,5 @@ const SOCIAL=(()=>{
     add('Deine Freundesliste');if(!SAVE.friends.length)w.body.append(el('p','empty','Noch leer.'));SAVE.friends.forEach(f=>{const row=el('div','row');row.style.alignItems='center';const fr=frRooms.get(f.pid);row.append(el('span',null,f.nick+(f.bot?' (KI)':'')),...(fr&&fr.mp?[btn('Planet besuchen','small primary',()=>{w.close();MYPLANET.visit(f.pid,f.nick,fr.mp)})]:[]),btn('Entfernen','small danger',()=>{SAVE.friends=SAVE.friends.filter(x=>x!==f);persist();w.close();playersWin()}));w.body.append(row)});
     w.body.append(el('p','note','Privater Chat: Tab «Freund:innen» im Chat. Der Chat ist für alle in eurer Klasse gedacht, bitte freundlich bleiben.'))}
   function brag(kind,def){if(def.rarity>=4&&bots.length){const b=pick(bots);setTimeout(()=>{addMsg('all',b.d.name,pick(['whoa, gratuliere!','omg der ist selten!!','neid!!','nice fang!']),'bot')},1500)}}
-  return{connect,frame,stepPeer,toggleChat,botTalk,emote:emoteOut,publishArt,onlineArt,onPlanet,playersWin,brag,addMsg,get bots(){return bots}};
+  return{peers,refresh,set viewer(v){viewer=!!v;if(v){for(const b of bots)GAME.dropEnt(b.d.id);bots.length=0}},get viewer(){return viewer},get online(){return!!room},connect,frame,stepPeer,toggleChat,botTalk,emote:emoteOut,publishArt,onlineArt,onPlanet,playersWin,brag,addMsg,get bots(){return bots}};
 })();

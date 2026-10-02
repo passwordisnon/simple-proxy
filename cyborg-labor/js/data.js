@@ -88,7 +88,7 @@ function newSave(){return{v:3,pid:'p'+rid()+rid(),nick:'',money:800,bag:[],tools
     room:{wall:'streifen',floor:'dielen',items:[{id:'holzbett',x:-3,z:-2,rot:0},{id:'stehlampe',x:3,z:-2.5,rot:0},{id:'teppich_rund',x:0,z:0,rot:0},{id:'haraway_poster',x:0,z:0,rot:0}]}},
   friends:[],friendship:{},seen:{},stats:{fish:0,bugs:0,relics:0,shakes:0,dances:0,talks:0},day:0,planet:'kompost',avatar:null,lastPos:null}}
 let SAVE=Object.assign(newSave(),LS.get(SAVE_KEY,{}));if(!SAVE.caught)SAVE.caught={fish:{},bugs:{},relics:{}};
-let saveT=0;function persist(){clearTimeout(saveT);saveT=setTimeout(()=>{saveT=0;LS.set(SAVE_KEY,SAVE)},500)}
+let saveT=0;function persist(){if(window.__viewer)return;/* Beamer-Ansicht speichert nichts */clearTimeout(saveT);saveT=setTimeout(()=>{saveT=0;LS.set(SAVE_KEY,SAVE)},500)}
 /* beim Schliessen/Neuladen sofort speichern (sonst gehen die letzten Sekunden verloren) */
 addEventListener('pagehide',()=>{if(saveT){clearTimeout(saveT);saveT=0;LS.set(SAVE_KEY,SAVE)}});
 function bagAdd(kind,id,n){n=n||1;if(bagCount()>=40)return false;const e=SAVE.bag.find(x=>x.kind===kind&&x.id===id);if(e)e.n+=n;else SAVE.bag.push({kind,id,n});persist();return true}

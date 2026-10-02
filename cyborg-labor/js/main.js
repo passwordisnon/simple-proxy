@@ -5,8 +5,8 @@
 const MAIN=(()=>{
   let tab='lab';let worldReady=false;
   if(matchMedia('(pointer:coarse)').matches)document.body.classList.add('coarse');
-  async function setTab(t){tab=t;const w=t==='world';document.body.classList.toggle('mode-world',w);$('lab').hidden=w;$('world').hidden=!w;$('tabLab').setAttribute('aria-selected',!w);$('tabWorld').setAttribute('aria-selected',w);SND.init();
-    if(w){if(!worldReady){worldReady=true;$('loading').style.opacity='1';$('loading').hidden=false;$('loading').querySelector('span').textContent='Der Planet wird gebaut …';await new Promise(r=>setTimeout(r,60));await GAME.init();SOCIAL.connect();$('loading').style.opacity='0';setTimeout(()=>$('loading').hidden=true,500);if(STORY.needsIntro())STORY.intro().then(()=>TUT.startWorld());else{if(!SAVE.nick)askNick();TUT.startWorld()}}
+  async function setTab(t,opt){opt=opt||{};tab=t;const w=t==='world';document.body.classList.toggle('mode-world',w);$('lab').hidden=w;$('world').hidden=!w;$('tabLab').setAttribute('aria-selected',!w);$('tabWorld').setAttribute('aria-selected',w);SND.init();
+    if(w){if(!worldReady){worldReady=true;$('loading').style.opacity='1';$('loading').hidden=false;$('loading').querySelector('span').textContent='Der Planet wird gebaut …';await new Promise(r=>setTimeout(r,60));await GAME.init();SOCIAL.connect();$('loading').style.opacity='0';setTimeout(()=>$('loading').hidden=true,500);if(opt.viewer){/* Beamer: keine Geschichte, kein Tutorial, kein Name */}else if(STORY.needsIntro())STORY.intro().then(()=>TUT.startWorld());else{if(!SAVE.nick)askNick();TUT.startWorld()}}
       GAME.resize();INTERIOR.resize();SND.music(GAME.mode==='interior'?(INTERIOR.kind==='museum'?'museum':'home'):GAME.G.def.music)}else{LAB.resize();SND.music('lab')}}
   $('tabLab').onclick=()=>setTab('lab');$('tabWorld').onclick=()=>setTab('world');$('btnPlay').onclick=()=>{SND.play('confirm');setTab('world')};
   function askNick(){const w=UI.win('Willkommen auf dem Kompost-Planeten!',{size:'narrow',dismiss:false});w.body.append(el('p',null,'Wie sollen dich die anderen nennen? Der Name steht über deinem Cyborg und im Chat.'));
@@ -35,7 +35,7 @@ const MAIN=(()=>{
       const mv={ArrowRight:1,ArrowLeft:-1,ArrowDown:cols,ArrowUp:-cols}[k];if(mv!=null){e.preventDefault();e.stopPropagation();sel=(sel+mv+list.length)%list.length;mark();list[sel].scrollIntoView({block:'nearest'});SND.play('click',{vol:.3,rate:1.4});return}
       if(k==='Enter'){e.preventDefault();e.stopPropagation();list[sel].click()}};addEventListener('keydown',kd,true);
     phoneEl={close}}
-  $('hbPhone').onclick=phone;$('hbBag').onclick=()=>ACT.bag();$('hbEmote').onclick=()=>ACT.emoteMenu();
+  $('hbPhone').onclick=phone;$('hbMenu').onclick=()=>START.menu();$('hbBag').onclick=()=>ACT.bag();$('hbEmote').onclick=()=>ACT.emoteMenu();
   function designsApp(){const w=UI.win('Meine Designs',{size:'narrow'});const gr=el('div','grid');SAVE.designs.forEach(d=>{const c=el('button','card');c.type='button';c.append(designImg(d,96),el('span',null,d.name));c.onclick=()=>{w.close();PAINT.open(d)};gr.append(c)});
     if(!SAVE.designs.length)w.body.append(el('p','empty','Noch keine Designs. Male dein erstes!'));w.body.append(gr);w.foot.append(btn('Neues Design','primary',()=>{w.close();PAINT.open()}))}
   function mapApp(){const w=UI.win('Karte · '+GAME.G.def.n,{size:'narrow'});const c=document.createElement('canvas');c.width=c.height=420;c.style.cssText='width:100%;max-width:100%;aspect-ratio:1;border-radius:50%;background:'+GAME.G.def.water;w.body.append(c);const x=c.getContext('2d');
@@ -54,7 +54,7 @@ const MAIN=(()=>{
     w.foot.append(btn('Einschleusen','primary',()=>{const list=decodeAll(ta.value);if(!list.length){msg.textContent='Kein gültiger Code gefunden. Codes beginnen mit CYB2. oder CYB1.';SND.play('error');return}let added=0,dup=0;for(const d of list){if(WORLD.some(x=>x.id===d.id)){dup++;continue}WORLD.push(d);added++}saveWorld();GAME.syncVillagers();w.close();SND.jingle('j_release');UI.toast(`${added} ${added===1?'Cyborg':'Cyborgs'} eingeschleust`+(dup?`, ${dup} schon da`:''))}))}
   function exportWorld(){const w=UI.win('Welt sichern',{size:'narrow'});w.body.append(el('p',null,'Alle Cyborgs dieser Welt als Codes. Speichert den Text irgendwo, dann könnt ihr die Welt später wieder einschleusen.'));const ta=el('textarea');ta.rows=8;ta.readOnly=true;ta.id='exportText';ta.value=WORLD.map(encode).join('\n\n');w.body.append(ta);
     const clr=btn('Welt leeren','danger');UI.armed(clr,'Wirklich alle entfernen?',()=>{WORLD=[];saveWorld();GAME.syncVillagers();w.close();UI.toast('Welt geleert')});w.foot.append(btn('Alles kopieren','primary',()=>{ta.select();UI.copy(ta.value,'Alle Codes kopiert',ta)}),clr)}
-  function settingsApp(){const w=UI.win('Einstellungen',{size:'narrow'});const st=SND.st;const sl=(label,k)=>{const l=el('label','f',label);const i=el('input');i.type='range';i.min=0;i.max=1;i.step=.05;i.value=st[k];i.id='vol-'+k;i.oninput=()=>SND.set(k,+i.value);l.append(i);w.body.append(l)};
+  function settingsApp(){const w=UI.win('Einstellungen',{size:'narrow'});{const l=el('div','f');l.append(el('span',null,'Sprache'),I18N.picker());w.body.append(l)}const st=SND.st;const sl=(label,k)=>{const l=el('label','f',label);const i=el('input');i.type='range';i.min=0;i.max=1;i.step=.05;i.value=st[k];i.id='vol-'+k;i.oninput=()=>SND.set(k,+i.value);l.append(i);w.body.append(l)};
     sl('Musik','music');sl('Geräusche','sfx');sl('Stimmen','voice');const n=el('label','f','Dein Name');const ni=el('input');ni.type='text';ni.id='setNick';ni.maxLength=24;ni.value=SAVE.nick||'';ni.addEventListener('keydown',e=>e.stopPropagation());ni.onchange=()=>{SAVE.nick=ni.value.trim().slice(0,24)||'Gast';persist();GAME.onAvatarChanged()};n.append(ni);w.body.append(n);
     w.body.append(el('p','sub','Musik: Zane Little, Karatestudios, mintodog, cynicmusic, écrivain (OpenGameArt, CC0). Geräusche: Kenney (CC0). Dein Spielstand liegt nur in diesem Browser.'));
     const rs=btn('Spielstand zurücksetzen','danger');UI.armed(rs,'Wirklich alles löschen?',()=>{LS.set(SAVE_KEY,null);SAVE=newSave();persist();location.reload()});w.foot.append(rs)}
@@ -69,7 +69,7 @@ const MAIN=(()=>{
     try{if(tab==='lab')LAB.frame(dt,t);else if(worldReady)GAME.frame(dt,t)}catch(e){console.error(e)}
     /* automatische Qualitätsanpassung bei sehr langsamen Geräten */fpsT+=dt;frames++;if(fpsT>6){const fps=frames/fpsT;fpsT=0;frames=0;if(fps<22&&HIGH&&tab==='world'){HIGH=false;updQ();LAB.quality();GAME.quality();UI.toast('Grafik auf «schnell» gestellt, damit es flüssig läuft.')}}}
   function boot(){renderBody();renderParts();renderCards();renderChecklist();LAB.rebuild();LAB.resize();UI.hud();loop();setTimeout(()=>{$('loading').style.opacity='0';setTimeout(()=>$('loading').hidden=true,500)},250);
-    /* Das Labor erreicht man nur über Dr. Bolzen in der Praxis: das Spiel startet immer in der Welt */setTab('world')}
-  return{setTab,phone,importCodes,exportWorld,boot,get tab(){return tab}};
+    /* Startbildschirm: Spielen (Schüler:innen) oder Beamer-Ansicht (Lehrperson) */START.show()}
+  return{setTab,phone,settings:settingsApp,importCodes,exportWorld,boot,get tab(){return tab}};
 })();
 MAIN.boot();
