@@ -15,11 +15,11 @@ const MAIN=(()=>{
   /* ---------- Cy-Phone ---------- */
   /* GTA-artig: das Handy gleitet unten rechts hoch, das Spiel läuft weiter; Pfeiltasten + Enter, Esc/Tab/Rücktaste steckt es weg */
   let phoneEl=null;
-  function phone(){if(phoneEl){phoneEl.close();return}TUT.ev('phone');const ph=el('div','phone gta');ph.setAttribute('role','dialog');ph.setAttribute('aria-label','Cy-Phone');
+  function phone(note){if(phoneEl){phoneEl.close();return}TUT.ev('phone');const ph=el('div','phone gta');ph.setAttribute('role','dialog');ph.setAttribute('aria-label','Cy-Phone');
     const pid=(GAME.G&&GAME.G.id)||'kompost';const WP={kompost:['#9FE08A','#6FC4E8'],schrott:['#B9A8E8','#6FE3C8'],korallen:['#7FE0F0','#FFD9A0'],frost:['#CFE3FF','#9FB0F0'],wueste:['#FFD39A','#F08A6A'],pilz:['#B89AE8','#F2A8D0']}[pid]||PLANETS[pid]&&PLANETS[pid].phone||['#C9E5FF','#FFC7D8'];
     const scr=el('div','ph-scr');/* WIRED: Ei-Gerät mit LCD; der Planet färbt nur noch den Rand des Bildschirms */scr.style.setProperty('--ph-tint',WP[0]);const notch=el('div','ph-notch');
     const bar=el('div','ph-bar');const tm=el('span','ph-time',GAMETIME.str());bar.append(tm,el('span','ph-sig','●●●● '+(GAME.G&&GAME.G.def?GAME.G.def.n.split('-')[0]:'')),el('span',null,fmt(SAVE.money)+' T'));
-    const clock=el('div','ph-clock');clock.append(el('b',null,GAMETIME.str()),el('span',null,(GAME.G&&GAME.G.def?GAME.G.def.n:'')));
+    const clock=el('div','ph-clock');clock.append(el('b',null,GAMETIME.str()),el('span',null,(GAME.G&&GAME.G.def?GAME.G.def.n:'')));if(typeof note==='string'&&note){const nt=el('div','ph-note');nt.append(el('b',null,'PIKO'),document.createTextNode(' '+note));clock.append(nt)}
     const apps=el('div','apps');const list=[];const A=(ic,n,bg,fn)=>{const b=el('button','app-i');b.type='button';const i=el('b');i.innerHTML=ICON(ic);i.style.background=bg;b.append(i,el('span',null,n));b.onclick=()=>{go(fn)};apps.append(b);list.push(b)};
     let sel=0;const mark=()=>list.forEach((b,i)=>b.classList.toggle('sel',i===sel));
     const close=()=>{if(!phoneEl)return;removeEventListener('keydown',kd,true);clearInterval(tick);ph.classList.add('down');SND.play('close',{vol:.5});const x=ph;setTimeout(()=>x.remove(),260);phoneEl=null};
@@ -38,7 +38,7 @@ const MAIN=(()=>{
       const mv={ArrowRight:1,ArrowLeft:-1,ArrowDown:cols,ArrowUp:-cols}[k];if(mv!=null){e.preventDefault();e.stopPropagation();sel=(sel+mv+list.length)%list.length;mark();list[sel].scrollIntoView({block:'nearest'});SND.play('click',{vol:.3,rate:1.4});return}
       if(k==='Enter'){e.preventDefault();e.stopPropagation();list[sel].click()}};addEventListener('keydown',kd,true);
     phoneEl={close}}
-  $('hbPhone').onclick=phone;$('hbMenu').onclick=()=>START.menu();$('hbBag').onclick=()=>ACT.bag();$('hbEmote').onclick=()=>ACT.emoteMenu();
+  $('hbMenu').onclick=()=>START.menu();$('hbBag').onclick=()=>ACT.bag();$('hbEmote').onclick=()=>ACT.emoteMenu();
   function designsApp(){const w=UI.win('Meine Designs',{size:'narrow'});const gr=el('div','grid');SAVE.designs.forEach(d=>{const c=el('button','card');c.type='button';c.append(designImg(d,96),el('span',null,d.name));c.onclick=()=>{w.close();PAINT.open(d)};gr.append(c)});
     if(!SAVE.designs.length)w.body.append(el('p','empty','Noch keine Designs. Male dein erstes!'));w.body.append(gr);w.foot.append(btn('Neues Design','primary',()=>{w.close();PAINT.open()}))}
   function mapApp(){const w=UI.win('Karte · '+GAME.G.def.n,{size:'narrow'});const c=document.createElement('canvas');c.width=c.height=420;c.style.cssText='width:100%;max-width:100%;aspect-ratio:1;border-radius:50%;background:'+GAME.G.def.water;w.body.append(c);const x=c.getContext('2d');
@@ -69,7 +69,7 @@ const MAIN=(()=>{
   /* ---------- Schleife ---------- */
   const clock=new THREE.Clock();let fpsT=0,frames=0;
   function loop(){requestAnimationFrame(loop);const dt=Math.min(.05,clock.getDelta());const t=clock.elapsedTime;UI.pumpThumbs();
-    try{if(tab==='lab')LAB.frame(dt,t);else if(worldReady)GAME.frame(dt,t)}catch(e){console.error(e)}
+    try{if(tab==='lab')LAB.frame(dt,t);else if(worldReady){GAME.frame(dt,t);if(typeof PIKO!=='undefined')PIKO.frame(dt,t)}}catch(e){console.error(e)}
     /* automatische Qualitätsanpassung bei sehr langsamen Geräten */fpsT+=dt;frames++;if(fpsT>6){const fps=frames/fpsT;fpsT=0;frames=0;if(fps<22&&HIGH&&tab==='world'){HIGH=false;updQ();LAB.quality();GAME.quality();UI.toast('Grafik auf «schnell» gestellt, damit es flüssig läuft.')}}}
   function boot(){renderBody();renderParts();renderCards();renderChecklist();LAB.rebuild();LAB.resize();UI.hud();loop();setTimeout(()=>{$('loading').style.opacity='0';setTimeout(()=>$('loading').hidden=true,500)},250);
     /* Startbildschirm: Spielen (Schüler:innen) oder Beamer-Ansicht (Lehrperson) */START.show()}

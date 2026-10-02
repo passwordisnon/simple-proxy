@@ -53,6 +53,8 @@ Grundsatz: so viel wie möglich verwenden, alles im Hintergrund laden. Jeder Pla
 | Klänge | 55 | **ca. 800** | Kenney, 効果音ラボ, Freedoom, ZzFX |
 | Sprachen | 1 | **4 von Hand + alle weiteren maschinell** | i18n.js |
 
+**Reserve:** Gefunden sind Tausende über Tausende weiterer Stücke (Glitch, Kenney, Quaternius, KayKit, OpenGameArt-CC0, ambientCG, Poly Haven, 効果音ラボ, DOVA). Sie bleiben als Reserve im Hintergrund und kommen am Schluss dazu, wenn Zeit und Speicher reichen.
+
 **Qualität vor Menge:** Jedes Stück wird von Hand ausgewählt und muss im Candy-Mech-Stil gut aussehen und etwas tun. Die Zahlen sind Obergrenzen, keine Pflicht.
 
 **Speicher:** Das Artifact fasst 256 MB je Version und 16 MB je Datei. Darum: Modelle als kompakte Pakete (wie `assets/kits`, Vertex-Farben statt Texturen), Bilder als Sprite-Blätter, Audio gebündelt und komprimiert. Alles wird im Hintergrund pro Planet nachgeladen und im Browser zwischengespeichert. Was nicht in eine Version passt, kommt in den Asset-Speicher des Artifacts. Varianten (Farbe, Muster, Grösse, Kombination) entstehen im Spiel und kosten keinen Speicher.

@@ -9,7 +9,7 @@ const SOCIAL=(()=>{
   const myMsgs=[];let presT=0,lastPres='';const peerArt=new Map();let myArt=null;let emote={id:null,t:0};
   const clean=(s,n)=>String(s||'').replace(/[\u0000-\u001f\u007f-\u009f​-‏‪-‮⁠-⁯﻿]/g,'').slice(0,n);
   /* ---------- Chat-Anzeige ---------- */
-  function addMsg(ch,who,text,cls){chat[ch].push({who,text,cls});if(chat[ch].length>80)chat[ch].shift();if(open&&tab===ch)renderMsgs();else if(ch==='all'||ch==='fr')$('hbChat').classList.add('on');
+  function addMsg(ch,who,text,cls){chat[ch].push({who,text,cls});/* Piko meldet neue Nachrichten von anderen */if(cls!=='sys'&&cls!=='me'&&who!==nick()&&typeof PIKO!=='undefined'&&!open)PIKO.want(who+': '+String(text).slice(0,60));if(chat[ch].length>80)chat[ch].shift();if(open&&tab===ch)renderMsgs();else if(ch==='all'||ch==='fr')$('hbChat').classList.add('on');
     if(cls!=='sys'&&cls!=='me'){SND.play('chat',{vol:.4})}}
   function renderMsgs(){const box=$('chatMsgs');box.replaceChildren(...chat[tab].map(m=>{const d=el('div',m.cls||'');if(m.cls==='sys'){d.textContent=m.text}else{d.append(el('b',null,m.who+': '),document.createTextNode(m.text))}return d}));box.scrollTop=box.scrollHeight;
     $('chatAll').setAttribute('aria-selected',tab==='all');$('chatFr').setAttribute('aria-selected',tab==='fr');const to=$('chatTo');to.hidden=tab!=='fr';
