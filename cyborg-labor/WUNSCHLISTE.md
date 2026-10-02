@@ -97,3 +97,7 @@ Status: ✔ erledigt · ◐ teilweise · ☐ offen. Wird bei jedem Schritt aktua
 - ☐ Neue Geschichte: Silvester 1999 23:59, NEMURI hält alle schlafend, Partner Piko, Risslinge als fangbare Glitch-Wesen, Kehrmaschinen, Akte Prolog bis Finale 00:00 mit zwei Enden
 - ☐ Klang und Musik komplett neu: Shibuya-kei-Spielzeugpop, Dreamcast/Toonami-Breakbeat, Riss-Brummen, Countdown-Melodie, Musik zerfällt mit der Geschichte
 - ☐ Glitch-Kern als Finalort, restliche Planeten, alle Inhalte verdoppeln (Körperteile, Gegenstände, Geschichte)
+- ☐ Ruinen in der Geschichte: Überreste von Kokon 95 und Kokon 97, Wortsteine sind Tagebuchzeilen früherer Schläfer:innen, unter der grössten Ruine der alte Serversaal, im Glitch-Kern das ganze Tagebuch
+- ☐ Mehrsprachig (Deutsch, English, 日本語 und mehr), japanische Zeichen auf Stickern und Schildern in jeder Sprache
+- ☐ Klänge von 効果音ラボ und Musik von DOVA (gepackt, nicht als offene MP3)
+- ☐ Alte Spiele mit freien Grafiken nutzen: Glitch (CC0), Yo Frankie!/Blender (CC-BY), Hard Vacuum und Tyrian (CC-BY), Freedoom (BSD)
