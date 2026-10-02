@@ -265,7 +265,7 @@ function makePlanetFns(pid,extra){const def=PLANETS[pid];const seed={kompost:1,s
     if(h>sea+.25){const k=(h-sea)/step;const f=k-Math.floor(k);const t=(Math.floor(k)+sstep(.4,.6,f))*step+sea;h=h*(1-terr)+t*terr}
     for(const pl of places){const d=angle(p,pl.dir);if(pl.pond){if(d<pl.r*1.35){const t=sstep(pl.r*1.35,pl.r*.5,d);h=h*(1-t)+(sea-1.1)*t}}
       else if(d<pl.r*1.6){const t=sstep(pl.r*1.6,pl.r*1.05,d);h=h*(1-t)+(pl.h??.8)*t}}
-    /* Wege: ganz flach quer, sanfte Rampe in Laufrichtung (ohne Terrassenstufen); Ränder laufen in die Landschaft aus */let rd=9;for(const[a,b]of roads)rd=Math.min(rd,distToArc(p,a,b));const rw=2.4/R,rf=6/R;if(rd<rf){let pd=9;for(const pl of places)if(!pl.pond&&!pl.park)pd=Math.min(pd,angle(p,pl.dir)/(pl.r*1.6));const t=sstep(rf,rw,rd)*sstep(.9,1.3,pd);const hs=Math.max(sea+.3,h0);h=h*(1-t)+hs*t}
+    /* Wege: ganz flach quer, sanfte Rampe in Laufrichtung (ohne Terrassenstufen); Ränder laufen in die Landschaft aus */let rd=9;for(const[a,b]of roads)rd=Math.min(rd,distToArc(p,a,b));const rw=2.4/R,rf=6/R;if(rd<rf){/* am Platz-Rand läuft die Rampe genau in die Platzhöhe über: keine Stufe zwischen Weg und Platz */let hs=Math.max(sea+.3,h0);for(const pl of places)if(!pl.pond&&!pl.park){const w=sstep(1.6,.95,angle(p,pl.dir)/(pl.r*1.6));if(w>0)hs=hs*(1-w)+(pl.h??.8)*w}const t=sstep(rf,rw,rd);h=h*(1-t)+hs*t}
     return h}
   function roadDist(p){let rd=9;for(const[a,b]of roads)rd=Math.min(rd,distToArc(p,a,b));return rd}
   /* Biom aus Temperatur T, Feuchte M, Höhe h, Wassernähe */
