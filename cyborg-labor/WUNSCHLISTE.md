@@ -65,7 +65,7 @@ Status: ✔ erledigt · ◐ teilweise · ☐ offen. Wird bei jedem Schritt aktua
 - ✔ Raketen-Schutzmodul: Geschenk der Bürgermeisterin nach dem ersten Auftrag auf Kompost (keine Abstürze mehr)
 - ✔ Raumstationen im All (Nova, Aurora, Komet) mit Rennen: Tor-Ringe, Boost-Felder, 2 Runden, KI-Raketen, Mehrspieler über den Rennraum der Station, Preisgeld und Bestzeiten
 - ✔ Planeten-Grundgerüst: jeder neue Planet ist an alle Systeme angeschlossen (Dorf, Bewohner:innen, Sprache, Wetter, Kleidung, Höhlen, Tierpark-Sektor, Lexikon, Karte, Weltraum, Museum)
-- ◐ 30 Planeten: die 6 Start-Planeten + 3 gewünschte + 21 einzigartige (jetzt 14 von 30)
+- ◐ 100 Planeten in 7 Gruppen (21 von Hand, 79 aus Gruppen-Bauplänen), 30 Monde, 14 Stationen, Glitch-Kern (jetzt 15 von 100)
   - ✔ Urzeit-Tal: Vulkane, Farnwälder, Bernsteinstrände, 6 Dinos (Quaternius), Dino-Eier schlüpfen zu Begleitern, nächtlicher Zeitriss mit Meteoritenschauer und Fossilien
   - ✔ Dschungel-Welt: Lianen-Vorhänge wachsen über Nacht nach, Schwing-Lianen über Flüsse, drei Tempel mit Schiebe-Rätseln und Schatzkammer, 7 Tiere, Pfahlhäuser
   - ✔ Metro-Stadt (New-Donk-City-Stil): Art-déco-Wolkenkratzer, Ringstrassen mit Verkehr, Taxis an vier Ständen, abendliches Jazz-Festival zum Mitjammen, Fassaden klettern mit Stadt-Medaillen
@@ -102,4 +102,5 @@ Status: ✔ erledigt · ◐ teilweise · ☐ offen. Wird bei jedem Schritt aktua
 - ◐ Mehrsprachig in allen Sprachen: Deutsch, English, Français, Italiano von Hand, alle weiteren (rund 70) maschinell über den Chrome-Übersetzer auf dem Gerät oder Claude; Japanisch nur als Sticker-Schmuck
 - ☐ Klänge von 効果音ラボ und Musik von DOVA (gepackt, nicht als offene MP3)
 - ☐ Alte Spiele mit freien Grafiken nutzen: Glitch (CC0), Yo Frankie!/Blender (CC-BY), Hard Vacuum und Tyrian (CC-BY), Freedoom (BSD)
-- ☐ 30+ Planeten neu denken im WIRED-Stil, ausgehend von Urzeit, Metro und Dschungel
+- ✔ Planeten neu gedacht im WIRED-Stil, ausgehend von Urzeit, Metro und Dschungel (Liste im Briefing, Zahlen in docs/WIRED-AUFGABEN.md)
+- ☐ Inhalte massiv ausbauen nach docs/WIRED-AUFGABEN.md: 2000 Körperteile, 60 Rumpfformen, 3000 Möbel, 4000 Gegenstände, 1500 Natur-Modelle, je 600 Fische und Insekten, 400 Tiere, 100 Risslinge, 1000 Fundstücke, 800 Kleider, 150 Musikstücke, 2000 Klänge; alles im Hintergrund nachgeladen
