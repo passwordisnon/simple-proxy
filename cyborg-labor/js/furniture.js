@@ -1030,10 +1030,10 @@ function stoneTex(){return ctex('ashlar',256,128,(x,w,h)=>{x.fillStyle='#8E87A0'
     for(let k=0;k<5;k++){x.fillStyle='rgba(80,60,110,.15)';x.beginPath();x.arc(px+r()*bw,j*bh+r()*bh,1+r()*2,0,TAU);x.fill()}
     if(r()<.3){x.fillStyle='rgba(120,170,90,.35)';x.beginPath();x.ellipse(px+bw*r(),j*bh+bh-4,8+r()*8,3,0,0,TAU);x.fill()}px+=bw}}})}
 function buildFountain(m){const g=new THREE.Group();const ticks=[];const tx=stoneTex().clone();tx.needsUpdate=true;tx.wrapS=tx.wrapT=THREE.RepeatWrapping;tx.repeat.set(10,3.2);
-  const st=cozy({map:tx,color:'#ffffff',rim:.12}),st2=m.c('#D8D0E4');
+  /* WIRED: Becken aus Bonbon-Plastik, Chrom-Rand, Säule als durchsichtige Röhre mit Zahnrädern */const wk=typeof WK!=='undefined';const cp=wk?WK.pal():{a:'#2fb5d9',b:'#ff9a45'};const st=wk?WK.candy(m,cp.a,.7):cozy({map:tx,color:'#ffffff',rim:.12}),st2=wk?m.chrome():m.c('#D8D0E4');const keep=[];
   P(g,G.la([[0,0],[1.45,0],[1.5,.06],[1.5,.5],[1.35,.55],[1.28,.5],[1.28,.18],[0,.18]]),st,[0,0,0]);P(g,G.to(1.4,.09),st2,[0,.52,0],[PI/2,0,0]);
   const surf=(r,y,hit)=>{const w=new THREE.Mesh(new THREE.CircleGeometry(r,48),FOUNT.water(r,hit));w.rotation.x=-PI/2;w.position.y=y;w.userData.noOutline=true;w.userData.noMerge=true;w.renderOrder=2;g.add(w);return w};
-  surf(1.29,.42,.85);C(g,.2,.28,1.1,st2,[0,.9,0]);P(g,G.la([[0,0],[.1,0],[.55,.12],[.6,.26],[.52,.3],[0,.2]]),st2,[0,1.4,0]);surf(.5,1.67,.12);
+  surf(1.29,.42,.85);if(wk){const tube=C(g,.24,.3,1.1,WK.candy(m,cp.b,.38),[0,.9,0]);tube.userData.noMerge=true;for(let i=0;i<3;i++){const gr=WK.gear(g,m,.17,[0,.55+i*.3,0],[PI/2,0,i],i%2?'#e6ecf5':'#c9cfdb');keep.push(gr);ticks.push(t=>{gr.rotation.z=t*(i%2?-1.2:1)})}C(g,.03,.03,1.1,m.chrome(),[0,.9,0]);for(let i=0;i<8;i++){const a=i/8*TAU;WK.screw(g,m,[Math.cos(a)*1.47,.32,Math.sin(a)*1.47],[0,-a+PI/2,0],.04)}WK.lcd(g,m,'fount',['23:59'],.42,.2,[0,.34,1.52])}else C(g,.2,.28,1.1,st2,[0,.9,0]);P(g,G.la([[0,0],[.1,0],[.55,.12],[.6,.26],[.52,.3],[0,.2]]),st2,[0,1.4,0]);surf(.5,1.67,.12);
   C(g,.08,.12,.4,st2,[0,1.8,0]);const fish=grp(g,[0,2.05,0]);S(fish,.18,m.gloss(PAL.coral),[0,0,0],[1,1.1,.9]);P(fish,G.puff(sshp([[0,0],[-.12,.16],[.12,.16]]),.04),m.gloss(PAL.coral),[0,-.22,0],[PI,0,0]);face(fish,m,[0,.03,.16],.3,{mouth:false});P(fish,G.to(.04,.015),m.c(PAL.ink),[0,-.06,.16]);
   const jm=FOUNT.jet();const jet=pts=>{const j=P(g,G.tu(pts,.03,.035,16),jm);j.userData.noOutline=true;j.userData.noMerge=true;j.castShadow=false;return j};
   for(let i=0;i<4;i++){const a=i/4*TAU+PI/4;jet([[Math.cos(a)*.12,2.0,Math.sin(a)*.12],[Math.cos(a)*.4,2.12,Math.sin(a)*.4],[Math.cos(a)*.5,1.7,Math.sin(a)*.5]])}
@@ -1049,7 +1049,7 @@ function buildFountain(m){const g=new THREE.Group();const ticks=[];const tx=ston
       pos[i*3]=x;pos[i*3+1]=Math.max(.42,y);pos[i*3+2]=z}pg.attributes.position.needsUpdate=true;
     rings.forEach((r,i)=>{const f=(t*.8+i*.37)%1,a=outer[i];r.position.set(Math.cos(a)*.86,.43,Math.sin(a)*.86);r.scale.setScalar(1+f*3.2);r.material.opacity=.55*(1-f)})});
   for(let i=0;i<5;i++){const a=i/5*TAU+.3;P(g,G.puff(flowerShape(.07,5),.02),m.c([PAL.pink,PAL.white,PAL.lemon][i%3]),[Math.cos(a)*1.0,.44,Math.sin(a)*1.0],[-PI/2,0,0]);P(g,G.circ(.14),m.c(PAL.leaf),[Math.cos(a)*1.0+.05,.435,Math.sin(a)*1.0],[-PI/2,0,0])}
-  const out=finish(g,[0,0,2.0],1.55,'fountain',ticks);out.traverse(o=>{if(o.userData.noMerge)o.castShadow=false});return out}
+  g.userData.keep=keep;const out=finish(g,[0,0,2.0],1.55,'fountain',ticks);out.traverse(o=>{if(o.userData.noMerge)o.castShadow=false});return out}
 function buildBridge(m,len){len=Math.max(2,+len||4);const g=new THREE.Group();const wd=Wd(m,PAL.oak),dk=Wd(m,PAL.wood),Wb=1.6,hh=Math.min(.7,len*.12);const deck=x=>{const t=x/len+.5;return .12+hh*Math.sin(Math.max(0,Math.min(1,t))*PI)};
   const n=Math.round(len/.28),parts=[];for(let i=0;i<n;i++){const x=-len/2+(i+.5)*len/n;const y=deck(x);const s=(deck(x+.01)-deck(x-.01))/.02;parts.push([G.bx(len/n-.03,.08,Wb,.03),[x,y,0],[0,0,Math.atan(s)]])}mergeInto(g,wd,parts);
   both(z=>{const beam=range(14,(t)=>{const x=-len/2+t*len;return[x,deck(x)-.08,z*(Wb/2-.1)]});P(g,G.tu(beam,.07,.07,40),dk);
