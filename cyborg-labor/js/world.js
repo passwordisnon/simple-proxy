@@ -41,7 +41,7 @@ const GAME=(()=>{
     Object.assign(G_,{scene:sc,sun,hemi,fill,inter:[],yards:[],gates:[],lights:[],clouds:[],ticks:[],trees:[],rocks:[]});
     /* grosse Planeten: Natur wird in Chunks um den Spieler gestreamt */G_.stream=G_.lod&&(Rr>70||!!window.FORCE_STREAM);
     SCATTER.reset(sc,Rr,M,G_.stream?{fill:fillChunk,unload:unloadChunkRefs}:null);
-    buildPlaces();buildStones();try{buildDocks()}catch(e){console.warn('Stege',e)}try{buildCaves()}catch(e){console.warn('Höhlen',e)}scatterWorld();buildGrass();
+    buildPlaces();try{buildHatch()}catch(e){console.warn('Luke',e)}buildStones();try{buildDocks()}catch(e){console.warn('Stege',e)}try{buildCaves()}catch(e){console.warn('Höhlen',e)}scatterWorld();buildGrass();
     if(G_.stream){const lp=SAVE.lastPos&&SAVE.lastPos.planet===pid?new V3(...SAVE.lastPos.p).normalize():(fns.places.find(p=>p.build==='plaza')||{dir:UPV}).dir;SCATTER.stream(lp,0,true)}buildClouds();buildBall();if(typeof WEATHER!=='undefined')WEATHER.build(G_);else buildWeather();SCATTER.finalize();
     /* nach dem Aufbau: Höhe exakt aus der sichtbaren Kachel (Figuren stehen genau auf dem Boden) */if(G_.lod){const fh=fns.hAt;G_.hAt=p=>{const h=PLANETLOD.height(p);return h==null?fh(p):h}}
     cam.far=Rr*6+500;cam.updateProjectionMatrix();
@@ -152,9 +152,14 @@ const GAME=(()=>{
     W_.pts.position.copy(base);W_.pts.quaternion.setFromUnitVectors(UPV,up)}
   /* ---------- Gebäude & Orte ---------- */
   /* Wortsteine (fremde Ruinen): bringen je ein Wort der Planetensprache bei */
+  /* WIRED: eine Wartungsluke je Planet, nahe beim Dorfplatz (ab Akt III der Weg in die Tunnel) */
+  function buildHatch(){if(typeof WK==='undefined'||G_.def.mine)return;const pz=G_.places.find(x=>x.id==='platz');if(!pz)return;const r=srand(hashStr('hatch'+G_.id).length*97+3);
+    for(let i=0;i<600;i++){const p=randAround(r,24+i*.08,pz.dir);if(!p)continue;const dd=angle(p,pz.dir)*G_.R;if(dd<12||!isLand(p)||nearPlace(p,1.15)||flatAt(p,1.1)>.28)continue;
+      const g=WK.hatch(M);addOutlines(g);smartMerge(g);if(g.userData.tick)G_.ticks.push(g);placeObj(g,p,r()*TAU,-.04,true);G_.scene.add(g);addObst(p,.9);
+      G_.inter.push({kind:'hatch',p,r:1.8,label:'Wartungsluke untersuchen',act:()=>{SND.play('metal',{vol:.6});UI.toast('Verschlossen. Auf dem Deckel steht: KOKON WARTUNG · 31.12.1999 23:59',3200);if(typeof PIKO!=='undefined')PIKO.want('Da unten summt etwas. Später finden wir den Schlüssel.')}});return}}
   function buildStones(){if(typeof LANG==='undefined'||!LANG.has(G_.id))return;const r=srand(hashStr('stones'+G_.id).length*313+7);const seen=SAVE.stones||{};let n=0;
     for(let i=0;i<400&&n<(G_.stream?12:7);i++){const p=randLand(r,G_.sea+.4,99,80,G_.R*1.4);if(!p||nearPlace(p,2.2))continue;if(G_.places.some(pl=>pl.dir.angleTo(p)*G_.R<14))continue;{const h0=G_.hAt(p),t1=tangentTo(p,new V3(1,0,0)),t2=new V3().crossVectors(p,t1);let bad=false;for(let k=0;k<8&&!bad;k++){const a2=k/8*TAU;const q=p.clone().addScaledVector(t1,Math.cos(a2)*5.5/G_.R).addScaledVector(t2,Math.sin(a2)*5.5/G_.R).normalize();if(Math.abs(G_.hAt(q)-h0)>.45)bad=true}if(bad)continue}const id=G_.id+'-st'+n;
-      const g=LANG.stoneModel(G_.id,M);addOutlines(g);let ru=null;try{ru=LANG.ruin(G_.id,ARCH.hashNum(id),G_.R);g.add(ru.g)}catch(e){console.warn('Ruine',e)}placeObj(g,p,r()*TAU,-.05,true);G_.scene.add(g);G_.ticks.push(g);addObst(p,.8);g.updateMatrixWorld(true);if(ru){/* jedes Ruinenteil auf den Boden darunter setzen */const h0=G_.hAt(p);for(const ch of ru.g.children){const d=ch.getWorldPosition(new V3()).normalize();ch.position.y+=G_.hAt(d)-h0}g.updateMatrixWorld(true);for(const c of ru.cols){addObst(g.localToWorld(new V3(c[0],0,c[1])).normalize(),c[2])}}const st={id,used:!!seen[id]};
+      const g=LANG.stoneModel(G_.id,M);addOutlines(g);let ru=null;try{ru=LANG.ruin(G_.id,ARCH.hashNum(id),G_.R);g.add(ru.g);if(typeof WK!=='undefined')WK.relics(ru.g,M,ARCH.hashNum(id))}catch(e){console.warn('Ruine',e)}placeObj(g,p,r()*TAU,-.05,true);G_.scene.add(g);G_.ticks.push(g);addObst(p,.8);g.updateMatrixWorld(true);if(ru){/* jedes Ruinenteil auf den Boden darunter setzen */const h0=G_.hAt(p);for(const ch of ru.g.children){const d=ch.getWorldPosition(new V3()).normalize();ch.position.y+=G_.hAt(d)-h0}g.updateMatrixWorld(true);for(const c of ru.cols){addObst(g.localToWorld(new V3(c[0],0,c[1])).normalize(),c[2])}}const st={id,used:!!seen[id]};
       G_.inter.push({kind:'stone',p,r:2,label:'Wortstein lesen',act:()=>LANG.stone(G_.id,st)});if(n===0&&typeof STORY!=='undefined'){const si=Object.keys(PLANETS).indexOf(G_.id);const got=(SAVE.story&&SAVE.story.shards||[]).includes(si);if(!got){const cr=new THREE.Mesh(new THREE.OctahedronGeometry(.28,0),M.glow('#C8A0FF',2.2));cr.position.set(1.4,1.2,1.4);g.add(cr);const t0=g.userData.tick;g.userData.tick=t=>{t0&&t0(t);cr.rotation.y=t*1.5;cr.position.y=1.2+Math.sin(t*2)*.12};
         const sp=g.localToWorld(new V3(1.4,0,1.4)).normalize();const it={kind:'shard',p:sp,r:1.6,label:'Leuchtenden Splitter berühren',act:()=>{if(STORY.shard(si)){cr.visible=false;G_.inter.splice(G_.inter.indexOf(it),1)}}};G_.inter.push(it)}}G_.places.push({id,n:'Ruine',dir:p.clone(),r:6.5/G_.R});n++}}
   /* ---------- Boote: Stege am Ufer, Ruderboot für Inseln und Meere ---------- */
@@ -207,7 +212,7 @@ const GAME=(()=>{
         else if(pl.build==='residence')obj=HOMES.build(pl,M);
       }catch(e){console.warn('Gebäude',pl.build,e)}QF=1;
       if(!obj){obj=new THREE.Group();P(obj,G.bx(3,2.4,3,.4),M.c('#FFE3B8'),[0,1.2,0]);P(obj,G.co(2.6,1.6),M.c('#F0556E'),[0,3.2,0])}
-      if(pl.build!=='plaza')addOutlines(obj);obj.traverse(o=>{if(o.isMesh){o.castShadow=HIGH;o.receiveShadow=true}});smartMerge(obj);if(obj.userData.tick)G_.ticks.push(obj);g.add(obj);
+      if(pl.build!=='plaza'&&typeof WK!=='undefined')WK.dress(obj,pl,M);if(pl.build!=='plaza')addOutlines(obj);obj.traverse(o=>{if(o.isMesh){o.castShadow=HIGH;o.receiveShadow=true}});smartMerge(obj);if(obj.userData.tick)G_.ticks.push(obj);g.add(obj);
       /* Gebäude zeigen zum Dorfplatz */
       const plaza=G_.places.find(x=>x.id==='platz');let yaw=0;{/* Gebäude so tief setzen, dass auch der Rand auf dem gekrümmten Boden aufliegt */const rr=(obj.userData.r||2.2);const t1=tangentTo(pl.dir,new V3(1,0,0)),t2=new V3().crossVectors(pl.dir,t1);const hc=G_.R+G_.hAt(pl.dir);let lo=0;
         for(let k=0;k<8;k++){const a=k/8*TAU;const q=pl.dir.clone().addScaledVector(t1,Math.cos(a)*rr/G_.R).addScaledVector(t2,Math.sin(a)*rr/G_.R).normalize();lo=Math.max(lo,hc-(G_.R+G_.hAt(q))*q.dot(pl.dir))}

@@ -74,7 +74,28 @@ const WK=(()=>{
     screws4(g,m,1.62,.9,[0,1.36,.07],null,.03);sticker(g,m,'board',"けいじばん",b,.42,[.62,1.95,.08],[0,0,-.08],'#ffffff');
     const rf=grp(g,[0,2.08,0]);both(s=>P(rf,G.bx(1.12,.07,.46,.03),candy(m,b,.7),[s*.5,.08,0],[0,0,-s*.28]));
     g.userData.keep=keep;return finish(g,[0,0,.9],.95,'board',ticks)}
+  /* ---------- Gebäude im WIRED-Look: LCD über der Tür, Zahnrad-Bullauge, Schrauben, Sticker ---------- */
+  const KIND_JP={shop:'ショップ',laden:'ショップ',bar:'バー',rathaus:'まちやくば',praxis:'クリニック',mode:'ブティック',casino:'ゲーム',museum:'ミュージアム',post:'ポスト',garage:'ガレージ',pflanzen:'はなや',tiere:'ペット',lager:'そうこ',residence:'おうち',house:'わがや',rocket:'ロケット',cafe:'カフェ',bank:'ぎんこう'};
+  function dress(obj,pl,m){try{if(!obj||obj.userData.wired)return;obj.userData.wired=true;
+    /* frei stehendes Kokon-Terminal neben der Tür: steht auf dem Boden, schwebt nie */
+    const{a,b}=pal();const r=srand(hashNum((pl&&pl.id)||'x'));const door=obj.userData.door||[0,0,2];const side=r()<.5?-1:1;const jp=KIND_JP[pl&&pl.build]||'ココン';
+    const t=grp(obj,[door[0]+side*1.6,0,door[2]+.5],[0,-side*.3,0]);const ch=m.chrome();
+    C(t,.16,.2,.08,ch,[0,.04,0]);C(t,.045,.05,1.25,ch,[0,.66,0]);
+    const head=grp(t,[0,1.42,0]);B(head,.5,.42,.16,.07,candy(m,a,.6),[0,0,0]);gear(head,m,.12,[-.12,-.06,-.02],null,'#e6ecf5');lcd(head,m,'term',['23:59'],.36,.16,[0,.06,.085]);
+    gel(head,m,'#ff6fa5',.035,[.14,-.14,.08]);gel(head,m,'#ffd23f',.035,[.04,-.14,.08]);screws4(head,m,.42,.34,[0,0,.085],null,.018);
+    sticker(t,m,'bld-'+jp,jp,b,.46,[0,1.78,.03],[0,0,side*.1],'#ffffff')}catch(e){console.warn('WIRED-Gebäude',e)}}
+  /* ---------- Wartungsluke im Boden: ab Akt III der Weg in die Tunnel ---------- */
+  function hatch(m){const g=new THREE.Group();const ch=m.chrome();const{a}=pal();P(g,G.cy(.95,1.0,.12),ch,[0,.04,0]);P(g,G.cy(.78,.78,.06),m.c('#0b1530'),[0,.1,0]);
+    const lid=grp(g,[0,.14,0]);P(lid,G.cy(.74,.74,.06),candy(m,a,.7),[0,0,0]);gear(lid,m,.42,[0,.04,0],[-PI/2,0,0],'#e6ecf5');P(lid,G.bx(.5,.06,.1,.03),ch,[0,.06,0]);
+    for(let i=0;i<8;i++){const an=i/8*TAU;screw(g,m,[Math.cos(an)*.87,.11,Math.sin(an)*.87],[-PI/2,0,0],.035)}
+    const lamp=S(g,.07,m.glow('#ff5c7a',2),[.95,.14,0]);const ticks=[t=>{lamp.visible=Math.sin(t*3)>0}];lcd(g,m,'hatch',['WARTUNG'],.5,.18,[0,.32,-.95],[-.5,0,0]);
+    g.userData.keep=[lamp];return finish(g,[0,0,1.3],1.1,'hatch',ticks)}
+  /* ---------- Kokon-95/97-Fundstücke in den Ruinen ---------- */
+  function relics(g,m,seed){const r=srand(seed||7);const ch=m.chrome();const n=2+Math.floor(r()*2);for(let i=0;i<n;i++){const an=r()*TAU,d=1.6+r()*1.6;const p=[Math.cos(an)*d,0,Math.sin(an)*d];const k=Math.floor(r()*3);const o=grp(g,p,[0,r()*TAU,(r()-.5)*.5]);
+    if(k===0){/* halb versunkener Röhrenmonitor */B(o,.8,.62,.7,.1,m.c('#d8d2c4'),[0,.18,0],[-.25,0,0]);P(o,G.pl(.58,.42),m.flat('#2b2a38'),[0,.24,.36],[-.25,0,0]);P(o,G.pl(.2,.04),m.glow('#7fd34a',1.4),[.15,.12,.37],[-.25,0,0])}
+    else if(k===1){/* Diskette, gross wie eine Steinplatte */B(o,.9,.06,.95,.02,m.gloss(['#2fb5d9','#9b6ae0','#ff9a45'][Math.floor(r()*3)]),[0,.03,0],[0,0,.08]);B(o,.5,.07,.32,.01,ch,[0,.035,.28]);B(o,.6,.065,.34,.01,m.c('#fffdf7'),[0,.035,-.2])}
+    else{/* Kabelbündel mit Stecker */const pts=range(6,t=>[t*1.4-.7,.06+Math.sin(t*PI)*.18,Math.sin(t*5)*.25]);P(o,G.tu(pts,.04,.04,16),m.c('#3b3450'));B(o,.16,.1,.12,.02,ch,[.75,.08,0])}}}
   /* alte Bauteile ersetzen: der Dorfplatz ruft sie über window[...] auf */
   function install(){window.buildBench=bench;window.buildStreetLamp=lamp;window.buildMailbox=mailbox;window.buildSignpost=signpost;window.buildNoticeBoard=board}
   install();
-  return{CANDY,pal,candy,solid,gear,screw,screws4,lcd,lcdTex,sticker,gel,shell,bench,lamp,mailbox,signpost,board}})();
+  return{dress,hatch,relics,CANDY,pal,candy,solid,gear,screw,screws4,lcd,lcdTex,sticker,gel,shell,bench,lamp,mailbox,signpost,board}})();
