@@ -74,7 +74,7 @@ Status: ✔ erledigt · ◐ teilweise · ☐ offen. Wird bei jedem Schritt aktua
   - ✔ Bibliotheks-Planet: Bücherbäume, Tintenseen, sechs verlorene Geschichten (18 Seiten) zum grossen Lesepult bringen, nachts schwebende Buchstaben, Bücherhäuser
   - ✔ Uhrwerk-Mond: Zahnrad-Plateaus, sechs Aufzieh-Wächter aufziehen, grosses Glockenspiel, Kuckuck zur vollen Stunde, Uhrenhäuser
   - ✔ Klang-Planet: Harfenbäume, Glockenblumen, Klangsteine zum Drüberlaufen, vier Liedtafeln nachspielen, Konzert, Instrumenten-Häuser
-  - ☐ 16 weitere, neu im WIRED-Stil (ersetzt die alte Liste): Plüsch-Planet, Bernstein-Mond, Dino-Spielzeugfabrik, Neon-Arkade, Kaufhaus 1999, Funkturm-Planet, Magnetbahn-Ring, Ranken-Rechenzentrum, Leuchtquallen-Tiefsee, Wetterwerk, Origami-Planet, Laternen-Nachtmarkt, Bauklotz-Planet, Bildschirmschoner-Planet, Honigwaben-Fabrik; dazu der Glitch-Kern
+  - ☐ 15 weitere (mit dem eigenen Planeten sind es 30), neu im WIRED-Stil (ersetzt die alte Liste): Plüsch-Planet, Bernstein-Mond, Dino-Spielzeugfabrik, Neon-Arkade, Kaufhaus 1999, Funkturm-Planet, Magnetbahn-Ring, Ranken-Rechenzentrum, Leuchtquallen-Tiefsee, Wetterwerk, Origami-Planet, Laternen-Nachtmarkt, Bauklotz-Planet, Bildschirmschoner-Planet, Honigwaben-Fabrik; dazu der Glitch-Kern
   - ☐ WIRED-Umbau der 14 bestehenden Planeten: Bonbon-Plastik mit Zahnrädern, LCD-Anzeigen, Wartungsluke, Rissling-Lebensraum, Kokon-95/97-Ruine
 - ☐ Monde als besuchbare Orte
 
