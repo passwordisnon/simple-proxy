@@ -149,12 +149,14 @@ const SKINS=[
  {id:'latex',n:'Lack',k:'ding',sw:'#4A4458'},{id:'holo',n:'Holografisch',k:'masch',sw:'#D8C8FF'},{id:'moos',n:'Moos',k:'pflanze',sw:'#6DAE55'},{id:'schuppen',n:'Schuppen',k:'tier',sw:'#56C6B6'},
  {id:'kompost',n:'Kompost',k:'pflanze',sw:'#8A5E42'},{id:'marmor',n:'Marmor',k:'ding',sw:'#F6F1EA'},{id:'keramik',n:'Keramik',k:'ding',sw:'#7FB2E0'},{id:'glas',n:'Glas',k:'ding',sw:'#CFEFFF'},
  {id:'schleim',n:'Schleim',k:'tier',sw:'#A6E36A'},{id:'holz',n:'Holz',k:'pflanze',sw:'#D69A62'},{id:'knochen',n:'Knochen',k:'org',sw:'#F3E9D2'},{id:'patina',n:'Kupfer-Patina',k:'masch',sw:'#6FC2AE'},
- {id:'koralle',n:'Koralle',k:'tier',sw:'#FF8E7A'},{id:'fell',n:'Fell',k:'tier',sw:'#C99A6E'},{id:'pluesch',n:'Plüsch',k:'ding',sw:'#FFA8C5'},{id:'myzel',n:'Myzel',k:'pflanze',sw:'#F6EEDC'},{id:'rost',n:'Rost',k:'masch',sw:'#C8703E'}
+ {id:'koralle',n:'Koralle',k:'tier',sw:'#FF8E7A'},{id:'fell',n:'Fell',k:'tier',sw:'#C99A6E'},{id:'pluesch',n:'Plüsch',k:'ding',sw:'#FFA8C5'},{id:'myzel',n:'Myzel',k:'pflanze',sw:'#F6EEDC'},{id:'rost',n:'Rost',k:'masch',sw:'#C8703E'},
+ {id:'bonbon',n:'Bonbon-Plastik',k:'masch',sw:'#2fb5d9'}
 ];
 function skinMaterial(b){
   const base=SKIN_COLORS[b.color]||SKIN_COLORS[0];const pat=b.pattern&&b.pattern!=='keine'&&COLORABLE.includes(b.skin)?patternTex(b.pattern,base,SKIN_COLORS[b.color2??16]||'#fff'):null;const col=pat?'#ffffff':base;
   const T=(o,rim,gloss)=>cozy(Object.assign(o,{rim:rim??.35,gloss:gloss??0}));
   switch(b.skin){
+    case 'bonbon':{/* WIRED: durchsichtiges Bonbon-Plastik, innen drehen sich Zahnräder */const m=cozy({color:base,transparent:true,opacity:.55,depthWrite:false,rim:1.4,gloss:1.4,rimColor:'#ffffff'});m.userData.glass=true;return m}
     case 'chrom':return metal('chrome');
     case 'gold':return metal('gold');
     case 'holo':return metal('holo');
@@ -250,7 +252,11 @@ function def(slot,id,n,k,b,extra){const i=PARTS[slot].findIndex(p=>p.id===id);co
 const findPart=(slot,id)=>PARTS[slot].find(p=>p.id===id);
 
 /* ---------- Rumpfformen ---------- */
-const TORSOS=[{id:'ei',n:'Ei'},{id:'kugel',n:'Kugel'},{id:'kapsel',n:'Kapsel'},{id:'birne',n:'Birne'},{id:'kiste',n:'Kiste'},{id:'dose',n:'Dose'},{id:'bohne',n:'Bohne'},{id:'glocke',n:'Glocke'},{id:'mochi',n:'Mochi'},{id:'tropfen',n:'Tropfen'},{id:'teddy',n:'Teddy'}];
+const TORSOS=[{id:'ei',n:'Ei'},{id:'kugel',n:'Kugel'},{id:'kapsel',n:'Kapsel'},{id:'birne',n:'Birne'},{id:'kiste',n:'Kiste'},{id:'dose',n:'Dose'},{id:'bohne',n:'Bohne'},{id:'glocke',n:'Glocke'},{id:'mochi',n:'Mochi'},{id:'tropfen',n:'Tropfen'},{id:'teddy',n:'Teddy'},
+  /* WIRED: Spielzeug von 1999 mit Mechanik */
+  {id:'kapselspiel',n:'Kapselspielzeug'},{id:'eigeraet',n:'Ei-Gerät'},{id:'kuschel',n:'Kuschel mit Reissverschluss'},{id:'robodose',n:'Roboter-Dose'},{id:'kessel',n:'Wasserkessel'},
+  {id:'laterne',n:'Papierlaterne'},{id:'knaeuel',n:'Wollknäuel'},{id:'wecker',n:'Radiowecker'},{id:'rucksack',n:'Rucksack-Roboter'},{id:'kokon',n:'Kokon'},
+  {id:'schluepfling',n:'Schlüpfling'},{id:'goldglas',n:'Goldfischglas'},{id:'seifenblase',n:'Seifenblase'}];
 /* Rumpf-Profile (t: -1 unten … +1 oben, r: Radius relativ zum Segment). Weiche, runde Silhouetten im Stil gemütlicher Tierfiguren. */
 const TORSO_PROF={
   ei:[[-.98,0],[-.95,.46],[-.84,.8],[-.6,.97],[-.25,1.0],[.15,.93],[.5,.76],[.8,.5],[1.0,.22],[1.08,0]],
@@ -262,7 +268,39 @@ const TORSO_PROF={
   glocke:[[-1,0],[-.99,.8],[-.94,1.08],[-.82,1.1],[-.55,.94],[-.15,.76],[.3,.65],[.65,.55],[.9,.4],[1.05,0]],
   mochi:[[-.74,0],[-.72,.66],[-.62,1.04],[-.35,1.2],[0,1.16],[.35,.96],[.62,.64],[.78,.3],[.82,0]],
   tropfen:[[-1,0],[-.95,.5],[-.76,.88],[-.42,1.02],[-.02,.92],[.34,.64],[.68,.34],[.94,.12],[1.1,0]],
-  teddy:[[-.96,0],[-.93,.5],[-.8,.86],[-.52,1.02],[-.15,1.0],[.25,.9],[.58,.74],[.84,.5],[1.0,.24],[1.06,0]]};
+  teddy:[[-.96,0],[-.93,.5],[-.8,.86],[-.52,1.02],[-.15,1.0],[.25,.9],[.58,.74],[.84,.5],[1.0,.24],[1.06,0]],
+  kapselspiel:[[-.95,0],[-.92,.5],[-.75,.86],[-.45,1.0],[0,1.03],[.45,1.0],[.75,.86],[.92,.5],[.98,0]],
+  eigeraet:[[-.98,0],[-.95,.5],[-.82,.86],[-.55,1.02],[-.15,1.02],[.25,.92],[.58,.72],[.85,.44],[1.02,0]],
+  kuschel:[[-.94,0],[-.9,.56],[-.74,.92],[-.45,1.06],[-.05,1.04],[.35,.92],[.68,.7],[.9,.42],[1.02,0]],
+  robodose:[[-1,0],[-1,.7],[-.95,.86],[-.85,.9],[0,.9],[.85,.9],[.95,.86],[1,.7],[1.02,0]],
+  kessel:[[-1,0],[-.98,.8],[-.85,1.02],[-.55,1.08],[-.15,1.0],[.25,.84],[.6,.66],[.85,.56],[.95,.5],[1.0,0]],
+  laterne:[[-1,0],[-.97,.5],[-.85,.85],[-.6,1.0],[-.2,1.04],[.2,1.04],[.6,1.0],[.85,.85],[.97,.5],[1.0,0]],
+  knaeuel:[[-.92,0],[-.9,.52],[-.76,.86],[-.46,1.02],[0,1.05],[.46,1.02],[.76,.86],[.9,.52],[.94,0]],
+  wecker:[[-.9,0],[-.88,.55],[-.75,.88],[-.45,1.02],[0,1.05],[.45,1.0],[.75,.85],[.9,.5],[.96,0]],
+  rucksack:[[-1,0],[-.98,.44],[-.9,.74],[-.72,.9],[-.4,.93],[.4,.9],[.72,.84],[.9,.66],[.98,.38],[1.02,0]],
+  kokon:[[-1.05,0],[-1,.4],[-.85,.72],[-.55,.9],[-.15,.94],[.25,.9],[.6,.76],[.88,.5],[1.05,0]],
+  schluepfling:[[-.98,0],[-.95,.48],[-.84,.82],[-.6,.98],[-.25,1.0],[.15,.93],[.5,.76],[.8,.5],[1.0,.22],[1.08,0]],
+  goldglas:[[-.9,0],[-.88,.5],[-.74,.86],[-.45,1.03],[-.05,1.05],[.35,.96],[.62,.76],[.8,.56],[.86,.5],[.9,.56],[.96,0]],
+  seifenblase:[[-.96,0],[-.93,.5],[-.78,.86],[-.46,1.02],[0,1.05],[.46,1.02],[.78,.86],[.93,.5],[.97,0]]};
+/* WIRED: Schmuck je Rumpfform (folgt der Oberfläche; vorn ist +z). I = torsoInfo, s = Grösse, m = Materialien */
+const TORSO_DECO={
+  kapselspiel(g,I,s,m){const y=(I.lo+I.hi)/2;P(g,G.to(I.R(y)*1.0+.012*s,.028*s),m.chrome(),[0,y,0],[PI/2,0,0]);P(g,G.cy(.05*s,.05*s,.04*s),m.chrome(),[I.R(y)*.98,y,0],[0,0,PI/2])},
+  eigeraet(g,I,s,m){const y=I.lo+(I.hi-I.lo)*.52;const z=I.R(y)*.9+.03*s;const sc=grp(g,[0,y,z]);P(sc,G.bx(.34*s,.24*s,.04*s,.02*s),m.chrome(),[0,0,0]);P(sc,G.pl(.27*s,.17*s),m.flat('#c9f27a'),[0,0,.022*s]);P(sc,G.pl(.12*s,.03*s),m.flat('#1d2b0b'),[0,.02*s,.023*s]);
+    const yb=y-.24*s;[['#ff8a2a',-.09],['#ffd23f',0],['#ff6fa5',.09]].forEach(([c,x])=>P(g,G.hs(.035*s),m.gloss(c),[x*s,yb,I.R(yb)*.9+.005*s],[PI/2,0,0]))},
+  kuschel(g,I,s,m){const n=9;for(let i=0;i<n;i++){const y=I.lo+(I.hi-I.lo)*(.22+i/(n-1)*.62);P(g,G.bx(.06*s,.02*s,.02*s),m.chrome(),[0,y,I.R(y)*.9+.006*s])}const yt=I.lo+(I.hi-I.lo)*.84;P(g,G.bx(.05*s,.1*s,.015*s,.006*s),m.chrome(),[0,yt-.05*s,I.R(yt)*.9+.02*s])},
+  robodose(g,I,s,m){for(const t of[.18,.82]){const y=I.lo+(I.hi-I.lo)*t;P(g,G.to(I.R(y)+.01*s,.025*s),m.chrome(),[0,y,0],[PI/2,0,0])}const y=I.lo+(I.hi-I.lo)*.5;for(let i=0;i<10;i++){const a=i/10*TAU;const r=I.R(y);P(g,G.s(.022*s),m.chrome(),[Math.sin(a)*r,y,Math.cos(a)*r*.9])}},
+  kessel(g,I,s,m){const y=I.lo+(I.hi-I.lo)*.72;P(g,G.to(I.R(y)+.012*s,.03*s),m.chrome(),[0,y,0],[PI/2,0,0]);const yg=I.lo+(I.hi-I.lo)*.42;P(g,G.cy(.08*s,.08*s,.02*s),m.chrome(),[0,yg,I.R(yg)*.9+.01*s],[PI/2,0,0]);P(g,G.circ(.065*s),m.flat('#fff3c2'),[0,yg,I.R(yg)*.9+.022*s])},
+  laterne(g,I,s,m){for(let i=1;i<6;i++){const y=I.lo+(I.hi-I.lo)*i/6;P(g,G.to(I.R(y)+.006*s,.012*s),m.c('#7a4a2a'),[0,y,0],[PI/2,0,0])}const red=m.gloss('#e8457f');P(g,G.cy(I.R(I.lo+.04*s)*.7,I.R(I.lo+.04*s)*.8,.06*s),red,[0,I.lo+.03*s,0])},
+  knaeuel(g,I,s,m,col2){const y=(I.lo+I.hi)/2;const r=I.R(y)+.008*s;const mt=m.c(col2||'#ffffff');[[.4,0],[-.5,.6],[.2,-1.1],[1.2,.3]].forEach(([a,b])=>P(g,G.to(r,.014*s),mt,[0,y,0],[PI/2+a,b,0],[1,.9,1]))},
+  wecker(g,I,s,m){const yt=I.lo+(I.hi-I.lo)*.82;both(x=>{const b=grp(g,[x*I.R(yt)*.62,yt+.05*s,-.02*s],[0,0,x*-.5]);P(b,G.hs(.13*s),m.gloss('#ffd23f'),[0,0,0]);P(b,G.cy(.015*s,.015*s,.08*s),m.chrome(),[0,-.04*s,0])});
+    const y=I.lo+(I.hi-I.lo)*.5;const z=I.R(y)*.9+.012*s;P(g,G.cy(.17*s,.17*s,.02*s),m.chrome(),[0,y,z],[PI/2,0,0]);P(g,G.circ(.15*s),m.flat('#fffdf7'),[0,y,z+.012*s]);P(g,G.bx(.016*s,.11*s,.01*s),m.flat('#2b2340'),[0,y+.04*s,z+.016*s]);P(g,G.bx(.07*s,.016*s,.01*s),m.flat('#2b2340'),[.03*s,y,z+.016*s])},
+  rucksack(g,I,s,m){const y=I.lo+(I.hi-I.lo)*.5;const z=-I.R(y)*.9-.1*s;const b=grp(g,[0,y,z]);P(b,G.bx(.44*s,.5*s,.2*s,.07*s),m.gloss('#ff8a2a'),[0,0,0]);P(b,G.cy(.1*s,.1*s,.03*s),m.chrome(),[0,.04*s,-.1*s],[PI/2,0,0]);P(b,G.circ(.085*s),m.c('#ffffff',{opacity:.45}),[0,.04*s,-.118*s],[0,PI,0]);
+    if(typeof WK!=='undefined')WK.gear(b,m,.07*s,[0,.04*s,-.1*s],null,'#e6ecf5');both(x=>P(g,G.to(.1*s,.018*s,PI),m.c('#2b2340'),[x*.17*s,y+.08*s,-I.R(y+.08*s)*.88],[0,PI/2,PI/2]))},
+  kokon(g,I,s,m){for(const t of[.3,.55,.8]){const y=I.lo+(I.hi-I.lo)*t;P(g,G.to(I.R(y)+.006*s,.01*s),m.c('#ffffff',{opacity:.8}),[0,y,0],[PI/2+.08,0,0])}},
+  schluepfling(g,I,s,m){const y0=I.lo+(I.hi-I.lo)*.42;const n=14;const r=I.R(y0)+.02*s;const sh=m.c('#fffdf7',{rim:.4});P(g,G.cy(r,I.R(I.lo+.1*s)*.9,y0-I.lo,undefined),sh,[0,(y0+I.lo)/2+.02*s,0]);
+    for(let i=0;i<n;i++){const a=i/n*TAU;const c=P(g,G.cy(0,.06*s,.12*s),sh,[Math.sin(a)*r*.96,y0+.05*s,Math.cos(a)*r*.96]);c.lookAt(c.position.x*2,c.position.y+.4,c.position.z*2)}},
+  goldglas(g,I,s,m){const y=I.lo+(I.hi-I.lo)*.45;const f=grp(g,[0,y,0]);P(f,G.s(.1*s),m.gloss('#ff8a2a'),[0,0,0],null,[1.4,1,.7]);P(f,G.cy(0,.07*s,.08*s),m.gloss('#ff8a2a'),[-.17*s,0,0],[0,0,PI/2]);const yl=I.lo+(I.hi-I.lo)*.86;P(g,G.to(I.R(yl)+.005*s,.02*s),m.c('#d8f3ff',{opacity:.7}),[0,yl,0],[PI/2,0,0])},
+  seifenblase(g,I,s,m){const y=(I.lo+I.hi)/2+.15*s;P(g,G.s(.07*s),m.c('#ffffff',{opacity:.7}),[-I.R(y)*.45,y+.1*s,I.R(y)*.72]);P(g,G.to(I.R(y)*.9,.008*s,PI*.7),m.metal('holo'),[0,y,.02*s],[0,0,.4])}};
 /* dichte Tabelle je Profil (Catmull-Rom geglättet) */
 const TORSO_TAB={};function torsoTab(shape){if(TORSO_TAB[shape])return TORSO_TAB[shape];const pts=TORSO_PROF[shape]||TORSO_PROF.ei;const out=[];
   for(let i=0;i<pts.length-1;i++){const p0=pts[Math.max(0,i-1)],p1=pts[i],p2=pts[i+1],p3=pts[Math.min(pts.length-1,i+2)];for(let k=0;k<8;k++){const t=k/8,t2=t*t,t3=t2*t;
@@ -415,6 +453,8 @@ function buildCreature(d,opt){
   const focus=new THREE.Group();g.add(focus);
   const bodyMat=only?ghostM.skin():realM.skin();
   torsoBody(g,d.body.shape,ys,rs,bodyMat);
+  if(!only&&TI){const dec=TORSO_DECO[d.body.shape];if(dec)try{dec(g,TI,s,realM,SKIN_COLORS[d.body.color2??16])}catch(e){console.warn('Rumpf-Schmuck',d.body.shape,e)}
+    if(d.body.skin==='bonbon'&&typeof WK!=='undefined'){const yc=(TI.lo+TI.hi)/2;const gs=[WK.gear(g,realM,TI.R(yc)*.45,[-.08*s,yc+.05*s,0],null,'#e6ecf5'),WK.gear(g,realM,TI.R(yc)*.3,[.14*s,yc-.12*s,.02*s],null,'#ffd23f')];an.push((t)=>{gs[0].rotation.z=t*1.2;gs[1].rotation.z=-t*1.8})}}
   /* Schulteransätze sitzen genau auf der Körperoberfläche */if(!only)both(x=>P(g,G.s(.15*s),realM.skin(),[x*(c.shX-.05*s),c.shY-.02*s,0],null,[1,.9,.9]));
   if(n>0&&!only){P(g,G.cy(c.hr*.34,c.hr*.42,c.hr*.5),realM.skin(),[0,topY,0])}
   const H={cy:c.hy,r:c.hr,top:c.hy+c.hr,front:c.hr*.93,faceY:c.hy+c.hr*.02,sideX:c.hr};
