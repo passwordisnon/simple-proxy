@@ -88,3 +88,12 @@ Status: ✔ erledigt · ◐ teilweise · ☐ offen. Wird bei jedem Schritt aktua
 - ◐ Fossilien finden (Relikte beim Graben)
 - ✔ Terraforming (Terraform-App: Hügel, Berg, Teich, Glätten, Landschaften besuchter Planeten malen; Terrassen-Stil)
 - ✔ Hausbau-Werkzeug
+
+## WIRED 2.0 (geplant, Briefing v2 wartet auf Freigabe)
+- ☐ Fehler zuerst: nur ein Rumpf am Körper, Berge schneiden keine Wege mehr, nichts schwebt in der Luft
+- ☐ Lehrer-Beamer nur als Ansicht für die Modulaufgabe (ohne eigene Figur, ausserhalb der Geschichte): Startbildschirm "Spielen" / "Beamer-Ansicht", Klassenliste, Kamera fährt live zu jeder Schüler:innen-Figur, wechselt den Planeten, Steckbrief mit Angaben
+- ☐ Spielmenü: Speichern, Zurück ins Labor, Beamer-Ansicht, Einstellungen, Spiel verlassen
+- ☐ Candy-Mech-Look (Y2K-Niedlichkeit mit Mechanik): durchsichtiges Bonbon-Plastik mit sichtbaren Zahnrädern, Gel-Knöpfe, Sticker, Cy-Phone als Ei-Gerät
+- ☐ Neue Geschichte: Silvester 1999 23:59, NEMURI hält alle schlafend, Partner Piko, Risslinge als fangbare Glitch-Wesen, Kehrmaschinen, Akte Prolog bis Finale 00:00 mit zwei Enden
+- ☐ Klang und Musik komplett neu: Shibuya-kei-Spielzeugpop, Dreamcast/Toonami-Breakbeat, Riss-Brummen, Countdown-Melodie, Musik zerfällt mit der Geschichte
+- ☐ Glitch-Kern als Finalort, restliche Planeten, alle Inhalte verdoppeln (Körperteile, Gegenstände, Geschichte)
