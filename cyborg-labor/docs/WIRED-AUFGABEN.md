@@ -34,25 +34,26 @@ Grundsatz: so viel wie möglich verwenden, alles im Hintergrund laden. Jeder Pla
 
 | Bereich | bisher | neu (Ziel) | woher |
 | --- | --- | --- | --- |
-| Planeten | 15 | **100** (7 Gruppen): 21 von Hand gebaute Hauptplaneten (3 je Gruppe) + 79 aus Gruppen-Bauplänen mit eigener Mischung aus Mechaniken, Natur und Bewohner:innen | eigene Planeten-Dateien, Kits je Gruppe |
-| Glitch-Kern | 0 | **1** mit 7 Räumen | aus allen Gruppen |
-| Monde | 0 | **30** | kleine Planeten aus PLANETKIT |
-| Raumstationen | 3 | **14** (zwei je Gruppe) | Kenney Space Station, Quaternius Sci-Fi |
-| Körperteile | 263 | **2'000** | Quaternius Robot/Mech, Kenney Space/Factory/Platformer, eigene, Farb- und Form-Varianten |
-| Rumpfformen | 11 | **60** | eigene Modelle |
-| Häute und Muster | 21 | **100** | ambientCG-Materialien, Bonbon-Plastik-Shader |
-| Natur-Modelle | 169 | **1'500** | Quaternius Nature, Kenney Nature, OpenGameArt CC0, Varianten je Gruppe |
-| Möbel und Deko | 333 | **3'000** | Kenney, KayKit, Quaternius, Glitch-Poster und -Sticker |
-| Gegenstände | 65 | **4'000** | Glitch (CC0) als Bilder, Kenney Food/Holiday als 3D |
-| Fische | 96 | **600** | 6 je Planet |
-| Insekten | 90 | **600** | 6 je Planet |
-| Tiere | einige je Planet | **400** | Quaternius Monsters und Tiere, eigene, Glitch-Wesen als Vorlage |
-| Risslinge | 0 | **100** | einer je Planet, aus echten Fehlern gebaut |
-| Relikte und Fundstücke | 53 | **1'000** | Kokon-95/97-Fundstücke, Fossilien, Glitch-Gegenstände |
-| Kleidung | Boutique | **800** | 1999-Mode, kindgerecht, Farbvarianten |
-| Musikstücke | 6 | **150 + eigene Musik im Browser** | DOVA (gepackt), Freedoom, OpenGameArt CC0, Web-Audio |
-| Klänge | 55 | **2'000** | Kenney, 効果音ラボ, Freedoom, OpenGameArt CC0, ZzFX |
-| Sprachen | 1 | **4 von Hand + alle weiteren maschinell (über 100)** | i18n.js |
+| Planeten | 15 | **30**, alle von Hand gebaut (14 bestehende im WIRED-Umbau, 15 neue, eigener Planet) + Glitch-Kern | Liste im Briefing, 7 Gruppen |
+| Monde | 0 | **7** (einer je Gruppe, kleine Spezialorte) | PLANETKIT |
+| Raumstationen | 3 | **7** (eine je Gruppe) | Kenney Space Station, Quaternius Sci-Fi |
+| Je Planet | gemischt | **volles Set:** 12 Fische, 12 Insekten, 6 Tiere, 1 Rissling-Familie, eigene Möbel- und Kleiderlinie, eigene Musik, 10 Fundstücke, eigene Natur | handverlesen aus allen Paketen |
+| Körperteile | 263 | **ca. 1'000** | Quaternius Robot/Mech, Kenney Space/Factory, eigene |
+| Rumpfformen | 11 | **36** | eigene Modelle |
+| Häute und Muster | 21 | **50** | ambientCG, Bonbon-Plastik-Shader |
+| Natur-Modelle | 169 | **ca. 600** | Quaternius Nature, Kenney Nature, OpenGameArt CC0 |
+| Möbel und Deko | 333 | **ca. 1'500** | Kenney, KayKit, Quaternius, Glitch-Poster und -Sticker |
+| Gegenstände | 65 | **ca. 1'000** | Glitch (CC0), Kenney Food/Holiday |
+| Fische / Insekten | 96 / 90 | **360 / 360** | 12 je Planet |
+| Tiere | einige je Planet | **180** | 6 je Planet |
+| Risslinge | 0 | **30 Familien** | eine je Planet |
+| Fundstücke | 53 | **300** | Kokon-95/97, Fossilien, Glitch |
+| Kleidung | Boutique | **ca. 400** | 1999-Mode, kindgerecht |
+| Musikstücke | 6 | **ca. 45 + eigene Musik im Browser** | DOVA (gepackt), Web-Audio |
+| Klänge | 55 | **ca. 800** | Kenney, 効果音ラボ, Freedoom, ZzFX |
+| Sprachen | 1 | **4 von Hand + alle weiteren maschinell** | i18n.js |
+
+**Qualität vor Menge:** Jedes Stück wird von Hand ausgewählt und muss im Candy-Mech-Stil gut aussehen und etwas tun. Die Zahlen sind Obergrenzen, keine Pflicht.
 
 **Speicher:** Das Artifact fasst 256 MB je Version und 16 MB je Datei. Darum: Modelle als kompakte Pakete (wie `assets/kits`, Vertex-Farben statt Texturen), Bilder als Sprite-Blätter, Audio gebündelt und komprimiert. Alles wird im Hintergrund pro Planet nachgeladen und im Browser zwischengespeichert. Was nicht in eine Version passt, kommt in den Asset-Speicher des Artifacts. Varianten (Farbe, Muster, Grösse, Kombination) entstehen im Spiel und kosten keinen Speicher.
 
@@ -60,7 +61,7 @@ Die Zahlen sind Schätzungen. Was im Stil nicht passt, wird weggelassen, auch we
 
 ## 1. Körper 2.0 (ersetzt: Rumpfformen im Tierdorf-Stil neu)
 
-Ziel: 60 Rumpfformen statt 11 (die folgenden 24 zuerst), als Spielzeug von 1999 mit Mechanik.
+Ziel: 36 Rumpfformen statt 11 (die folgenden 24 zuerst), als Spielzeug von 1999 mit Mechanik.
 - Bestehende 11 Formen (Ei, Kugel, Kapsel, Birne, Kiste, Dose, Bohne, Glocke, Mochi, Tropfen, Teddy) überarbeiten: knuffige Tierdorf-Proportionen, kurzer Hals, weicher Bauch.
 - 13 neue Formen: Kapselspielzeug (zweiteilige Plastikkugel), Ei-Gerät mit Bildschirm, Plüsch mit Reissverschluss, Roboter-Dose mit Nieten, Gameboy-Block, Wasserkocher, Laterne, Goldfischglas, Konserventurm, Wollknäuel, Seifenblase, Radiowecker, Rucksack-Roboter.
 - Neue Haut "Bonbon-Plastik": durchsichtig, innen drehen sich Zahnräder (Shader), Farbe aus den Candy-Tönen.
@@ -68,9 +69,9 @@ Ziel: 60 Rumpfformen statt 11 (die folgenden 24 zuerst), als Spielzeug von 1999 
 
 ## 2. Inhalte verdoppeln (ersetzt: nature2.js ~40 Modelle, Gegenstände, Fische, Insekten, Relikte)
 
-- Körperteile von 263 auf rund 2000, je Slot ein Candy-Mech-Satz (Antennen, Lautsprecher-Ohren, Klappbildschirm-Köpfe, Gel-Hände, Rollschuh-Beine, Rückenschlüssel).
+- Körperteile von 263 auf rund 1000, je Slot ein Candy-Mech-Satz (Antennen, Lautsprecher-Ohren, Klappbildschirm-Köpfe, Gel-Hände, Rollschuh-Beine, Rückenschlüssel).
 - Natur je Planetengruppe statt einer allgemeinen Liste: Spielzeug-Pflanzen (Kreisel-Blumen, Kabelranken, Glasfaser-Gras), dazu die bestehende Natur im neuen Look.
-- Fische und Insekten: je Planet 6 Arten (je rund 600). Dazu **100 Risslinge** (einer je Planet) als eigene Sammelseite (Zwilling, Bergbrecher, Schwebling, Echo, Zeichensalat, Durchgänger und je Gruppe weitere).
+- Fische und Insekten: je Planet 6 Arten (je rund 360, 12 je Planet). Dazu **30 Rissling-Familien** (eine je Planet) als eigene Sammelseite (Zwilling, Bergbrecher, Schwebling, Echo, Zeichensalat, Durchgänger und je Gruppe weitere).
 - Relikte werden **Kokon-Fundstücke**: Disketten, CRT-Splitter, Pager, Traumhelm-Teile, Tagebuchseiten der früheren Schläfer:innen. Dino-Fossilien bleiben in der Urzeit-Gruppe.
 - Gegenstände des Alltags 1999: Pager, CD-Player, durchsichtiges Telefon, Gelstifte, Kapselspielzeug, Virtual-Pet-Ei.
 
@@ -83,7 +84,7 @@ Ziel: 60 Rumpfformen statt 11 (die folgenden 24 zuerst), als Spielzeug von 1999 
 
 ## 4. Planeten (ersetzt: 30+ Planeten, Monde, Stationen, Biome, 3 neue Planeten)
 
-- Grundlage ist die Liste im Briefing: 7 Gruppen, jede ein Raum im Glitch-Kern. Neu sind es 100 Planeten (21 von Hand, 79 aus Gruppen-Bauplänen), 30 Monde und 14 Stationen.
+- Grundlage ist die Liste im Briefing: 7 Gruppen, jede ein Raum im Glitch-Kern. Es bleiben 30 Planeten, alle von Hand gebaut, dazu 7 Monde und 7 Stationen.
 - **Umbau** der 14 bestehenden Planeten: Bonbon-Plastik-Schilder und Bänke mit Zahnrädern, LCD-Anzeigen, versteckte Wartungsluke, Rissling-Lebensraum, Ruine.
 - **15 neue**, gruppenweise, in der Qualität von Urzeit, Metro und Dschungel: zuerst die Urzeit-Gruppe (Bernstein-Mond, Dino-Spielzeugfabrik), dann Metro (Neon-Arkade, Kaufhaus 1999, Funkturm, Magnetbahn-Ring), dann Dschungel (Ranken-Rechenzentrum, Leuchtquallen-Tiefsee), dann Himmel, Uhrwerk, Bildschirm.
 - **Monde:** Bernstein-Mond und Uhrwerk-Mond sind die ersten besuchbaren Monde.
