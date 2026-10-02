@@ -51,7 +51,12 @@ const GAME=(()=>{
   const surfR=(p,water)=>{const h=G_.hAt(p);return G_.R+(water&&h<G_.sea?G_.sea:h)};
   const onSurf=(p,off,water)=>p.clone().multiplyScalar(surfR(p,water)+(off||0));
   const isLand=p=>G_.hAt(p)>G_.sea+.05;
-  function placeObj(o,p,yaw,off){o.position.copy(onSurf(p,off||0));o.quaternion.setFromUnitVectors(UPV,p);if(yaw)o.rotateY(yaw);/* Planeten-Objekte ohne Eltern gehören in die aktuelle Planetenszene */if(!o.userData._placed){o.userData._placed=1;if(!o.parent&&G_.scene)G_.scene.add(o)}}
+  /* Gegenstände stehen auf der exakten Höhe (nicht auf der gerade sichtbaren, evtl. groben LOD-Kachel) und auf dem tiefsten Punkt unter ihrer Grundfläche: nichts schwebt halb über einer Terrassenkante */
+  const _fb=new THREE.Box3(),_fs=new V3();
+  function footR(o){if(o.userData._fr==null){const q=o.quaternion.clone(),ps=o.position.clone();o.quaternion.identity();o.position.set(0,0,0);o.updateMatrixWorld(true);_fb.setFromObject(o);_fb.getSize(_fs);o.quaternion.copy(q);o.position.copy(ps);o.userData._fr=isFinite(_fs.x)?Math.min(2.5,Math.max(_fs.x,_fs.z)*.35):0}return o.userData._fr}
+  function groundUnder(o,p,center){const hf=G_.hExact||G_.hAt;let h=hf(p);if(center)return h;const fr=footR(o);if(fr<.3)return h;const t1=tangentTo(p,new V3(1,0,0)),t2=new V3().crossVectors(p,t1);const a=fr/G_.R;
+    for(const d of[t1,t2,t1.clone().negate(),t2.clone().negate()])h=Math.min(h,hf(p.clone().addScaledVector(d,a).normalize()));return h}
+  function placeObj(o,p,yaw,off,center){o.position.copy(p).normalize().multiplyScalar(G_.R+groundUnder(o,p,center)+(off||0));o.quaternion.setFromUnitVectors(UPV,p);if(yaw)o.rotateY(yaw);/* Planeten-Objekte ohne Eltern gehören in die aktuelle Planetenszene */if(!o.userData._placed){o.userData._placed=1;if(!o.parent&&G_.scene)G_.scene.add(o)}}
   function faceTo(o,p,dirWorld){o.up.copy(p);o.lookAt(o.position.clone().add(dirWorld))}
   /* Zufallspunkt im Umkreis (grosse Planeten: Dinge erscheinen dort, wo gespielt wird, nicht verstreut über den ganzen Planeten) */
   function randAround(r,rad,center){const c=center||(me?me.p:((G_.places||[]).find(p=>p.id==='platz')||{dir:UPV}).dir);const t=tangentTo(c,new V3(r()-.5,r()-.5,r()-.5));if(!isFinite(t.x))return c.clone();const ang=Math.sqrt(r())*rad/G_.R;return c.clone().applyAxisAngle(new V3().crossVectors(c,t).normalize(),ang).normalize()}
@@ -149,7 +154,7 @@ const GAME=(()=>{
   /* Wortsteine (fremde Ruinen): bringen je ein Wort der Planetensprache bei */
   function buildStones(){if(typeof LANG==='undefined'||!LANG.has(G_.id))return;const r=srand(hashStr('stones'+G_.id).length*313+7);const seen=SAVE.stones||{};let n=0;
     for(let i=0;i<400&&n<(G_.stream?12:7);i++){const p=randLand(r,G_.sea+.4,99,80,G_.R*1.4);if(!p||nearPlace(p,2.2))continue;if(G_.places.some(pl=>pl.dir.angleTo(p)*G_.R<14))continue;{const h0=G_.hAt(p),t1=tangentTo(p,new V3(1,0,0)),t2=new V3().crossVectors(p,t1);let bad=false;for(let k=0;k<8&&!bad;k++){const a2=k/8*TAU;const q=p.clone().addScaledVector(t1,Math.cos(a2)*5.5/G_.R).addScaledVector(t2,Math.sin(a2)*5.5/G_.R).normalize();if(Math.abs(G_.hAt(q)-h0)>.45)bad=true}if(bad)continue}const id=G_.id+'-st'+n;
-      const g=LANG.stoneModel(G_.id,M);addOutlines(g);let ru=null;try{ru=LANG.ruin(G_.id,ARCH.hashNum(id),G_.R);g.add(ru.g)}catch(e){console.warn('Ruine',e)}placeObj(g,p,r()*TAU,-.05);G_.scene.add(g);G_.ticks.push(g);addObst(p,.8);g.updateMatrixWorld(true);if(ru){/* jedes Ruinenteil auf den Boden darunter setzen */const h0=G_.hAt(p);for(const ch of ru.g.children){const d=ch.getWorldPosition(new V3()).normalize();ch.position.y+=G_.hAt(d)-h0}g.updateMatrixWorld(true);for(const c of ru.cols){addObst(g.localToWorld(new V3(c[0],0,c[1])).normalize(),c[2])}}const st={id,used:!!seen[id]};
+      const g=LANG.stoneModel(G_.id,M);addOutlines(g);let ru=null;try{ru=LANG.ruin(G_.id,ARCH.hashNum(id),G_.R);g.add(ru.g)}catch(e){console.warn('Ruine',e)}placeObj(g,p,r()*TAU,-.05,true);G_.scene.add(g);G_.ticks.push(g);addObst(p,.8);g.updateMatrixWorld(true);if(ru){/* jedes Ruinenteil auf den Boden darunter setzen */const h0=G_.hAt(p);for(const ch of ru.g.children){const d=ch.getWorldPosition(new V3()).normalize();ch.position.y+=G_.hAt(d)-h0}g.updateMatrixWorld(true);for(const c of ru.cols){addObst(g.localToWorld(new V3(c[0],0,c[1])).normalize(),c[2])}}const st={id,used:!!seen[id]};
       G_.inter.push({kind:'stone',p,r:2,label:'Wortstein lesen',act:()=>LANG.stone(G_.id,st)});if(n===0&&typeof STORY!=='undefined'){const si=Object.keys(PLANETS).indexOf(G_.id);const got=(SAVE.story&&SAVE.story.shards||[]).includes(si);if(!got){const cr=new THREE.Mesh(new THREE.OctahedronGeometry(.28,0),M.glow('#C8A0FF',2.2));cr.position.set(1.4,1.2,1.4);g.add(cr);const t0=g.userData.tick;g.userData.tick=t=>{t0&&t0(t);cr.rotation.y=t*1.5;cr.position.y=1.2+Math.sin(t*2)*.12};
         const sp=g.localToWorld(new V3(1.4,0,1.4)).normalize();const it={kind:'shard',p:sp,r:1.6,label:'Leuchtenden Splitter berühren',act:()=>{if(STORY.shard(si)){cr.visible=false;G_.inter.splice(G_.inter.indexOf(it),1)}}};G_.inter.push(it)}}G_.places.push({id,n:'Ruine',dir:p.clone(),r:6.5/G_.R});n++}}
   /* ---------- Boote: Stege am Ufer, Ruderboot für Inseln und Meere ---------- */
@@ -171,7 +176,7 @@ const GAME=(()=>{
       if(!best)continue;out.push(p);
       /* Steg */const g=new THREE.Group();const wood=M.c('#B8845A'),dk=M.c('#8A5A40');for(let k=0;k<6;k++)P(g,G.bx(1.1,.08,.36,.03),k%2?wood:M.c('#C99466'),[0,.28,.2+k*.42]);for(const s of[-1,1])for(let k=0;k<3;k++)P(g,G.cy(.07,.08,1.4),dk,[s*.5,-.2,.25+k*1.05]);
       P(g,G.to(.08,.025),M.c('#E8D8B8'),[.5,.52,2.3],[PI/2,0,0]);addOutlines(g);g.traverse(o=>{if(o.isMesh){o.castShadow=HIGH;o.receiveShadow=true}});mergeGroup(g);
-      placeObj(g,p,0,-.05);faceTo(g,p,best);G_.scene.add(g);
+      placeObj(g,p,0,-.05,true);faceTo(g,p,best);G_.scene.add(g);
       const bp=p.clone().addScaledVector(best,3.1/G_.R).normalize();const bg=makeBoat();G_.scene.add(bg);const b={g:bg,p:bp.clone(),dir:tangentTo(bp,best.clone().applyAxisAngle(bp,PI/2)),it:null};moorBoat(b,bp,b.dir);G_.boats.push(b)}}
   function poseBoats(dt,t){for(const b of G_.boats||[]){const riding=me&&me.boat===b;const p=riding?me.p:b.p,dir=riding?me.dir:b.dir;const bob=Math.sin(t*1.6+b.p.x*9)*.05;
       b.g.position.copy(p).multiplyScalar(G_.R+G_.sea-.08+bob);b.g.up.copy(p);b.g.lookAt(b.g.position.clone().add(dir));b.g.rotateZ(Math.sin(t*1.2+b.p.z*7)*.04);
@@ -188,7 +193,7 @@ const GAME=(()=>{
       const front=back.clone().negate();{const hf=at(p,front,side,2,0);if(Math.abs(hf-h)>.6||hf<G_.sea+.2)continue}
       const rise=Math.min(bd,wl,wr);out.push(p);const id=G_.id+'-hoehle'+out.length;
       /* Eingang in den Hang schieben; Höhe an die Wand anpassen (Oberkante trifft die Hangkante) */const pos=p.clone().addScaledVector(back,1.1/G_.R).normalize();const k=Math.max(.62,Math.min(1.15,(rise+.35)/3.2));
-      const B=BIOMES[G_.biomeAt(pos,hx(pos))]||{};const g=CAVES.entrance(M,G_.id,{rock:B.cliff,grass:B.grass||(B.g&&B.g[0])});g.scale.setScalar(k);placeObj(g,p.clone().addScaledVector(back,.9/G_.R).normalize(),0,-.18);faceTo(g,g.position.clone().normalize(),front);
+      const B=BIOMES[G_.biomeAt(pos,hx(pos))]||{};const g=CAVES.entrance(M,G_.id,{rock:B.cliff,grass:B.grass||(B.g&&B.g[0])});g.scale.setScalar(k);placeObj(g,p.clone().addScaledVector(back,.9/G_.R).normalize(),0,-.18,true);faceTo(g,g.position.clone().normalize(),front);
       g.traverse(o=>{if(o.isMesh){o.castShadow=HIGH;o.receiveShadow=true}});G_.scene.add(g);
       for(const s2 of[-1,1])addObst(pos.clone().addScaledVector(side,s2*1.3*k/G_.R).normalize(),.55*k);addObst(pos.clone().addScaledVector(back,1/G_.R).normalize(),1);
       const seed=hashStr(id).length*7919+out.length*131+G_.id.length;G_.inter.push({kind:'cave',p:p.clone().addScaledVector(front,.7/G_.R).normalize(),r:1.7,label:'Höhle betreten',act:()=>CAVES.enter({seed,id})});
@@ -206,7 +211,7 @@ const GAME=(()=>{
       /* Gebäude zeigen zum Dorfplatz */
       const plaza=G_.places.find(x=>x.id==='platz');let yaw=0;{/* Gebäude so tief setzen, dass auch der Rand auf dem gekrümmten Boden aufliegt */const rr=(obj.userData.r||2.2);const t1=tangentTo(pl.dir,new V3(1,0,0)),t2=new V3().crossVectors(pl.dir,t1);const hc=G_.R+G_.hAt(pl.dir);let lo=0;
         for(let k=0;k<8;k++){const a=k/8*TAU;const q=pl.dir.clone().addScaledVector(t1,Math.cos(a)*rr/G_.R).addScaledVector(t2,Math.sin(a)*rr/G_.R).normalize();lo=Math.max(lo,hc-(G_.R+G_.hAt(q))*q.dot(pl.dir))}
-        placeObj(g,pl.dir,0,pl.build==='plaza'?-.02:-.02-Math.min(.6,lo))}
+        placeObj(g,pl.dir,0,pl.build==='plaza'?-.02:-.02-Math.min(.6,lo),true)}
       if(plaza&&pl!==plaza){const toward=tangentTo(pl.dir,plaza.dir);g.up.copy(pl.dir);g.lookAt(g.position.clone().add(toward))}
       G_.scene.add(g);pl.obj=g;const rad=(obj.userData.r||2.2);if(pl.build!=='plaza')addObst(pl.dir,obj.userData.obstR??rad);
       g.updateMatrixWorld(true);if(pl.build==='plaza'){settleKids(obj);registerPlaza(obj)}

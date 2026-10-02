@@ -126,7 +126,7 @@ $('inSize').addEventListener('input',e=>{S.body.size=+e.target.value;LAB.rebuild
 $('inStatement').addEventListener('input',e=>{S.statement=e.target.value;renderChecklist();saveDraft()});
 $('inSearch').addEventListener('input',e=>{search=e.target.value;renderParts()});
 $('btnRandom').onclick=()=>{for(const s of ['kopf','augen','arme','beine'])S.parts[s]=pick(PARTS[s].filter(p=>p.k!=='none')).id;SND.play('whoosh',{vol:.6});
-  S.parts.extras=[...PARTS.extras].sort(()=>Math.random()-.5).slice(0,1+Math.floor(Math.random()*3)).map(p=>p.id);S.body.skin=pick(SKINS).id;S.body.shape=pick(TORSOS).id;S.body.seg=1+Math.floor(Math.random()*3);S.body.color=Math.floor(Math.random()*SKIN_COLORS.length);S.body.color2=Math.floor(Math.random()*SKIN_COLORS.length);S.body.pattern=pick(PATTERNS).id;changed(true)};
+  S.parts.extras=[...PARTS.extras].sort(()=>Math.random()-.5).slice(0,1+Math.floor(Math.random()*3)).map(p=>p.id);S.body.skin=pick(SKINS).id;S.body.shape=pick(TORSOS).id;S.body.seg=1;S.body.color=Math.floor(Math.random()*SKIN_COLORS.length);S.body.color2=Math.floor(Math.random()*SKIN_COLORS.length);S.body.pattern=pick(PATTERNS).id;changed(true)};
 UI.armed($('btnReset'),'Wirklich löschen?',()=>{S=DEFAULT();changed(true)});
 $('btnRelease').onclick=()=>{const d=sanitize(JSON.parse(JSON.stringify(S)));d.id=rid();d.createdAt=Date.now();delete d.example;WORLD.push(d);saveWorld();SND.jingle('j_release');
   const w=UI.win(`${d.name} lebt jetzt`,{size:'narrow'});w.body.append(el('p',null,'Euer Cyborg wohnt ab jetzt auf dem Kompost-Planeten. Damit er in die gemeinsame Welt am Beamer kommt, kopiert den Code und schickt ihn an den Beamer-Laptop (Miro-Board oder Klassenchat).'));

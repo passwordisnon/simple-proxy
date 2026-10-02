@@ -403,7 +403,7 @@ function buildCreature(d,opt){
   opt=opt||{};QF=opt.q||1;
   const g=new THREE.Group();const an=[];const only=opt.only||null;
   const realM=makeMats(d.body);const ghostM=makeMats(d.body,true);
-  const s=d.body.size,r=.6*s,n=d.body.seg;
+  const s=d.body.size,r=.6*s,n=1;/* immer ein Rumpf aus einem Guss, alte Figuren mit seg 2/3 eingeschlossen */
   const legP=findPart('beine',d.parts.beine)||PARTS.beine[0]||{h:1};
   const y0=(legP.h??1)*s;
   const ys=[],rs=[];for(let i=0;i<n;i++){const rr=r*(1-i*.08);rs.push(rr);ys.push(i===0?y0+rr:ys[i-1]+(rs[i-1]+rr)*.72)}

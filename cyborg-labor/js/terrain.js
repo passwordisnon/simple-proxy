@@ -249,14 +249,15 @@ function makePlanetFns(pid,extra){const def=PLANETS[pid];const seed={kompost:1,s
     if(def.mine)return h;
     const a=Math.acos(Math.max(-1,Math.min(1,p.y)));const V=sstep(vilR*1.9,vilR,a);
     const cont=N3(p.x*1.4+11,p.y*1.4,p.z*1.4)*.75+N(p.x*3.1,p.y*3.1+5,p.z*3.1)*.25;
-    const oc=sstep(MAC.oc+.05,MAC.oc-.1,cont)*(1-V);
+    /* Wege: kein Gebirge, kein Meer quer über den Weg */let rdw=9;for(const[ra,rb]of roads)rdw=Math.min(rdw,distToArc(p,ra,rb));const RW=sstep(16/R,6/R,rdw);
+    const oc=sstep(MAC.oc+.05,MAC.oc-.1,cont)*(1-V)*(1-RW);
     if(oc>0){/* Inseln: einzelne Buckel im Meer, manche ragen hoch hinaus */const isl=Math.max(0,N2(q.x*.42+7,q.y*.42,q.z*.42)-.16)*15*MAC.isl;h=h*(1-oc)+oc*(sea-3.4+isl+Math.max(0,h-1)*.3)}
-    const mm=sstep(MAC.m,MAC.m+.22,N2(p.x*1.9+3,p.y*1.9,p.z*1.9))*(1-oc)*(1-V);
+    const mm=sstep(MAC.m,MAC.m+.22,N2(p.x*1.9+3,p.y*1.9,p.z*1.9))*(1-oc)*(1-V)*(1-RW);
     if(mm>0){/* Gebirge: Grate aus Rauschen, stufig durch die Terrassen → begehbar */const ridge=1-Math.abs(N3(q.x*.2,q.y*.2+9,q.z*.2));h+=mm*(2+ridge*ridge*ridge*9)}
     /* Dorfgebiet: keine trockenen Mulden zwischen den Häusern */if(V>0)h+=V*Math.max(0,sea+.95-h);
     return h}
   const terr=def.terr!=null?def.terr:pid!=='frost'&&pid!=='wueste'?1:pid==='wueste'?.5:.35;
-  function hAt(p){let h=raw(p);
+  function hAt(p){let h=raw(p);const h0=h;
     /* Terraforming (eigener Planet): Hügel und Senken aus dem Spielstand; Bauplätze bleiben flach, danach Terrassen wie überall */
     if(def.mine&&MP()&&MP().edits.length){let keep=0;for(const pl of places){if(pl.pond||pl.park)continue;const d=angle(p,pl.dir);if(d<pl.r*1.6)keep=Math.max(keep,sstep(pl.r*1.6,pl.r*1.05,d))}
       if(keep<1)for(const e of MP().edits){const d=Math.acos(Math.max(-1,Math.min(1,p.x*e.d[0]+p.y*e.d[1]+p.z*e.d[2])))*R/e.r;if(d<2.2)h+=e.dh*Math.exp(-d*d*1.6)*(1-keep)}}
@@ -264,7 +265,7 @@ function makePlanetFns(pid,extra){const def=PLANETS[pid];const seed={kompost:1,s
     if(h>sea+.25){const k=(h-sea)/step;const f=k-Math.floor(k);const t=(Math.floor(k)+sstep(.4,.6,f))*step+sea;h=h*(1-terr)+t*terr}
     for(const pl of places){const d=angle(p,pl.dir);if(pl.pond){if(d<pl.r*1.35){const t=sstep(pl.r*1.35,pl.r*.5,d);h=h*(1-t)+(sea-1.1)*t}}
       else if(d<pl.r*1.6){const t=sstep(pl.r*1.6,pl.r*1.05,d);h=h*(1-t)+(pl.h??.8)*t}}
-    /* Wege sanft glätten */let rd=9;for(const[a,b]of roads)rd=Math.min(rd,distToArc(p,a,b));if(rd<.03){const t=sstep(.03,.012,rd);const hs=Math.max(sea+.3,Math.round((h-sea)/step)*step+sea);h=h*(1-t*.6)+hs*t*.6}
+    /* Wege: ganz flach quer, sanfte Rampe in Laufrichtung (ohne Terrassenstufen); Ränder laufen in die Landschaft aus */let rd=9;for(const[a,b]of roads)rd=Math.min(rd,distToArc(p,a,b));const rw=2.4/R,rf=6/R;if(rd<rf){let pd=9;for(const pl of places)if(!pl.pond&&!pl.park)pd=Math.min(pd,angle(p,pl.dir)/(pl.r*1.6));const t=sstep(rf,rw,rd)*sstep(.9,1.3,pd);const hs=Math.max(sea+.3,h0);h=h*(1-t)+hs*t}
     return h}
   function roadDist(p){let rd=9;for(const[a,b]of roads)rd=Math.min(rd,distToArc(p,a,b));return rd}
   /* Biom aus Temperatur T, Feuchte M, Höhe h, Wassernähe */
