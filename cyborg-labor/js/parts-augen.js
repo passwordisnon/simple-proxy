@@ -601,4 +601,12 @@ A('blatt','Blattaugen','pflanze',(g,c)=>{const F=face(g,c),u=F.u,m=c.m;const lea
       c.an(t=>{l.rotation.z=a-PI/2+Math.sin(t*1.3+s+i)*.1})})})});
 
 A('keine','Keine Augen','none',(g,c)=>{});
+
+/* ===================== WIRED: LCD-Augen ===================== */
+A('lcdaugen','LCD-Augen','masch',(g,c)=>{const F=face(g,c),u=F.u;const m=c.m;
+  const tex=ctex('auge-lcd',64,64,(x,w,h)=>{x.fillStyle='#c9f27a';x.fillRect(0,0,w,h);x.fillStyle='#1d2b0b';x.fillRect(w*.3,h*.25,w*.4,h*.5);x.fillStyle='#c9f27a';x.fillRect(w*.38,h*.3,w*.1,h*.1)});
+  const mt=new THREE.MeshBasicMaterial({map:tex,toneMapped:false});mt.userData.flat=true;const E=[];
+  both(sg=>{const q=F.mount(sg*u*.36,F.Y,{k:.7});P(q,G.bx(u*.3,u*.3,u*.05,u*.05),m.chrome(),[0,0,0]);const e=P(q,G.pl(u*.24,u*.24),mt,[0,0,u*.03]);e.userData.eye=true;E.push(e)});
+  c.an(t=>{const b=(t%4)<.12?.15:1;E.forEach(e=>e.scale.y=b)})});
+
 })();

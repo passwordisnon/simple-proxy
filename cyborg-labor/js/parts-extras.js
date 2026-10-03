@@ -596,4 +596,19 @@ X('seerose','Seerosen-Schulter','pflanze',(g,c)=>{const m=c.m,s=c.s*1.7;const S=
   P(T,G.drop(.026*s,.02*s),m.glass('#E8FBFF'),[-.11*s,.03*s,.07*s]);
   const Bd=grp(T,[.09*s,.02*s,-.1*s]);P(Bd,G.drop(.04*s,.05*s),m.gloss(PAL.pink),[0,.04*s,0]);
   c.an((t,w,a)=>{T.position.y=S.y+.015*s+Math.sin(t*1.6)*.008*s;F.rotation.y=Math.sin(t*.6)*.2;const q=1+Math.sin(t*2)*.03;F.scale.set(q,1/q,q)})});
+
+/* ===================== WIRED: Candy-Mech-Extras ===================== */
+const WC={bondi:'#2fb5d9',grape:'#9b6ae0',tangerine:'#ff9a45',lime:'#7fd34a',strawberry:'#ff6fa5',lemon:'#ffd23f'};const wcandy=(m,col,op)=>m.c(col,{opacity:op??.55,gloss:1.3,rim:1.3,rimColor:'#ffffff'});
+X('aufzieh','Aufziehschlüssel','masch',(g,c)=>{const m=c.m,s=c.s*1.2,L=body(c);const M=mount(g,c,L.chest-.05*s,PI,0,{flat:1});const k=grp(M,[0,0,.02*s]);
+  P(k,G.cy(.03*s,.03*s,.16*s),m.chrome(),[0,0,.08*s],[PI/2,0,0]);const wing=grp(k,[0,0,.17*s]);both(x=>P(wing,G.s(.09*s),m.gloss(WC.lemon),[x*.09*s,0,0],null,[1,.7,.25]));P(wing,G.cy(.04*s,.04*s,.04*s),m.chrome(),[0,0,0],[PI/2,0,0]);
+  c.an((t,w)=>{wing.rotation.z=t*(w?3:.8)})});
+X('kapselrucksack','Kapsel-Rucksack','masch',(g,c)=>{const m=c.m,s=c.s*1.1,L=body(c);const M=mount(g,c,(L.chest+L.belly)/2,PI,.06*c.s,{flat:1});
+  P(M,G.s(.24*s),m.gloss(WC.tangerine),[0,0,.14*s],null,[1,1.15,.7]);P(M,G.s(.25*s),wcandy(m,'#ffffff',.35),[0,0,.15*s],null,[1,1.15,.72]);const gr=grp(M,[0,.02*s,.18*s]);
+  P(gr,G.cy(.11*s,.11*s,.03*s),m.gloss('#e6ecf5'),[0,0,0],[PI/2,0,0]);for(let i=0;i<8;i++){const a=i/8*TAU;P(gr,G.bx(.035*s,.035*s,.03*s),m.gloss('#e6ecf5'),[Math.cos(a)*.12*s,Math.sin(a)*.12*s,0],[0,0,a])}
+  c.an(t=>{gr.rotation.z=t*1.3})});
+X('pager','Pager am Gürtel','masch',(g,c)=>{const m=c.m,s=c.s,L=body(c);const M=mount(g,c,L.belly+.05*s,.9,0,{flat:1});P(M,G.bx(.2*s,.13*s,.06*s,.03*s),m.gloss(WC.grape),[0,0,.03*s]);
+  P(M,G.pl(.13*s,.05*s),m.flat('#c9f27a'),[0,.02*s,.062*s]);const led=P(M,G.s(.015*s),m.glow(WC.strawberry,2),[.07*s,-.035*s,.06*s]);c.an(t=>{led.visible=(t%2)<1})});
+X('sticker','Sticker-Sammlung','ding',(g,c)=>{const m=c.m,s=c.s*1.8,L=body(c);[[ -.5,.15,WC.lemon,'star'],[.45,.05,WC.strawberry,'heart'],[.05,-.2,WC.bondi,'dot']].forEach(([v,dy,col,k],i)=>{const M=mount(g,c,(L.chest+L.belly)/2+dy*s,v,.004*s,{flat:.6});
+  if(k==='star')P(M,G.star(.07*s,.03*s,5,.01*s),m.gloss(col),[0,0,.005*s]);else if(k==='heart')P(M,G.heart(.06*s,.01*s),m.gloss(col),[0,0,.005*s]);else P(M,G.cy(.06*s,.06*s,.01*s),m.gloss(col),[0,0,.005*s],[PI/2,0,0])})});
+
 })();

@@ -515,4 +515,17 @@ B('ranken','Rankenfüsse','pflanze',.8,(g,c)=>{const{s,m,y0}=c;const vn=m.c(PAL.
     const ft=grp(l,[0,-hy,0]);P(ft,groundGeo(flatGeo(leafShape(.34*s,.2*s),.035*s)),lf,[0,0,-.06*s]);P(ft,G.s(.075*s),vn,[0,.07*s,0],null,[1,.9,1]);
     c.an((t,w)=>{if(w){const p=t*6+phs(sg);l.rotation.x=Math.sin(p)*.28;l.position.y=hy+Math.max(0,Math.cos(p))*.06*s;ft.rotation.x=-l.rotation.x}else{l.rotation.x=0;l.position.y=hy;ft.rotation.x=0}
       lv.forEach(([q,i])=>q.rotation.z=Math.sin(t*2+i*1.7)*.2)})})});
+
+/* ===================== WIRED: Candy-Mech-Beine ===================== */
+const WC={bondi:'#2fb5d9',grape:'#9b6ae0',tangerine:'#ff9a45',lime:'#7fd34a',strawberry:'#ff6fa5',lemon:'#ffd23f'};const wcandy=(m,col,op)=>m.c(col,{opacity:op??.55,gloss:1.3,rim:1.3,rimColor:'#ffffff'});
+B('rollschuh','Rollschuh-Beine','masch',.82,(g,c)=>{const{s,m,y0}=c;const fh=.2*s;both(sg=>leg(g,c,{x:sg*.27*s,y:y0+.05*s,L1:.36*s,L2:.33*s,fh,ph:phs(sg),
+  thigh:(h,L)=>P(h,G.ca(.12*s,L),wcandy(m,WC.grape,.65),[0,-L/2,0]),shin:(k,L)=>taper(k,[0,0,0],[0,-L+.03*s,0],.11*s,.09*s,m.chrome()),
+  foot:a=>{P(a,G.bx(.24*s,.18*s,.38*s,.07*s),m.gloss(WC.lime),[0,-fh+.14*s,.04*s]);P(a,G.bx(.22*s,.04*s,.42*s,.02*s),m.chrome(),[0,-fh+.05*s,.04*s]);for(const z of[-.13,.21])both(x=>P(a,G.cy(.045*s,.045*s,.05*s),m.gloss(WC.strawberry),[x*.1*s,-fh+.045*s,z*s],[0,0,PI/2]))}}))});
+B('federbeine','Sprungfeder-Beine','masch',.86,(g,c)=>{const{s,m,y0}=c;const fh=.12*s;both(sg=>leg(g,c,{x:sg*.27*s,y:y0+.05*s,L1:.4*s,L2:.38*s,fh,ph:phs(sg),
+  thigh:(h,L)=>P(h,G.ca(.12*s,L),m.gloss(WC.tangerine),[0,-L/2,0]),shin:(k,L)=>{const coil=[];for(let i=0;i<=50;i++){const a=i/50*TAU*6;coil.push([Math.cos(a)*.07*s,-i/50*(L-.03*s),Math.sin(a)*.07*s])}P(k,G.tu(coil,.017*s,.017*s,Q(100)),m.chrome())},
+  foot:a=>{P(a,G.hs(.16*s),m.gloss(WC.bondi),[0,-fh,.03*s],null,[1,.7,1.3])}}))});
+B('gelstiefel','Gel-Stiefel','masch',.8,(g,c)=>{const{s,m,y0}=c;const fh=.22*s;both(sg=>leg(g,c,{x:sg*.27*s,y:y0+.05*s,L1:.38*s,L2:.34*s,fh,ph:phs(sg),
+  thigh:(h,L)=>P(h,G.ca(.13*s,L),m.gloss('#fffdf7'),[0,-L/2,0]),shin:(k,L)=>taper(k,[0,0,0],[0,-L+.03*s,0],.12*s,.14*s,wcandy(m,WC.strawberry,.6)),
+  foot:a=>{P(a,G.s(.17*s),wcandy(m,WC.strawberry,.7),[0,-fh+.12*s,.06*s],null,[1,.75,1.5]);P(a,G.to(.15*s,.025*s),m.chrome(),[0,-fh+.2*s,.02*s],[PI/2,0,0])}}))});
+
 })();

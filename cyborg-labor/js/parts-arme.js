@@ -571,4 +571,14 @@ A('schwamm','Schwammhände','ding',(g,c)=>{const{s,m}=c;const sk=m.skin(),sp=m.c
       B.forEach((b,i)=>{const u=(t*.45+i/3)%1;b.position.set((.08+i*.05)*s+Math.sin(t*2+i)*.03*s,-.1*s+u*.45*s,(.1-i*.06)*s);b.scale.setScalar(Math.min(1,u*5)*(u>.9?(1-u)*10:1))})}})});
 
 A('keine','Keine Arme','none',(g,c)=>{});
+
+/* ===================== WIRED: Candy-Mech-Arme ===================== */
+const WC={bondi:'#2fb5d9',grape:'#9b6ae0',tangerine:'#ff9a45',lime:'#7fd34a',strawberry:'#ff6fa5',lemon:'#ffd23f'};const wcandy=(m,col,op)=>m.c(col,{opacity:op??.55,gloss:1.3,rim:1.3,rimColor:'#ffffff'});
+A('gelarme','Gel-Arme','masch',(g,c)=>{const{s,m}=c;const ch=m.chrome();rig(g,c,{rz:.3},(q,sg)=>{P(q,G.s(.1*s),ch);P(q,G.ca(.085*s,.2*s),wcandy(m,sg>0?WC.bondi:WC.grape,.65),[0,-.16*s,0]);
+  const el=grp(q,[0,-.32*s,0],[-.25,0,0]);P(el,G.s(.08*s),ch);P(el,G.ca(.075*s,.16*s),wcandy(m,sg>0?WC.grape:WC.bondi,.65),[0,-.14*s,0]);const hd=grp(el,[0,-.3*s,0]);P(hd,G.s(.11*s),m.gloss(WC.lemon),[0,0,0],null,[1,.85,1]);P(hd,G.s(.05*s),m.gloss(WC.lemon),[.09*s,.03*s,.02*s])})});
+A('federarme','Spiralfeder-Arme','masch',(g,c)=>{const{s,m}=c;const ch=m.chrome();rig(g,c,{rz:.35,walk:.7},(q,sg,R)=>{P(q,G.s(.1*s),m.gloss(WC.tangerine));const coil=[];for(let k=0;k<=60;k++){const a=k/60*TAU*7;coil.push([Math.cos(a)*.06*s,-k/60*.48*s,Math.sin(a)*.06*s])}
+  const sp=P(q,G.tu(coil,.016*s,.016*s,Q(120)),ch);const hd=grp(q,[0,-.54*s,0]);P(hd,G.s(.1*s),m.gloss(WC.strawberry));P(hd,G.to(.07*s,.02*s),ch,[0,.06*s,0],[PI/2,0,0]);R.tick=(t,w)=>{const k=1+Math.sin(t*(w?8:2))*.06;sp.scale.y=k;hd.position.y=-.54*s*k}})});
+A('kabelarme','Kabel-Arme mit Steckern','masch',(g,c)=>{const{s,m}=c;rig(g,c,{rz:.28,walk:.6},(q,sg)=>{const col=sg>0?WC.lime:WC.strawberry;const pts=[[0,0,0],[.04*s,-.18*s,.04*s],[-.02*s,-.36*s,0],[.02*s,-.52*s,.03*s]];P(q,G.tu(pts,.04*s,.04*s,24),m.gloss(col));P(q,G.s(.06*s),m.chrome());
+  const pl=grp(q,[.02*s,-.56*s,.03*s]);P(pl,G.bx(.12*s,.12*s,.08*s,.03*s),m.c('#fffdf7'),[0,-.04*s,0]);both(x=>P(pl,G.bx(.018*s,.07*s,.018*s),m.chrome(),[x*.03*s,-.13*s,0]))})});
+
 })();
