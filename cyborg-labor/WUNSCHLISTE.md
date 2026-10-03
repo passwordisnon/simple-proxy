@@ -103,4 +103,5 @@ Status: ✔ erledigt · ◐ teilweise · ☐ offen. Wird bei jedem Schritt aktua
 - ☐ Klänge von 効果音ラボ und Musik von DOVA (gepackt, nicht als offene MP3)
 - ☐ Alte Spiele mit freien Grafiken nutzen: Glitch (CC0), Yo Frankie!/Blender (CC-BY), Hard Vacuum und Tyrian (CC-BY), Freedoom (BSD)
 - ✔ Planeten neu gedacht im WIRED-Stil, ausgehend von Urzeit, Metro und Dschungel (Liste im Briefing, Zahlen in docs/WIRED-AUFGABEN.md)
+- ✔ Bestehende 14 Planeten im WIRED-Stil umgebaut: je ein eigenes Requisiten-Set (Kapselbeete, Röhrenmonitor-Stapel, Blechdosen-Roboter, Bonbon-Korallen, Schneekugeln, Eis-LCDs, halb vergrabene Riesen-Konsole, Gel-Kakteen, Kapselpilze, Riesen-Gelstifte, Wetterstationen, Disketten-Türme, Riesen-Wecker auf 23:59, Riesen-Kassettenrekorder)
 - ☐ Inhalte ausbauen, Qualität vor Menge, handverlesen und im Hintergrund nachgeladen (docs/WIRED-AUFGABEN.md): je Planet ein volles Set (12 Fische, 12 Insekten, 6 Tiere, Rissling-Familie, Möbel- und Kleiderlinie, Musik, Fundstücke); insgesamt rund 1000 Körperteile, 36 Rumpfformen, 1500 Möbel, 1000 Gegenstände, 600 Natur-Modelle
