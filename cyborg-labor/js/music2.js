@@ -43,7 +43,7 @@ const MUSIC2=(()=>{
   const SCALE=[0,2,4,5,7,9,11];
   function makeSong(name,kind){const r=rng(hashNum(name)*2654435761+7);const key=48+Math.floor(r()*7);const prog=PROGS[Math.floor(r()*PROGS.length)];
     const mel=[];for(let b=0;b<4;b++){const bar=[];for(let s=0;s<16;s++){bar.push(r()<(s%4===0?.7:s%2?.22:.45)?SCALE[Math.floor(r()*7)]+(r()<.25?12:0):null)}mel.push(bar)}
-    const lead=['toy','glock','vibe'][Math.floor(r()*3)];return{key,prog,mel,lead,kind,bpm:kind==='kokon'?86+Math.floor(r()*14):kind==='calm'?72:172}}
+    const lead=['toy','glock','vibe'][Math.floor(r()*3)];return{key,prog,mel,lead,kind,bpm:kind==='kokon'?86+Math.floor(r()*14):kind==='calm'?66:172}}
   /* ---------- Sequenzer ---------- */
   function tick(){if(!ctx||!style)return;const spb=60/song.bpm/4;/* Sechzehntel */
     while(nextT<ctx.currentTime+.18){play16(step,nextT);step++;nextT+=spb*(style==='kokon'&&step%2?1.08:style==='kokon'?.92:1)}}
@@ -51,8 +51,8 @@ const MUSIC2=(()=>{
   function play16(s,t){const bar=Math.floor(s/16)%4,i=s%16;const S=song;const ch=CHORDS[S.prog[bar]];const k=S.key;
     if(style==='kokon'||style==='calm'){const calm=style==='calm';
       /* Bossa-Bass: Grundton und Quinte im Bossa-Rhythmus */if([0,3,8,11].includes(i)&&!drop())I.bass(k-12+(i===3||i===11?ch[2]:ch[0]),t,calm?.6:1,.3);
-      /* Akkord-Stösse auf dem Vibraphon */if([2,6,10,13].includes(i)&&!calm&&!drop())ch.forEach(n=>I.vibe(k+12+n,t,.35,.5));if(i===0&&calm)ch.forEach(n=>I.vibe(k+12+n,t,.45,2.2));
-      /* Melodie */const mn=S.mel[bar][i];if(mn!=null&&!drop())I[S.lead](k+24+mn,t,calm?.6:.9);
+      /* Akkord-Stösse auf dem Vibraphon */if([2,6,10,13].includes(i)&&!calm&&!drop())ch.forEach(n=>I.vibe(k+12+n,t,.35,.5));if(i===0&&calm)ch.forEach(n=>I.vibe(k+12+n,t,.35,3.2));
+      /* Melodie (ruhig: nur jede zweite Note, leiser, und jede zweite Phrase Pause) */const mn=S.mel[bar][i];const rest=calm&&(i%2===1||Math.floor(s/64)%2===1);if(mn!=null&&!rest&&!drop())I[S.lead](k+24+mn,t,calm?.45:.9);
       /* Besen und Rimshot */if(!calm){if(i%2===0&&!drop())I.brush(t,.8);if([4,12].includes(i)&&!drop())I.rim(t,1);if(i===0||i===10)I.kick(t,.5)}
       /* Countdown-Motiv: alle 4 Takte steigt es auf und bricht vor dem letzten Ton ab */
       if(Math.floor(s/64)%2===1&&bar===3&&!calm){const cd=[0,2,4,5,7];const j=[0,3,6,9,12].indexOf(i);if(j>=0)I.glock(k+36+cd[j],t,.9)}}
@@ -66,7 +66,7 @@ const MUSIC2=(()=>{
     const ga=ctx.createGain(),gb=ctx.createGain(),gc=ctx.createGain();ga.gain.value=.12;gb.gain.value=.05;gc.gain.value=.004;a.connect(ga);b.connect(gb);c.connect(gc);[ga,gb,gc].forEach(x=>x.connect(g));a.start();b.start();c.start();g.gain.linearRampToValueAtTime(1,ctx.currentTime+1.5);hum={g,o:[a,b,c]}}
   function humOff(){if(!hum)return;const h=hum;hum=null;h.g.gain.linearRampToValueAtTime(0,ctx.currentTime+.6);setTimeout(()=>h.o.forEach(o=>{try{o.stop()}catch(e){}}),800)}
   /* ---------- Steuerung ---------- */
-  function styleFor(track){if(!track||track==='stille')return null;if(track==='riss')return'riss';if(track==='lab'||track==='wired')return'wired';if(track==='home'||track==='museum')return'calm';return'kokon'}
+  function styleFor(track){if(!track||track==='stille')return null;if(track==='riss')return'riss';if(track==='lab'||track==='wired')return'wired';if(track==='home'||track==='museum'||track==='world')return'calm';/* Kompost (world) bleibt ruhig: ständige Hintergrundmusik darf nicht nervös machen */return'kokon'}
   function play(track,name){if(!setup())return false;const st=styleFor(track);if(!st){stop();return true}
     const nm=(name||track)+'|'+st;if(style===st&&song&&song.name===nm)return true;
     style=st;song=makeSong(nm,st==='wired'?'wired':st==='calm'?'calm':'kokon');song.name=nm;step=0;nextT=ctx.currentTime+.1;

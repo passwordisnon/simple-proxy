@@ -11,7 +11,7 @@ const saveArt=()=>{LS.set('cyborg-labor-galerie',GALLERY);LS.set('cyborg-labor-f
 INTERIOR.kinds.museum={bg:'#E9E2F5',music:'museum',build(sc){const W=22,D=14,H=4.6;const M=makeMats({skin:'haut',color:0});
     INTERIOR.makeRoom(sc,W,D,H,'__museum_wall','__museum_floor',{trim:'#B79A6E'});
     /* eigene Wände/Böden (Marmor, Parkett) */
-    sc.traverse(o=>{if(o.isMesh&&o.material&&o.material.map&&o.name==='floor'){o.material=cozy({map:museumTex('floor',[W/2,D/2]),color:'#fff',rim:.05})}else if(o.isMesh&&o.material&&o.material.map){o.material=cozy({map:museumTex('wall',[W/3,H/3]),color:'#fff',rim:.05})}});
+    sc.traverse(o=>{if(o.isMesh&&o.material&&o.material.map&&o.name==='floor'){o.material=cozy({map:museumTex('floor',[W/2,D/2]),color:'#fff',rim:.05})}else if(o.isMesh&&o.material&&o.material.map&&o.material.isMeshToonMaterial&&!o.material.transparent&&o.geometry.attributes.normal){/* nur Wände: Fensterglas (Himmel) und Lichtschleier behalten ihr eigenes Material */o.material=cozy({map:museumTex('wall',[W/3,H/3]),color:'#fff',rim:.05})}});
     const ex=new THREE.Group();sc.add(ex);const C=INTERIOR.colliders,A=INTERIOR.actions;const anim=[];sc.userData.anim=anim;
     const sign=(txt,x,z,col)=>{const t=ctex('sign-'+txt,512,128,(c,w,h)=>{c.fillStyle=col;c.beginPath();c.roundRect?c.roundRect(4,4,w-8,h-8,40):c.rect(4,4,w-8,h-8);c.fill();c.fillStyle='#fff';c.font='bold 64px Fredoka, Nunito, sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(txt,w/2,h/2+4)});
       const m=P(ex,G.pl(2.4,.6),new THREE.MeshBasicMaterial({map:t,transparent:true}),[x,H-.7,z]);m.userData.noOutline=true;return m};

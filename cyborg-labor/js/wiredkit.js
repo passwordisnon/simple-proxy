@@ -99,10 +99,12 @@ const WK=(()=>{
   function install(){window.buildBench=bench;window.buildStreetLamp=lamp;window.buildMailbox=mailbox;window.buildSignpost=signpost;window.buildNoticeBoard=board}
   install();
   /* Bausatz-Teile ersetzen: alte Eisenlaterne und Holzbank aus dem Stadt-Bausatz werden Candy-Mech (gleicher Platzbedarf) */
-  let KM=null;const SWAP={'town/lantern':lamp,'town/stall-bench':bench};
+  let KM=null;const SWAP={'town/lantern':lamp,'town/stall-bench':bench};const FIT={};
+  /* weitere Tausch-Teile (wbau.js): fit='long' dreht das Modell auf die lange Seite des Bausatz-Teils */
+  function swap(key,fn,fit){SWAP[key]=fn;FIT[key]=fit||'box'}
   function hookKit(){if(typeof KIT==='undefined'||KIT._wk)return;KIT._wk=true;const orig=KIT.mesh.bind(KIT);
     KIT.mesh=function(pack,name,...rest){const f=SWAP[pack+'/'+name];if(!f)return orig(pack,name,...rest);try{KM=KM||makeMats({skin:'plastik',color:0});const inner=f(KM);const b=KIT.bounds(pack,name);
       const box=new THREE.Box3().setFromObject(inner);const iw=box.max.x-box.min.x,id=box.max.z-box.min.z,ih=Math.max(.01,box.max.y-box.min.y);const kw=b[3]-b[0],kd=b[5]-b[2],kh=b[4]-b[1];
-      if(name==='lantern')inner.scale.setScalar(Math.max(.3,kh)/ih);else{/* Bank: Länge an die längere Seite des Bausatz-Teils, gleiche Ausrichtung */const kz=kd>kw;if(kz)inner.rotation.y=PI/2;inner.scale.setScalar(Math.max(kw,kd)/Math.max(.01,Math.max(iw,id)))}const outer=new THREE.Group();outer.add(inner);outer.userData=Object.assign({},inner.userData);return outer}catch(e){console.warn('WIRED-Tausch',name,e);return orig(pack,name,...rest)}}}
+      if(name==='lantern')inner.scale.setScalar(Math.max(.3,kh)/ih);else if(FIT[pack+'/'+name]){/* allgemein: gleich gross wie das Bausatz-Teil (Grundfläche), auf dessen Boden und Mitte */const kz=FIT[pack+'/'+name]==='long'&&kd>kw;if(kz)inner.rotation.y=PI/2;const bx2=new THREE.Box3().setFromObject(inner);const s2=Math.max(kw,kd)/Math.max(.01,Math.max(bx2.max.x-bx2.min.x,bx2.max.z-bx2.min.z));inner.scale.setScalar(s2);inner.position.set((b[0]+b[3])/2-(bx2.min.x+bx2.max.x)/2*s2,b[1]-bx2.min.y*s2,(b[2]+b[5])/2-(bx2.min.z+bx2.max.z)/2*s2)}else{/* Bank: Länge an die längere Seite des Bausatz-Teils, gleiche Ausrichtung */const kz=kd>kw;if(kz)inner.rotation.y=PI/2;inner.scale.setScalar(Math.max(kw,kd)/Math.max(.01,Math.max(iw,id)))}const outer=new THREE.Group();outer.add(inner);outer.userData=Object.assign({},inner.userData);return outer}catch(e){console.warn('WIRED-Tausch',name,e);return orig(pack,name,...rest)}}}
   if(typeof KIT!=='undefined')hookKit();else addEventListener('DOMContentLoaded',hookKit);
-  return{dress,hatch,relics,CANDY,pal,candy,solid,gear,screw,screws4,lcd,lcdTex,sticker,gel,shell,bench,lamp,mailbox,signpost,board}})();
+  return{swap,dress,hatch,relics,CANDY,pal,candy,solid,gear,screw,screws4,lcd,lcdTex,sticker,gel,shell,bench,lamp,mailbox,signpost,board}})();

@@ -45,6 +45,8 @@ const START=(()=>{
     B('Zurück ins Labor',null,null,()=>{save();closeMenu();MAIN.setTab('lab')});
     B('Beamer-Ansicht','sea',null,()=>{save();try{sessionStorage.setItem('cyborg-labor-start','beamer')}catch(e){}location.reload()});
     B('Einstellungen',null,null,()=>{closeMenu();MAIN.settings()});
+    /* Neu anfangen: zweimal klicken (Sicherheitsabfrage), löscht den Spielstand in diesem Browser; Sprache und Einstellungen bleiben */
+    {const rb=B('Neu anfangen','danger',null,()=>{});UI.armed(rb,t('Wirklich alles löschen? Nochmal klicken'),()=>{try{LS.set(SAVE_KEY,null);localStorage.removeItem('cyborg-labor-zeit')}catch(e){}SAVE=newSave();persist();location.reload()})}
     B('Spiel verlassen','danger',null,()=>{save();closeMenu();bye()});
     sh.append(p);root.append(sh);document.body.append(root);root.addEventListener('pointerdown',e=>{if(e.target===root)closeMenu()});
     const kd=e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();closeMenu()}};addEventListener('keydown',kd,true);

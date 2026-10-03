@@ -61,13 +61,28 @@ const MAIN=(()=>{
   $('hbMenu').onclick=()=>START.menu();$('hbBag').onclick=()=>ACT.bag();$('hbEmote').onclick=()=>ACT.emoteMenu();
   function designsApp(){const w=UI.win('Meine Designs',{size:'narrow'});const gr=el('div','grid');SAVE.designs.forEach(d=>{const c=el('button','card');c.type='button';c.append(designImg(d,96),el('span',null,d.name));c.onclick=()=>{w.close();PAINT.open(d)};gr.append(c)});
     if(!SAVE.designs.length)w.body.append(el('p','empty','Noch keine Designs. Male dein erstes!'));w.body.append(gr);w.foot.append(btn('Neues Design','primary',()=>{w.close();PAINT.open()}))}
-  function mapApp(){const w=UI.win('Karte · '+GAME.G.def.n,{size:'narrow'});const c=document.createElement('canvas');c.width=c.height=420;c.style.cssText='width:100%;max-width:100%;aspect-ratio:1;border-radius:50%;background:'+GAME.G.def.water;w.body.append(c);const x=c.getContext('2d');
-    /* Nordhalbkugel von oben (Azimut-Projektion) */const G_=GAME.G;const img=x.createImageData(420,420);for(let j=0;j<420;j++)for(let i=0;i<420;i++){const u=(i-210)/200,v=(j-210)/200;const r=Math.hypot(u,v);if(r>1)continue;const lat=PI/2-r*PI*.62;const lon=Math.atan2(v,u);const p=new V3(Math.cos(lat)*Math.cos(lon),Math.sin(lat),Math.cos(lat)*Math.sin(lon));const h=G_.hAt(p);
-      const col=new THREE.Color(h<G_.sea?G_.def.water:(BIOMES[G_.biomeAt(p,h)]||{g:['#9ED872']}).g[0]);if(h>=G_.sea)col.offsetHSL(0,0,Math.min(.12,(h-G_.sea)*.03));if(G_.roadDist(p)<.02&&h>G_.sea)col.set(G_.def.path||'#EBD2A0');const k=(j*420+i)*4;img.data[k]=col.r*255;img.data[k+1]=col.g*255;img.data[k+2]=col.b*255;img.data[k+3]=255}x.putImageData(img,0,0);
-    const toXY=p=>{const lat=Math.asin(p.y);const r=(PI/2-lat)/(PI*.62);const lon=Math.atan2(p.z,p.x);return[210+Math.cos(lon)*r*200,210+Math.sin(lon)*r*200,r]};x.font='bold 13px Nunito, sans-serif';x.textAlign='center';
-    for(const pl of G_.places){const[a,b,r]=toXY(pl.dir);if(r>1)continue;x.fillStyle='#fff';x.beginPath();x.arc(a,b,6,0,TAU);x.fill();x.fillStyle='#5B4535';x.fillText(pl.n,a,b-10)}
-    const me=GAME.me;if(me){const[a,b,r]=toXY(me.p);if(r<=1){x.fillStyle='#F0556E';x.beginPath();x.arc(a,b,8,0,TAU);x.fill();x.strokeStyle='#fff';x.lineWidth=3;x.stroke()}}
-    w.body.append(el('p','sub','Blick von oben auf die Nordseite des Planeten. Rot: du.'))}
+  /* Karte: "Nähe" zeigt die Umgebung rund um dich (Norden oben), "Planet" die ganze Nordseite. Häuser sind nur Punkte;
+     beschriftet werden wichtige Orte, und nur so viele, wie ohne Überlappung Platz haben. */
+  let mapZoom='nah';
+  function mapApp(){const w=UI.win('Karte · '+GAME.G.def.n,{size:'narrow'});const S=420,C=S/2,RAD=200;const c=document.createElement('canvas');c.width=c.height=S;c.style.cssText='width:100%;max-width:100%;aspect-ratio:1;border-radius:50%;box-shadow:0 0 0 6px var(--chrome-mid,#cfd6e2),0 0 0 9px #fff;background:'+GAME.G.def.water;w.body.append(c);const x=c.getContext('2d');
+    const G_=GAME.G,me=GAME.me;const UPW=new V3(0,1,0);const near=mapZoom==='nah';const range=near?95/G_.R:PI*.62;
+    /* Projektion: Mittelpunkt ist du (Nähe) oder der Nordpol (Planet) */
+    const ctr=near&&me?me.p.clone().normalize():UPW.clone();let N=near?GAME.tangentTo(ctr,UPW):new V3(0,0,-1);if(!isFinite(N.x)||N.lengthSq()<1e-6)N=GAME.tangentTo(ctr,new V3(1,0,0));N.normalize();const E=new V3().crossVectors(N,ctr).normalize();
+    const toXY=q=>{const a=Math.acos(Math.max(-1,Math.min(1,ctr.dot(q))));if(a>range)return null;const t=q.clone().addScaledVector(ctr,-Math.cos(a));if(t.lengthSq()<1e-12)return[C,C];t.normalize();const k=a/range*RAD;return[C+t.dot(E)*k,C-t.dot(N)*k]};
+    const img=x.createImageData(S,S);const col=new THREE.Color();const p=new V3();const dir=new V3();
+    for(let j=0;j<S;j++)for(let i=0;i<S;i++){const u=(i-C)/RAD,v=(j-C)/RAD;const r=Math.hypot(u,v);if(r>1)continue;const a=r*range;dir.copy(E).multiplyScalar(u).addScaledVector(N,-v);if(dir.lengthSq()>1e-12)dir.normalize();p.copy(ctr).multiplyScalar(Math.cos(a)).addScaledVector(dir,Math.sin(a)).normalize();const h=G_.hAt(p);
+      col.set(h<G_.sea?G_.def.water:(BIOMES[G_.biomeAt(p,h)]||{g:['#9ED872']}).g[0]);if(h>=G_.sea)col.offsetHSL(0,-.08,Math.min(.1,(h-G_.sea)*.025)+.04);else col.offsetHSL(0,0,.06);if(G_.roadDist(p)<(near?.004:.02)&&h>G_.sea)col.set('#FFE3EC');const k=(j*S+i)*4;img.data[k]=col.r*255;img.data[k+1]=col.g*255;img.data[k+2]=col.b*255;img.data[k+3]=255}x.putImageData(img,0,0);
+    /* Orte: Häuser als Punkte, wichtige Orte mit Schild (ohne Überlappung) */
+    const pts=[];for(const pl of G_.places){const q=toXY(pl.dir);if(!q)continue;const home=pl.build==='residence'||/^Haus von /.test(pl.n||'');pts.push({pl,q,home,prio:pl.build==='plaza'?0:pl.build&&!home?1:home?3:2})}
+    for(const o of pts)if(o.home){x.fillStyle='#fff';x.strokeStyle='#3b3450';x.lineWidth=1.5;x.beginPath();x.arc(o.q[0],o.q[1],near?4:2.5,0,TAU);x.fill();x.stroke()}
+    const rects=[];const free=(r)=>rects.every(o=>r[0]>o[2]||r[2]<o[0]||r[1]>o[3]||r[3]<o[1]);x.font='800 13px Nunito, sans-serif';x.textAlign='center';x.lineJoin='round';
+    const big=pts.filter(o=>!o.home).sort((a,b)=>a.prio-b.prio);for(const o of big){const[a,b]=o.q;x.fillStyle=o.prio===0?'#ff6fa5':'#2fb5d9';x.strokeStyle='#fff';x.lineWidth=2.5;x.beginPath();x.arc(a,b,near||o.prio!==1?6:3.5,0,TAU);x.fill();x.stroke()}
+    for(const o of big){const[a,b]=o.q;/* ganzer Planet: das Dorf bekommt ein Schild, nicht jedes Gebäude */if(!near&&o.prio===1)continue;
+      const LBL={museum:'Museum',laden:'Laden',shop:'Laden',bar:'Jazz-Bar',studio:'Farbstudio',rathaus:'Rathaus',garage:'Garage',pflanzen:'Gärtnerei',rakete:'Rakete',rocket:'Rakete',tiere:'Tierladen',praxis:'Praxis',mode:'Boutique',casino:'Spielhalle',post:'Post',house:'Dein Haus',plaza:'Dorfplatz'};const nm=!near&&o.prio===0?'Dorf':(o.pl.n&&o.pl.n!==o.pl.id&&!/^[a-z]+$/.test(o.pl.n))?o.pl.n:(LBL[o.pl.id]||LBL[o.pl.build]||o.pl.n);o.pl._mapN=nm;const tw=x.measureText(nm).width;const r=[a-tw/2-3,b-27,a+tw/2+3,b-9];if(r[0]<6||r[2]>S-6||r[1]<6||!free(r))continue;rects.push(r);x.strokeStyle='#fff';x.lineWidth=4;x.strokeText(nm,a,b-13);x.fillStyle='#3b3450';x.fillText(nm,a,b-13)}
+    /* du: roter Pfeil in Blickrichtung */if(me){const q=toXY(me.p.clone().normalize());if(q){const d=me.dir;const ang=Math.atan2(d.dot(E),d.dot(N));x.save();x.translate(q[0],q[1]);x.rotate(ang);x.fillStyle='#F0556E';x.strokeStyle='#fff';x.lineWidth=3;x.beginPath();x.moveTo(0,-11);x.lineTo(8,8);x.lineTo(0,4);x.lineTo(-8,8);x.closePath();x.stroke();x.fill();x.restore()}}
+    x.fillStyle='#3b3450';x.font='800 14px Nunito, sans-serif';x.fillText('N',C,22);
+    w.body.append(el('p','sub',near?'Deine Umgebung, Norden ist oben. Roter Pfeil: du. Weisse Punkte: Häuser.':'Die ganze Nordseite des Planeten von oben. Roter Pfeil: du.'));
+    const sw=btn(near?'Ganzer Planet':'Nähe',null,()=>{mapZoom=near?'planet':'nah';w.close();mapApp()});w.foot.append(sw)}
   function residentsApp(){const w=UI.win('Bewohner:innen',{size:'narrow'});const gr=el('div','grid');allCreatures().forEach(d=>{const c=el('button','card');c.type='button';c.append(UI.creatureThumb(d),el('span',null,d.name||'Namenlos'),el('span','sub',d.group||''));
       const fr=SAVE.friendship[d.id]||0;if(fr)c.append(el('span','badge','♥ '+Math.ceil(fr/10)));c.onclick=()=>{w.close();const e=GAME.ents.get(d.id);const ww=GAME.showCard(d);if(e&&GAME.mode==='outdoor'&&GAME.me){GAME.me.p.copy(GAME.W.near(e.p,.05));UI.toast('Zu '+(d.name||'Namenlos')+' gebeamt')}};gr.append(c)});w.body.append(gr)}
   function teacherApp(){const w=UI.win('Klasse & Codes',{size:'narrow'});w.body.append(el('p',null,'Für die Lehrperson am Beamer: Codes der Gruppen einschleusen, damit alle Cyborgs auf einem Planeten wohnen. Die Welt wird in diesem Browser gespeichert.'));
@@ -93,6 +108,6 @@ const MAIN=(()=>{
     /* automatische Qualitätsanpassung bei sehr langsamen Geräten */fpsT+=dt;frames++;if(fpsT>6){const fps=frames/fpsT;fpsT=0;frames=0;if(fps<22&&HIGH&&tab==='world'){HIGH=false;updQ();LAB.quality();GAME.quality();UI.toast('Grafik auf «schnell» gestellt, damit es flüssig läuft.')}}}
   function boot(){renderBody();renderParts();renderCards();renderChecklist();LAB.rebuild();LAB.resize();UI.hud();loop();setTimeout(()=>{$('loading').style.opacity='0';setTimeout(()=>$('loading').hidden=true,500)},250);
     /* Startbildschirm: Spielen (Schüler:innen) oder Beamer-Ansicht (Lehrperson) */START.show()}
-  return{setTab,phone,settings:settingsApp,importCodes,exportWorld,boot,get tab(){return tab}};
+  return{setTab,phone,map:()=>mapApp(),settings:settingsApp,importCodes,exportWorld,boot,get tab(){return tab}};
 })();
 MAIN.boot();

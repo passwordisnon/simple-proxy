@@ -29,6 +29,8 @@ const I18N=(()=>{
     'Zurück ins Labor':['Back to the lab','Retour au labo','Torna al laboratorio','ラボにもどる'],
     'Einstellungen':['Settings','Réglages','Impostazioni','せってい'],
     'Spiel verlassen':['Leave game','Quitter le jeu','Esci dal gioco','ゲームをやめる'],
+    'Neu anfangen':['Start over','Recommencer','Ricomincia','はじめから'],
+    'Wirklich alles löschen? Nochmal klicken':['Delete everything? Click again','Tout effacer ? Clique encore','Cancellare tutto? Clicca di nuovo','ぜんぶ消す？もう一度押してね'],
     'Menü':['Menu','Menu','Menu','メニュー'],
     'Pause':['Pause','Pause','Pausa','ポーズ'],
     'Gute Nacht. Schlaf gut.':['Good night. Sleep well.','Bonne nuit. Dors bien.','Buona notte. Dormi bene.','おやすみ。ぐっすりね。'],

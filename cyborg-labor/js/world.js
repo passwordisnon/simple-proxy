@@ -57,6 +57,9 @@ const GAME=(()=>{
   function groundUnder(o,p,center){const hf=G_.hExact||G_.hAt;let h=hf(p);if(center)return h;const fr=footR(o);if(fr<.3)return h;const t1=tangentTo(p,new V3(1,0,0)),t2=new V3().crossVectors(p,t1);const a=fr/G_.R;
     for(const d of[t1,t2,t1.clone().negate(),t2.clone().negate()])h=Math.min(h,hf(p.clone().addScaledVector(d,a).normalize()));return h}
   function placeObj(o,p,yaw,off,center){o.position.copy(p).normalize().multiplyScalar(G_.R+groundUnder(o,p,center)+(off||0));o.quaternion.setFromUnitVectors(UPV,p);if(yaw)o.rotateY(yaw);/* Planeten-Objekte ohne Eltern gehören in die aktuelle Planetenszene */if(!o.userData._placed){o.userData._placed=1;if(!o.parent&&G_.scene)G_.scene.add(o)}}
+  /* Blickrichtung reparieren: NaN oder Länge 0 (z. B. Tür genau über der Gebäudemitte) würde die Figur für immer erstarren lassen */
+  function fixDir(e,fallback){const d=e.dir;if(isFinite(d.x)&&isFinite(d.y)&&isFinite(d.z)&&d.lengthSq()>1e-8)return;let f=fallback&&isFinite(fallback.x)&&fallback.lengthSq()>1e-8?fallback.clone():null;
+    if(!f){f=tangentTo(e.p,new V3(0,1,0));if(!isFinite(f.x)||f.lengthSq()<1e-8)f=tangentTo(e.p,new V3(1,0,0))}d.copy(f.normalize())}
   function faceTo(o,p,dirWorld){o.up.copy(p);o.lookAt(o.position.clone().add(dirWorld))}
   /* Zufallspunkt im Umkreis (grosse Planeten: Dinge erscheinen dort, wo gespielt wird, nicht verstreut über den ganzen Planeten) */
   function randAround(r,rad,center){const c=center||(me?me.p:((G_.places||[]).find(p=>p.id==='platz')||{dir:UPV}).dir);const t=tangentTo(c,new V3(r()-.5,r()-.5,r()-.5));if(!isFinite(t.x))return c.clone();const ang=Math.sqrt(r())*rad/G_.R;return c.clone().applyAxisAngle(new V3().crossVectors(c,t).normalize(),ang).normalize()}
@@ -388,7 +391,7 @@ const GAME=(()=>{
   function poseEnt(e,dt,t){const h=G_.hAt(e.p);let base=h;const inWater=h<G_.sea;if(e.boat)base=G_.sea+.1+Math.sin(t*1.6)*.05;else if(inWater)base=e.fly?G_.sea:G_.sea-.25;let alt=e.move.alt?e.move.alt*CS*1.1+Math.sin(t*1.5+e.phase)*.1:0;
     const moving=e.speed>.1;if(e.move.hop&&moving)alt+=Math.abs(Math.sin(t*5+e.phase))*e.move.hop*CS*1.2;if(e.jump>0)alt+=Math.sin((1-e.jump/.9)*PI)*(e.hop>0?1.9:.9);if(e.lift)alt+=e.lift;
     e.g.position.copy(e.p).multiplyScalar(G_.R+base+alt);e.g.up.copy(e.p);
-    const look=e.lookAt&&e.stop>0?e.lookAt.g.position:e.g.position.clone().add(e.dir);e.g.lookAt(look);if(e.stop<=0)e.lookAt=null;
+    fixDir(e);const look=e.lookAt&&e.stop>0?e.lookAt.g.position:e.g.position.clone().add(e.dir);e.g.lookAt(look);if(e.stop<=0)e.lookAt=null;
     if(e.dance>0){e.g.rotateY(Math.sin(t*6)*.6);e.g.position.addScaledVector(e.p,Math.abs(Math.sin(t*8))*.15)}
     /* Klettern: steiler Hang voraus -> nach vorn lehnen, Arme greifen abwechselnd nach oben, ruckweises Hochziehen */
     {let want=0;if(moving&&!e.boat&&!inWater&&!e.move.alt&&!e.fly){const q=e.p.clone().addScaledVector(e.dir,.7/G_.R).normalize();const gr=(G_.hAt(q)-h)/.7;if(gr>.6)want=Math.min(1,(gr-.6)*2.2)}
@@ -542,7 +545,7 @@ const GAME=(()=>{
       let mvv=cf.clone().multiplyScalar(iy).addScaledVector(cr,ix);let mag=Math.min(1,Math.hypot(ix,iy));
       if(mag<.1&&tapTarget&&!busy){const to=tangentTo(me.p,tapTarget.p.clone().sub(me.p));const dist=angle(me.p,tapTarget.p)*G_.R;if(dist<.8||!isFinite(to.x)){const f=tapTarget.then;tapTarget=null;f&&f()}else{mvv=to;mag=1}}else if(mag>.1)tapTarget=null;
       const run=keys['shift']||(input.joy&&Math.hypot(input.joy.x,input.joy.y)>.95);let spd=0;
-      if(mag>.1){mvv.normalize();me.dir.lerp(mvv,Math.min(1,dt*10)).normalize();me.dir.copy(tangentTo(me.p,me.dir));spd=(me.boat?(run?7.5:5.2):(run?6.8:3.8)*Math.min(1.35,Math.max(.6,me.move.sp)))*mag*(me.boost>0?1.45:1)*(1-.45*(me.climb||0));if(!moveEnt(me,mvv,spd,dt)){spd=0}}
+      if(mag>.1){mvv.normalize();fixDir(me,mvv);me.dir.lerp(mvv,Math.min(1,dt*10)).normalize();me.dir.copy(tangentTo(me.p,me.dir));fixDir(me,mvv);spd=(me.boat?(run?7.5:5.2):(run?6.8:3.8)*Math.min(1.35,Math.max(.6,me.move.sp)))*mag*(me.boost>0?1.45:1)*(1-.45*(me.climb||0));if(!moveEnt(me,mvv,spd,dt)){spd=0}}
       me.speed=spd;if(spd>0&&me.emote){me.emote=null;me.emoteT=0;me.dance=0}
       /* Schritte */
       if(spd>0&&!me.move.alt){stepT-=dt*spd*.55;if(stepT<=0){stepT=1;if(run&&Math.random()<.7)W.fx(me.p,'staub',2,onSurf(me.p,.15));const h=G_.hAt(me.p);if(h>G_.sea+.05)SND.play(h<G_.sea+.4?'step_grass':'step_grass',{vol:.28,jitter:.15});else SND.play('soft',{vol:.2,rate:1.4,jitter:.2})}}
@@ -624,6 +627,6 @@ const GAME=(()=>{
   let ovBtn=null;const ovKey=e=>{if(e.key==='Escape'&&overview){e.stopPropagation();toggleOverview()}};
   function toggleOverview(){overview=overview?null:{az:Math.atan2(cam.position.z,cam.position.x)};if(!overview)camSnap=true;
     /* gut sichtbarer Ausgang: Knopf oben in der Mitte + Esc */if(overview){ovBtn=btn('Übersicht beenden (Esc)','primary',()=>toggleOverview());ovBtn.classList.add('ovexit');$('world').append(ovBtn);addEventListener('keydown',ovKey,true)}else{if(ovBtn){ovBtn.remove();ovBtn=null}removeEventListener('keydown',ovKey,true)}UI.toast(overview?'Beamer-Übersicht: alle Cyborgs auf einen Blick. Nochmals drücken zum Beenden.':'Zurück zur Spielfigur');return!!overview}
-  return{setViewer:(fn,dist,pitch)=>{viewer=fn||null;if(dist)camDist=dist;if(pitch!=null)camPitch=pitch;camSnap=true;if(!viewer&&me)me.g.visible=true},get viewer(){return!!viewer},registerAddons,_stepV:stepVillager,_stepGates:stepGates,_aim:(tgt,dist,pitch)=>{if(!me)return;camF.copy(tangentTo(me.p,tgt.clone().sub(me.p)));camYaw=0;if(dist)camDist=dist;if(pitch!=null)camPitch=pitch},addObst,obstAround,_load:loadPlanet,toggleOverview,get overview(){return!!overview},_joy:()=>input.joy,init,frame,resize,quality,travel,landOn,syncVillagers,onAvatarChanged,W,G:G_,ents,get me(){return me},get scene(){return scene},cam,R,say,makeEnt,dropEnt,moveEnt,onSurf,placeObj,angle,tangentTo,isLand,avatarData,randLand,randAround,note,
+  return{fixDir,setViewer:(fn,dist,pitch)=>{viewer=fn||null;if(dist)camDist=dist;if(pitch!=null)camPitch=pitch;camSnap=true;if(!viewer&&me)me.g.visible=true},get viewer(){return!!viewer},registerAddons,_stepV:stepVillager,_stepGates:stepGates,_aim:(tgt,dist,pitch)=>{if(!me)return;camF.copy(tangentTo(me.p,tgt.clone().sub(me.p)));camYaw=0;if(dist)camDist=dist;if(pitch!=null)camPitch=pitch},addObst,obstAround,_load:loadPlanet,toggleOverview,get overview(){return!!overview},_joy:()=>input.joy,init,frame,resize,quality,travel,landOn,syncVillagers,onAvatarChanged,W,G:G_,ents,get me(){return me},get scene(){return scene},cam,R,say,makeEnt,dropEnt,moveEnt,onSurf,placeObj,angle,tangentTo,isLand,avatarData,randLand,randAround,note,
     get mode(){return mode},set mode(v){mode=v},showCard,talkTo,voiceFor,fadeOut,parts,makeNature,nearPlace,get camF(){return camF},camSide:(a)=>{camYaw=a},camFwd:()=>me?camF.clone().applyAxisAngle(me.p,camYaw):camF.clone(),get night(){return G_.night||0}};
 })();
