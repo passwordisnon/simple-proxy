@@ -98,4 +98,11 @@ const WK=(()=>{
   /* alte Bauteile ersetzen: der Dorfplatz ruft sie über window[...] auf */
   function install(){window.buildBench=bench;window.buildStreetLamp=lamp;window.buildMailbox=mailbox;window.buildSignpost=signpost;window.buildNoticeBoard=board}
   install();
+  /* Bausatz-Teile ersetzen: alte Eisenlaterne und Holzbank aus dem Stadt-Bausatz werden Candy-Mech (gleicher Platzbedarf) */
+  let KM=null;const SWAP={'town/lantern':lamp,'town/stall-bench':bench};
+  function hookKit(){if(typeof KIT==='undefined'||KIT._wk)return;KIT._wk=true;const orig=KIT.mesh.bind(KIT);
+    KIT.mesh=function(pack,name,...rest){const f=SWAP[pack+'/'+name];if(!f)return orig(pack,name,...rest);try{KM=KM||makeMats({skin:'plastik',color:0});const inner=f(KM);const b=KIT.bounds(pack,name);
+      const box=new THREE.Box3().setFromObject(inner);const iw=box.max.x-box.min.x,id=box.max.z-box.min.z,ih=Math.max(.01,box.max.y-box.min.y);const kw=b[3]-b[0],kd=b[5]-b[2],kh=b[4]-b[1];
+      if(name==='lantern')inner.scale.setScalar(Math.max(.3,kh)/ih);else{/* Bank: Länge an die längere Seite des Bausatz-Teils, gleiche Ausrichtung */const kz=kd>kw;if(kz)inner.rotation.y=PI/2;inner.scale.setScalar(Math.max(kw,kd)/Math.max(.01,Math.max(iw,id)))}const outer=new THREE.Group();outer.add(inner);outer.userData=Object.assign({},inner.userData);return outer}catch(e){console.warn('WIRED-Tausch',name,e);return orig(pack,name,...rest)}}}
+  if(typeof KIT!=='undefined')hookKit();else addEventListener('DOMContentLoaded',hookKit);
   return{dress,hatch,relics,CANDY,pal,candy,solid,gear,screw,screws4,lcd,lcdTex,sticker,gel,shell,bench,lamp,mailbox,signpost,board}})();
