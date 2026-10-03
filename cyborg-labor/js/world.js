@@ -37,7 +37,8 @@ const GAME=(()=>{
       vertexShader:'varying vec3 vN;varying vec3 vP;void main(){vN=normalize(normalMatrix*normal);vec4 mv=modelViewMatrix*vec4(position,1.0);vP=mv.xyz;gl_Position=projectionMatrix*mv;}',
       fragmentShader:'uniform vec3 c;varying vec3 vN;varying vec3 vP;void main(){float f=pow(1.0-abs(dot(normalize(-vP),vN)),2.4);gl_FragColor=vec4(mix(c,vec3(1.),.5),f*.55);}'}));sc.add(atm);
     {const sg=new THREE.BufferGeometry();const sp=[];const r=srand(9);for(let i=0;i<1200;i++){const p=new V3(r()*2-1,r()*2-1,r()*2-1).normalize().multiplyScalar(400+r()*100);sp.push(p.x,p.y,p.z)}sg.setAttribute('position',new THREE.Float32BufferAttribute(sp,3));
-      const st=new THREE.Points(sg,new THREE.PointsMaterial({color:'#fff6e0',size:1.8,transparent:true,opacity:0,fog:false}));sc.add(st);G_.stars=st}
+      /* WIRED: eckige Pixel-Sterne in Bonbon-Farben */const SC=['#fff6e0','#ffd0e8','#cfe6ff','#e2d4ff','#fff3a8'];const cc=[];const cr=srand(11);for(let i=0;i<sp.length/3;i++){const c=new THREE.Color(SC[Math.floor(cr()*SC.length)]);cc.push(c.r,c.g,c.b)}sg.setAttribute('color',new THREE.Float32BufferAttribute(cc,3));
+      const st=new THREE.Points(sg,new THREE.PointsMaterial({vertexColors:true,size:2.6,transparent:true,opacity:0,fog:false}));sc.add(st);G_.stars=st}
     Object.assign(G_,{scene:sc,sun,hemi,fill,inter:[],yards:[],gates:[],lights:[],clouds:[],ticks:[],trees:[],rocks:[]});
     /* grosse Planeten: Natur wird in Chunks um den Spieler gestreamt */G_.stream=G_.lod&&(Rr>70||!!window.FORCE_STREAM);
     SCATTER.reset(sc,Rr,M,G_.stream?{fill:fillChunk,unload:unloadChunkRefs}:null);
@@ -598,13 +599,13 @@ const GAME=(()=>{
   function dayLight(){const h=GAMETIME.hour();const hh=GAMETIME.str();$('clock').querySelector('b').textContent=hh;const def=G_.def;
     let i=0;while(i<DAYKEYS.length-2&&DAYKEYS[i+1][0]<=h)i++;const A=DAYKEYS[i],B=DAYKEYS[i+1];const t=Math.max(0,Math.min(1,(h-A[0])/(B[0]-A[0])));const s=t*t*(3-2*t);
     const col=(k,dflt)=>{_ca.set(A[k]||dflt);_cb.set(B[k]||dflt);return _ca.clone().lerp(_cb,s)};const num=k=>A[k]+(B[k]-A[k])*s;
-    const top=col(1,def.sky[0]),hor=col(2,def.sky[1]);
+    const top=col(1,def.sky[0]),hor=col(2,def.sky[1]);/* WIRED: Y2K-Pastellhimmel – oben ein Hauch Lila, am Horizont Pfirsich-Rosa */top.lerp(_ca.set('#c4b4ff'),.32);hor.lerp(_cb.set('#ffd0e4'),.28);
     const night=h<5.6||h>=20.6?1:h<7?1-(h-5.6)/1.4:h>19.2?(h-19.2)/1.4:0;G_.night=Math.max(0,Math.min(1,night));
     /* Sonnenbahn: Aufgang ~6 Uhr im Osten, Mittag hoch, Untergang ~20 Uhr im Westen; nachts Mondlicht von der Gegenseite */
     const day=(h-6)/14;G_.sunEl=day>=0&&day<=1?Math.sin(day*PI)*1.25+.08:.55;G_.sunAz=day>=0&&day<=1?day*PI:((h+24-20)%24)/10*PI;G_.isNight=!(day>=0&&day<=1);
     /* Himmel: Verlauf + leuchtender Horizont bei Morgen-/Abendrot */
     if(!G_.skyCv){G_.skyCv=document.createElement('canvas');G_.skyCv.width=16;G_.skyCv.height=256;G_.skyT=new THREE.CanvasTexture(G_.skyCv);G_.skyT.encoding=THREE.sRGBEncoding}
-    {const x=G_.skyCv.getContext('2d');const g=x.createLinearGradient(0,0,0,256);g.addColorStop(0,'#'+top.getHexString());g.addColorStop(.62,'#'+hor.getHexString());g.addColorStop(1,'#'+hor.clone().lerp(new THREE.Color('#ffffff'),.12).getHexString());x.fillStyle=g;x.fillRect(0,0,16,256);G_.skyT.needsUpdate=true}
+    {const x=G_.skyCv.getContext('2d');const g=x.createLinearGradient(0,0,0,256);g.addColorStop(0,'#'+top.getHexString());g.addColorStop(.62,'#'+hor.getHexString());g.addColorStop(1,'#'+hor.clone().lerp(new THREE.Color('#ffffff'),.12).getHexString());x.fillStyle=g;x.fillRect(0,0,16,256);/* feine LCD-Zeilen wie auf einem Bildschirm von 1999 */x.fillStyle='rgba(255,255,255,.07)';for(let j=0;j<256;j+=4)x.fillRect(0,j,16,1);G_.skyT.needsUpdate=true}
     G_.scene.background=G_.skyT;
     G_.sunBase=num(4);G_.sun.color.copy(col(3,'#fff3de'));G_.hemiBase=num(6);G_.hemi.color.copy(col(5,'#dff1ff'));G_.stars.material.opacity=G_.night;G_.fogBase=col(7,def.fog);
     if(typeof WEATHER==='undefined'){G_.sun.intensity=G_.sunBase;G_.hemi.intensity=G_.hemiBase;G_.scene.fog.color.copy(G_.fogBase)}}

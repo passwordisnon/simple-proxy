@@ -107,6 +107,7 @@ Status: ✔ erledigt · ◐ teilweise · ☐ offen. Wird bei jedem Schritt aktua
 - ✔ Echter Umbau statt Zusätze: alle Bäume, Tannen, Palmen und Büsche als Spielzeug von 1999 (Plastik-Stämme mit Chrom-Ringen, Gel-Kronen, Stapelring-Tannen), alle Natur in glänzendem Bonbon-Plastik
 - ✔ Neue Kokon-Architektur auf den sechs alten Planeten: Kapsel-, Ei-, Stapel- und Kuppelhäuser mit Bullaugen, Gel-Türen, LCD-Schild und Antenne (auch Rathaus, Laden, Museum …); Kit-Häuser anderswo in Bonbon-Farben
 - ✔ Wege und Plätze als Schaumstoff-Puzzlematte, Kapselbeete auf dem Dorfplatz; Gärten mit Spielzeug-Zäunen, Gel-Hecken, Kapsel-Fässern, Buchstaben-Klötzen, Bollerwagen, Riesen-Wachsmalstiften und Gel-Trittsteinen
+- ✔ Y2K-Himmel: Pastellverlauf Lila bis Pfirsich mit feinen LCD-Zeilen, nachts bunte Pixel-Sterne; Gras etwas bonbon-frischer
 - ✔ Piko lugt jetzt am rechten Rand hervor (dort, wo sich das Ei-Gerät öffnet)
 - ✔ Ei-Gerät 2.0: rundes LCD mit Drehring statt App-Gitter; Piko lebt in der Mitte, hüpft, blinzelt, schaut in die Drehrichtung und sagt zu jeder App etwas; Bildschirm bootet beim Öffnen, Mausrad und Pfeiltasten drehen
 - ✔ Bestehende 14 Planeten im WIRED-Stil umgebaut: je ein eigenes Requisiten-Set (Kapselbeete, Röhrenmonitor-Stapel, Blechdosen-Roboter, Bonbon-Korallen, Schneekugeln, Eis-LCDs, halb vergrabene Riesen-Konsole, Gel-Kakteen, Kapselpilze, Riesen-Gelstifte, Wetterstationen, Disketten-Türme, Riesen-Wecker auf 23:59, Riesen-Kassettenrekorder)

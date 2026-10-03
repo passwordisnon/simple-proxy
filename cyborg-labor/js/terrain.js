@@ -347,7 +347,7 @@ function groundMaterial(fns){const def=fns.def;const m=new THREE.MeshToonMateria
        float st=fract(hh*1.25+vn(vObj*.3)*.55);float band=smoothstep(.0,.05,st)*smoothstep(.36,.3,st);float crack=smoothstep(.035,.0,abs(st-.66));
        float rk=triC(vObj,w,1.1);vec3 cc=vCl*(.86+.16*band)*(.92+.14*smoothstep(.2,.7,rk))*(1.-.22*crack*near);cc*=.82+.25*smoothstep(.1,.85,fr);
        c=mix(c,cc,cliff);c*=1.-.35*lipDark;c=mix(c,c*1.12,lipLight*(1.-cliff));
-       /* Gras nicht neon: etwas entsättigen und abdunkeln, damit Details sichtbar bleiben */float lum=dot(c,vec3(.3,.59,.11));c=mix(vec3(lum),c,mix(1.,.78,vPat.x*(1.-cliff)))*mix(1.,.8,vPat.x*(1.-cliff));
+       /* Gras nicht neon: etwas entsättigen und abdunkeln, damit Details sichtbar bleiben */float lum=dot(c,vec3(.3,.59,.11));c=mix(vec3(lum),c,mix(1.,.9,vPat.x*(1.-cliff)))*mix(1.,.88,vPat.x*(1.-cliff));/* WIRED: Gras etwas bonbon-frischer */c=mix(c,c*vec3(.96,1.04,.98),vPat.x*(1.-cliff));
        diffuseColor.rgb=c;}`)};
   m.customProgramCacheKey=()=>'ground';return m}
 
