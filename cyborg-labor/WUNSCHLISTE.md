@@ -84,7 +84,8 @@ Status: ✔ erledigt · ◐ teilweise · ☐ offen. Wird bei jedem Schritt aktua
 - ✔ Geld schwerer zu verdienen (Marktsättigung)
 - ✔ Eigener Planet früh in der Story: Geschenk der Bürgermeisterin, eigener Name, dein Haus zieht dorthin, Anbauten nur dort, Tierpark dort, Bewohner:innen einladen (mit Haus); Online-Freund:innen besuchen deinen Planeten (und du ihren), KI-Freund:innen kommen ab und zu vorbei
 - ◐ Jobs (Handy-App: Jazz-Bar, Gärtnerei, Lager, Post mit Rängen und Lohn); Wirtschaft mit Marktsättigung; weitere Missionen offen
-- ✔ Casino: Glücks-Salon in jedem Dorf mit Madame Jeton (Automat, Glücksrad, Höher oder Tiefer, Tageslimit)
+- ✔ ~~Casino: Glücks-Salon mit Madame Jeton~~ ersetzt durch die Spielhalle (WIRED 2.0, kein Glücksspiel für Kinder)
+- ✔ Spielhalle in jedem Dorf: vier Geschicklichkeitsspiele (Stopp-Licht, Hau den Rissling, Kapsel-Memory, Greifautomat zum Zielen) für je 10 Taler; Tickets nur gegen Preise an Tillys Preis-Theke, nie zurück in Taler; alte Jetons werden einmal als Taler zurückgezahlt
 - ✔ Tierpark draussen (offene Wiese neben dem Dorf, 6 Biom-Zonen je Planet mit Teichen, Tiere streifen frei umher und lassen sich streicheln) + Aquarium-Pavillon mit allen Fischen und Insekten, 133 Arten, Meilenstein-Belohnungen
 - ◐ Fossilien finden (Relikte beim Graben)
 - ✔ Terraforming (Terraform-App: Hügel, Berg, Teich, Glätten, Landschaften besuchter Planeten malen; Terrassen-Stil)

@@ -106,7 +106,7 @@ Ziel: 36 Rumpfformen statt 11 (die folgenden 24 zuerst), als Spielzeug von 1999 
 ## 7. Freies Spiel (ersetzt: Jobs, Wirtschaft, Casino, Zoo, Fossilien, Terraforming, eigener Planet, Rennen, Modeladen)
 
 - Alles bleibt freies Spiel neben der Geschichte und bekommt den neuen Look.
-- **Glücks-Salon:** Vorschlag, ihn durch Geschicklichkeitsspiele mit Preis-Theke in der Neon-Arkade zu ersetzen (kein Glücksspiel für Kinder). Wartet auf Entscheid.
+- **Glücks-Salon:** entschieden und umgesetzt: ersetzt durch die Spielhalle mit vier Geschicklichkeitsspielen und Preis-Theke (Tickets nie zurück in Taler). Die Neon-Arkade bekommt später eine grössere Spielhalle mit mehr Spielen.
 - **Zoo und Aquarium:** eigener Bereich für Risslinge (sie leben dort sicher vor den Kehrmaschinen).
 - **Jobs:** neue Jobs auf den neuen Planeten (Pager-Bote, Spielzeug-Fabrik, Kaufhaus-Fundbüro, Magnetbahn-Schaffner:in).
 - **Mode:** 1999-Stil: Visiere, Fischerhüte, Plateau-Turnschuhe, Cyber-Brillen, Plüsch-Rucksäcke, durchsichtige Regenjacken. Kindgerecht.
