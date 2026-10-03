@@ -269,3 +269,16 @@ body.beamer-on .piko{display:none}
 .phone.gta .ph-clock .ph-note b{font-size:11px;display:inline;letter-spacing:1px}
 .phone.gta{bottom:84px}
 @media (max-height:640px){.phone.gta{bottom:70px}}
+
+/* ---------- Riss-Szene: alle Bonbonfarben fliessen ab ---------- */
+.riss-scene{position:fixed;inset:0;z-index:95;display:grid;place-items:center;padding:16px;background:rgba(233,231,228,.82);backdrop-filter:grayscale(1) contrast(1.15);-webkit-backdrop-filter:grayscale(1) contrast(1.15);animation:rissIn .12s steps(2) both}
+.riss-scene.out{animation:rissOut .3s steps(3) both}
+.riss-wires{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}.riss-wires path{fill:none;stroke:#141414;stroke-width:2}
+.riss-scene .tear{position:absolute;left:0;right:0;height:7px;background:#141414;opacity:.85}.riss-scene .t1{top:38%}.riss-scene .t2{top:71%;height:3px;background:#c8102e}
+.riss-box{position:relative;max-width:520px;background:#f7f6f4;border:3px solid #141414;padding:22px 26px;font-family:var(--system);color:#141414;text-align:left;display:flex;flex-direction:column;gap:10px}
+.riss-name{margin:0;font:400 13px var(--label);letter-spacing:3px;text-transform:uppercase;color:#c8102e}
+.riss-mem{margin:0;font:400 22px/1.45 var(--system)}.riss-ask{margin:0;font:400 16px var(--system);color:#55524f}
+.riss-box .btn{align-self:flex-end;border-radius:0;box-shadow:none;background:#141414;color:#f7f6f4}.riss-box .btn::before{display:none}
+@keyframes rissIn{0%{transform:translateX(-6px)}50%{transform:translateX(6px)}100%{transform:none}}
+@keyframes rissOut{to{opacity:0}}
+@media (prefers-reduced-motion:reduce){.riss-scene,.riss-scene.out{animation:none}}

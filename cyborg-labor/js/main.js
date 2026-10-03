@@ -6,7 +6,7 @@ const MAIN=(()=>{
   let tab='lab';let worldReady=false;
   if(matchMedia('(pointer:coarse)').matches)document.body.classList.add('coarse');
   async function setTab(t,opt){opt=opt||{};tab=t;const w=t==='world';document.body.classList.toggle('mode-world',w);$('lab').hidden=w;$('world').hidden=!w;$('tabLab').setAttribute('aria-selected',!w);$('tabWorld').setAttribute('aria-selected',w);SND.init();
-    if(w){if(!worldReady){worldReady=true;$('loading').style.opacity='1';$('loading').hidden=false;$('loading').querySelector('span').textContent='Der Planet wird gebaut …';await new Promise(r=>setTimeout(r,60));await GAME.init();SOCIAL.connect();$('loading').style.opacity='0';setTimeout(()=>$('loading').hidden=true,500);if(opt.viewer){/* Beamer: keine Geschichte, kein Tutorial, kein Name */}else if(STORY.needsIntro())STORY.intro().then(()=>TUT.startWorld());else{if(!SAVE.nick)askNick();TUT.startWorld()}}
+    if(w){if(!worldReady){worldReady=true;$('loading').style.opacity='1';$('loading').hidden=false;$('loading').querySelector('span').textContent='Der Planet wird gebaut …';await new Promise(r=>setTimeout(r,60));await GAME.init();SOCIAL.connect();$('loading').style.opacity='0';setTimeout(()=>$('loading').hidden=true,500);if(opt.viewer){/* Beamer: keine Geschichte, kein Tutorial, kein Name */}else if(STORY.needsIntro())STORY.intro().then(()=>{TUT.startWorld();WSTORY.hatch()});else{if(!SAVE.nick)askNick();TUT.startWorld();WSTORY.hatch()}}
       GAME.resize();INTERIOR.resize();SND.music(GAME.mode==='interior'?(INTERIOR.kind==='museum'?'museum':'home'):GAME.G.def.music)}else{LAB.resize();SND.music('lab')}}
   $('tabLab').onclick=()=>setTab('lab');$('tabWorld').onclick=()=>setTab('world');$('btnPlay').onclick=()=>{SND.play('confirm');setTab('world')};
   function askNick(){const w=UI.win('Willkommen auf dem Kompost-Planeten!',{size:'narrow',dismiss:false});w.body.append(el('p',null,'Wie sollen dich die anderen nennen? Der Name steht über deinem Cyborg und im Chat.'));
@@ -26,7 +26,7 @@ const MAIN=(()=>{
     const go=fn=>{SND.play('select');close();setTimeout(fn,120)};
     A('bag','Tasche','#FFD35C',()=>ACT.bag());A('book','Lexikon','#7FDCE6',()=>ACT.lexikon());A('paw','Tiere','#A6EBC3',()=>FAUNA.lexikon());A('rocket','Reisen','#FFC9A8',()=>UI.toast('Zur Rakete am Dorfrand gehen, um zu reisen.',3000));
     A('star','Kleider','#F2A8C4',()=>BOUTIQUE.wardrobe());A('palette','Designs','#FF8FB1',designsApp);A('house','Hausbau','#FFB27A',()=>houseBuilder());A('coin','Jobs','#FFD35C',()=>JOBS.app());A('leaf','Terraform','#8FD07A',()=>MYPLANET.app());A('people','Freunde','#A6EBC3',()=>SOCIAL.playersWin());
-    A('chat','Chat','#8FD3FF',()=>SOCIAL.toggleChat(true));A('wave','Emotes','#FFE27A',()=>ACT.emoteMenu());A('map','Karte','#9FD86A',mapApp);
+    A('chat','Chat','#8FD3FF',()=>SOCIAL.toggleChat(true));A('wave','Emotes','#FFE27A',()=>ACT.emoteMenu());A('map','Karte','#9FD86A',mapApp);A('sparkle','Risslinge','#e9e7e4',()=>WSTORY.app());
     A('globe','Bewohner','#FFC9A8',residentsApp);A('school','Klasse','#D9B5F2',teacherApp);A('gear','Optionen','#DDD3C4',settingsApp);
     const dock=el('div','ph-home');dock.title='Wegstecken';dock.onclick=close;
     const piko=el('span','ph-piko','(◕ᴗ◕)');piko.setAttribute('data-no-i18n','');piko.setAttribute('aria-hidden','true');
@@ -69,7 +69,7 @@ const MAIN=(()=>{
   /* ---------- Schleife ---------- */
   const clock=new THREE.Clock();let fpsT=0,frames=0;
   function loop(){requestAnimationFrame(loop);const dt=Math.min(.05,clock.getDelta());const t=clock.elapsedTime;UI.pumpThumbs();
-    try{if(tab==='lab')LAB.frame(dt,t);else if(worldReady){GAME.frame(dt,t);if(typeof PIKO!=='undefined')PIKO.frame(dt,t)}}catch(e){console.error(e)}
+    try{if(tab==='lab')LAB.frame(dt,t);else if(worldReady){GAME.frame(dt,t);if(typeof PIKO!=='undefined')PIKO.frame(dt,t);if(typeof WSTORY!=='undefined')WSTORY.frame(dt)}}catch(e){console.error(e)}
     /* automatische Qualitätsanpassung bei sehr langsamen Geräten */fpsT+=dt;frames++;if(fpsT>6){const fps=frames/fpsT;fpsT=0;frames=0;if(fps<22&&HIGH&&tab==='world'){HIGH=false;updQ();LAB.quality();GAME.quality();UI.toast('Grafik auf «schnell» gestellt, damit es flüssig läuft.')}}}
   function boot(){renderBody();renderParts();renderCards();renderChecklist();LAB.rebuild();LAB.resize();UI.hud();loop();setTimeout(()=>{$('loading').style.opacity='0';setTimeout(()=>$('loading').hidden=true,500)},250);
     /* Startbildschirm: Spielen (Schüler:innen) oder Beamer-Ansicht (Lehrperson) */START.show()}

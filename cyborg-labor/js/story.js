@@ -59,10 +59,10 @@ const STORY=(()=>{
   /* ---------- Einstieg beim ersten Start ---------- */
   async function intro(inside){const S=SAVE.story=SAVE.story||{};if(!inside){await new Promise(res=>{INTERIOR.enter('klinik');setTimeout(res,1200)})}
     const me=GAME.me;if(me){me.ix=-2.6;me.iz=-.4;me.iyaw=-.6}
-    await UI.talk(DOC,['…','Ah – du bist wach! Nicht erschrecken, du bist in meiner Praxis.','Die Operation war ein voller Erfolg. Ein paar neue Teile, ein paar alte … du bist jetzt ein echter Cyborg.'],{voice:DV,color:DC});
+    await UI.talk(DOC,['…','Ah – du bist wach! Nicht erschrecken, du bist in meiner Praxis.','Willkommen im Kokon-Netz. Schau auf die Uhr: 31.12.1999, 23:59. Gleich ist Mitternacht!','Die Operation war ein voller Erfolg. Ein paar neue Teile, ein paar alte … du bist jetzt ein echter Cyborg.'],{voice:DV,color:DC});
     const r=await UI.talk(DOC,['Kannst du dich an irgendetwas erinnern?'],{voice:DV,color:DC,choices:['Ähm … nein?','Wo bin ich hier?','Wer sind Sie?']});
     await UI.talk(DOC,[r===2?'Ich bin Dr. Bolzen, Arzt und Mechaniker. Beides, ja.':r===1?'Auf dem Kompost-Planeten. Ein freundliches Dörfchen, du wirst sehen.':'Keine Sorge. Gedächtnislücken sind nach so einem Eingriff ganz normal.','Man hat dich bewusstlos neben einer abgestürzten Rakete gefunden.','Weisst du wenigstens noch deinen Namen?'],{voice:DV,color:DC});
-    const nm=await askName();await UI.talk(DOC,[nm+'! Schöner Name. Den schreib ich gleich in deine Akte.','Schau ruhig in den Spiegel dort drüben – wenn dir ein Teil nicht gefällt, tauschen wir es aus.','Und dann: Raus mit dir an die frische Luft! Professorin Pixel wartet draussen und zeigt dir alles.'],{voice:DV,color:DC});
+    const nm=await askName();await UI.talk(DOC,[nm+'! Schöner Name. Den schreib ich gleich in deine Akte.','Schau ruhig in den Spiegel dort drüben – wenn dir ein Teil nicht gefällt, tauschen wir es aus.','Und dann: Raus mit dir! Das ganze Dorf bereitet die Silvesterparty vor. Professorin Pixel zeigt dir alles.','Ach, und in deiner Tasche liegt ein kleines Ei. Pass gut darauf auf.'],{voice:DV,color:DC});
     S.intro=true;S.chapter=1;persist();UI.toast('Tipp: Geh durch die Tür unten, um die Praxis zu verlassen.',4200)}
   function askName(){return new Promise(res=>{const w=UI.win('Wie heisst du?',{size:'narrow',dismiss:false});w.body.append(el('p',null,'Dein Name steht über deinem Cyborg und im Chat.'));
     const i=el('input');i.type='text';i.id='nickIn';i.maxLength=24;i.value=SAVE.nick||S.name||'';i.placeholder='z. B. Moos-Mo';w.body.append(i);

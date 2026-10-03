@@ -94,9 +94,9 @@ Status: ✔ erledigt · ◐ teilweise · ☐ offen. Wird bei jedem Schritt aktua
 - ☐ Fehler zuerst: nur ein Rumpf am Körper, Berge schneiden keine Wege mehr, nichts schwebt in der Luft
 - ◐ Lehrer-Beamer nur als Ansicht (mit Pfeilen links/rechts und Clicker-Tasten zum Wechseln) für die Modulaufgabe (ohne eigene Figur, ausserhalb der Geschichte): Startbildschirm "Spielen" / "Beamer-Ansicht", Klassenliste, Kamera fährt live zu jeder Schüler:innen-Figur, wechselt den Planeten, Steckbrief mit Angaben
 - ✔ Spielmenü: Speichern, Zurück ins Labor, Beamer-Ansicht, Einstellungen, Spiel verlassen
-- ☐ Candy-Mech-Look (Y2K-Niedlichkeit mit Mechanik): durchsichtiges Bonbon-Plastik mit sichtbaren Zahnrädern, Gel-Knöpfe, Sticker, Cy-Phone als Ei-Gerät
-- ☐ Neue Geschichte: Silvester 1999 23:59, NEMURI hält alle schlafend, Partner Piko, Risslinge als fangbare Glitch-Wesen, Kehrmaschinen, Akte Prolog bis Finale 00:00 mit zwei Enden
-- ☐ Klang und Musik komplett neu: Shibuya-kei-Spielzeugpop, Dreamcast/Toonami-Breakbeat, Riss-Brummen, Countdown-Melodie, Musik zerfällt mit der Geschichte
+- ◐ Candy-Mech-Look (Oberfläche, Dorfplatz, Gebäude-Terminals, Vorgärten, Möbel-Linie 1999, Körperteile und Rumpfformen, Piko-Ei fertig; Planeten-Umbau offen) (Y2K-Niedlichkeit mit Mechanik): durchsichtiges Bonbon-Plastik mit sichtbaren Zahnrädern, Gel-Knöpfe, Sticker, Cy-Phone als Ei-Gerät
+- ◐ Neue Geschichte (Prolog bis Akt II gebaut: Piko schlüpft, Silvester-Schleife, 12 Risslinge mit Riss-Szenen; Akt III bis Finale offen): Silvester 1999 23:59, NEMURI hält alle schlafend, Partner Piko, Risslinge als fangbare Glitch-Wesen, Kehrmaschinen, Akte Prolog bis Finale 00:00 mit zwei Enden
+- ◐ Klang und Musik komplett neu (Musik im Browser erzeugt, Zerfall läuft; 効果音ラボ/DOVA noch offen): Shibuya-kei-Spielzeugpop, Dreamcast/Toonami-Breakbeat, Riss-Brummen, Countdown-Melodie, Musik zerfällt mit der Geschichte
 - ☐ Glitch-Kern als Finalort, restliche Planeten, alle Inhalte verdoppeln (Körperteile, Gegenstände, Geschichte)
 - ☐ Ruinen in der Geschichte: Überreste von Kokon 95 und Kokon 97, Wortsteine sind Tagebuchzeilen früherer Schläfer:innen, unter der grössten Ruine der alte Serversaal, im Glitch-Kern das ganze Tagebuch
 - ◐ Mehrsprachig in allen Sprachen: Deutsch, English, Français, Italiano von Hand, alle weiteren (rund 70) maschinell über den Chrome-Übersetzer auf dem Gerät oder Claude; Japanisch nur als Sticker-Schmuck

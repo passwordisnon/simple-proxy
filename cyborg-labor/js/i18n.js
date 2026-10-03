@@ -139,6 +139,7 @@ const I18N=(()=>{
     'Beamer beenden':['Close projector view','Quitter le projecteur','Chiudi proiettore','プロジェクターをとじる'],
     'Weitere Sprachen':['More languages','Autres langues','Altre lingue','ほかのことば'],
     'Öffnen':['Open','Ouvrir','Apri','ひらく'],
+    'Risslinge':['Glitchlings','Glitchouilles','Glitchini','リスリング'],
     'Aus Code':['From code','Depuis un code','Da codice','コードから'],
     'Klassen-Code':['Class code','Code de classe','Codice classe','クラスコード'],
   };
