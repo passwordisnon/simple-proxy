@@ -15,28 +15,48 @@ const MAIN=(()=>{
   /* ---------- Cy-Phone ---------- */
   /* GTA-artig: das Handy gleitet unten rechts hoch, das Spiel läuft weiter; Pfeiltasten + Enter, Esc/Tab/Rücktaste steckt es weg */
   let phoneEl=null;
-  function phone(note){if(phoneEl){phoneEl.close();return}TUT.ev('phone');const ph=el('div','phone gta');ph.setAttribute('role','dialog');ph.setAttribute('aria-label','Cy-Phone');
-    const pid=(GAME.G&&GAME.G.id)||'kompost';const WP={kompost:['#9FE08A','#6FC4E8'],schrott:['#B9A8E8','#6FE3C8'],korallen:['#7FE0F0','#FFD9A0'],frost:['#CFE3FF','#9FB0F0'],wueste:['#FFD39A','#F08A6A'],pilz:['#B89AE8','#F2A8D0']}[pid]||PLANETS[pid]&&PLANETS[pid].phone||['#C9E5FF','#FFC7D8'];
-    const scr=el('div','ph-scr');/* WIRED: Ei-Gerät mit LCD; der Planet färbt nur noch den Rand des Bildschirms */scr.style.setProperty('--ph-tint',WP[0]);const notch=el('div','ph-notch');
-    const bar=el('div','ph-bar');const tm=el('span','ph-time',GAMETIME.str());bar.append(tm,el('span','ph-sig','●●●● '+(GAME.G&&GAME.G.def?GAME.G.def.n.split('-')[0]:'')),el('span',null,fmt(SAVE.money)+' T'));
-    const clock=el('div','ph-clock');clock.append(el('b',null,GAMETIME.str()),el('span',null,(GAME.G&&GAME.G.def?GAME.G.def.n:'')));if(typeof note==='string'&&note){const nt=el('div','ph-note');nt.append(el('b',null,'PIKO'),document.createTextNode(' '+note));clock.append(nt)}
-    const apps=el('div','apps');const list=[];const A=(ic,n,bg,fn)=>{const b=el('button','app-i');b.type='button';const i=el('b');i.innerHTML=ICON(ic);i.style.background=bg;b.append(i,el('span',null,n));b.onclick=()=>{go(fn)};apps.append(b);list.push(b)};
-    let sel=0;const mark=()=>list.forEach((b,i)=>b.classList.toggle('sel',i===sel));
-    const close=()=>{if(!phoneEl)return;removeEventListener('keydown',kd,true);clearInterval(tick);ph.classList.add('down');SND.play('close',{vol:.5});const x=ph;setTimeout(()=>x.remove(),260);phoneEl=null};
-    const go=fn=>{SND.play('select');close();setTimeout(fn,120)};
-    A('bag','Tasche','#FFD35C',()=>ACT.bag());A('book','Lexikon','#7FDCE6',()=>ACT.lexikon());A('paw','Tiere','#A6EBC3',()=>FAUNA.lexikon());A('rocket','Reisen','#FFC9A8',()=>UI.toast('Zur Rakete am Dorfrand gehen, um zu reisen.',3000));
-    A('star','Kleider','#F2A8C4',()=>BOUTIQUE.wardrobe());A('palette','Designs','#FF8FB1',designsApp);A('house','Hausbau','#FFB27A',()=>houseBuilder());A('coin','Jobs','#FFD35C',()=>JOBS.app());A('leaf','Terraform','#8FD07A',()=>MYPLANET.app());A('people','Freunde','#A6EBC3',()=>SOCIAL.playersWin());
-    A('chat','Chat','#8FD3FF',()=>SOCIAL.toggleChat(true));A('wave','Emotes','#FFE27A',()=>ACT.emoteMenu());A('map','Karte','#9FD86A',mapApp);A('sparkle','Risslinge','#e9e7e4',()=>WSTORY.app());
-    A('globe','Bewohner','#FFC9A8',residentsApp);A('school','Klasse','#D9B5F2',teacherApp);A('gear','Optionen','#DDD3C4',settingsApp);
-    const dock=el('div','ph-home');dock.title='Wegstecken';dock.onclick=close;
-    const piko=el('span','ph-piko','(◕ᴗ◕)');piko.setAttribute('data-no-i18n','');piko.setAttribute('aria-hidden','true');
-    /* Ei-Gehäuse: Schlüsselring oben, drei Gel-Knöpfe unten (zurück, öffnen, wegstecken) */const loop=el('i','ph-loop');const gb=el('div','ph-btns');
-    [['ph-b1','Zurück',()=>{sel=(sel-1+list.length)%list.length;mark();list[sel].scrollIntoView({block:'nearest'});SND.play('click',{vol:.3,rate:1.4})}],['ph-b2','Öffnen',()=>list[sel].click()],['ph-b3','Wegstecken',close]].forEach(([c,l,f])=>{const b=el('button',c);b.type='button';b.setAttribute('aria-label',l);b.title=l;b.onclick=f;gb.append(b)});
-    scr.append(notch,piko,bar,clock,apps,dock);ph.append(loop,scr,gb);$('world').append(ph);mark();SND.play('open',{vol:.6});
-    const tick=setInterval(()=>{tm.textContent=GAMETIME.str();clock.firstChild.textContent=GAMETIME.str()},1000);
-    const cols=3;const kd=e=>{const k=e.key;if(k==='Escape'||k==='Tab'||k==='Backspace'){e.preventDefault();e.stopPropagation();close();return}
-      const mv={ArrowRight:1,ArrowLeft:-1,ArrowDown:cols,ArrowUp:-cols}[k];if(mv!=null){e.preventDefault();e.stopPropagation();sel=(sel+mv+list.length)%list.length;mark();list[sel].scrollIntoView({block:'nearest'});SND.play('click',{vol:.3,rate:1.4});return}
-      if(k==='Enter'){e.preventDefault();e.stopPropagation();list[sel].click()}};addEventListener('keydown',kd,true);
+  /* WIRED: Ei-Gerät mit rundem LCD. Apps sitzen auf einem Drehring am Rand, Piko lebt in der Mitte,
+     schaut in die Drehrichtung, blinzelt, hüpft und sagt zu jeder App etwas. Drei Gel-Knöpfe: drehen, öffnen, drehen. */
+  function phone(note){if(phoneEl){phoneEl.close();return}TUT.ev('phone');const ph=el('div','phone gta egg2');ph.setAttribute('role','dialog');ph.setAttribute('aria-label','Cy-Phone');
+    const pid=(GAME.G&&GAME.G.id)||'kompost';const WP={kompost:'#9FE08A',schrott:'#B9A8E8',korallen:'#7FE0F0',frost:'#CFE3FF',wueste:'#FFD39A',pilz:'#B89AE8'}[pid]||(PLANETS[pid]&&PLANETS[pid].phone&&PLANETS[pid].phone[0])||'#C9E5FF';
+    const dial=el('div','eg-dial');dial.style.setProperty('--ph-tint',WP);const ring=el('div','eg-ring');const mid=el('div','eg-mid');
+    const tm=el('div','eg-time',GAMETIME.str());const info=el('div','eg-info',(GAME.G&&GAME.G.def?GAME.G.def.n.split(' ')[0]:'')+' · '+fmt(SAVE.money)+' T');
+    /* Piko als kleine Figur: Körper, zwei Augen, Mund, Antenne, Füsse */
+    const pk=el('div','eg-pk');const body=el('span','pk-body');const eyes=el('span','pk-eyes');const eL=el('i'),eR=el('i');eyes.append(eL,eR);const mouth=el('span','pk-mouth');const ant=el('span','pk-ant');
+    body.append(ant,eyes,mouth,el('span','pk-cheek l'),el('span','pk-cheek r'));pk.append(body,el('span','pk-feet'));
+    const say=el('div','eg-say');say.setAttribute('aria-live','polite');const appName=el('div','eg-app');
+    mid.append(tm,pk,say,appName,info);const scan=el('i','eg-scan');dial.append(ring,mid,scan);
+    const list=[];const A=(ic,n,bg,fn,line)=>{const b=el('button','eg-ic');b.type='button';const i=el('b');i.innerHTML=ICON(ic);i.style.background=bg;b.append(i);b.setAttribute('aria-label',n);b.title=n;
+      const k=list.length;b.onclick=()=>{if(k===cur())openSel();else turnTo(k)};ring.append(b);list.push({b,n,fn,line})};
+    A('bag','Tasche','#FFD35C',()=>ACT.bag(),'Was hast du heute gesammelt?');A('book','Lexikon','#7FDCE6',()=>ACT.lexikon(),'Schlagen wir nach, was du gefunden hast?');
+    A('paw','Tiere','#A6EBC3',()=>FAUNA.lexikon(),'Tiere! Mein Lieblingsthema.');A('rocket','Reisen','#FFC9A8',()=>UI.toast('Zur Rakete am Dorfrand gehen, um zu reisen.',3000),'Die Rakete wartet am Dorfrand.');
+    A('star','Kleider','#F2A8C4',()=>BOUTIQUE.wardrobe(),'Etwas Neues anziehen?');A('palette','Designs','#FF8FB1',designsApp,'Malen wir zusammen?');A('house','Hausbau','#FFB27A',()=>houseBuilder(),'Dein Haus braucht bestimmt noch ein Zimmer.');
+    A('coin','Jobs','#FFD35C',()=>JOBS.app(),'Ein bisschen arbeiten, ein paar Taler verdienen.');A('leaf','Terraform','#8FD07A',()=>MYPLANET.app(),'Lass uns deinen Planeten verschönern.');
+    A('people','Freunde','#A6EBC3',()=>SOCIAL.playersWin(),'Wer ist gerade da?');A('chat','Chat','#8FD3FF',()=>SOCIAL.toggleChat(true),'Schreib doch jemandem!');A('wave','Emotes','#FFE27A',()=>ACT.emoteMenu(),'Tanzen? Winken? Ich mach mit!');
+    A('map','Karte','#9FD86A',mapApp,'Wo sind wir eigentlich?');A('sparkle','Risslinge','#e9e7e4',()=>WSTORY.app(),'Die Risse … mir ist ein bisschen mulmig.');A('globe','Bewohner','#FFC9A8',residentsApp,'Alle Nachbarn auf einen Blick.');
+    A('school','Klasse','#D9B5F2',teacherApp,'Das ist für die Lehrperson.');A('gear','Optionen','#DDD3C4',settingsApp,'Ton, Sprache, Grafik.');
+    const N=list.length,STEP=360/N;let rot=0;const cur=()=>((rot%N)+N)%N;
+    list.forEach((o,i)=>{o.b.style.setProperty('--a',(i*STEP)+'deg');o.b.style.animationDelay=(.25+i*.025)+'s'});
+    /* Text tippt sich Buchstabe für Buchstabe; Piko "spricht" dabei */
+    let typeT=0;function talk(txt,mood){clearInterval(typeT);say.textContent='';let k=0;setMood(mood||'talk');typeT=setInterval(()=>{k++;say.textContent=txt.slice(0,k);if(k%3===0)try{SND.play('click',{vol:.12,rate:2.4+Math.random()*.4})}catch(e){}if(k>=txt.length){clearInterval(typeT);setMood('ok')}},26)}
+    function setMood(m){pk.dataset.m=m}
+    function layout(){ring.style.setProperty('--rot',(-rot*STEP)+'deg');const c=cur();list.forEach((o,i)=>{let d=Math.abs(i-c);d=Math.min(d,N-d);o.b.style.setProperty('--s',Math.max(.5,1.25-d*.17).toFixed(2));o.b.style.opacity=d>5?.25:1;o.b.classList.toggle('sel',d===0)});appName.textContent=list[c].n}
+    function turn(dir){rot+=dir;layout();pk.dataset.look=dir>0?'r':'l';clearTimeout(pk._t);pk._t=setTimeout(()=>pk.dataset.look='',420);SND.play('click',{vol:.3,rate:1.2+(cur()%5)*.08});talk(list[cur()].line)}
+    function turnTo(k){let d=k-cur();if(d>N/2)d-=N;if(d<-N/2)d+=N;if(d)turn(d)}
+    function openSel(){const o=list[cur()];setMood('happy');o.b.classList.add('go');SND.play('select');setTimeout(()=>{close();setTimeout(o.fn,120)},260)}
+    const close=()=>{if(!phoneEl)return;removeEventListener('keydown',kd,true);clearInterval(tick);clearInterval(blink);clearInterval(typeT);ph.classList.add('down');SND.play('close',{vol:.5});const x=ph;setTimeout(()=>x.remove(),260);phoneEl=null};
+    /* Gehäuse: Schlüsselring, drei Gel-Knöpfe, seitliche Wegsteck-Taste */
+    const loop=el('i','ph-loop');const gb=el('div','eg-btns');
+    [['eg-b1','Nach links drehen',()=>turn(-1)],['eg-b2','Öffnen',openSel],['eg-b3','Nach rechts drehen',()=>turn(1)]].forEach(([c,l,f])=>{const b=el('button',c);b.type='button';b.setAttribute('aria-label',l);b.title=l;b.onclick=f;gb.append(b)});
+    const side=el('button','eg-side');side.type='button';side.setAttribute('aria-label','Wegstecken');side.title='Wegstecken (Esc)';side.onclick=close;
+    ph.append(loop,dial,gb,side);$('world').append(ph);layout();SND.play('open',{vol:.6});
+    dial.addEventListener('wheel',e=>{e.preventDefault();turn(e.deltaY>0?1:-1)},{passive:false});
+    const greet=()=>{const h=parseInt(GAMETIME.str(),10);return h<10?'Guten Morgen! Wohin geht es heute?':h<17?'Hallo! Dreh am Ring, ich zeig dir alles.':'Schon spät … aber für dich bin ich wach.'};
+    setTimeout(()=>{if(typeof note==='string'&&note){ph.classList.add('note');talk(note,'excited')}else talk(greet())},520);
+    const tick=setInterval(()=>{tm.textContent=GAMETIME.str()},1000);const blink=setInterval(()=>{pk.classList.add('blink');setTimeout(()=>pk.classList.remove('blink'),140)},2600+Math.random()*1500);
+    const kd=e=>{const k=e.key;if(k==='Escape'||k==='Tab'||k==='Backspace'){e.preventDefault();e.stopPropagation();close();return}
+      const mv={ArrowRight:1,ArrowLeft:-1,ArrowDown:1,ArrowUp:-1}[k];if(mv!=null){e.preventDefault();e.stopPropagation();turn(mv);return}
+      if(k==='Enter'||k===' '){e.preventDefault();e.stopPropagation();openSel()}};addEventListener('keydown',kd,true);
     phoneEl={close}}
   $('hbMenu').onclick=()=>START.menu();$('hbBag').onclick=()=>ACT.bag();$('hbEmote').onclick=()=>ACT.emoteMenu();
   function designsApp(){const w=UI.win('Meine Designs',{size:'narrow'});const gr=el('div','grid');SAVE.designs.forEach(d=>{const c=el('button','card');c.type='button';c.append(designImg(d,96),el('span',null,d.name));c.onclick=()=>{w.close();PAINT.open(d)};gr.append(c)});

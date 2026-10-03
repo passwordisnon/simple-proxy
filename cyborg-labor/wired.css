@@ -288,3 +288,73 @@ body.beamer-on .piko{display:none}
 .arkade-mem .card{padding:4px;aspect-ratio:1;display:flex;align-items:center;justify-content:center}
 .arkade-mem .card img{width:100%;height:100%;object-fit:contain}
 .arkade-mem .card:disabled{opacity:1;cursor:default}
+
+/* ---------- Ei-Gerät 2.0: rundes LCD mit Drehring, Piko in der Mitte ---------- */
+.phone.gta.egg2{width:310px;height:420px;padding:0;display:block;border-radius:50% 50% 50% 50%/60% 60% 40% 40%;animation:egOpen .5s cubic-bezier(.34,1.56,.64,1) both;transform-origin:80% 100%}
+.phone.gta.egg2.down{animation:phDown .26s ease-in both}
+@keyframes egOpen{0%{transform:translateY(60px) scale(.6) rotate(8deg);opacity:0}100%{transform:none;opacity:1}}
+.eg-dial{position:absolute;left:50%;top:58px;width:250px;height:250px;margin-left:-125px;border-radius:50%;overflow:hidden;background:radial-gradient(circle at 50% 42%,#d6f59a,var(--lcd-bg) 62%,#b2dd6a);
+  box-shadow:0 0 0 6px var(--chrome-mid),0 0 0 8px var(--chrome-lo),0 0 0 12px var(--ph-tint,#fff),inset 0 3px 10px rgba(0,0,0,.28);animation:egBoot .6s steps(6) .1s both}
+@keyframes egBoot{0%{filter:brightness(.2) contrast(2);clip-path:circle(2% at 50% 50%)}40%{filter:brightness(1.6);clip-path:circle(20% at 50% 50%)}100%{filter:none;clip-path:circle(75% at 50% 50%)}}
+.eg-scan{position:absolute;inset:0;pointer-events:none;border-radius:50%;background:repeating-linear-gradient(0deg,transparent 0 3px,rgba(0,0,0,.05) 3px 4px),radial-gradient(circle at 30% 22%,rgba(255,255,255,.45),transparent 30%)}
+.eg-ring{position:absolute;inset:0;transform:rotate(var(--rot,0deg));transition:transform .38s cubic-bezier(.34,1.4,.64,1)}
+.eg-ic{position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px;padding:0;border:0;background:none;cursor:pointer;
+  transform:rotate(var(--a)) translateY(-100px) rotate(calc(-1 * var(--a) - var(--rot,0deg))) scale(var(--s,1));transition:transform .38s cubic-bezier(.34,1.4,.64,1),opacity .3s;animation:egFly .45s cubic-bezier(.34,1.56,.64,1) both}
+.eg-ring .eg-ic{transform:rotate(var(--a)) translateY(-100px) rotate(calc(-1 * var(--a))) rotate(calc(-1 * var(--rot,0deg))) scale(var(--s,1))}
+@keyframes egFly{0%{opacity:0;translate:0 0;scale:.2}100%{opacity:1;scale:1}}
+.eg-ic b{display:grid;place-items:center;width:100%;height:100%;border-radius:50%;box-shadow:var(--gel),0 0 0 2px rgba(29,43,11,.35)}
+.eg-ic b .ico{width:18px;height:18px}
+.eg-ic.sel b{box-shadow:0 0 0 3px var(--lcd-ink),0 0 0 6px rgba(255,255,255,.6),var(--gel);animation:egSel 1.4s ease-in-out infinite}
+@keyframes egSel{0%,100%{filter:none}50%{filter:brightness(1.15)}}
+.eg-ic.go b{animation:egGo .26s ease-in both}@keyframes egGo{to{transform:scale(1.6);opacity:0}}
+.eg-ic:focus-visible{outline:none}.eg-ic:focus-visible b{box-shadow:0 0 0 3px var(--focus),var(--gel)}
+.eg-mid{position:absolute;left:50%;top:55%;width:150px;margin-left:-75px;transform:translateY(-50%);text-align:center;color:var(--lcd-ink);font-family:var(--system);pointer-events:none}
+.eg-time{font-size:16px;letter-spacing:1px;opacity:.8}
+.eg-info{font-size:10px;opacity:.65;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.eg-app{font:800 12px/1 var(--body);letter-spacing:1px;text-transform:uppercase;margin-top:4px}
+.eg-say{min-height:2.6em;font-size:11px;line-height:1.25;margin-top:4px;padding:0 4px}
+.phone.egg2.note .eg-say{background:rgba(29,43,11,.1);border-radius:8px}
+/* Piko auf dem LCD (Pixel-Figur) */
+.eg-pk{position:relative;width:58px;height:54px;margin:4px auto 0;animation:pkBob 1.6s ease-in-out infinite}
+@keyframes pkBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+.pk-body{position:absolute;left:4px;right:4px;top:6px;bottom:8px;border-radius:50% 50% 46% 46%/58% 58% 42% 42%;background:var(--lcd-ink);transition:transform .25s}
+.pk-ant{position:absolute;left:50%;top:-9px;width:3px;height:9px;margin-left:-1.5px;background:var(--lcd-ink)}
+.pk-ant::after{content:"";position:absolute;left:-3px;top:-5px;width:9px;height:9px;border-radius:50%;background:var(--lcd-ink);animation:pkAnt 1.2s ease-in-out infinite}
+@keyframes pkAnt{50%{transform:translateX(3px)}}
+.pk-eyes{position:absolute;left:0;right:0;top:12px;display:flex;justify-content:center;gap:10px;transition:transform .2s}
+.pk-eyes i{width:9px;height:11px;border-radius:50%;background:var(--lcd-bg);transition:height .08s}
+.eg-pk.blink .pk-eyes i{height:2px;margin-top:5px}
+.pk-mouth{position:absolute;left:50%;top:29px;width:12px;height:5px;margin-left:-6px;border-radius:0 0 8px 8px;background:var(--lcd-bg)}
+.pk-cheek{position:absolute;top:25px;width:6px;height:3px;border-radius:50%;background:rgba(201,242,122,.55)}.pk-cheek.l{left:7px}.pk-cheek.r{right:7px}
+.pk-feet{position:absolute;left:12px;right:12px;bottom:2px;height:7px;background:radial-gradient(circle at 25% 50%,var(--lcd-ink) 0 4px,transparent 5px),radial-gradient(circle at 75% 50%,var(--lcd-ink) 0 4px,transparent 5px)}
+.eg-pk[data-look=l] .pk-eyes{transform:translateX(-5px)}.eg-pk[data-look=r] .pk-eyes{transform:translateX(5px)}
+.eg-pk[data-look=l] .pk-body{transform:rotate(-8deg)}.eg-pk[data-look=r] .pk-body{transform:rotate(8deg)}
+.eg-pk[data-m=talk] .pk-mouth{animation:pkTalk .18s steps(2) infinite}
+@keyframes pkTalk{50%{height:8px;border-radius:50%}}
+.eg-pk[data-m=happy]{animation:pkHop .4s ease-out}.eg-pk[data-m=happy] .pk-eyes i{height:5px;border-radius:6px 6px 0 0}
+@keyframes pkHop{40%{transform:translateY(-12px) scale(1.06)}}
+.eg-pk[data-m=excited]{animation:pkShake .3s linear 3}.eg-pk[data-m=excited] .pk-eyes i{width:11px;height:13px}
+@keyframes pkShake{25%{transform:rotate(-8deg)}75%{transform:rotate(8deg)}}
+/* Knöpfe unter dem Bildschirm, Wegsteck-Taste an der Seite */
+.eg-btns{position:absolute;left:0;right:0;bottom:40px;display:flex;justify-content:center;align-items:center;gap:16px}
+.eg-btns button{width:38px;height:38px;border:0;border-radius:50%;cursor:pointer;box-shadow:var(--gel);position:relative;overflow:hidden}
+.eg-btns .eg-b2{width:48px;height:48px;background:var(--sun)}.eg-btns .eg-b1{background:var(--signal)}.eg-btns .eg-b3{background:var(--pink)}
+.eg-btns button::before{content:"";position:absolute;left:7px;right:7px;top:3px;height:38%;border-radius:50%;background:linear-gradient(180deg,rgba(255,255,255,.75),rgba(255,255,255,0))}
+.eg-btns .eg-b1::after,.eg-btns .eg-b3::after{content:"";position:absolute;left:50%;top:50%;border:6px solid transparent;margin:-6px 0 0 -4px}
+.eg-btns .eg-b1::after{border-right:9px solid rgba(255,255,255,.9);border-left:0;margin-left:-6px}.eg-btns .eg-b3::after{border-left:9px solid rgba(255,255,255,.9);border-right:0}
+.eg-btns button:active{box-shadow:var(--well);transform:translateY(2px)}
+.eg-btns button:focus-visible,.eg-side:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.eg-side{position:absolute;right:-6px;top:46%;width:14px;height:54px;border:0;border-radius:7px;background:linear-gradient(90deg,var(--chrome-lo),var(--chrome-mid));box-shadow:var(--gel);cursor:pointer}
+.eg-side:hover{transform:translateX(2px)}
+.phone.gta.egg2::after{bottom:18px}
+@media (max-height:640px){.phone.gta.egg2{height:360px;width:270px}.eg-dial{top:46px;width:214px;height:214px;margin-left:-107px}.eg-ic{transform:none}
+  .eg-ring .eg-ic{transform:rotate(var(--a)) translateY(-84px) rotate(calc(-1 * var(--a))) rotate(calc(-1 * var(--rot,0deg))) scale(calc(var(--s,1) * .88))}.eg-btns{bottom:30px}}
+@media (prefers-reduced-motion:reduce){.phone.gta.egg2,.eg-dial,.eg-ic,.eg-pk,.pk-ant::after{animation:none!important}.eg-ring,.eg-ic{transition:none}}
+
+/* ---------- Piko wohnt jetzt am rechten Rand (dort, wo sich das Ei-Gerät öffnet) ---------- */
+.piko{left:auto;right:0;top:40%;transform:translateX(56%) rotate(-24deg);transform-origin:80% 90%}
+.piko:hover,.piko:focus-visible,.piko.out,.piko.peekout{transform:translateX(-16px) rotate(6deg)}
+.piko.hop{transform:translateX(-30px) translateY(-14px) rotate(10deg) scale(1.08)}
+.piko.want::after{right:auto;left:-4px}
+.piko .bub{left:auto;right:104px;transform:rotate(-6deg);text-align:left}
+.piko .bub::before{left:auto;right:-7px;border-right:0;border-left:7px solid #fff;border-left-color:#fff;border-right-color:transparent}

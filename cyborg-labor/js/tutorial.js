@@ -18,7 +18,7 @@ const TUT=(()=>{
       begin:()=>{start.talks=SAVE.stats.talks||0},done:()=>(SAVE.stats.talks||0)>start.talks},
     {id:'pet',t:'Streichle ein Tier',hint:'Auf jedem Planeten wohnen andere Tiere. Streicheln, füttern, Fangen spielen – und sie kommen mit dir mit!',begin:()=>{start.pets=SAVE.stats.pets||0},done:()=>(SAVE.stats.pets||0)>start.pets},
     {id:'collect',t:'Sammle etwas',hint:()=>'Schüttle einen Obstbaum, heb Muscheln, Äste oder Steine auf ('+(touch()?'grüner Knopf':'E')+').',begin:()=>{start.bag=bagCount();start.sh=SAVE.stats.shakes||0},done:()=>bagCount()>start.bag||(SAVE.stats.shakes||0)>start.sh},
-    {id:'phone',t:'Sag Hallo zu Piko',hint:()=>'Piko lugt im Ei am linken Rand hervor. '+(touch()?'Tippe Piko an':'Klicke Piko an oder drücke Tab')+', um das Ei zu öffnen: Tasche, Lexikon, Tiere, Karte und mehr. Wenn das Ei wackelt, will Piko dir etwas sagen.',begin:()=>{start.ph=ev.phone||0},done:()=>(ev.phone||0)>start.ph},
+    {id:'phone',t:'Sag Hallo zu Piko',hint:()=>'Piko lugt im Ei am rechten Rand hervor. '+(touch()?'Tippe Piko an':'Klicke Piko an oder drücke Tab')+', um das Ei zu öffnen: Tasche, Lexikon, Tiere, Karte und mehr. Wenn das Ei wackelt, will Piko dir etwas sagen.',begin:()=>{start.ph=ev.phone||0},done:()=>(ev.phone||0)>start.ph},
     {id:'shop',t:'Besuche den Laden',hint:'Folge dem Weg vom Dorfplatz zum Laden. Dort kannst du alles verkaufen, was du findest, und Möbel kaufen.',begin:()=>{start.sh2=ev.shop||0},done:()=>(ev.shop||0)>start.sh2},
     {id:'end',t:'Geschafft!',hint:'',intro:null,final:true}];
   function cur(){return SAVE.tut??0}

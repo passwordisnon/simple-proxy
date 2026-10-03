@@ -1,6 +1,6 @@
 /* =====================================================================
    CYBORG-LABOR · piko.js
-   Piko: dein Begleiter im Ei-Gerät. Das Ei lugt am linken Bildschirmrand
+   Piko: dein Begleiter im Ei-Gerät. Das Ei lugt am rechten Bildschirmrand
    hervor, wippt und blinzelt. Mit der Maus darüber (oder antippen) springt
    es heraus; ein Klick öffnet das Ei. Will Piko etwas, rumpelt das Ei:
    es wackelt, piepst, zeigt ein "!" und vibriert auf Handys.

@@ -104,5 +104,9 @@ Status: ✔ erledigt · ◐ teilweise · ☐ offen. Wird bei jedem Schritt aktua
 - ☐ Klänge von 効果音ラボ und Musik von DOVA (gepackt, nicht als offene MP3)
 - ☐ Alte Spiele mit freien Grafiken nutzen: Glitch (CC0), Yo Frankie!/Blender (CC-BY), Hard Vacuum und Tyrian (CC-BY), Freedoom (BSD)
 - ✔ Planeten neu gedacht im WIRED-Stil, ausgehend von Urzeit, Metro und Dschungel (Liste im Briefing, Zahlen in docs/WIRED-AUFGABEN.md)
+- ✔ Echter Umbau statt Zusätze: alle Bäume, Tannen, Palmen und Büsche als Spielzeug von 1999 (Plastik-Stämme mit Chrom-Ringen, Gel-Kronen, Stapelring-Tannen), alle Natur in glänzendem Bonbon-Plastik
+- ✔ Neue Kokon-Architektur auf den sechs alten Planeten: Kapsel-, Ei-, Stapel- und Kuppelhäuser mit Bullaugen, Gel-Türen, LCD-Schild und Antenne (auch Rathaus, Laden, Museum …); Kit-Häuser anderswo in Bonbon-Farben
+- ✔ Piko lugt jetzt am rechten Rand hervor (dort, wo sich das Ei-Gerät öffnet)
+- ✔ Ei-Gerät 2.0: rundes LCD mit Drehring statt App-Gitter; Piko lebt in der Mitte, hüpft, blinzelt, schaut in die Drehrichtung und sagt zu jeder App etwas; Bildschirm bootet beim Öffnen, Mausrad und Pfeiltasten drehen
 - ✔ Bestehende 14 Planeten im WIRED-Stil umgebaut: je ein eigenes Requisiten-Set (Kapselbeete, Röhrenmonitor-Stapel, Blechdosen-Roboter, Bonbon-Korallen, Schneekugeln, Eis-LCDs, halb vergrabene Riesen-Konsole, Gel-Kakteen, Kapselpilze, Riesen-Gelstifte, Wetterstationen, Disketten-Türme, Riesen-Wecker auf 23:59, Riesen-Kassettenrekorder)
 - ☐ Inhalte ausbauen, Qualität vor Menge, handverlesen und im Hintergrund nachgeladen (docs/WIRED-AUFGABEN.md): je Planet ein volles Set (12 Fische, 12 Insekten, 6 Tiere, Rissling-Familie, Möbel- und Kleiderlinie, Musik, Fundstücke); insgesamt rund 1000 Körperteile, 36 Rumpfformen, 1500 Möbel, 1000 Gegenstände, 600 Natur-Modelle

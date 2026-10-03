@@ -29,7 +29,7 @@ const WSTORY=(()=>{
   async function hatch(){const s=S();if(s.act>=1)return;s.act=1;s.t=0;persist();
     await new Promise(r=>setTimeout(r,1200));
     if(typeof PIKO!=='undefined')PIKO.want('PIKO HIER! Ich bin aus dem Ei geschlüpft. Ich wohne jetzt in deinem Cy-Phone.');
-    UI.toast('Ein Ei am linken Rand wackelt …',3200);persist()}
+    UI.toast('Ein Ei am rechten Rand wackelt …',3200);persist()}
   /* ---------- Akt I: kleine Merkwürdigkeiten ---------- */
   const ODD=['Komisch: Mein Kalender blättert nicht um. Es ist immer noch der 31.12.1999.','Alle sagen, das Feuerwerk ist «fast fertig». Das haben sie gestern auch gesagt.','Hast du gehört? Die Bürgermeisterin hat denselben Witz zweimal erzählt. Wort für Wort.','Die Uhren im Dorf zeigen alle 23:59. Meine auch.','Ich habe nachgezählt: Das ist die dritte Silvesterparty, die wir vorbereiten.'];
   /* ---------- Akt II: Risslinge ---------- */
