@@ -69,9 +69,11 @@ N('lavendel',{r:.3,h:.6,size:'small',planet:'kompost'},(g,m,o,rnd)=>{const st=m.
   P(g,G.tu([[Math.cos(a)*r*.4,0,Math.sin(a)*r*.4],tip],.012),st);range(4,(t,j)=>P(g,G.s(.035),fm,[tip[0],tip[1]-j*.045,tip[2]]))}P(g,G.blob(.2,.1,2,3),m.c('#8FB07A'),[0,.05,0],null,[1.3,.4,1.3])});
 N('hortensienbusch',{r:.55,h:1,size:'mid',planet:'kompost'},(g,m,o,rnd)=>{bush(g,m,'#5FAE55',.9,rnd);const col=o.color||RP(rnd,['#A9C4FF','#D6A8FF','#FFB0D0']);range(6,(t,i)=>{const q=onBlob([0,.5,0],.62,.5,.58,.7+(i%3)*.3,i*1.05);
   const b=grp(g,q.p);range(7,(u,j)=>P(b,G.s(.07),m.c(j%2?col:shade(col,1.1),{rim:.6}),[Math.cos(j)*.08,Math.sin(j*1.7)*.05+.04,Math.sin(j)*.08]))})});
-N('kokospalme_klein',{r:.25,h:2.4,size:'mid',shake:true,planet:'korallen'},(g,m,o,rnd)=>{const tm=m.c('#B8875A');range(6,(t,i)=>P(g,G.cy(.13-t*.03,.15-t*.03,.34),tm,[t*.12,.17+i*.32,0],[0,0,-.06]));
-  const lm=m.c('#5FB36A',{rim:.5,rimColor:'#eaffb0'});for(let i=0;i<6;i++){const q=grp(g,[.72,2,0],[0,i/6*TAU,0]);P(q,flatLeaf(leafShape(1,.18),.03,.5),lm,[0,0,0],[0,0,-.25])}
-  range(2,(t,i)=>{const f=fruit(g,m,'kokosnuss',[.72+Math.cos(i*3)*.12,1.85,Math.sin(i*3)*.12],.22);g.userData.fruits.push(f)})});
+N('kokospalme_klein',{r:.25,h:2.4,size:'mid',shake:true,planet:'korallen'},(g,m,o,rnd)=>{/* Stamm in Spielzeug-Streifen; Krone sitzt genau auf der Stammspitze (vorher schwebte sie 0,6 daneben) */
+  const tA=m.c('#ff9a45',{gloss:1.1,rim:.8}),tB=m.c('#fff3e0',{gloss:1.1,rim:.8});range(6,(t,i)=>P(g,G.cy(.13-t*.03,.15-t*.03,.34),i%2?tA:tB,[t*.12,.17+i*.32,0],[0,0,-.06]));
+  const top=[.13,1.98,0];P(g,G.s(.13),m.chrome?m.chrome():m.c('#e6ecf5'),top,null,[1,.7,1]);
+  const lm=m.c('#5FB36A',{gloss:1.3,rim:1.1,rimColor:'#ffffff'});for(let i=0;i<6;i++){const q=grp(g,top,[0,i/6*TAU,0]);P(q,flatLeaf(leafShape(1,.18),.05,.5),lm,[0,0,0],[0,0,-.25])}
+  range(2,(t,i)=>{const f=fruit(g,m,'kokosnuss',[top[0]+Math.cos(i*3)*.14,top[1]-.16,Math.sin(i*3)*.14],.22);g.userData.fruits.push(f)})});
 
 /* ================= Frost-Stern ================= */
 N('schneetanne',{r:.4,h:4,size:'big',shake:true,planet:'frost'},(g,m,o,rnd)=>{pine(g,m,{color:'#4E9A8A',zapfen:true},rnd,1);[[.3,1.45,.62],[1.0,1.22,.56],[1.62,.98,.5],[2.18,.76,.44],[2.66,.56,.4]].forEach(([y,r,h])=>snowCap(g,m,y+h*.86,r*.72,1));
