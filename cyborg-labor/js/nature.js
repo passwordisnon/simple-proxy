@@ -24,7 +24,13 @@ const FISH=[],BUGS=[],RELICS=[],ITEMS=[];
    --------------------------------------------------------------------- */
 (function(){
 /* ======================= Helfer ======================= */
-const wrap=b=>(g,m,opt,rnd)=>{opt=opt||{};rnd=rnd||srand(7);g.userData.fruits=g.userData.fruits||[];return b(g,m,opt,rnd)};
+/* WIRED: jede Natur wird in glänzendem Bonbon-Plastik gezeichnet (kräftigere Farbe, Glanz, weisser Rand).
+   Sehr dunkle Farben (Augen, Linien) und Texturen bleiben, wie sie sind. */
+const PLASTIC=new WeakMap();
+function plastic(m){if(!m||!m.c)return m;let p=PLASTIC.get(m);if(p)return p;p=Object.create(m);
+  p.c=(col,o)=>{o=o||{};let c=col;try{const t=new THREE.Color(col);const h={};t.getHSL(h);if(h.l>.3&&h.l<.9&&h.s>.12&&!o.map)c=candyCol(col)}catch(e){}
+    return m.c(c,Object.assign({},o,o.opacity!=null&&o.opacity<1?{}:{gloss:Math.max(o.gloss||0,1.05),rim:Math.max(o.rim||0,.85),rimColor:'#ffffff'}))};PLASTIC.set(m,p);return p}
+const wrap=b=>(g,m,opt,rnd)=>{opt=opt||{};rnd=rnd||srand(7);g.userData.fruits=g.userData.fruits||[];return b(g,plastic(m),opt,rnd)};
 const N=(type,meta,b)=>nat(type,Object.assign({},meta,{b:wrap(b)}));
 const RR=(rnd,a,b)=>a+(b-a)*rnd();
 const RP=(rnd,a)=>a[Math.floor(rnd()*a.length)%a.length];
@@ -52,9 +58,15 @@ const crysGeo=(r,h)=>{const g=G.la([[0,0],[r*.8,0],[r,h*.12],[r,h*.7],[0,h]],6).
 const crysMat=(m,c)=>m.c(c,{gloss:1.3,rim:.9,rimColor:'#ffffff'});
 function crystal(g,m,base,dir,r,h,col){const o=P(g,crysGeo(r,h),crysMat(m,col),base);orient(o,dir,up);return o}
 /* Stamm mit Wurzelfuss */
-function trunk(g,m,h,r,col){return P(g,G.la([[0,0],[r*1.75,0],[r*1.3,h*.06],[r*1.05,h*.2],[r*.9,h*.6],[r*.78,h],[0,h]],Q(16)),m.c(col||'#9C6B48'))}
+/* WIRED: Spielzeug-Stamm aus glänzendem Plastik mit Chrom-Ringen (NEMURI baut Bäume aus Kinderspielzeug von 1999) */
+const candyCol=c=>{const o=new THREE.Color(c);const h={};o.getHSL(h);if(h.l>=.9||h.s<=.12)return '#'+o.getHexString();o.setHSL(h.h,Math.min(.82,h.s*1.12+.05),Math.max(.42,Math.min(.66,h.l*1.06)));return '#'+o.getHexString()};
+function trunk(g,m,h,r,col){const t=P(g,G.la([[0,0],[r*1.5,0],[r*1.5,h*.04],[r*1.1,h*.1],[r*.95,h*.2],[r*.88,h*.6],[r*.8,h],[0,h]],Q(16)),m.c(col||'#9C6B48',{gloss:1.1,rim:.8,rimColor:'#ffffff'}));
+  const ch=m.chrome?m.chrome():m.c('#e6ecf5');P(g,G.to(r*1.52,r*.16),ch,[0,h*.035,0],[PI/2,0,0]);P(g,G.to(r*.86,r*.14),ch,[0,h*.62,0],[PI/2,0,0]);
+  P(g,G.s(r*.16),ch,[0,h*.32,r*.92]);return t}
 /* Laubwolke */
-function cloud(g,m,col,x,y,z,r,seed,sc){if(typeof FOLIAGE!=='undefined')return FOLIAGE.crown(g,m,col,x,y,z,r,seed,sc);return P(g,G.blob(r,.06,2.4,seed),m.c(col,{rim:.55,rimColor:'#f2ffc8'}),[x,y,z],null,sc)}
+/* WIRED: Laubkrone als Bonbon-Gel-Kugel mit Glanz-Sticker statt Blätterhülle */
+function cloud(g,m,col,x,y,z,r,seed,sc){const c=P(g,G.blob(r,.025,2.6,seed),m.c(col,{gloss:1.35,rim:1.15,rimColor:'#ffffff'}),[x,y,z],null,sc);
+  const k=sc?sc[1]||1:1;const hl=P(g,G.s(r*.2),m.flat('#ffffff'),[x-r*.38,y+r*.52*k,z+r*.5],null,[1.3,.55,.4]);hl.userData.noOutline=true;return c}
 /* Punkt auf Ellipsoid-Oberfläche (für Früchte/Punkte) */
 function onBlob(c,rx,ry,rz,th,ph){const n=[Math.sin(th)*Math.cos(ph),Math.cos(th),Math.sin(th)*Math.sin(ph)];return{p:[c[0]+n[0]*rx,c[1]+n[1]*ry,c[2]+n[2]*rz],n}}
 /* Muschel-/Linsenkörper (zwei gewölbte Schalen mit Rippen, geschlossen) — Fächer nach +y, Scharnier bei 0 */
@@ -116,20 +128,24 @@ function fruitTree(g,m,o,rnd,sc){sc=sc||1;const kind=o.fruit||'apfel';const bark
   const n=o.count||(kind==='kirsche'?7:6);const fs=(kind==='kirsche'?.4:.36)*sc;
   for(let i=0;i<n;i++){const th=1.15+((i*.37)%1)*.7,ph=(i/n)*TAU+.4+RR(rnd,-.2,.2);const q=onBlob([0,2.35*sc,.1*sc],1.3*sc,.95*sc,1.3*sc,th,ph);
     const f=fruit(g,m,kind,[q.p[0],q.p[1]-fs*.3,q.p[2]],fs);g.userData.fruits.push(f)}}
-function pine(g,m,o,rnd,sc){sc=sc||1;trunk(g,m,1.2*sc,.22*sc,'#8A5A3C');const col=o.color||'#3F9161';
-  [[.85,1.45,1.6],[1.65,1.15,1.35],[2.35,.88,1.15],[2.95,.58,.95]].forEach(([y,r,h],i)=>{const geo=G.la([[0,0],[r*.82,-.02],[r,.07],[r*.96,.17],[r*.62,h*.45],[r*.26,h*.8],[0,h]].map(([a,b])=>[a*sc,b*sc]),Q(26));scallop(geo,9,.07*sc,.2*sc);P(g,geo,m.c(i%2?shade(col,1.12):col,{rim:.5,rimColor:'#e8ffd8'}),[0,y*sc,0],[0,i*.4,0])});
+/* WIRED: Tanne als Stapel-Ringe-Spielzeug auf einem Chrom-Stab, oben eine Gel-Kugel */
+function pine(g,m,o,rnd,sc){sc=sc||1;const col=o.color||'#3F9161';const ch=m.chrome?m.chrome():m.c('#e6ecf5');P(g,G.cy(.09*sc,.11*sc,3.7*sc),ch,[0,1.85*sc,0]);
+  P(g,G.la([[0,0],[.42*sc,0],[.42*sc,.12*sc],[.3*sc,.3*sc],[0,.3*sc]],Q(20)),m.c('#c98a5a',{gloss:1.1,rim:.8}),[0,0,0]);
+  [[.3,1.45,.62],[1.0,1.22,.56],[1.62,.98,.5],[2.18,.76,.44],[2.66,.56,.4]].forEach(([y,r,h],i)=>{const geo=G.la([[r*.18,0],[r*.85,0],[r,h*.22],[r*.95,h*.5],[r*.7,h*.86],[r*.4,h],[r*.18,h]].map(([a,b])=>[a*sc,b*sc]),Q(28));
+    P(g,geo,m.c(i%2?shade(col,1.22):col,{gloss:1.3,rim:1.1,rimColor:'#ffffff'}),[0,y*sc,0])});
+  P(g,G.s(.32*sc),m.c('#ffd23f',{gloss:1.4,rim:1.2,rimColor:'#ffffff'}),[0,3.25*sc,0]);
   if(o.zapfen!==false)range(3,(t,i)=>{const a=i*2.2+.5;P(g,G.ca(.07*sc,.08*sc),m.c('#A0704C'),[Math.cos(a)*1.05*sc,1.05*sc-(i%2)*.1,Math.sin(a)*1.05*sc])});
-  P(g,G.star(.2*sc,.09*sc,5,.08*sc),m.gloss('#FFE27A'),[0,3.98*sc,0]).visible=!!o.stern}
+  P(g,G.star(.2*sc,.09*sc,5,.08*sc),m.gloss("#FFE27A"),[0,3.62*sc,0]).visible=!!o.stern}
 
 N('eiche',{r:.45,h:4.8,shake:true,planet:'kompost'},(g,m,o,rnd)=>oak(g,m,o,rnd,o.s||1));
 N('obstbaum',{r:.38,h:3.5,shake:true,planet:'kompost'},(g,m,o,rnd)=>fruitTree(g,m,o,rnd,o.s||1));
 N('tanne',{r:.4,h:4.1,shake:true,grow:7,planet:'kompost'},(g,m,o,rnd)=>pine(g,m,o,rnd,o.s||1));
 N('palme',{r:.35,h:4.8,shake:true,planet:'korallen'},(g,m,o,rnd)=>{const A=[0,0,0],B=[.1,2.2,0],C=[.85+RR(rnd,-.1,.1),4.2,.1];const bz=t=>A.map((a,k)=>(1-t)*(1-t)*a+2*(1-t)*t*B[k]+t*t*C[k]);
-  const n=8;for(let i=0;i<n;i++){const a=bz(i/n),b=bz((i+1)/n);bt(g,a,b,.2-.06*i/n,m.c(i%2?'#B98A5E':'#C99A6A'),.25-.06*i/n)}P(g,G.s(.22),m.c('#A77A4E'),bz(0),null,[1.3,.4,1.3]);
+  const n=8;for(let i=0;i<n;i++){const a=bz(i/n),b=bz((i+1)/n);bt(g,a,b,.2-.06*i/n,m.c(i%2?'#ff9a45':'#fff3e0',{gloss:1.1,rim:.8}),.25-.06*i/n)}P(g,G.s(.22),m.chrome?m.chrome():m.c('#e6ecf5'),bz(0),null,[1.3,.4,1.3]);
   const col='#5DBB63';const fs=()=>{const L=2.5,W=.5,sh=new THREE.Shape();sh.moveTo(0,.07);const k=10;const w=t=>W*Math.sin(PI*Math.pow(t,.7))*(1-t*.25);for(let i=1;i<=k;i++){const t=i/k;sh.lineTo(L*t-.1,w(t)+.03);sh.lineTo(L*t,w(t)*.55)}
     for(let i=k;i>=1;i--){const t=i/k;sh.lineTo(L*t,-w(t)*.55);sh.lineTo(L*t-.1,-w(t)-.03)}sh.lineTo(0,-.07);return sh};
-  const fsh=fs();range(9,(t,i)=>{P(g,flatLeaf(fsh,.06,.28),m.c(i%2?col:shade(col,1.15),{rim:.5,rimColor:'#f2ffc8'}),C,[0,i/9*TAU+.3,.62+(i%3)*.12])});
-  P(g,G.s(.28),m.c('#7A9A4A'),C,null,[1,.7,1]);
+  const fsh=leafShape(2.5,.42);range(9,(t,i)=>{P(g,flatLeaf(fsh,.09,.28),m.c(i%2?col:shade(col,1.15),{gloss:1.3,rim:1.1,rimColor:'#ffffff'}),C,[0,i/9*TAU+.3,.62+(i%3)*.12])});
+  P(g,G.s(.3),m.chrome?m.chrome():m.c('#e6ecf5'),C,null,[1,.7,1]);
   range(3,(t,i)=>{const a=i*2.1+.4;const f=fruit(g,m,'kokosnuss',[C[0]+Math.cos(a)*.28,C[1]-.3,C[2]+Math.sin(a)*.28],.44);g.userData.fruits.push(f)})});
 N('baum',{r:.3,h:2.7,shake:true,grow:6,planet:'alle'},(g,m,o,rnd)=>{trunk(g,m,1.25,.17,'#A0704C');bt(g,[0,.9,0],[.35,1.3,.05],.07,m.c('#A0704C'),.05);const col=o.color||'#86CF66';const sd=rnd()*9;
   cloud(g,m,col,0,1.85,0,.78,sd);cloud(g,m,shade(col,1.1),.5,1.55,.25,.5,sd+2);cloud(g,m,shade(col,.92),-.45,1.6,-.1,.52,sd+4);

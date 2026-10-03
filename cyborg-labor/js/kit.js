@@ -52,7 +52,7 @@ const KIT=(()=>{
     const hn=h.attributes.position.count;const hc=new Float32Array(hn*3);const ow=new Float32Array(hn).fill(OUTLINE_BASE*.7);const oc=new THREE.Color(pal.line||'#4a3a5e');for(let i=0;i<hn;i++){hc[i*3]=oc.r;hc[i*3+1]=oc.g;hc[i*3+2]=oc.b}
     h.setAttribute('color',new THREE.BufferAttribute(hc,3));h.setAttribute('ow',new THREE.BufferAttribute(ow,1));h.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(hn*2),2));
     const r={g,h,b:P.b};geoCache.set(key,r);return r}
-  function mesh(pack,name,pal){const G=geo(pack,name,pal||BASE);if(!G)return null;const m=new THREE.Mesh(G.g,vcMat(true,false));m.castShadow=true;m.receiveShadow=true;
+  function mesh(pack,name,pal){const G=geo(pack,name,pal||BASE);if(!G)return null;const m=new THREE.Mesh(G.g,vcMat(true,true));m.castShadow=true;m.receiveShadow=true;
     const hull=new THREE.Mesh(G.h,vcHull());hull.userData.hull=true;hull.raycast=()=>{};m.add(hull);m.userData.kit=pack+'/'+name;return m}
   function bounds(pack,name){const P=packs[pack]&&packs[pack][name.split('#')[0]];if(!P)return null;return name.endsWith('#cap')?[P.b[0],.02,P.b[2],P.b[3],P.b[4],P.b[5]]:P.b}
   function names(pack){return packs[pack]?Object.keys(packs[pack]):[]}

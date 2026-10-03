@@ -7,6 +7,8 @@
 <script src="../js/core.js"></script>
 <script src="../js/kit.js"></script>
 <script src="../js/haus.js"></script>
+<script src="../js/nature.js"></script>
+<script src="../js/wbau.js"></script>
 <script>
 (async()=>{const qs=new URLSearchParams(location.search);const errors=[];window.addEventListener('error',e=>errors.push(String(e.message)));
 const _f=window.fetch;window.fetch=(u,o)=>_f('../'+u,o);for(const p of (qs.get("packs")||"town,holiday,pirate,nature,survival,station,modular,castle,plat,space").split(","))await KIT.load(p);

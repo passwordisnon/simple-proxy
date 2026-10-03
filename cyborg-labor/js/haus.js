@@ -17,8 +17,13 @@ const HAUS=(()=>{
   function palette(pid,r){const T=PT(THEMES,pid);const roof=pick(r,T.roof),wall=pick(r,T.wall),wood=pick(r,T.wood),stone=pick(r,T.stone),trim=pick(r,T.trim);
     const c=h=>new THREE.Color(h);const dk=(h,k)=>'#'+c(h).multiplyScalar(k).getHexString();
     /* leichte Farbton-Abweichung je Haus, damit auch gleiche Wahl nicht identisch wirkt */const jit=h=>{const x=c(h);x.offsetHSL((r()-.5)*.03,(r()-.5)*.06,(r()-.5)*.04);return'#'+x.getHexString()};
-    return{roof:jit(roof),roofB:jit(roof),roof2:jit(roof),wall:jit(wall),trim,sand:jit(wall),sandD:dk(wall,.9),wood:jit(wood),woodL:jit(wood),wood2:dk(wood,.9),stone:jit(stone),
-      metal:(T.metal&&pick(r,T.metal))||dk(stone,.78),metalD:dk(stone,.6),dark:'#4a3f5e',plant:pick(r,T.plant),plantD:dk(pick(r,T.plant),.78),light:'#FFD27A',glass:'#BFE6FF',snow:(T.snow&&T.snow[0])||'#F4FAFF',line:'#4a3a5e'}}
+    /* WIRED 2.0: Häuser aus Spielzeug-Plastik. Balken und Holz werden zu farbigem Bonbon-Plastik, Zierleisten und Metall zu Chrom,
+       Dächer kräftiger, Wände etwas weisser (Kunststoff), Fenster in Bondi-Blau. */
+    const sat=(h,ks,kl)=>{const x=c(h);const o={};x.getHSL(o);x.setHSL(o.h,Math.min(.9,o.s*ks+.06),Math.max(.3,Math.min(.8,o.l*kl)));return'#'+x.getHexString()};
+    const CAND=['#2fb5d9','#9b6ae0','#ff9a45','#7fd34a','#ff6fa5','#ffd23f'];const rf=sat(roof,1.35,1);const acc=pick(r,CAND.filter(a=>Math.abs(c(a).getHSL({}).h-c(rf).getHSL({}).h)>.08));
+    const wl=h=>'#'+c(h).lerp(c('#ffffff'),.25).getHexString();
+    return{roof:jit(rf),roofB:jit(rf),roof2:jit(rf),wall:jit(wl(wall)),trim:'#EEF2F8',sand:jit(wl(wall)),sandD:dk(wl(wall),.92),wood:acc,woodL:'#'+c(acc).lerp(c('#ffffff'),.3).getHexString(),wood2:dk(acc,.85),stone:'#DCD8EA',
+      metal:'#C3CBDA',metalD:'#9AA3B6',dark:'#3b3450',plant:sat(pick(r,T.plant),1.2,1.05),plantD:dk(pick(r,T.plant),.8),light:'#FFE38A',glass:'#8FE3FF',snow:(T.snow&&T.snow[0])||'#F4FAFF',line:'#3b3450'}}
 
   const DV={px:[1,0],nx:[-1,0],pz:[0,1],nz:[0,-1]};const OPP={px:'nx',nx:'px',pz:'nz',nz:'pz'};const nameOf=(dx,dz)=>dx>0?'px':dx<0?'nx':dz>0?'pz':'nz';
   /* ---------- Grundriss nach Regeln: Haupthaus + Flügel (niedriger oder am Giebel) + Turm (immer höher) ---------- */

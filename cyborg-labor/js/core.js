@@ -375,7 +375,7 @@ function occInject(s){s.uniforms.uOcA=OCC.a;s.uniforms.uOcB=OCC.b;s.uniforms.uOc
    if(uOcOn>.5){vec3 ab=uOcB-uOcA;float L=length(ab);float t=clamp(dot(vOcW-uOcA,ab)/(L*L),0.,1.);float d=length(vOcW-(uOcA+ab*t));
     if(t<1.-1.1/L&&d<1.7){float th=smoothstep(1.7,.7,d)*smoothstep(0.,.12,t);vec2 c=fract(gl_FragCoord.xy/6.+vec2(0.,floor(gl_FragCoord.x/6.)*.5))-.5;
      if(th>.88||length(c)<th*.72)discard;}}`)}
-function vcMat(ds,gl){const k=(ds?'d':'')+(gl?'g':'');if(VCM[k])return VCM[k];const m=cozy({color:'#ffffff',vertexColors:true,side:ds?THREE.DoubleSide:THREE.FrontSide,rim:.4,gloss:gl?.6:0});
+function vcMat(ds,gl){const k=(ds?'d':'')+(gl?'g':'');if(VCM[k])return VCM[k];const m=cozy({color:'#ffffff',vertexColors:true,side:ds?THREE.DoubleSide:THREE.FrontSide,rim:gl?.75:.4,gloss:gl?.75:0,rimColor:gl?'#ffffff':undefined});
   const prev=m.onBeforeCompile;m.onBeforeCompile=s=>{prev(s);occInject(s)};m.customProgramCacheKey=()=>'cozyVC';return VCM[k]=m}
 function vcHull(){if(VCM.h)return VCM.h;const m=new THREE.MeshBasicMaterial({color:'#ffffff',vertexColors:true,side:THREE.BackSide});m.userData.keep=true;m.userData.outline=true;
   m.onBeforeCompile=s=>{occInject(s);s.uniforms.uS=OUTLINE_SCALE;s.vertexShader='uniform float uS;attribute float ow;\n'+s.vertexShader.replace('#include <project_vertex>',

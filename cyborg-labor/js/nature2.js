@@ -74,7 +74,7 @@ N('kokospalme_klein',{r:.25,h:2.4,size:'mid',shake:true,planet:'korallen'},(g,m,
   range(2,(t,i)=>{const f=fruit(g,m,'kokosnuss',[.72+Math.cos(i*3)*.12,1.85,Math.sin(i*3)*.12],.22);g.userData.fruits.push(f)})});
 
 /* ================= Frost-Stern ================= */
-N('schneetanne',{r:.4,h:4,size:'big',shake:true,planet:'frost'},(g,m,o,rnd)=>{pine(g,m,{color:'#4E9A8A',zapfen:true},rnd,1);[[.85,1.45],[1.65,1.15],[2.35,.88],[2.95,.58]].forEach(([y,r],i)=>{snowCap(g,m,(y+.06+[.32,.28,.24,.2][i]),r*.62,1)});
+N('schneetanne',{r:.4,h:4,size:'big',shake:true,planet:'frost'},(g,m,o,rnd)=>{pine(g,m,{color:'#4E9A8A',zapfen:true},rnd,1);[[.3,1.45,.62],[1.0,1.22,.56],[1.62,.98,.5],[2.18,.76,.44],[2.66,.56,.4]].forEach(([y,r,h])=>snowCap(g,m,y+h*.86,r*.72,1));
   P(g,G.s(.22),m.c('#FBFDFF',{rim:.8}),[0,3.9,0],null,[1,.7,1])});
 N('winterbirke',{r:.28,h:4,size:'big',planet:'frost'},(g,m,o,rnd)=>{NATURE.birke.b(g,m,{color:'#E8F0FF'},rnd);range(3,(t,i)=>P(g,G.blob(.35,.1,2,i),m.c('#FBFDFF',{rim:.9}),[(i-1)*.5,3.9-(i%2)*.4,.2],null,[1,.35,1]))});
 N('schneebusch',{r:.5,h:.8,size:'small',planet:'frost'},(g,m,o,rnd)=>{bush(g,m,'#5E9A7A',.8,rnd);P(g,G.blob(.55,.1,2,rnd()*9),m.c('#FBFDFF',{rim:.9}),[0,.78,0],null,[1.1,.35,1]);range(4,(t,i)=>P(g,G.s(.05),m.gloss('#E84D6A'),[Math.cos(i*1.6)*.55,.5,Math.sin(i*1.6)*.5]))});
