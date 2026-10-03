@@ -35,7 +35,12 @@ const SND=(()=>{
     const g=ctx.createGain();g.gain.value=o.vol??1;let node=src;node.connect(g);
     const bus=o.bus==='ui'||(!o.bus&&UI_SOUNDS.has(name))?uiBus:o.bus==='amb'?ambBus:sfxBus;if(o.pan&&ctx.createStereoPanner){const p=ctx.createStereoPanner();p.pan.value=Math.max(-1,Math.min(1,o.pan));g.connect(p);p.connect(bus)}else g.connect(bus);
     src.start();return src}
-  function music(track){wantTrack=track;if(!ctx)return;if(track===curTrack)return;curTrack=track;const file=MUSIC[track]||track;
+  function music(track){wantTrack=track;if(!ctx)return;
+    /* Klang 2.0: Musik wird im Browser erzeugt (music2.js); jeder Planet hat sein eigenes Lied */
+    if(typeof MUSIC2!=='undefined'&&st.gen!==false){const nm=(typeof GAME!=='undefined'&&GAME.G&&GAME.G.id)||'';const key=track+'|'+nm;if(key===curTrack)return;curTrack=key;
+      const old=curMusic;if(old){const t=ctx.currentTime;old.g.gain.cancelScheduledValues(t);old.g.gain.setValueAtTime(old.g.gain.value,t);old.g.gain.linearRampToValueAtTime(0,t+1.2);setTimeout(()=>{try{old.src.stop()}catch(e){}},1400)}curMusic=null;
+      MUSIC2.play(track,track==='lab'||track==='home'||track==='museum'?track:nm||track);return}
+    if(track===curTrack)return;curTrack=track;const file=MUSIC[track]||track;
     const old=curMusic;if(old){const t=ctx.currentTime;old.g.gain.cancelScheduledValues(t);old.g.gain.setValueAtTime(old.g.gain.value,t);old.g.gain.linearRampToValueAtTime(0,t+1.6);setTimeout(()=>{try{old.src.stop()}catch(e){}},1800)}
     curMusic=null;if(!track||track==='stille')return;
     Promise.resolve(load(file)).then(b=>{if(!b||curTrack!==track)return;const src=ctx.createBufferSource();src.buffer=b;src.loop=true;const g=ctx.createGain();g.gain.value=0;src.connect(g);g.connect(musicBus);src.start();
@@ -76,5 +81,5 @@ const SND=(()=>{
       src.connect(f);f.connect(g);g.connect(ambBus);src.start();a=amb[kind]={g,level:0};}
     const t=ctx.currentTime;a.g.gain.setTargetAtTime(Math.max(0,level)*.5,t,.6)}
   function set(k,v){st[k]=v;save();if(!ctx)return;if(k==='on')master.gain.setTargetAtTime(v?1:0,ctx.currentTime,.05);if(k==='music')musicBus.gain.value=v;if(k==='sfx'){sfxBus.gain.value=v;ambBus.gain.value=v*.6}if(k==='ui'&&uiBus)uiBus.gain.value=v;if(k==='voice')voiceBus.gain.value=v}
-  return{init,play,music,jingle,duck,voice,ambience,set,get st(){return st},get ready(){return!!ctx},load};
+  return{init,play,music,jingle,duck,voice,ambience,set,get st(){return st},get ready(){return!!ctx},get ctx(){return ctx},get musicBus(){return musicBus},load};
 })();
