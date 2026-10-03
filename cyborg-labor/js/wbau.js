@@ -86,5 +86,30 @@
   const S=['kapsel','ei','stapel','kuppel'];
   const PL={kompost:['kapsel','stapel','ei','kuppel'],schrott:['stapel','kapsel','kuppel'],korallen:['kuppel','ei','kapsel'],frost:['kuppel','kapsel','ei'],wueste:['kuppel','stapel','ei'],pilz:['ei','kuppel','stapel']};
   for(const pid in PL)HAUS.PLAN[pid]=PL[pid].map(s=>({fam:'kokon',style:s,fence:pid==='schrott'||pid==='wueste'?null:undefined}));
+  /* ---------- Garten im Spielzeug-Look: ersetzt Holzzaun, Hecke, Fass, Kiste, Karren, Holzstapel, Topf, Trittsteine, Bäume und Blumen der Bausätze.
+     WK.swap passt jedes Modell auf die Grundfläche des alten Teils ein, Platzierung und Kollision bleiben gleich. ---------- */
+  if(typeof WK!=='undefined'&&WK.swap){const CA=WK.CANDY;const pk=(r,a)=>a[Math.floor(r()*a.length)%a.length];let n=0;const rr=()=>srand(1000+(n++));
+    const zaun=m=>{const g=new THREE.Group();const r=rr();const c1=pk(r,[CA.strawberry,CA.bondi,CA.grape,CA.lime]),c2=pk(r,[CA.lemon,CA.tangerine,'#ffffff']);
+      for(const x of[-.5,.5]){add(g,G.cy(.035,.04,.55),ch(m),[x,.275,0]);add(g,G.s(.07),gel(m,c2),[x,.58,0])}
+      for(const[y,c]of[[.2,c1],[.42,c1]])add(g,G.cy(.035,.035,1),gel(m,c),[0,y,0],[0,0,PI/2]);return g};
+    const hecke=m=>{const g=new THREE.Group();add(g,G.bx(1,.62,.5,.22),gel(m,'#7fd34a'),[0,.31,0]);const hl=add(g,G.s(.07),m.flat('#ffffff'),[-.25,.55,.22],null,[1.6,.6,.4]);hl.userData.noOutline=true;return g};
+    const fass=m=>{const g=new THREE.Group();const r=rr();const c=pk(r,[CA.strawberry,CA.bondi,CA.grape,CA.lemon,CA.lime]);add(g,G.hs(.28),gel(m,c),[0,.28,0],[PI,0,0]);add(g,G.hs(.28),m.c('#ffffff',{opacity:.55,gloss:1.4,rim:1.3}),[0,.28,0]);add(g,G.to(.28,.025),ch(m),[0,.28,0],[PI/2,0,0]);add(g,G.s(.12),gel(m,pk(r,[CA.tangerine,CA.lime])),[0,.34,0]);return g};
+    const kiste=m=>{const g=new THREE.Group();const r=rr();const c=pk(r,[CA.bondi,CA.strawberry,CA.lemon,CA.lime,CA.grape]);add(g,G.bx(.6,.6,.6,.08),pl(m,c),[0,.3,0]);
+      const L=pk(r,['A','B','C','K','O']);const t=ctex('wb-blk-'+L,128,128,(x,w,h)=>{x.fillStyle='#fffdf7';x.beginPath();x.roundRect?x.roundRect(8,8,w-16,h-16,22):x.rect(8,8,w-16,h-16);x.fill();x.fillStyle='#3b3450';x.font='900 84px Nunito, sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(L,w/2,h/2+4)});
+      for(const[p,ry]of[[[0,.3,.302],0],[[.302,.3,0],PI/2],[[0,.3,-.302],PI],[[-.302,.3,0],-PI/2]]){const q=new THREE.Mesh(new THREE.PlaneGeometry(.44,.44),new THREE.MeshBasicMaterial({map:t,toneMapped:false}));q.position.set(...p);q.rotation.y=ry;q.userData.noOutline=true;g.add(q)}return g};
+    const topf=m=>{const g=new THREE.Group();const r=rr();add(g,G.cy(.3,.22,.42),pl(m,pk(r,[CA.strawberry,CA.bondi,CA.tangerine,CA.grape])),[0,.21,0]);add(g,G.to(.3,.04),ch(m),[0,.42,0],[PI/2,0,0]);add(g,G.s(.26),gel(m,'#7fd34a'),[0,.6,0]);add(g,G.s(.08),gel(m,CA.lemon),[.12,.78,.12]);return g};
+    const karren=m=>{const g=new THREE.Group();const r=rr();add(g,G.bx(1.2,.4,.7,.12),pl(m,pk(r,[CA.strawberry,CA.bondi,CA.lime])),[0,.42,0]);for(const x of[-.4,.4])for(const z of[-.36,.36]){add(g,G.to(.14,.05),ch(m),[x,.16,z]);add(g,G.cy(.08,.08,.06),gel(m,CA.lemon),[x,.16,z],[PI/2,0,0])}
+      add(g,G.cy(.025,.025,.7),ch(m),[.85,.55,0],[0,0,1.1]);add(g,G.s(.07),gel(m,CA.tangerine),[1.15,.72,0]);return g};
+    const stifte=m=>{const g=new THREE.Group();const cols=[CA.strawberry,CA.bondi,CA.lemon,CA.lime,CA.grape,CA.tangerine];let k=0;for(const[y,xs]of[[.11,[-.36,-.12,.12,.36]],[.31,[-.24,0,.24]],[.51,[-.12,.12]]])for(const x of xs){const c=cols[k++%6];
+      const q=grp(g,[0,y,x],[0,0,PI/2]);add(q,G.cy(.1,.1,.9),pl(m,c),[0,0,0]);add(q,G.cy(.0,.1,.18),m.c('#fbe7c8'),[0,.54,0]);add(q,G.cy(.0,.035,.07),pl(m,c),[0,.6,0])}return g};
+    const stein=m=>{const g=new THREE.Group();add(g,G.cy(.42,.44,.06),pl(m,pk(rr(),['#ffd2e6','#d8f8ff','#e9ddff','#fff3b8','#dff7c8'])),[0,.03,0]);return g};
+    const latte=m=>{const g=new THREE.Group();add(g,G.bx(1,.05,.5,.02),pl(m,pk(rr(),['#ffd2e6','#d8f8ff','#e9ddff','#fff3b8'])),[0,.025,0]);return g};
+    const beet=m=>{const g=new THREE.Group();add(g,G.bx(1.2,.22,.5,.08),pl(m,CA.tangerine),[0,.11,0]);add(g,G.bx(1.1,.04,.42,.02),m.c('#6e4a3a'),[0,.22,0]);return g};
+    const natur=(type,opt)=>m=>{const g=new THREE.Group();try{NATURE[type].b(g,m,opt||{},rr())}catch(e){console.warn('Garten',type,e)}return g};
+    const L='long';
+    WK.swap('town/fence',zaun,L);WK.swap('town/hedge',hecke,L);WK.swap('town/hedge-large',hecke,L);WK.swap('pirate/barrel',fass);WK.swap('pirate/crate',kiste);WK.swap('nature/pot_large',topf);
+    WK.swap('town/cart',karren,L);WK.swap('nature/log_stack',stifte,L);WK.swap('nature/log_stackLarge',stifte,L);WK.swap('nature/path_stone',stein);WK.swap('town/planks-half',latte,L);WK.swap('nature/crops_dirtRow',beet,L);
+    WK.swap('town/tree',natur('baum'));WK.swap('town/tree-high-round',natur('eiche'));WK.swap('town/tree-crooked',natur('baum'));WK.swap('nature/plant_bushLarge',natur('busch'));WK.swap('nature/plant_bushDetailed',natur('busch',{beeren:false}));
+    for(const f of['flower_redA','flower_redB','flower_yellowA','flower_yellowB','flower_purpleA','flower_purpleB'])WK.swap('nature/'+f,natur('blume'))}
   window.WBAU={kokon,SHAPES};
 })();
