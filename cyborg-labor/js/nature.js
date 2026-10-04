@@ -28,7 +28,7 @@ const FISH=[],BUGS=[],RELICS=[],ITEMS=[];
    Sehr dunkle Farben (Augen, Linien) und Texturen bleiben, wie sie sind. */
 const PLASTIC=new WeakMap();
 function plastic(m){if(!m||!m.c)return m;let p=PLASTIC.get(m);if(p)return p;p=Object.create(m);
-  p.c=(col,o)=>{o=o||{};let c=col;try{const t=new THREE.Color(col);const h={};t.getHSL(h);if(h.l>.3&&h.l<.9&&h.s>.12&&!o.map)c=candyCol(col)}catch(e){}
+  p.c=(col,o)=>{o=o||{};if(o.fabric){const{fabric,...r}=o;return m.c(col,r)}let c=col;try{const t=new THREE.Color(col);const h={};t.getHSL(h);if(h.l>.3&&h.l<.9&&h.s>.12&&!o.map)c=candyCol(col)}catch(e){}
     return m.c(c,Object.assign({},o,o.opacity!=null&&o.opacity<1?{}:{gloss:Math.max(o.gloss||0,1.05),rim:Math.max(o.rim||0,.85),rimColor:'#ffffff'}))};PLASTIC.set(m,p);return p}
 const wrap=b=>(g,m,opt,rnd)=>{opt=opt||{};rnd=rnd||srand(7);g.userData.fruits=g.userData.fruits||[];return b(g,plastic(m),opt,rnd)};
 const N=(type,meta,b)=>nat(type,Object.assign({},meta,{b:wrap(b)}));

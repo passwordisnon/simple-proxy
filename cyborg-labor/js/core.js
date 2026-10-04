@@ -87,7 +87,7 @@ const PBR_ONLY=['roughness','metalness','clearcoat','clearcoatRoughness','sheen'
 /* Cozy-Material: MeshToon + weicher Randlicht-Schimmer + optionaler Glanzpunkt (Plastik, Lack, Augen) */
 function cozy(o){
   o=Object.assign({},o||{});for(const k of PBR_ONLY)delete o[k];if(typeof o.emissive==='string'){}const rim=o.rim??.35, gloss=o.gloss??0, rimCol=new THREE.Color(o.rimColor||'#fff6ec');
-  delete o.rim;delete o.gloss;delete o.rimColor;
+  delete o.rim;delete o.gloss;delete o.rimColor;delete o.fabric;
   const m=new THREE.MeshToonMaterial(Object.assign({gradientMap:TOON_RAMP},o));
   m.userData.rim=rim;m.userData.gloss=gloss;
   m.onBeforeCompile=s=>{s.uniforms.uRim={value:rim};s.uniforms.uGloss={value:gloss};s.uniforms.uRimCol={value:rimCol};
@@ -401,7 +401,7 @@ function mergeGroup(root,keep){root.updateMatrixWorld(true);const inv=new THREE.
       /* gespiegelte Teile: Dreiecksreihenfolge umdrehen, sonst kippen Aussenseite und Konturhülle */
       if(MX.determinant()<0){for(const an of Object.keys(geo.attributes)){const at=geo.attributes[an],isz=at.itemSize,arr=at.array;for(let t=0;t<at.count;t+=3){for(let c=0;c<isz;c++){const i1=(t+1)*isz+c,i2=(t+2)*isz+c,tmp=arr[i1];arr[i1]=arr[i2];arr[i2]=tmp}}at.needsUpdate=true}}
       return geo};
-    const geo=prep(o.geometry,pre?['color']:[]);const bake=pre||canBake(mt);const ds=mt.side===THREE.DoubleSide,gl=mt.userData.gloss>0;
+    const geo=prep(o.geometry,pre?['color']:[]);const bake=pre||canBake(mt);const ds=mt.side===THREE.DoubleSide,gl=mt.userData.gloss>.3;
     const key=bake?'VC'+(ds?'d':'')+(gl?'g':'')+'|'+(o.castShadow?1:0):mt.uuid+'|'+(hull?hull.material.uuid:'')+'|'+(o.castShadow?1:0);
     if(!pre)paintGeo(geo,bake?mt.color:WHITE);
     if(!buckets.has(key))buckets.set(key,{mat:bake?vcMat(ds,gl):mt,vc:bake,hull:!bake&&hull&&hull.material,cast:o.castShadow,list:[],hl:[]});
