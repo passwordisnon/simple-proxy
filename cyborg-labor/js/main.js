@@ -104,7 +104,7 @@ const MAIN=(()=>{
   /* ---------- Schleife ---------- */
   const clock=new THREE.Clock();let fpsT=0,frames=0;
   function loop(){requestAnimationFrame(loop);const dt=Math.min(.05,clock.getDelta());const t=clock.elapsedTime;UI.pumpThumbs();
-    try{if(tab==='lab')LAB.frame(dt,t);else if(worldReady){GAME.frame(dt,t);if(typeof PIKO!=='undefined')PIKO.frame(dt,t);if(typeof WSTORY!=='undefined')WSTORY.frame(dt)}}catch(e){console.error(e)}
+    try{if(tab==='lab')LAB.frame(dt,t);else if(worldReady){GAME.frame(dt,t);if(typeof PIKO!=='undefined')PIKO.frame(dt,t);if(typeof WSTORY!=='undefined')WSTORY.frame(dt);if(typeof WSTORY2!=='undefined')WSTORY2.frame(dt)}}catch(e){console.error(e)}
     /* automatische Qualitätsanpassung bei sehr langsamen Geräten */fpsT+=dt;frames++;if(fpsT>6){const fps=frames/fpsT;fpsT=0;frames=0;if(fps<22&&HIGH&&tab==='world'){HIGH=false;updQ();LAB.quality();GAME.quality();UI.toast('Grafik auf «schnell» gestellt, damit es flüssig läuft.')}}}
   function boot(){renderBody();renderParts();renderCards();renderChecklist();LAB.rebuild();LAB.resize();UI.hud();loop();setTimeout(()=>{$('loading').style.opacity='0';setTimeout(()=>$('loading').hidden=true,500)},250);
     /* Startbildschirm: Spielen (Schüler:innen) oder Beamer-Ansicht (Lehrperson) */START.show()}

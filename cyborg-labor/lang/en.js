@@ -5822,7 +5822,26 @@ I18N.addPack('en',{
 "Terminal lesen": "Read the terminal",
 "Unter der letzten Zeile blinkt der Cursor. Daneben steht dein Name.": "The cursor blinks under the last line. Next to it is your name.",
 "Wartungsluke": "Maintenance hatch",
-"> type SCHLAEFER.TXT": "> type SLEEPERS.TXT"
+"> type SCHLAEFER.TXT": "> type SLEEPERS.TXT",
+"00:00! Die Uhr läuft wieder! Wir haben es geschafft – zusammen.": "00:00! The clock is running again! We did it – together.",
+"Akt I · Gute Nacht": "Act I · Good Night",
+"Akt II · Risslinge": "Act II · Rift Creatures",
+"Akt III · Wartung": "Act III · Maintenance",
+"Akt IV · Der Kern": "Act IV · The Core",
+"Finale · 00:00": "Finale · 00:00",
+"Prolog · 23:59": "Prologue · 23:59",
+"Alle sieben Logbücher! Hinter der Sonne flackert etwas Rotes. Der Glitch-Kern.": "All seven logbooks! Something red is flickering behind the sun. The Glitch Core.",
+"Die Bürgermeisterin hat einen neuen Witz erzählt. Einen, den ich noch nie gehört habe!": "The mayor told a new joke. One I've never heard before!",
+"Die Logbücher ergeben Koordinaten hinter der Sonne. Dort flackert der Glitch-Kern.": "The logbooks give coordinates behind the sun. The Glitch Core flickers there.",
+"Die Risse kommen nicht von draussen. Sie kommen aus Kokon selbst. Lass uns zu einer Wartungsstation im All fliegen.": "The rifts don't come from outside. They come from Kokon itself. Let's fly to a maintenance station in space.",
+"Es ist 00:00! Hörst du? Alle Uhren ticken wieder.": "It's 00:00! Can you hear it? All the clocks are ticking again.",
+"Flieg zum roten Kern hinter der Sonne und dock an. Ich komme mit, versprochen.": "Fly to the red core behind the sun and dock. I'll come with you, promise.",
+"Heute Abend gibt es endlich Feuerwerk. Wirklich, diesmal ist es fertig!": "Tonight there are finally fireworks. Really, this time they're ready!",
+"Im Weltraum kreisen sieben Wartungsstationen. Fliege nah heran und drück E zum Andocken.": "Seven maintenance stations orbit in space. Fly close and press E to dock.",
+"In jeder Station melden drei Paneele Störungen. Wer sie repariert, darf das Logbuch lesen.": "In every station three panels report faults. Whoever repairs them may read the logbook.",
+"Mit dem Code aus einem Logbuch öffnen sich die Wartungsluken einer ganzen Planeten-Gruppe.": "With the code from a logbook, the maintenance hatches of a whole planet group open.",
+"Morgen ist ein neuer Tag. Ich weiss noch nicht, was passiert. Ist das nicht schön?": "Tomorrow is a new day. I don't know yet what will happen. Isn't that lovely?",
+"Sechs Risslinge … Ich glaube, die Risse kommen aus Kokon selbst. Im All gibt es Wartungsstationen. Lass uns nachsehen!": "Six rift creatures … I think the rifts come from Kokon itself. There are maintenance stations in space. Let's take a look!"
 },
 "t": {
 " (ca. {0} m entfernt)": " (about {0} m away)",
@@ -6171,6 +6190,7 @@ I18N.addPack('en',{
 "Unter den Wortsteinen der Ruinen stehen Zeilen von Kokon 95 und Kokon 97. Gefunden: {0} von {1}.": "Under the word stones in the ruins are lines from Kokon 95 and Kokon 97. Found: {0} of {1}.",
 "«{0}»": "“{0}”",
 "Daneben ein Tastenfeld. Den Zugangscode findest du im Logbuch von {0}.": "Next to it, a keypad. You'll find the access code in the logbook of {0}.",
-"{0}. Leer. Im Polster liegt ein Haargummi und ein zerknitterter Zettel: «Bin draussen. Bis gleich.»": "{0}. Empty. On the cushion lie a hair tie and a crumpled note: “I'm outside. Back soon.”"
+"{0}. Leer. Im Polster liegt ein Haargummi und ein zerknitterter Zettel: «Bin draussen. Bis gleich.»": "{0}. Empty. On the cushion lie a hair tie and a crumpled note: “I'm outside. Back soon.”",
+" · Logbücher {0} von 7": " · Logbooks {0} of 7"
 }
 });
