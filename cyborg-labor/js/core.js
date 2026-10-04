@@ -21,8 +21,9 @@ const PAL={
 const G={
   s:(r)=>new THREE.SphereGeometry(r,Q(28),Q(18)),
   hs:(r)=>new THREE.SphereGeometry(r,Q(28),Q(10),0,TAU,0,PI/2),
-  cy:(rt,rb,h,open)=>new THREE.CylinderGeometry(rt,rb,h,Q(24),1,!!open),
-  co:(r,h)=>new THREE.ConeGeometry(r,h,Q(18)),
+  /* cy(rt,rb,h,open) oder cy(rt,rb,h,segmente,höhensegmente,open,thetaStart,thetaLänge): eine Zahl > 1 an vierter Stelle ist die Segmentzahl */
+  cy:(rt,rb,h,a,b,c,ts,tl)=>typeof a==='number'&&a>1?new THREE.CylinderGeometry(rt,rb,h,Math.max(3,Math.round(a)),b||1,!!c,ts||0,tl??TAU):new THREE.CylinderGeometry(rt,rb,h,Q(24),1,!!a),
+  co:(r,h,seg)=>new THREE.ConeGeometry(r,h,seg>=3?Math.round(seg):Q(18)),
   bx:(w,h,d,rad)=>rad?new THREE.RoundedBoxGeometry(w,h,d,Math.max(2,Math.round(4*QF)),Math.min(rad,Math.min(w,h,d)/2-1e-3)):new THREE.BoxGeometry(w,h,d),
   to:(R,t,arc)=>new THREE.TorusGeometry(R,t,Q(12),Q(40),arc||TAU),
   ca:(r,len)=>new THREE.CapsuleGeometry(r,Math.max(1e-3,len),Q(8),Q(18)),
