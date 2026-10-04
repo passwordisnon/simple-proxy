@@ -616,7 +616,7 @@ function bugFace(g,m,c,r,sep,o){o=o||{};both(s=>eye(g,m,[c[0]+s*r*(sep??.55),c[1
 function wingPair(g,m,mat,shape,pos,size,raise,yaw,th){const geo=G.puff(shape,th||.04,(th||.04)*.35);both(s=>{const w=grp(g,pos,[0,s*(yaw||0),s>0?(raise||0):PI-(raise||0)]);P(w,geo,mat,[0,0,0],[PI/2,0,0],[size,size,1])})}
 const WING={fore:sshp([[0,.02],[.18,.5],[.55,.95],[.98,.92],[.98,.55],[.55,.12],[.1,-.05]]),hind:sshp([[0,0],[.1,-.05],[.6,-.3],[.82,-.62],[.5,-.85],[.18,-.6],[0,-.2]]),
   drag:sshp([[0,.03],[.3,.1],[.85,.12],[1,.05],[.9,-.04],[.4,-.06],[0,-.03]]),bee:sshp([[0,0],[.25,.18],[.7,.25],[.95,.12],[.8,-.05],[.3,-.08]])};
-function wingTex(key,draw,hind){const t=ctex('wing-'+key,256,256,(x,w,h)=>{x.save();x.translate(0,h);x.scale(w,-h);if(hind)x.translate(0,1);draw(x);x.restore()});t.wrapS=t.wrapT=THREE.RepeatWrapping;return t}
+function wingTex(key,draw,hind){if(typeof draw==='string'){const c=draw;draw=x=>{x.fillStyle=c;x.fillRect(0,-1,1,2);x.fillStyle='rgba(255,255,255,.35)';x.beginPath();x.arc(.55,hind?-.45:.55,.12,0,TAU);x.fill()}}const t=ctex('wing-'+key,256,256,(x,w,h)=>{x.save();x.translate(0,h);x.scale(w,-h);if(hind)x.translate(0,1);draw(x);x.restore()});t.wrapS=t.wrapT=THREE.RepeatWrapping;return t}
 function shellDome(g,m,col,c,r,len,o){o=o||{};const sh=P(g,G.s(r),o.mat||m.c(col,{gloss:1.1,rim:.5}),c,null,[1,.72,len]);if(o.line!==false)P(g,G.bx(.016,.02,r*len*1.9,.006),m.c(shade(col,.55)),[c[0],c[1]+r*.72-.004,c[2]],[0,0,0]);return sh}
 
 /* --- Kompost --- */
