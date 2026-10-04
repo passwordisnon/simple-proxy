@@ -73,7 +73,7 @@ const GAME=(()=>{
     for(let i=0;i<6;i++){const m=new THREE.Mesh(new THREE.SphereGeometry(.42,16,12,i*TAU/6,TAU/6),M.c(cols[i],{gloss:1}));g.add(m)}P(g,G.s(.08),M.c('#FFFDF7'),[0,.42,0]);QF=1;addOutlines(g);g.traverse(o=>{if(o.isMesh)o.castShadow=HIGH});
     const p=pl.dir.clone().applyAxisAngle(new V3(0,0,1),.12).normalize();G_.scene.add(g);G_.ball={g,p,v:new V3(),spin:new THREE.Quaternion(),r:.42}}
   function stepBall(dt){const b=G_.ball;if(!b||!me)return;const d=angle(b.p,me.p)*G_.R;
-    if(d<.95&&me.speed>.2){const dir=tangentTo(b.p,b.p.clone().sub(me.p));if(isFinite(dir.x)){b.v.copy(dir.multiplyScalar(me.speed*1.35+1.5));SND.play('soft',{vol:.7,rate:1.3});W.fx(b.p,'stern',3)}}
+    if(d<.95&&me.speed>.2){const dir=tangentTo(b.p,b.p.clone().sub(me.p));if(isFinite(dir.x)){b.v.copy(dir.multiplyScalar(me.speed*1.35+1.5));SND.play('kick',{vol:.6});W.fx(b.p,'stern',3)}}
     for(const e of ents.values()){if(e===me||e.kind==='peer')continue;const de=angle(b.p,e.p)*G_.R;if(de<.8&&b.v.length()>.5){const dir=tangentTo(b.p,b.p.clone().sub(e.p));if(isFinite(dir.x)){b.v.reflect(dir).multiplyScalar(.7);if(Math.random()<.5)say(e,pick(['Hey!','Uff!','Tor!','Hoppla!']),1.5)}}}
     const sp=b.v.length();if(sp>.01){const dir=b.v.clone().normalize();const ang=sp*dt/G_.R;const axis=new V3().crossVectors(b.p,dir).normalize();const np=b.p.clone().applyAxisAngle(axis,ang).normalize();
       let hit=false;for(const o of obstAround(np,3)){if(angle(np,o.p)*G_.R<o.r+b.r){hit=true;const n=tangentTo(np,np.clone().sub(o.p));b.v.reflect(n).multiplyScalar(.75);SND.play('soft',{vol:.4,rate:1.6});break}}
@@ -178,6 +178,8 @@ const GAME=(()=>{
     QF=1;addOutlines(g);g.traverse(o=>{if(o.isMesh){o.castShadow=HIGH;o.receiveShadow=true}});g.userData.oars=oars;return g}
   function moorBoat(b,p,dir){b.p.copy(p);b.dir.copy(dir);b.moving=false;if(!b.it){b.it={kind:'boat',p:b.p,r:1.7,label:'Ins Boot steigen',act:()=>board(b)};G_.inter.push(b.it)}}
   function board(b){if(!me||me.boat)return;me.boat=b;me.p.copy(b.p);me.dir.copy(tangentTo(me.p,b.dir));const i=G_.inter.indexOf(b.it);if(i>=0)G_.inter.splice(i,1);b.it=null;SND.play('soft',{vol:.6,rate:.8});UI.toast('Rudern: einfach losfahren. Am Ufer steigst du von selbst aus.',3200)}
+  /* Schrittgeräusch nach Untergrund: Schnee, Pflaster, Holzsteg, Gras */
+  function stepSurface(p,h){const b=G_.biomeAt(p,h)||'';if(/schnee|eis|polar|frost|gletscher/.test(b))return'step_snow';if(G_.roadDist&&G_.roadDist(p)*G_.R<1.2)return'step_concrete';if(nearPlace(p,.6))return'step_concrete';if(/steg|holz|planken/.test(b))return'step_wood';return'step_grass'}
   function leaveBoat(e,land){const b=e.boat;e.boat=null;moorBoat(b,e.p.clone(),e.dir.clone());e.p.copy(land);SND.play('step_grass',{vol:.4})}
   function buildDocks(){G_.boats=[];const r=srand(hashStr('dock'+G_.id).length*131+5);const out=[];const hx=G_.hExact||G_.hAt;
     for(let i=0;i<500&&out.length<(G_.stream?4:2);i++){const p=randLand(r,G_.sea+.08,G_.sea+.7,1,G_.stream?140:G_.R*1.5);if(!p||nearPlace(p,1.3))continue;if(out.some(q=>angle(q,p)*G_.R<25))continue;
@@ -355,7 +357,7 @@ const GAME=(()=>{
       e.via={to:target,y,pts:a?[y.gin,y.gout]:[y.gout,y.gin]};return e.via.pts[0]}return target}
   /* KI am Tor: aufmachen und kurz warten, bis es offen ist */
   function gateWait(e){const g=e.via&&e.via.y&&e.via.y.gate;if(!g||angle(e.p,g.c)*G_.R>1.35)return false;if(g.want<.5){g.want=1;g.byKI=true;g.idle=0;e.act=.6;if(angle(e.p,me?me.p:e.p)*G_.R<14)SND.play('soft',{vol:.35,rate:1.2})}return g.open<.75}
-  function stepVillager(e,dt,t){e.stop=Math.max(0,e.stop-dt);e.dance=Math.max(0,e.dance-dt);e.jump=Math.max(0,e.jump-dt);e.act=Math.max(0,e.act-dt*1.3);
+  function stepVillager(e,dt,t){e.stop=Math.max(0,e.stop-dt);e.dance=Math.max(0,e.dance-dt);{const j0=e.jump;e.jump=Math.max(0,e.jump-dt);if(j0>0&&e.jump===0&&e===me)SND.play('land',{vol:.35})}e.act=Math.max(0,e.act-dt*1.3);
     /* Fähigkeiten */
     if(e.kind==='villager'&&mode==='outdoor'&&G_.id==='kompost'){for(const a of e.abs){const A=ABIL[a];if(!A.act)continue;e.cd[a]-=dt;if(e.cd[a]>0||e.goal||e.stop>0||e.talking)continue;e.cd[a]=(A.cd||8)*(1.6+Math.random()*1.2);
       try{if(A.need){const tt=W.nearest(A.need.t,e.p,A.need.r*1.5);if(tt){e.goal={p:tt.p,prop:tt,then:()=>{if(!tt.dying){A.act(e,W,tt);e.act=1}}}}else if(A.alone){A.act(e,W,null);e.act=1}}else{A.act(e,W,null);e.act=1}}catch(err){}break}}
@@ -492,7 +494,7 @@ const GAME=(()=>{
   function landOn(pid){fadeOut(async()=>{mode='outdoor';SND.play('whoosh');await arrive(pid)})}
   /* Ankunft: neben der Raketenstation; auf neuen Planeten (und manchmal sonst) gibt es eine Bruchlandung */
   async function arrive(pid){if(typeof MYPLANET!=='undefined')MYPLANET.onArrive(pid);planetId=pid;SAVE.planet=pid;const tp=townPlaces(pid).find(p=>p.id==='rakete');if(tp){const d=dirLL(tp.lat-4.5*46/PLANETS[pid].R,tp.lon);SAVE.lastPos={planet:pid,p:[d.x,d.y,d.z]}}
-    const first=!(SAVE.visited||{})[pid];SAVE.visited=Object.assign(SAVE.visited||{},{[pid]:true});persist();await loadPlanet(pid);SND.music(G_.def.music);UI.toast('Willkommen auf dem '+G_.def.n+'!');
+    const first=!(SAVE.visited||{})[pid];SAVE.visited=Object.assign(SAVE.visited||{},{[pid]:true});persist();await loadPlanet(pid);SND.music(G_.def.music);SND.play('fall',{vol:.5});UI.toast('Willkommen auf dem '+G_.def.n+'!');
     if(!PLANETS[pid].mine&&!SAVE.rocketShield&&!SAVE.rocketBroken&&(first&&pid!=='kompost'||Math.random()<.2))setTimeout(()=>REPAIR.crash(),900)}
   function fadeOut(fn){const f=$('fade');f.classList.add('on');setTimeout(async()=>{await fn();setTimeout(()=>f.classList.remove('on'),120)},380)}
   async function loadPlanet(pid){try{if(typeof HAUS!=='undefined'&&!HAUS.ready)await HAUS.load()}catch(e){console.warn('Bausätze',e)}try{const pk=PLANETS[pid]&&PLANETS[pid].packs;if(pk&&typeof KIT!=='undefined')await Promise.all(pk.map(p=>KIT.load(p)))}catch(e){console.warn('Planeten-Bausätze',e)}try{typeof FUNDUS!=='undefined'&&await FUNDUS.onPlanet(pid)}catch(e){console.warn('Fundus',e)}/* alte Szene abbauen */for(const id of[...ents.keys()])dropEnt(id);me=null;W.props.length=0;parts.length=0;
@@ -549,7 +551,7 @@ const GAME=(()=>{
       if(mag>.1){mvv.normalize();fixDir(me,mvv);me.dir.lerp(mvv,Math.min(1,dt*10)).normalize();me.dir.copy(tangentTo(me.p,me.dir));fixDir(me,mvv);spd=(me.boat?(run?7.5:5.2):(run?6.8:3.8)*Math.min(1.35,Math.max(.6,me.move.sp)))*mag*(me.boost>0?1.45:1)*(1-.45*(me.climb||0));if(!moveEnt(me,mvv,spd,dt)){spd=0}}
       me.speed=spd;if(spd>0&&me.emote){me.emote=null;me.emoteT=0;me.dance=0}
       /* Schritte */
-      if(spd>0&&!me.move.alt){stepT-=dt*spd*.55;if(stepT<=0){stepT=1;if(run&&Math.random()<.7)W.fx(me.p,'staub',2,onSurf(me.p,.15));const h=G_.hAt(me.p);if(h>G_.sea+.05)SND.play(h<G_.sea+.4?'step_grass':'step_grass',{vol:.28,jitter:.15});else SND.play('soft',{vol:.2,rate:1.4,jitter:.2})}}
+      if(spd>0&&!me.move.alt){stepT-=dt*spd*.55;if(stepT<=0){stepT=1;if(run&&Math.random()<.7)W.fx(me.p,'staub',2,onSurf(me.p,.15));const h=G_.hAt(me.p);if(h>G_.sea+.05)SND.play(stepSurface(me.p,h),{vol:.28,jitter:.15});else SND.play('soft',{vol:.2,rate:1.4,jitter:.2})}}
       if(!viewer)SAVE.lastPos={planet:G_.id,p:[+me.p.x.toFixed(4),+me.p.y.toFixed(4),+me.p.z.toFixed(4)]}}
     /* Figuren */
     for(const e of ents.values()){try{if(e===me||e.kind==='peer'){}else stepVillager(e,dt,t);if(e.kind==='peer')SOCIAL.stepPeer(e,dt)}catch(err){if(!e.errLogged){e.errLogged=1;console.warn('Figur',e.d&&e.d.id,err)}}}

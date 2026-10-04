@@ -28,7 +28,7 @@ const MAIN=(()=>{
     mid.append(tm,pk,say,appName,info);const scan=el('i','eg-scan');dial.append(ring,mid,scan);
     const list=[];const A=(ic,n,bg,fn,line)=>{const b=el('button','eg-ic');b.type='button';const i=el('b');i.innerHTML=ICON(ic);i.style.background=bg;b.append(i);b.setAttribute('aria-label',n);b.title=n;
       const k=list.length;b.onclick=()=>{if(k===cur())openSel();else turnTo(k)};ring.append(b);list.push({b,n,fn,line})};
-    A('bag','Tasche','#FFD35C',()=>ACT.bag(),'Was hast du heute gesammelt?');A('book','Lexikon','#7FDCE6',()=>ACT.lexikon(),'Schlagen wir nach, was du gefunden hast?');
+    A('bag','Tasche','#FFD35C',()=>{SND.play('leather',{vol:.5});ACT.bag()},'Was hast du heute gesammelt?');A('book','Lexikon','#7FDCE6',()=>ACT.lexikon(),'Schlagen wir nach, was du gefunden hast?');
     A('paw','Tiere','#A6EBC3',()=>FAUNA.lexikon(),'Tiere! Mein Lieblingsthema.');A('rocket','Reisen','#FFC9A8',()=>UI.toast('Zur Rakete am Dorfrand gehen, um zu reisen.',3000),'Die Rakete wartet am Dorfrand.');
     A('star','Kleider','#F2A8C4',()=>BOUTIQUE.wardrobe(),'Etwas Neues anziehen?');A('palette','Designs','#FF8FB1',designsApp,'Malen wir zusammen?');A('house','Hausbau','#FFB27A',()=>houseBuilder(),'Dein Haus braucht bestimmt noch ein Zimmer.');
     A('coin','Jobs','#FFD35C',()=>JOBS.app(),'Ein bisschen arbeiten, ein paar Taler verdienen.');A('leaf','Terraform','#8FD07A',()=>MYPLANET.app(),'Lass uns deinen Planeten verschönern.');

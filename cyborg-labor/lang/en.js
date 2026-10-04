@@ -6101,7 +6101,9 @@ I18N.addPack('en',{
 "Ich hab eine Wachsmotte gefangen! Sie riecht ein bisschen nach Kerze.": "I caught a wax moth! It smells a bit like a candle.",
 "Die Raupen der Wachsmotte können sogar Plastiktüten anknabbern. Forschende untersuchen, ob das beim Aufräumen helfen kann.": "Wax moth caterpillars can even nibble plastic bags. Researchers are studying whether that could help clean up.",
 "Ich hab einen Rosenkäfer gefangen! Er glänzt grün wie ein Edelstein.": "I caught a rose chafer! It shines green like a gemstone.",
-"Der Rosenkäfer kann fliegen, ohne die Flügeldecken ganz aufzuklappen. Er schiebt die Flügel einfach seitlich heraus.": "The rose chafer can fly without fully opening its wing cases. It simply slides its wings out at the sides."
+"Der Rosenkäfer kann fliegen, ohne die Flügeldecken ganz aufzuklappen. Er schiebt die Flügel einfach seitlich heraus.": "The rose chafer can fly without fully opening its wing cases. It simply slides its wings out at the sides.",
+"Kochen": "Cook",
+"Es duftet herrlich.": "Something smells wonderful."
 },
 "t": {
 " (ca. {0} m entfernt)": " (about {0} m away)",

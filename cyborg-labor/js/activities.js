@@ -84,7 +84,7 @@ const ACT=(()=>{
         else if(r<.32){const id=pick(['ast','ast','blatt_herbst','kiefernzapfen'].filter(x=>findIn(ITEMS,x)));const it=findIn(ITEMS,id);if(it){const p=GAME.W.near(tr.p,.05);const g=mkObj(gg=>it.b(gg,M,{},srand(1)),.55);GAME.placeObj(g,p,0,-.02);pickups.push({kind:'item',id,p,g,label:it.n+' aufheben'});g.userData.drop=0}}
         else if(r<.45){const pool=bugPool().filter(b=>b.where==='baum');if(pool.length){const b=weighted(pool);const p=GAME.W.near(tr.p,.04);const g=mkObj(gg=>b.b(gg,M,{},srand(1)),.32);GAME.placeObj(g,p,0,.05);bugs.push({def:b,p,home:p.clone(),g,ph:0,fly:false,flee:0,alive:true});UI.toast('Da ist etwas runtergefallen!')}}}},500)}
   /* ---------- Stein hauen (Tierdorf: Schaufel auf Felsen) ---------- */
-  function hitRock(rk){const day=Math.floor(Date.now()/864e5);if(rk.day!==day){rk.day=day;rk.hits=0}const me=GAME.me;me.act=1;SND.play('metal',{vol:.8});GAME.W.fx(rk.p,'staub',8,GAME.onSurf(rk.p,1));
+  function hitRock(rk){const day=Math.floor(Date.now()/864e5);if(rk.day!==day){rk.day=day;rk.hits=0}const me=GAME.me;me.act=1;SND.play('hit_rock',{vol:.8});GAME.W.fx(rk.p,'staub',8,GAME.onSurf(rk.p,1));
     if(rk.hits>=3){UI.toast('Aus diesem Stein kommt heute nichts mehr.');return}rk.hits++;const pid=GG().id;
     const pool={frost:['eiskristall','stein_klein','kiesel'],wueste:['wuestenrose','stein_klein','kiesel'],schrott:['schraube','kabelrest','stein_klein'],pilz:['leuchtspore','stein_klein','kiesel']}[pid]||PLANETS[pid]&&PLANETS[pid].stones||['stein_klein','kiesel','stein_klein'];
     const id=pick(pool.filter(x=>findIn(ITEMS,x)));if(Math.random()<.08){money(25);SND.play('coins');UI.toast('25 Taler sprangen aus dem Stein!');return}

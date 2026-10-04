@@ -160,7 +160,7 @@ const BUILDINGS=(()=>{
       for(const g of a.guests){g.g.userData.tick&&g.g.userData.tick(t,false,0);if(g.dance){g.g.rotation.y+=Math.sin(t*3)*dt*2;g.g.position.y=Math.abs(Math.sin(t*112/60*PI))*.18}}
       const me=GAME.me;if(me&&me.dance>0){me.iyaw+=dt*2}},
     leave(){JAZZ.stop();closeJam()}};
-  function drinks(){const w=UI.win('Getränke',{size:'narrow'});w.body.append(el('p','sub','Alles ohne Alkohol – aber mit Wirkung!'));
+  function drinks(){SND.play('pot',{vol:.5});const w=UI.win('Getränke',{size:'narrow'});w.body.append(el('p','sub','Alles ohne Alkohol – aber mit Wirkung!'));
     const D=[['Sternenlimo','Prickelt! Du rennst eine Weile schneller.',60,()=>{GAME.me.boost=90;UI.toast('Du fühlst dich superschnell!')}],['Kompost-Kakao','Warm und gemütlich. Alle in der Nähe mögen dich ein bisschen mehr.',80,()=>{for(const e of GAME.ents.values())if(e.life&&e!==GAME.me)SAVE.friendship[e.d.id]=Math.min(100,(SAVE.friendship[e.d.id]||0)+1);persist()}],['Glitzer-Tee','Du glitzerst eine Weile.',120,()=>{GAME.me.glitter=90}],['Polarlicht-Shake','Kühl und bunt! Du tanzt sofort los.',100,()=>{GAME.me.dance=8}]];
     const gr=el('div','grid');for(const[n,d,p,f]of D){const c=el('button','card');c.type='button';c.append(el('b',null,n),el('span','sub',d),el('span','sub',p+' Taler'));c.onclick=()=>{if(SAVE.money<p){SND.play('error');UI.toast('Zu wenig Taler.');return}money(-p);SAVE.stats.drinks=(SAVE.stats.drinks||0)+1;persist();SND.play('soft');f();w.close();GAME.say(GAME.me,'icon:sparkle',2,true)};gr.append(c)}w.body.append(gr)}
   /* ---------- Mitspielen ---------- */

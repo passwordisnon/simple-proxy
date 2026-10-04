@@ -9,6 +9,28 @@ const SND=(()=>{
     j_catch:1,j_catch_big:1,j_success:1,j_buy:1,j_museum:1,j_release:1,j_fail:1};
   for(let i=0;i<5;i++){FILES['step_grass'+i]=1;FILES['step_wood'+i]=1}
   const GROUPS={step_grass:5,step_wood:5};
+  /* Klang-Fundus: jeder Name hat einen Pool aus Varianten (alte Dateien plus alle Kenney-Klänge in audio/sfx).
+     Präfixe werden gegen SFXLIST (js/sfx-list.js) aufgelöst, so steckt jede Datei in genau einem Pool. */
+  const PRE={click:['ui_click','ui2_click','ui2_mouseclick','ui2_mouserelease'],select:['ui_select','ui2_rollover'],open:['ui_open','ui_maximize'],close:['ui_close','ui_minimize','ui_back'],
+    confirm:['ui_confirmation','ui_bong'],toggle:['ui_toggle','ui_switch','ui2_switch'],error:['ui_error'],page:['rpg_bookFlip','ui_scroll'],pep:['dig_pepSound'],powerup:['dig_powerUp'],
+    whoosh:['dig_phaseJump'],metal:['imp_impactMetal_light','imp_impactMetal_medium','rpg_metalClick','rpg_metalLatch'],chop:['rpg_chop','imp_impactWood_light','imp_impactWood_medium'],
+    coins:['rpg_handleCoins'],cloth:['rpg_cloth','rpg_clothBelt','rpg_beltHandle'],door_open:['rpg_doorOpen'],door_close:['rpg_doorClose'],door:['rpg_doorOpen'],creak:['rpg_creak'],
+    glass:['ui_glass','imp_impactGlass_light'],bell:['imp_impactBell_heavy'],build:['imp_impactPlank_medium','imp_impactWood_heavy'],place:['ui_drop'],soft:['imp_impactSoft_medium'],pop:['ui_pluck','ui_tick'],
+    thunder:['imp_impactPunch_heavy'],step_grass:['imp_footstep_grass'],step_wood:['imp_footstep_wood','rpg_footstep'],step_snow:['imp_footstep_snow'],step_concrete:['imp_footstep_concrete'],step_carpet:['imp_footstep_carpet'],
+    hit_rock:['imp_impactMining'],hit_metal:['imp_impactMetal_heavy'],hit_glass:['imp_impactGlass_medium','imp_impactGlass_heavy'],hit_plate:['imp_impactPlate_light','imp_impactPlate_medium','imp_impactPlate_heavy'],hit_tin:['imp_impactTin_medium'],hit_wood:['imp_impactWood_heavy'],
+    land:['imp_impactSoft_heavy'],kick:['imp_impactPunch_medium','imp_impactGeneric_light'],book_open:['rpg_bookOpen'],book_close:['rpg_bookClose'],book_place:['rpg_bookPlace'],knife:['rpg_knifeSlice','rpg_drawKnife'],
+    pot:['rpg_metalPot'],leather:['rpg_dropLeather','rpg_handleSmallLeather'],glitch:['ui_glitch','ui_scratch','dig_zap','dig_zapTwoTone'],laser:['dig_laser'],space:['dig_spaceTrash'],
+    beep:['dig_tone','dig_twoTone','dig_threeTone','dig_lowThreeTone'],rise:['dig_highUp','dig_phaserUp','dig_zapThreeToneUp'],fall:['dig_highDown','dig_lowDown','dig_phaserDown','dig_zapThreeToneDown','dig_lowRandom'],question:['ui_question']};
+  const POOL={};const LIST=typeof SFXLIST!=='undefined'?SFXLIST:[];
+  for(const[k,pres]of Object.entries(PRE)){const L=POOL[k]=[];if(FILES[k])L.push(k);for(let i=0;i<5;i++)if(FILES[k+i])L.push(k+i);if(k==='coins'&&FILES.coins2)L.push('coins2');
+    for(const pr of pres)for(const f of LIST)if(f===pr||(f.startsWith(pr)&&/^[_\d]*$/.test(f.slice(pr.length))))L.push('sfx/'+f)}
+  /* Jingles: je Planetengruppe eine Familie (Kenney Music Jingles), je Anlass eigene Nummern */
+  const JFAM={kompost:'pizzicato',schrott:'pizzicato',pilz:'pizzicato',heim:'pizzicato',urzeit:'hit',dinofabrik:'hit',bauklotz:'hit',pluesch:'hit',bernstein:'hit',metro:'sax',kaufhaus:'sax',magnetbahn:'sax',nachtmarkt:'sax',
+    dschungel:'steel',tiefsee:'steel',korallen:'steel',riesengarten:'steel',honigwabe:'steel',wolkenarchipel:'pizzicato',wetterwerk:'pizzicato',frost:'pizzicato',wueste:'steel',origami:'pizzicato',
+    klang:'sax',bibliothek:'pizzicato',uhrwerk:'pizzicato',schoner:'8bit',neonarkade:'8bit',funkturm:'8bit',rechenzentrum:'8bit',pixelmond:'8bit',kassette:'sax',keim:'pizzicato',gluehwurm:'steel',drachen:'hit'};
+  const JIDX={j_catch:[0,1,2],j_catch_big:[3,4,5],j_success:[6,7,8],j_buy:[9,10],j_fail:[11,12],j_museum:[13,14],j_release:[15,16]};
+  function jingleFile(name){const ix=JIDX[name];if(!ix)return null;const id=(typeof GAME!=='undefined'&&GAME.G&&GAME.G.id)||'kompost';const fam=JFAM[id]||'pizzicato';
+    const f='jin_'+fam+'_'+String(ix[Math.floor(Math.random()*ix.length)]).padStart(2,'0');return LIST.includes(f)?'sfx/'+f:null}
   const MUSIC={world:'mus_world',lab:'mus_lab',shop:'mus_shop',home:'mus_home',museum:'mus_museum',town:'mus_town'};
   let ctx=null,master,musicBus,sfxBus,voiceBus,ambBus,uiBus;
   /* Bus-Zuordnung: Menü-Klänge laufen getrennt von Werkzeug-/Weltgeräuschen (eigener Regler, eigene Dynamik) */
@@ -29,7 +51,7 @@ const SND=(()=>{
     /* Tag/Nacht: alle 20 s prüfen, ob ein anderes Stück passt (gleiches Stück läuft einfach weiter) */setInterval(()=>{if(wantTrack==='world'||wantTrack==='town')music(wantTrack)},20000)}
   function load(name){if(buf[name]||loading[name])return loading[name];if(!ctx)return null;
     loading[name]=fetch('audio/'+name+'.mp3').then(r=>{if(!r.ok)throw new Error(r.status);return r.arrayBuffer()}).then(a=>new Promise((res,rej)=>ctx.decodeAudioData(a,res,rej))).then(b=>{buf[name]=b;return b}).catch(()=>null);return loading[name]}
-  function resolve(name){if(GROUPS[name])return name+Math.floor(Math.random()*GROUPS[name]);return name}
+  function resolve(name){const j=jingleFile(name);if(j)return j;const P=POOL[name];if(P&&P.length)return P[Math.floor(Math.random()*P.length)];if(GROUPS[name])return name+Math.floor(Math.random()*GROUPS[name]);return name}
   /* play('coins',{vol,rate,pan}) */
   function play(name,o){if(!ctx||!st.on)return;o=o||{};const n=resolve(name);const b=buf[n];if(!b){load(n);return}
     const src=ctx.createBufferSource();src.buffer=b;src.playbackRate.value=(o.rate||1)*(o.jitter?1+(Math.random()-.5)*o.jitter:1);
@@ -92,5 +114,5 @@ const SND=(()=>{
       src.connect(f);f.connect(g);g.connect(ambBus);src.start();a=amb[kind]={g,level:0};}
     const t=ctx.currentTime;a.g.gain.setTargetAtTime(Math.max(0,level)*.5,t,.6)}
   function set(k,v){st[k]=v;save();if(!ctx)return;if(k==='on')master.gain.setTargetAtTime(v?1:0,ctx.currentTime,.05);if(k==='music')musicBus.gain.value=v;if(k==='sfx'){sfxBus.gain.value=v;ambBus.gain.value=v*.6}if(k==='ui'&&uiBus)uiBus.gain.value=v;if(k==='voice')voiceBus.gain.value=v}
-  return{init,play,music,jingle,duck,voice,ambience,set,get track(){return curTrack},get playing(){return!!curMusic},get st(){return st},get ready(){return!!ctx},get ctx(){return ctx},get musicBus(){return musicBus},load};
+  return{get pools(){return POOL},jingleFile,init,play,music,jingle,duck,voice,ambience,set,get track(){return curTrack},get playing(){return!!curMusic},get st(){return st},get ready(){return!!ctx},get ctx(){return ctx},get musicBus(){return musicBus},load};
 })();

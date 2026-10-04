@@ -20,7 +20,7 @@ const PIKO=(()=>{
   function open(){const note=wantQ.shift()||null;wantT=wantQ.length?6:0;root.classList.toggle('want',wantT>0);bub.hidden=true;setMood('happy');setTimeout(()=>setMood('ok'),900);
     root.classList.add('hop');setTimeout(()=>root.classList.remove('hop','out'),420);setTimeout(()=>MAIN.phone(note),160)}
   /* Piko will etwas: rumpeln, piepsen, vibrieren */
-  function want(text){if(!text)return;if(!root&&typeof $==='function'&&$('world'))build();if(wantQ.length>4)wantQ.shift();if(!wantQ.includes(text))wantQ.push(text);wantT=8;pulseT=0;
+  function want(text){if(!text)return;try{SND.play('question',{vol:.35})}catch(e){}if(!root&&typeof $==='function'&&$('world'))build();if(wantQ.length>4)wantQ.shift();if(!wantQ.includes(text))wantQ.push(text);wantT=8;pulseT=0;
     if(root){root.classList.add('want');if(root.classList.contains('out'))showBub()}try{SND.play('select',{vol:.45,rate:1.8})}catch(e){}try{navigator.vibrate&&navigator.vibrate([40,30,40])}catch(e){}}
   function frame(dt){if(typeof GAME==='undefined')return;const show=!GAME.viewer&&!document.body.classList.contains('inspace')&&!document.querySelector('.phone.gta')&&!document.querySelector('.wstart');
     if(!root){if(!show)return;build()}root.hidden=!show;if(!show)return;

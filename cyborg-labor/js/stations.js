@@ -112,7 +112,7 @@ const STATIONS=(()=>{
     money(250);SND.jingle('j_success');const d=DATA[id];await UI.talk(d.host,['Alle drei Paneele leuchten grün! Danke dir.','Hier sind 250 Taler. Und das Logbuch ist jetzt freigeschaltet – lies es an der Konsole links hinten.'],{voice:voice(),color:cur.st.col})}
   async function logbook(){const id=cur.st.id,s=st(id),d=DATA[id];if(s.fixed.length<3){UI.toast('Das Logbuch startet erst, wenn alle drei Paneele repariert sind.');SND.play('error');return}
     const first=!s.log;s.log=true;persist();SND.play('pep');await UI.talk(d.log[0],d.log.slice(1),{voice:{pitch:200,speed:.9,kind:'sanft'},color:'#3a2a7a'});
-    if(first){const n=logsRead();UI.toast(`Logbuch-Eintrag ${n} von 7 gelesen.`,2600);if(n>=7){SAVE.glitchKnown=true;persist();setTimeout(()=>UI.talk('Logbuch',['Alle sieben Einträge zusammen ergeben Koordinaten: hinter der Sonne, ganz am Rand der Karte.','Der Glitch-Kern ist jetzt auf deiner Weltraumkarte zu sehen.'],{voice:{pitch:180,kind:'sanft'},color:'#c8102e'}),600)}}}
+    if(first){SND.play('beep',{vol:.6});const n=logsRead();UI.toast(`Logbuch-Eintrag ${n} von 7 gelesen.`,2600);if(n>=7){SAVE.glitchKnown=true;persist();setTimeout(()=>UI.talk('Logbuch',['Alle sieben Einträge zusammen ergeben Koordinaten: hinter der Sonne, ganz am Rand der Karte.','Der Glitch-Kern ist jetzt auf deiner Weltraumkarte zu sehen.'],{voice:{pitch:180,kind:'sanft'},color:'#c8102e'}),600)}}}
   function race(){const s=cur;INTERIOR.exit();setTimeout(()=>RACE.openLobby(s),900)}
   /* ---------- Andocken ---------- */
   function dock(s){cur=s;SND.play('metal',{vol:.5});SPACE.pause();INTERIOR.enter('station')}

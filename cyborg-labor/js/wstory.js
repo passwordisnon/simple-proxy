@@ -49,7 +49,7 @@ const WSTORY=(()=>{
     await rissScene(r);MUSIC2&&MUSIC2.setRiss(Math.min(.6,s.caught.length/RISS.length*.6));
     if(typeof PIKO!=='undefined')PIKO.want(s.caught.length===1?'Hast du das auch gesehen? Alles war plötzlich grau … und es roch nach Frühstück.':'Rissling Nr. '+s.caught.length+'. Jeder trägt ein Stück von einem echten Morgen.')}
   /* ---------- Riss-Szene: Farben weg, Stromleitungen, Brummen, eine Erinnerung ---------- */
-  function rissScene(r){return new Promise(res=>{SND.music('riss');
+  function rissScene(r){return new Promise(res=>{SND.music('riss');SND.play('glitch',{vol:.7});
     const o=el('div','riss-scene');o.setAttribute('role','dialog');o.setAttribute('aria-label','Riss');
     o.innerHTML='<svg class="riss-wires" viewBox="0 0 1000 600" preserveAspectRatio="none" aria-hidden="true"><path d="M0 120 Q250 175 500 125 T1000 130"/><path d="M0 150 Q250 210 500 160 T1000 165"/><path d="M120 0 V600"/><path d="M880 0 V600"/><path d="M100 70 H140 M860 70 H900"/></svg><i class="tear t1"></i><i class="tear t2"></i>';
     const box=el('div','riss-box');box.append(el('p','riss-name',r.n),el('p','riss-mem','«'+r.mem+'»'),el('p','riss-ask','Riecht es hier nach Frühstück?'));const go=btn('Weiter','primary',()=>close());box.append(go);o.append(box);document.body.append(o);setTimeout(()=>go.focus(),60);

@@ -81,7 +81,7 @@ const RACE=(()=>{
     for(const g of R.objs)g.rotation.z+=dt*.4;
     /* eigene Tore */const p1=ship.position.clone();if(R.prevPos&&el_>=0&&!R.me.fin){const gi=R.me.gate%G.length;const nx=G[(gi+1)%G.length];if(crossed(R.prevPos,p1,G[gi],nx)){SND.play('pickup',{rate:1.1+gi*.02});
         if(gi===0){R.me.lap++;if(R.me.lap>=LAPS){R.me.fin=el_;finish()}}R.me.gate++;}}R.prevPos=p1;
-    /* Boost-Felder */for(const b of R.boosts){if(b.position.distanceTo(p1)<2.2&&(!R.me.boostT||now-R.me.boostT>1500)){R.me.boostT=now;vel.multiplyScalar(1.6);SND.play('powerup',{rate:1.4,vol:.6})}}
+    /* Boost-Felder */for(const b of R.boosts){if(b.position.distanceTo(p1)<2.2&&(!R.me.boostT||now-R.me.boostT>1500)){R.me.boostT=now;vel.multiplyScalar(1.6);SND.play('laser',{rate:1.1,vol:.55})}}
     /* KI-Raketen */if(el_>=0)for(const a of R.ai){if(a.fin)continue;const tg=G[a.gate%G.length];const to=tg.clone().sub(a.g.position);const d=to.length();const want=Math.atan2(to.x,to.z);let dy=want-a.yaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));a.yaw+=Math.max(-2.2*dt,Math.min(2.2*dt,dy));
       const sp=a.sp*(1+Math.sin(t*.7+a.wob)*.08);a.g.position.x+=Math.sin(a.yaw)*sp*dt;a.g.position.z+=Math.cos(a.yaw)*sp*dt;a.g.rotation.y=a.yaw;if(d<2.4){if(a.gate%G.length===0){a.lap++;if(a.lap>=LAPS)a.fin=el_}a.gate++}}
     /* Mitspielende */for(const q of peers.values()){if(!q.inRace||!q.tp)continue;const g=rocketFor(q);g.position.lerp(q.tp,Math.min(1,dt*8));g.rotation.y=q.yaw;const v=g.position.clone().add(new V(0,1.8,0)).project(cam);const lb=g.userData.lbl;lb.style.left=((v.x+1)/2*$('world').clientWidth)+'px';lb.style.top=((1-v.y)/2*$('world').clientHeight)+'px';lb.style.display=v.z<1?'':'none'}

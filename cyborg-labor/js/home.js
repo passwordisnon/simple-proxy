@@ -117,7 +117,7 @@ const INTERIOR=(()=>{
     const mag=Math.min(1,Math.hypot(ix,iy));let sp=0;if(tapTo&&mag<.1){const dx=tapTo.x-me.ix,dz=tapTo.z-me.iz;const L=Math.hypot(dx,dz);if(L<.25){const f=tapTo.then;tapTo=null;f&&f()}else{ix=dx/L;iy=-dz/L}}
     if(Math.hypot(ix,iy)>.1){const c=Math.cos(camYaw),s=Math.sin(camYaw);const mx=ix*c-(-iy)*s,mz=ix*s+(-iy)*c;const L=Math.hypot(mx,mz);const run=keys['shift'];sp=(run?4.6:2.8)*Math.min(1,Math.hypot(ix,iy));
       const nx=me.ix+mx/L*sp*dt,nz=me.iz+mz/L*sp*dt;if(!blocked(nx,me.iz))me.ix=nx;if(!blocked(me.ix,nz))me.iz=nz;me.iyaw=Math.atan2(mx,mz);tapTo&&(Math.hypot(ix,iy)>.1&&!tapTo)&&0;
-      if(!me.move.alt){stepT-=dt*sp*.6;if(stepT<=0){stepT=1;SND.play('step_wood',{vol:.3,jitter:.15})}}}
+      if(!me.move.alt){stepT-=dt*sp*.6;if(stepT<=0){stepT=1;SND.play({station:'step_concrete',tunnel:'step_concrete',glitchkern:'step_concrete',shop:'step_concrete',museum:'step_carpet',boutique:'step_carpet',klinik:'step_carpet',rathaus:'step_carpet',casino:'step_carpet'}[kind]||'step_wood',{vol:.3,jitter:.15})}}}
     me.speed=sp;if(sp>0&&me.emote){me.emote=null;me.emoteT=0;me.dance=0}
     if(me.iz>room.D/2-.45&&iy<-.1&&!deco)exit();
     /* Kamera */const dist=(room.camD||Math.max(room.W,room.D)*1.05+2)*camZoom;const tx=me.ix*.5,tz=me.iz*.3;cam.position.set(tx+Math.sin(camYaw)*dist,room.camH||dist*.78,tz+Math.cos(camYaw)*dist);cam.lookAt(tx,.6,tz-.6);
@@ -159,7 +159,7 @@ const INTERIOR=(()=>{
     if(f.cat==='sitz')A('Hinsetzen',()=>{const me=GAME.me;me.ix=it.x;me.iz=it.z+.05;me.iyaw=-it.rot*PI/2;doEmote(me,'schlafen',true);me.emote=null;GAME.say(me,'icon:relax',2,true);SND.play('soft')});
     else if(f.cat==='bett'){A('Schlafen',()=>{const me=GAME.me;doEmote(me,'schlafen');SND.play('cloth')});A('Bis zum Morgen schlafen',()=>{const h=GAMETIME.hour();if(h>6&&h<18){UI.toast('Es ist noch hell draussen – Nickerchen statt Nachtruhe.');return}GAME.fadeOut(()=>{GAMETIME.skip(7);UI.toast('Guten Morgen! Es ist 07:00.',2600)})})}
     else if(f.cat==='licht')A('Licht an/aus',()=>{const l=scene.userData.lamp;l.intensity=l.intensity>.1?0:.45;SND.play('toggle')});
-    else if(f.cat==='musik')A('Musik hören',()=>{SND.music(pick(['world','town','museum','shop']));SND.play('toggle')});
+    else if(f.cat==='kueche')A('Kochen',()=>{SND.play('knife');setTimeout(()=>SND.play('pot'),450);UI.toast('Es duftet herrlich.',2000)});else if(f.cat==='musik')A('Musik hören',()=>{SND.music(pick(['world','town','museum','shop']));SND.play('toggle')});
     else if(f.cat==='technik'||f.cat==='spiel')A('Anschauen',()=>{GAME.say(GAME.me,pick(['Blink blink!','Piep!','Oh, schön.','Was das wohl kann?']),2);SND.play('pep')})}
   /* ---------- Einrichten ---------- */
   function toggleDeco(){if(kind!=='house')return;deco=!deco;SND.play(deco?'open':'close');if(deco){decoUI=el('div','deco');$('world').append(decoUI);renderDeco();UI.toast('Einrichten: Möbel wählen, auf den Boden tippen. R dreht, Esc beendet.')}else{if(decoUI){decoUI.remove();decoUI=null}clearGhost();decoSel=null;persist()}}
@@ -187,7 +187,7 @@ const INTERIOR=(()=>{
     ghost.traverse(o=>{if(o.isMesh&&!o.userData.hull&&o.material.color&&o.material.emissive)o.material.emissive.set(ok?'#1a4a10':'#6a1020')})}
   function placeAtHover(){if(!decoSel||!hoverCell)return;const s=snap(decoSel.id,hoverCell,ghostRot);const f=findFurn(decoSel.id);const wall=(f&&f.wall)||decoSel.id.startsWith('design:');
     if(!canPlace(decoSel.id,s.x,wall?0:s.z,ghostRot)){SND.play('error',{vol:.6});UI.toast('Da ist kein Platz.');return}
-    if(decoSel.kind==='furn'&&!bagTake('furn',decoSel.id,1))return;SAVE.house.room.items.push({id:decoSel.id,x:s.x,z:wall?0:s.z,rot:wall?0:ghostRot});SND.play('place');GAME.W.fx(new V3(s.x,0,s.z),'stern',6,new V3(s.x,.6,s.z));
+    if(decoSel.kind==='furn'&&!bagTake('furn',decoSel.id,1))return;SAVE.house.room.items.push({id:decoSel.id,x:s.x,z:wall?0:s.z,rot:wall?0:ghostRot});{const f=findFurn(decoSel.id)||{};SND.play({kueche:'hit_plate',technik:'hit_metal',bad:'hit_glass',lager:'hit_wood',spiel:'hit_tin'}[f.cat]||'place')}GAME.W.fx(new V3(s.x,0,s.z),'stern',6,new V3(s.x,.6,s.z));
     if(decoSel.kind==='furn'&&!SAVE.bag.some(x=>x.kind==='furn'&&x.id===decoSel.id)){decoSel=null;clearGhost()}buildItems(scene);renderDeco();persist()}
   function pickupAt(p){const items=SAVE.house.room.items;let best=-1,bd=1.2;items.forEach((it,i)=>{const f=findFurn(it.id);const wall=(f&&f.wall)||it.id.startsWith('design:');const d=wall?(Math.abs(it.x-p.x)+(p.z<-roomSize().D/2+1.2?0:9)):Math.hypot(it.x-p.x,it.z-p.z);if(d<bd){bd=d;best=i}});
     if(best<0)return;const it=items[best];items.splice(best,1);if(!it.id.startsWith('design:'))bagAdd('furn',it.id);SND.play('pickup');buildItems(scene);renderDeco();persist()}
