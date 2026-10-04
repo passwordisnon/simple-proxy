@@ -51,11 +51,27 @@ const FUNDUS=(()=>{
       const mine=list.filter(x=>KEY(x.it)===key&&(x.it.sh?shore:!(bid==='strand'||bid==='eisufer')));if(!mine.length)continue;
       const L=B[key]=B[key]||[];const sum=L.reduce((a,x)=>a+x[1],0)||1;const fs=mine.reduce((a,x)=>a+x.it.w,0);const share=key==='deco'?.3:.35;
       for(const x of mine){const e=x.it.sh?[x.id,x.it.w/fs*sum*share*2,{water:true}]:[x.id,x.it.w/fs*sum*share];L.push(e);added.push([L,e])}const dk=key==='trees'?'treeD':key==='rocks'?'rockD':'decoD';if(!B[dk])B[dk]=key==='deco'?2:.3}}}
-  function decoPacks(pid){return[...new Set((DEKO[pid]||[]).map(x=>x.it.k))]}
+  /* ---------- Bauwerke (kitbau.js): auf flache Plätze in einem Ring um das Dorf ---------- */
+  const KB=()=>typeof KITBAU!=='undefined'?KITBAU.DEKO:[];
+  function decoPacks(pid){return[...new Set([...(DEKO[pid]||[]).map(x=>x.it.k),...KB().filter(x=>x.planet===pid).map(x=>x.R.kit)])]}
+  function flat(G_,p,rad){const h0=G_.hAt(p);const t1=GAME.tangentTo(p,new THREE.Vector3(1,0,0)),t2=new THREE.Vector3().crossVectors(p,t1);
+    for(const f of[.5,1])for(const d of[t1,t2,t1.clone().negate(),t2.clone().negate()])if(Math.abs(G_.hAt(p.clone().addScaledVector(d,rad*f/G_.R).normalize())-h0)>.35)return false;return true}
+  let placed=[];
+  function structures(pid){const list=KB().filter(x=>x.planet===pid);if(!list.length||typeof GAME==='undefined')return 0;const G_=GAME.G;const pz=G_.places.find(x=>x.id==='platz');if(!pz)return 0;
+    const rnd=srand(hashNum('kitbau'+pid));const used=[];let n=0;placed=used;
+    for(const x of list){const R=x.R;if(!KIT.names(R.kit).length)continue;const rad=R.r*1.2;let spot=null;
+      for(let i=0;i<320&&!spot;i++){const q=GAME.randAround(rnd,26+i*.35,pz.dir);if(!q||!GAME.isLand(q))continue;if(G_.hAt(q)<G_.sea+.5)continue;if(GAME.nearPlace(q,1.6))continue;
+        if(G_.roadDist&&G_.roadDist(q)*G_.R<rad+2)continue;if(used.some(u=>GAME.angle(u,q)*G_.R<rad*2+4))continue;if(!flat(G_,q,rad))continue;spot=q}
+      if(!spot)continue;
+      try{const v=+x.id.split('_').pop();const s=KITBAU.build(R,v);const box=new THREE.Box3().setFromObject(s);const H=Math.max(.1,box.max.y-box.min.y);const k=R.h/H;const w=Math.max(box.max.x-box.min.x,box.max.z-box.min.z)*k;
+        const g=new THREE.Group();s.scale.setScalar(k);s.position.set(-(box.min.x+box.max.x)/2*k,-box.min.y*k,-(box.min.z+box.max.z)/2*k);g.add(s);
+        try{mergeGroup(g,[])}catch(e){}g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});
+        GAME.placeObj(g,spot,rnd()*TAU,-.08);G_.scene.add(g);GAME.addObst(spot,Math.min(w*.45,rad));used.push(spot);n++}catch(e){console.warn('Bauwerk',x.id,e)}}
+    return n}
   /* vor dem Bau eines Planeten: Bausätze laden, Deko einmischen */
   async function onPlanet(pid){try{await Promise.all([preload(pid),...decoPacks(pid).map(p=>full(p).catch(()=>null))])}catch(e){console.warn('Fundus',e)}inject(pid)}
   /* englische Namen */
   try{if(typeof I18N!=='undefined'&&I18N.extend)I18N.extend('en',D.en||{})}catch(e){}
   const stats=()=>({moebel:D.items.filter(i=>i.r==='m').length,deko:D.items.filter(i=>i.r==='d').length});
-  return{onPlanet,preload,packsFor,decoPacks,stats,DEKO}
+  return{onPlanet,preload,packsFor,decoPacks,stats,DEKO,structures,get placed(){return placed}}
 })();

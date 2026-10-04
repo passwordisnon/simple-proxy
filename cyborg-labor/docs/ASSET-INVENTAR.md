@@ -20,14 +20,14 @@ Generiert von `tools/fundus.py`. Jedes Modell aus jedem Bausatz in `assets/kits`
 | halloween | 63 | 15 | 19 | 16 | 21 |
 | hexa | 107 | 53 | 96 | 11 | 0 |
 | holiday | 99 | 40 | 25 | 34 | 0 |
-| industrial | 37 | 0 | 17 | 20 | 0 |
+| industrial | 37 | 0 | 37 | 0 | 0 |
 | jungle | 25 | 0 | 25 | 0 | 0 |
-| kcity | 41 | 9 | 18 | 8 | 15 |
+| kcity | 41 | 9 | 26 | 0 | 15 |
 | kfurn | 53 | 53 | 0 | 0 | 0 |
 | market | 20 | 11 | 0 | 8 | 1 |
 | metro | 41 | 2 | 16 | 23 | 0 |
 | modspace | 40 | 0 | 0 | 40 | 0 |
-| modular | 108 | 0 | 0 | 108 | 0 |
+| modular | 108 | 0 | 7 | 101 | 0 |
 | nature | 329 | 33 | 284 | 16 | 29 |
 | pirate | 72 | 29 | 28 | 23 | 0 |
 | plat | 153 | 48 | 98 | 0 | 32 |
@@ -38,14 +38,14 @@ Generiert von `tools/fundus.py`. Jedes Modell aus jedem Bausatz in `assets/kits`
 | space | 153 | 33 | 42 | 74 | 4 |
 | spacebase | 57 | 20 | 43 | 0 | 14 |
 | station | 97 | 38 | 0 | 59 | 0 |
-| suburban | 40 | 1 | 3 | 30 | 7 |
+| suburban | 40 | 1 | 24 | 9 | 7 |
 | survival | 80 | 40 | 20 | 20 | 0 |
 | town | 167 | 14 | 39 | 126 | 0 |
 | train | 103 | 41 | 60 | 42 | 1 |
 | water | 46 | 46 | 46 | 0 | 0 |
-| **Summe** | **3660** | **1176** | **1067** | **1234** | **482** |
+| **Summe** | **3660** | **1176** | **1123** | **1178** | **482** |
 
-Im Spiel sichtbar (Möbel oder Deko): **1953** von 3660 Modellen. Bau-Teile: 1234 (davon 373 schon im Spiel). Weggelassen: 482.
+Im Spiel verwendet: **3178** von 3660 Modellen (87 %): Möbel und Deko 2009, dazu 1178 Bauteile in Bauwerken. Weggelassen: 482 (13 %), alle mit Grund.
 
 ## Weggelassen und warum
 
@@ -68,37 +68,54 @@ Im Spiel sichtbar (Möbel oder Deko): **1953** von 3660 Modellen. Bau-Teile: 123
 - **suburban** (7): flache Weg- und Einfahrtkachel; unsere Wege werden auf der Kugel erzeugt. driveway-long, driveway-short, path-long, path-short, path-stones-long, path-stones-messy, path-stones-short
 - **train** (1): Kupplungsstück ohne eigenes Aussehen. train-connector
 
-## Bau-Teile (Stufe 2)
+## Bauwerke aus Bauteilen (js/kitbau.js)
 
-- **arcade** (6): Spielhallen-Innenraum
-- **brick** (37): Klötzchen-Baukasten auf dem Bauklotz-Planeten
-- **building** (79): Betonhäuser für Stadt-Planeten (Architektur-Generator)
-- **castle** (53): Burgbaukasten (Türme, Mauern, Tore) für Bauklotz und Drachen-Mond
-- **cave** (40): Höhlen-Innenräume (Gänge, Räume, Treppen)
-- **dungeon** (82): Burg- und Kellerräume (Wartungstunnel, Glitch-Kern, Höhlen)
-- **factory** (94): Fabrikhallen und Fliessband-Strecken (Dino-Fabrik)
-- **furn** (20): Zimmer-Bausteine für Hausinnenräume
-- **graveyard** (35): Mauern, Zäune und Säulen für Nachtmarkt und Ruinen
-- **halloween** (16): Herbst-Zäune, Wege und Torbögen für den Nachtmarkt
-- **hexa** (11): Mauern und Zäune für den Drachen-Mond
-- **holiday** (34): Blockhütten auf Frost (schon im Spiel)
-- **industrial** (20): Fertige Fabrikgebäude für Stadt-Planeten (Häuser-Pool)
-- **kcity** (8): Fertige Stadthäuser für Metro und Kaufhaus (Häuser-Pool)
-- **market** (8): Laden-Innenraum (schon im Spiel)
-- **metro** (19): Stadthäuser auf Metro (schon im Spiel)
-- **metro** (4): Markisen und Vordächer für Stadthäuser
-- **modspace** (40): Raumstations-Gänge und Räume (Stationen, Glitch-Kern)
-- **modular** (108): Stadthaus-Baukasten (schon im Spiel)
-- **nature** (16): Brücken über Flüsse
-- **pirate** (23): Piratenfestung und Stege auf Korallen
-- **resto** (14): Küchen- und Restaurantwände für Bar und Imbiss
-- **retro** (95): Fachwerk- und Steinhäuser für Drachen-Mond und Uhrwerk; Kokon-Ruinen
-- **roads** (2): Brückenpfeiler für Magnetbahn-Brücken
-- **ruins** (19): Dschungel-Tempel (schon im Spiel)
-- **space** (74): Raumhafen- und Stationsbauten (Gänge, Plattformen, Rohre)
-- **station** (59): Stations-Innenräume (schon im Spiel, Wände)
-- **suburban** (21): Fertige Vorstadthäuser für Kompost und Heimatplanet (Häuser-Pool)
-- **suburban** (9): Gartenzäune für Vorgärten
-- **survival** (20): Hütten und Unterstände (Schrott-Planet, Wartungstunnel)
-- **town** (126): Dorfhäuser (schon im Spiel)
-- **train** (42): Gleisstrecken auf der Magnetbahn
+Alle 1178 Bauteile stecken in 47 Rezepten mit 304 Varianten; jede Variante ist ein Bauwerk auf einem Planeten. Die Teile werden reihum gewählt, so kommt jedes Teil mindestens einmal vor.
+
+- **wuerfelhaus** (modular, block, 30 Varianten): metro, kaufhaus, funkturm, rechenzentrum, heim, kompost
+- **betonhaus** (building, panel, 7 Varianten): metro, kaufhaus, funkturm, rechenzentrum, schrott
+- **burgturm** (castle, tower, 11 Varianten): bauklotz, drachen
+- **burgmauer** (castle, line, 7 Varianten): bauklotz, drachen
+- **fachwerkturm** (retro, tower, 3 Varianten): drachen, uhrwerk, bernstein
+- **fachwerkhaus** (retro, panel, 15 Varianten): uhrwerk, bibliothek, kompost, riesengarten, drachen, bernstein
+- **kerkerhaus** (dungeon, panel, 32 Varianten): bibliothek, nachtmarkt, uhrwerk, bernstein, drachen
+- **dorfhaus** (town, panel, 18 Varianten): kompost, heim, riesengarten, honigwabe, pilz, origami, drachen
+- **stationshaus** (station, panel, 13 Varianten): schrott, pixelmond, keim
+- **raumhafen** (space, line, 12 Varianten): pixelmond, heim, keim, schrott
+- **stationsgang** (modspace, line, 7 Varianten): pixelmond, kassette, gluehwurm
+- **hoehlengang** (cave, line, 7 Varianten): urzeit, bernstein, drachen
+- **fliessband** (factory, line, 13 Varianten): dinofabrik
+- **fabrikhalle** (factory, line, 5 Varianten): dinofabrik, rechenzentrum
+- **gleis** (train, line, 10 Varianten): magnetbahn, metro
+- **blockhuette** (holiday, panel, 11 Varianten): frost
+- **piratenfestung** (pirate, tower, 7 Varianten): korallen, tiefsee
+- **herbstpark** (graveyard, line, 8 Varianten): nachtmarkt, gluehwurm
+- **herbstweg** (halloween, line, 5 Varianten): nachtmarkt, gluehwurm, kompost
+- **restaurantwand** (resto, panel, 3 Varianten): kaufhaus, metro
+- **spielhalle** (arcade, panel, 1 Varianten): neonarkade
+- **ladenwand** (market, panel, 1 Varianten): kaufhaus
+- **zimmerbau** (furn, panel, 5 Varianten): heim, kompost
+- **huette** (survival, panel, 5 Varianten): schrott, wetterwerk
+- **steinbruecke** (nature, line, 6 Varianten): kompost, riesengarten, dschungel
+- **vorgarten** (suburban, line, 3 Varianten): kompost, heim, keim
+- **dorfmauer** (hexa, line, 4 Varianten): drachen, origami, bauklotz
+- **brueckenpfeiler** (roads, line, 1 Varianten): magnetbahn
+- **klotzhaus** (brick, yard, 5 Varianten): bauklotz
+- **tempelruine** (ruins, yard, 3 Varianten): dschungel, bernstein
+- **lager_building** (building, yard, 6 Varianten): bauklotz, schrott, heim, metro, kaufhaus, dinofabrik, wetterwerk, funkturm, rechenzentrum, magnetbahn
+- **lager_cave** (cave, yard, 2 Varianten): bauklotz, schrott, heim, metro, kaufhaus, dinofabrik, wetterwerk, funkturm, rechenzentrum, magnetbahn
+- **lager_dungeon** (dungeon, yard, 3 Varianten): bauklotz, schrott, heim, metro, kaufhaus, dinofabrik, wetterwerk, funkturm, rechenzentrum, magnetbahn
+- **lager_factory** (factory, yard, 3 Varianten): bauklotz, schrott, heim, metro, kaufhaus, dinofabrik, wetterwerk, funkturm, rechenzentrum, magnetbahn
+- **lager_furn** (furn, yard, 1 Varianten): bauklotz, schrott, heim, metro, kaufhaus, dinofabrik, wetterwerk, funkturm, rechenzentrum, magnetbahn
+- **lager_graveyard** (graveyard, yard, 1 Varianten): bauklotz, schrott, heim, metro, kaufhaus, dinofabrik, wetterwerk, funkturm, rechenzentrum, magnetbahn
+- **lager_holiday** (holiday, yard, 1 Varianten): bauklotz, schrott, heim, metro, kaufhaus, dinofabrik, wetterwerk, funkturm, rechenzentrum, magnetbahn
+- **lager_market** (market, yard, 1 Varianten): bauklotz, schrott, heim, metro, kaufhaus, dinofabrik, wetterwerk, funkturm, rechenzentrum, magnetbahn
+- **lager_metro** (metro, yard, 3 Varianten): bauklotz, schrott, heim, metro, kaufhaus, dinofabrik, wetterwerk, funkturm, rechenzentrum, magnetbahn
+- **lager_modspace** (modspace, yard, 2 Varianten): bauklotz, schrott, heim, metro, kaufhaus, dinofabrik, wetterwerk, funkturm, rechenzentrum, magnetbahn
+- **lager_modular** (modular, yard, 4 Varianten): bauklotz, schrott, heim, metro, kaufhaus, dinofabrik, wetterwerk, funkturm, rechenzentrum, magnetbahn
+- **lager_retro** (retro, yard, 3 Varianten): bauklotz, schrott, heim, metro, kaufhaus, dinofabrik, wetterwerk, funkturm, rechenzentrum, magnetbahn
+- **lager_space** (space, yard, 2 Varianten): bauklotz, schrott, heim, metro, kaufhaus, dinofabrik, wetterwerk, funkturm, rechenzentrum, magnetbahn
+- **lager_station** (station, yard, 3 Varianten): bauklotz, schrott, heim, metro, kaufhaus, dinofabrik, wetterwerk, funkturm, rechenzentrum, magnetbahn
+- **lager_survival** (survival, yard, 1 Varianten): bauklotz, schrott, heim, metro, kaufhaus, dinofabrik, wetterwerk, funkturm, rechenzentrum, magnetbahn
+- **lager_town** (town, yard, 8 Varianten): bauklotz, schrott, heim, metro, kaufhaus, dinofabrik, wetterwerk, funkturm, rechenzentrum, magnetbahn
+- **lager_train** (train, yard, 2 Varianten): bauklotz, schrott, heim, metro, kaufhaus, dinofabrik, wetterwerk, funkturm, rechenzentrum, magnetbahn

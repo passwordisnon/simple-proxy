@@ -334,12 +334,12 @@ rule('holiday', 'tree.*|snowman.*|reindeer|sled.*|present-.*|lantern', 'deko', p
 rule('holiday', '.*', 'moebel', cat=lambda n: 'licht' if n.startswith(('lantern', 'lights', 'hanukkah-menorah', 'kwanzaa-kinara')) else 'sitz' if n.startswith('bench') else 'wand' if n.startswith(('sock', 'wreath')) else 'spiel' if n.startswith('train') else 'deko', price=350, planet='frost', sc=1.2)
 
 # ---------- industrial ----------
-rule('industrial', 'building-.*', 'bau', use='Fertige Fabrikgebäude für Stadt-Planeten (Häuser-Pool)')
+rule('industrial', 'building-.*', 'deko', planets=['rechenzentrum', 'funkturm', 'dinofabrik', 'wetterwerk', 'metro'], w=.1, h=7, big=1)
 rule('industrial', '.*', 'deko', planets=['rechenzentrum', 'funkturm', 'wetterwerk', 'dinofabrik'], w=.15, h=4, big=1)
 
 # ---------- kcity ----------
 rule('kcity', 'building_[A-H]', 'weg', why='Doppel: dasselbe Haus mit Sockelplatte (die Variante ohne Sockel wird verwendet)')
-rule('kcity', 'building_.*', 'bau', use='Fertige Stadthäuser für Metro und Kaufhaus (Häuser-Pool)')
+rule('kcity', 'building_.*', 'deko', planets=['metro', 'kaufhaus', 'funkturm'], w=.1, h=8, big=1)
 rule('kcity', 'road_.*|base', 'weg', why='flache Strassenkachel für Raster-Welten; unsere Strassen werden auf der Kugel erzeugt')
 rule('kcity', '.*', 'deko', planets=URBAN, w=.25, h=1.6, big=1)
 names('kcity', {'bench': ('Stadtbank', 'City bench'), 'firehydrant': ('Hydrant', 'Fire hydrant'), 'streetlight': ('Strassenlaterne', 'Street light'), 'trafficlight': ('Ampel', 'Traffic light'),
@@ -376,7 +376,8 @@ rule('metro', '.*', 'bau', use='Markisen und Vordächer für Stadthäuser')
 
 # ---------- modspace / modular ----------
 rule('modspace', '.*', 'bau', use='Raumstations-Gänge und Räume (Stationen, Glitch-Kern)')
-rule('modular', '.*', 'bau', use='Stadthaus-Baukasten (schon im Spiel)', used=1)
+rule('modular', 'building-sample-.*', 'deko', planets=['metro', 'kaufhaus', 'heim'], w=.1, h=6, big=1)
+rule('modular', '.*', 'bau', use='Würfelhäuser (Bauwerke)')
 
 # ---------- nature ----------
 rule('nature', 'ground_.*', 'weg', why='flache Boden- und Flusskachel für Raster-Welten; unser Gelände ist eine Kugel')
@@ -517,7 +518,7 @@ names('station', {'bed-double': ('Kojenbett', 'Bunk bed'), 'bed-double-cover': (
 rule('station', '.*', 'moebel', cat=lambda n: 'bett' if n.startswith('bed') else 'sitz' if n.startswith('chair') else 'technik' if n.startswith(('computer', 'display')) else 'tisch' if n.startswith('table') else 'lager', price=900, planet='schrott', sc=1.6, used_some=1)
 
 # ---------- suburban ----------
-rule('suburban', 'building-type-.*', 'bau', use='Fertige Vorstadthäuser für Kompost und Heimatplanet (Häuser-Pool)')
+rule('suburban', 'building-type-.*', 'deko', planets=['kompost', 'heim', 'keim', 'riesengarten'], w=.1, h=5.5, big=1)
 rule('suburban', 'driveway-.*|path-.*', 'weg', why='flache Weg- und Einfahrtkachel; unsere Wege werden auf der Kugel erzeugt')
 rule('suburban', 'fence.*', 'bau', use='Gartenzäune für Vorgärten')
 rule('suburban', '.*', 'deko', planets=['kompost', 'heim', 'keim'], w=.3, h=3, big=1)
@@ -569,6 +570,52 @@ rule('water', '.*', 'moebel', cat=lambda n: 'spiel' if n.startswith(('boat', 'sh
 rule('water', '(boat|ship|buoy|cargo|gate|ramp|arrow).*', 'deko', planets=COAST, w=.08, h=2.4, big=1, shore=1)
 
 # ---------------------------------------------------------------------------
+# Bauwerke (Stufe 2): Rezepte aus Bauteilen; was übrig bleibt, kommt ins Baustofflager (yard)
+#   B(id, kit, type, planets, h, parts={role: regex}, levels=…)
+# ---------------------------------------------------------------------------
+BAUREZ = []
+ROLEPAL = {'retro', 'ruins'}
+def B(id, kit, typ, planets, h, r=3, **parts): BAUREZ.append(dict(id=id, kit=kit, type=typ, planets=planets, h=h, r=r, parts=parts))
+USES = {'block': {'win': 4, 'upper': 4, 'door': 1, 'corner': 4, 'roof': 1, 'extra': 2}, 'panel': {'wall': 4, 'win': 2, 'door': 1, 'floor': 1, 'roof': 1, 'corner': 4, 'extra': 3},
+        'tower': {'base': 1, 'mid': 1, 'top': 1, 'roof': 1, 'side': 2}, 'line': {'seg': 3, 'end': 2, 'extra': 1}, 'yard': {'items': 9}}
+CITY = ['metro', 'kaufhaus', 'funkturm', 'rechenzentrum']
+B('wuerfelhaus', 'modular', 'block', CITY + ['heim', 'kompost'], 6, win='building-window.*|building-windows.*', door='building-door.*|building-edges-door|building-steps-.*',
+  corner='building-corner.*', roof='roof-.*', upper='building-block|building-window.*')
+B('betonhaus', 'building', 'panel', CITY + ['schrott'], 5.5, wall='wall', win='wall-window-.*', door='wall-doorway-.*|barricade-doorway-.*', floor='floor.*',
+  roof='roof-flat-(center|side|square)|roof-flat-patch.*', corner='column.*')
+B('burgturm', 'castle', 'tower', ['bauklotz', 'drachen'], 7, base='tower-square-base.*|tower-hexagon-base|tower-base|tower-square', mid='tower-square-mid.*|tower-hexagon-mid|tower-square-arch',
+  top='tower-square-top|tower-square-top-color|tower-hexagon-top.*|tower-top', roof='tower-square-roof|tower-square-top-roof.*|tower-hexagon-roof.*|tower-slant-roof', side='wall.*|gate|metal-gate|door')
+B('burgmauer', 'castle', 'line', ['bauklotz', 'drachen'], 3.5, seg='wall.*|bridge-.*', end='wall-corner.*|wall-pillar|stairs-stone.*')
+B('fachwerkturm', 'retro', 'tower', ['drachen', 'uhrwerk', 'bernstein'], 6.5, base='tower-base|tower-paint-base', mid='tower|tower-paint', top='tower-top|tower-edge', side='column.*|structure-pole')
+B('fachwerkhaus', 'retro', 'panel', ['uhrwerk', 'bibliothek', 'kompost', 'riesengarten', 'drachen', 'bernstein'], 5, wall='wall|wall-paint|wall-pane.*|wall-detail|wall-paint-detail|wall-low|wall-half|wall-paint-half|wall-paint-flat', win='wall-.*window', door='wall-.*door|wall-.*gate.*',
+  floor='floor.*|wood-floor.*', roof='roof.*', corner='column.*')
+B('kerkerhaus', 'dungeon', 'panel', ['bibliothek', 'nachtmarkt', 'uhrwerk', 'bernstein', 'drachen'], 5, wall='wall|wall_half|wall_cracked|wall_broken|wall_shelves|wall_sloped|wall_pillar|wall_scaffold', win='wall_.*window.*|wall_arched.*', door='wall_doorway.*|wall_gated|wall_open_scaffold',
+  floor='floor_.*', corner='pillar.*|column|barrier_column|barrier_colum_half')
+B('dorfhaus', 'town', 'panel', ['kompost', 'heim', 'riesengarten', 'honigwabe', 'pilz', 'origami', 'drachen'], 5.5, wall='wall|wall-block|wall-wood|wall-wood-block|wall-side|wall-wood-side|wall-rounded|wall-wood-rounded|wall-half|wall-wood-half|wall-block-half|wall-wood-block-half',
+  win='wall-.*window.*|wall-detail-.*|wall-wood-detail-.*', door='wall-.*door.*|wall-.*arch.*', roof='roof|roof-flat|roof-high|roof-high-flat', corner='pillar-.*', floor='planks.*')
+B('stationshaus', 'station', 'panel', ['schrott', 'pixelmond', 'keim'], 4.5, wall='wall|wall-banner|wall-detail|wall-pillar.*|wall-switch', win='wall-window.*', door='wall-door.*|door-.*', floor='floor.*', corner='wall-corner.*')
+B('raumhafen', 'space', 'line', ['pixelmond', 'heim', 'keim', 'schrott'], 3, seg='corridor.*|pipe_.*|rail.*', end='gate_.*|platform_.*|stairs.*|structure.*|supports_.*')
+B('stationsgang', 'modspace', 'line', ['pixelmond', 'kassette', 'gluehwurm'], 3, seg='corridor.*|cables', end='room-.*|gate.*|stairs.*')
+B('hoehlengang', 'cave', 'line', ['urzeit', 'bernstein', 'drachen'], 3, seg='corridor.*', end='room-.*|gate.*|stairs.*|ladder')
+B('fliessband', 'factory', 'line', ['dinofabrik'], 2.4, seg='conveyor.*', end='catwalk.*|arrow.*')
+B('fabrikhalle', 'factory', 'line', ['dinofabrik', 'rechenzentrum'], 4, seg='structure-.*', end='door-wide-.*|door')
+B('gleis', 'train', 'line', ['magnetbahn', 'metro'], 1.2, seg='railroad-(rail-)?straight|railroad-(rail-)?straight-(bump|hill|skew).*|track.*|spline-segment|spline-track', end='railroad-(rail-)?straight-bend.*')
+B('blockhuette', 'holiday', 'panel', ['frost'], 4.5, wall='cabin-wall.*', win='cabin-window-.*', door='cabin-door.*|cabin-doorway.*|cabin-overhang-.*', corner='cabin-corner.*', roof='cabin-roof.*', floor='floor-.*')
+B('piratenfestung', 'pirate', 'tower', ['korallen', 'tiefsee'], 6.5, base='tower-base.*|tower-complete-.*', mid='tower-middle.*', top='tower-top|tower-watch', roof='tower-roof', side='castle-.*|structure.*|platform.*')
+B('herbstpark', 'graveyard', 'line', ['nachtmarkt', 'gluehwurm'], 2, seg='(brick|stone)-wall.*|iron-fence.*|fence.*', end='border-pillar|pillar-.*|column-large|crypt.*')
+B('herbstweg', 'halloween', 'line', ['nachtmarkt', 'gluehwurm', 'kompost'], 2.2, seg='fence.*|path_.*|floor_dirt.*', end='arch.*|pillar|post.*')
+B('restaurantwand', 'resto', 'panel', ['kaufhaus', 'metro'], 4, wall='wall|wall_decorated|wall_half', win='wall_window.*|wall_orderwindow.*', door='wall_doorway|door_.*', floor='floor_kitchen.*', corner='pillar_.*')
+B('spielhalle', 'arcade', 'panel', ['neonarkade'], 4, wall='wall', win='wall-window', door='wall-door-rotate', floor='floor', corner='column|wall-corner')
+B('ladenwand', 'market', 'panel', ['kaufhaus'], 4, wall='wall', win='wall-window', door='wall-door-rotate', floor='floor', corner='column|wall-corner')
+B('zimmerbau', 'furn', 'panel', ['heim', 'kompost'], 4, wall='wall|wallHalf|paneling', win='wallWindow.*', door='wallDoorway.*|doorway.*', floor='floor.*', corner='wallCorner.*')
+B('huette', 'survival', 'panel', ['schrott', 'wetterwerk'], 4, wall='structure-metal-wall|metal-panel.*|structure-canvas|structure', win='fence.*', door='structure-metal-doorway|fence-doorway', floor='floor.*|structure-floor|structure-metal-floor', roof='structure-roof|structure-metal-roof')
+B('steinbruecke', 'nature', 'line', ['kompost', 'riesengarten', 'dschungel'], 2.2, seg='bridge_.*', end='bridge_side_.*')
+B('vorgarten', 'suburban', 'line', ['kompost', 'heim', 'keim'], 1.4, seg='fence.*', end='fence-low')
+B('dorfmauer', 'hexa', 'line', ['drachen', 'origami', 'bauklotz'], 2.4, seg='wall_.*|fence_.*', end='wall_corner_.*')
+B('brueckenpfeiler', 'roads', 'line', ['magnetbahn'], 3, seg='bridge-pillar.*', end='bridge-pillar.*')
+B('klotzhaus', 'brick', 'yard', ['bauklotz'], 3, items='round-hq-.*')
+B('tempelruine', 'ruins', 'yard', ['dschungel', 'bernstein'], 3.5, items='.*')
+
 def opt(v, n): return v(n) if callable(v) else v
 
 # Zielgrössen je Kategorie (Höhe, grösste Breite) in Spiel-Einheiten; Massstab = das Kleinere von beidem
@@ -624,8 +671,38 @@ def main():
     for it in sorted((i for i in items if i['r'] == 'd'), key=lambda i: (len(i['pl']), i['k'], i['m'])):
         best = min(it['pl'], key=lambda p: (load[p], it['pl'].index(p))); load[best] += 1; it['pl'] = best
     print('deko je Planet:', dict(sorted(load.items(), key=lambda x: -x[1])))
+    # ---- Bauwerke: Teile auflösen, Varianten zählen, Rest ins Baustofflager ----
+    bauset = collections.defaultdict(list)
+    for pk_, nm_, use_, u_ in bau: bauset[pk_].append(nm_)
+    rec = []; covered = collections.defaultdict(set)
+    for Rz in BAUREZ:
+        pool = bauset.get(Rz['kit'], [])
+        parts = {k: [n for n in pool if re.match('^(?:' + v + ')$', n)] for k, v in Rz['parts'].items()}
+        parts = {k: v for k, v in parts.items() if v}
+        need = USES[Rz['type']]; must = {'block': 'win', 'panel': 'wall', 'tower': 'base', 'line': 'seg', 'yard': 'items'}[Rz['type']]
+        if must not in parts: print('REZEPT OHNE', must, Rz['id'], file=sys.stderr); continue
+        n = max(1, max(-(-len(v) // need.get(k, 1)) for k, v in parts.items()))
+        n = min(n, 32)
+        for k, v in parts.items(): covered[Rz['kit']].update(v)
+        rec.append({'id': Rz['id'], 'kit': Rz['kit'], 'packs': [Rz['kit']], **({'role': 1} if Rz['kit'] in ROLEPAL else {}), **({'tint': 1} if Rz['kit'] == 'brick' else {}), 'type': Rz['type'], 'planets': Rz['planets'], 'h': Rz['h'], 'r': Rz['r'], 'n': n, 'parts': parts})
+    for kit, pool in bauset.items():
+        rest = [n for n in pool if n not in covered[kit]]
+        if rest:
+            rec.append({'id': 'lager_' + kit, 'kit': kit, 'packs': [kit], **({'role': 1} if kit in ROLEPAL else {}), 'type': 'yard', 'planets': ['bauklotz', 'schrott', 'heim', 'metro', 'kaufhaus', 'dinofabrik', 'wetterwerk', 'funkturm', 'rechenzentrum', 'magnetbahn'], 'h': 2.5, 'r': 3, 'n': -(-len(rest) // 9), 'parts': {'items': rest, 'per': 9}})
+            covered[kit].update(rest)
+    # Varianten auf Planeten verteilen: Monde fassen 8 Bauwerke, Planeten 24; immer der am wenigsten belegte Kandidat
+    cap = lambda p: 8 if p in MOONS else 24
+    loadb = collections.Counter()
+    for r in sorted(rec, key=lambda r: len(r['planets'])):
+        pl = []
+        for v in range(r['n']):
+            cands = sorted(r['planets'], key=lambda p: (loadb[p] >= cap(p), loadb[p] / cap(p)))
+            pl.append(cands[0]); loadb[cands[0]] += 1
+        r['pl'] = pl
+    print('Bauwerke je Planet:', dict(sorted(loadb.items(), key=lambda x: -x[1])))
+    print('Bauwerk-Varianten:', sum(r['n'] for r in rec), 'Rezepte', len(rec), 'Teile', sum(len(v) for v in covered.values()), 'von', sum(len(v) for v in bauset.values()))
     # legacy kitfurn items already registered in js/kitfurn.js are skipped at runtime (same pack+model)
-    js = '/* Generiert von tools/fundus.py – nicht von Hand bearbeiten. Rolle: m = Möbel, d = Deko */\nconst FUNDUS_DATA=' + json.dumps({'items': items, 'en': en, 'ext': exts}, ensure_ascii=False, separators=(',', ':')) + ';\n'
+    js = '/* Generiert von tools/fundus.py – nicht von Hand bearbeiten. Rolle: m = Möbel, d = Deko */\nconst FUNDUS_DATA=' + json.dumps({'items': items, 'en': en, 'ext': exts}, ensure_ascii=False, separators=(',', ':')) + ';\nconst FUNDUS_BAU=' + json.dumps(rec, separators=(',', ':')) + ';\n'
     open(os.path.join(ROOT, 'js', 'fundus-data.js'), 'w').write(js)
     # inventory document
     tot = collections.Counter(); L = []
@@ -640,16 +717,16 @@ def main():
         for k in ('moebel', 'deko', 'bau', 'weg'): tot[k] += st[k]
     L.append(f"| **Summe** | **{tot['n']}** | **{tot['moebel']}** | **{tot['deko']}** | **{tot['bau']}** | **{tot['weg']}** |\n")
     used = len({(i['k'], i['m']) for i in items})
-    L.append(f"Im Spiel sichtbar (Möbel oder Deko): **{used}** von {tot['n']} Modellen. Bau-Teile: {len(bau)} (davon {sum(1 for x in bau if x[3])} schon im Spiel). Weggelassen: {len(drops)}.\n")
+    allv = {(i['k'], i['m']) for i in items} | {(k, n) for k, v in covered.items() for n in v}
+    L.append(f"Im Spiel verwendet: **{len(allv)}** von {tot['n']} Modellen ({round(100*len(allv)/tot['n'])} %): Möbel und Deko {used}, dazu {sum(len(v) for v in covered.values())} Bauteile in Bauwerken. Weggelassen: {len(drops)} ({round(100*len(drops)/tot['n'])} %), alle mit Grund.\n")
     L.append('## Weggelassen und warum\n')
     why = collections.defaultdict(list)
     for p, n, w in drops: why[(p, w)].append(n)
     for (p, w), ns in why.items(): L.append(f'- **{p}** ({len(ns)}): {w}. ' + ', '.join(ns[:12]) + (' …' if len(ns) > 12 else ''))
-    L.append('\n## Bau-Teile (Stufe 2)\n')
-    use = collections.defaultdict(list)
-    for p, n, u, used_ in bau: use[(p, u)].append(n)
-    for (p, u), ns in use.items(): L.append(f'- **{p}** ({len(ns)}): {u}')
+    L.append('\n## Bauwerke aus Bauteilen (js/kitbau.js)\n')
+    L.append(f"Alle {sum(len(v) for v in bauset.values())} Bauteile stecken in {len(rec)} Rezepten mit {sum(r['n'] for r in rec)} Varianten; jede Variante ist ein Bauwerk auf einem Planeten. Die Teile werden reihum gewählt, so kommt jedes Teil mindestens einmal vor.\n")
+    for r in rec: L.append(f"- **{r['id']}** ({r['kit']}, {r['type']}, {r['n']} Varianten): {', '.join(r['planets'])}")
     open(os.path.join(ROOT, 'docs', 'ASSET-INVENTAR.md'), 'w').write('\n'.join(L) + '\n')
-    print(f"models {tot['n']} moebel {tot['moebel']} deko {tot['deko']} bau {tot['bau']} weg {tot['weg']} visible {used}")
+    print(f"models {tot['n']} moebel {tot['moebel']} deko {tot['deko']} bau {tot['bau']} weg {tot['weg']} visible {used} used_total {len(allv)}")
 
 if __name__ == '__main__': main()

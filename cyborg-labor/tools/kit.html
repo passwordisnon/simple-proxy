@@ -8,7 +8,7 @@
 <script src="../js/kit.js"></script>
 <script>
 (async()=>{const qs=new URLSearchParams(location.search);const errors=[];window.addEventListener('error',e=>errors.push(String(e.message)));
-const pack=qs.get('pack')||'town';const _f=window.fetch;window.fetch=(u,o)=>_f('../'+u,o);await KIT.load(pack);
+const pack=qs.get('pack')||'town';const _f=window.fetch;window.fetch=(u,o)=>_f('../'+u,o);await KIT.loadExt(pack);
 const W=300;const c=document.createElement('canvas');const r=new THREE.WebGLRenderer({canvas:c,antialias:true,alpha:true,preserveDrawingBuffer:true});r.setSize(W,W*150/166,false);r.outputEncoding=THREE.sRGBEncoding;
 const sc=new THREE.Scene();cozyLights(sc);const cam=new THREE.PerspectiveCamera(30,166/150,.01,100);
 let list=qs.get('k')?qs.get('k').split(','):KIT.names(pack);const from=+(qs.get('from')||0),n=+(qs.get('n')||64);list=list.slice(from,from+n);
