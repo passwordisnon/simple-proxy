@@ -111,7 +111,7 @@ PLANETKIT.add(ID,{
   haus:{props:[['town','lantern',1,'d',0],['nature','pot_large',1.4,'d',0]],
     garden:{path:'path_stone',flowers:['flower_purpleA','flower_redA'],veg:null},
     plan:[{fam:'kokon',style:'muschelhaus'},{fam:'kokon',style:'quallenhaus'},{fam:'kokon',style:'uboot'},{fam:'kokon',style:'quallenhaus'}]},
-  residents:{skins:['glas','schleim','bonbon','plastik'],heads:['eikopf','kapselkopf','frosch','mensch','vogel','katze'],names:['Perle','Glimm','Qualli','Blubb','Tiefi','Riff','Muschi','Lampe','Welle','Sonar','Koralle','Bläschen'],
+  residents:{skins:['glas','schleim','bonbon','plastik'],heads:['eikopf','kapselkopf','frosch','mensch','vogel','katze'],names:['Perle','Glimm','Qualli','Blubb','Tiefi','Riff','Muscheline','Lampe','Welle','Sonar','Koralle','Bläschen'],
     house:{shapes:['rund'],walls:['putz'],wallCols:['#f2f8ff','#f8f0ff','#f0fbff'],roofCols:GLOW.slice(0,4),win:['rund']},deco:['leuchtkoralle','anglerlaterne','tiefseeschwamm'],fence:false},
   lang:{n:'Blasenschrift',ink:'#2a6aa0',glow:'#45e0ff',kind:'runes',draw:blasenGlyph,syl:['blu','bb','qua','lle','ti','ef','pe','rl','ri','ff','gl','im']},ruinStone:'#4a5a8a',
   terraform:['tiefseeboden','leuchtriff','sandgrund'],

@@ -3335,7 +3335,7 @@ I18N.addPack('en',{
 "Muscheln? Fische? Ich kauf dir alles ab.": "Shells? Fish? I'll buy anything from you.",
 "Muschelstrand": "Shell beach",
 "Muscheltisch": "Shell table",
-"Muschi": "Shelly",
+"Muscheline": "Shelly",
 "Museum betreten": "Enter the museum",
 "Museum der Bildschirmschoner": "Screensaver museum",
 "Museum der Dinge von 1999": "Museum of Things from 1999",
