@@ -5808,7 +5808,21 @@ I18N.addPack('en',{
 "Unter den Zeichen ist etwas Kleineres eingeritzt, in gewöhnlicher Schrift:": "Under the symbols something smaller is scratched in ordinary letters:",
 "Von den Wolkeninseln aus sieht man, dass die Sterne Muster bilden. Es sind Zahlen. 2-3-5-9.": "From the cloud islands you can see that the stars form patterns. They're numbers. 2-3-5-9.",
 "Wer hat hier vor uns geschlafen?": "Who slept here before us?",
-"… (Wortstein auf diesem Planeten lesen)": "… (read a word stone on this planet)"
+"… (Wortstein auf diesem Planeten lesen)": "… (read a word stone on this planet)",
+"Alle, die vor dir hier waren, haben sich draussen kennengelernt. Ihre Tagebücher liegen in den Ruinen.": "Everyone who was here before you got to know each other outside. Their diaries lie in the ruins.",
+"Auf dem Schild steht dein Name. Das Polster ist noch warm, und das Lämpchen blinkt grün.": "Your name is on the sign. The cushion is still warm, and the little light is blinking green.",
+"Daneben ein Tastenfeld ohne Beschriftung.": "Next to it, a keypad without labels.",
+"Deine Kapsel ansehen": "Look at your capsule",
+"Du hast hier geschlafen. Und gleichzeitig bist du draussen unterwegs. Beides stimmt.": "You slept here. And at the same time you're out and about. Both are true.",
+"Im Serversaal gefunden: ein altes Kokon-Kapselbett und 200 Taler.": "Found in the server hall: an old Kokon capsule bed and 200 Taler.",
+"KOKON 95: zwölf Schläfer:innen. KOKON 97: neun. KOKON 99: eine Person.": "KOKON 95: twelve sleepers. KOKON 97: nine. KOKON 99: one person.",
+"Kapsel ansehen": "Look at the capsule",
+"Kokon-Kapselbett": "Kokon capsule bed",
+"SCHLAEFER.TXT": "SLEEPERS.TXT",
+"Terminal lesen": "Read the terminal",
+"Unter der letzten Zeile blinkt der Cursor. Daneben steht dein Name.": "The cursor blinks under the last line. Next to it is your name.",
+"Wartungsluke": "Maintenance hatch",
+"> type SCHLAEFER.TXT": "> type SLEEPERS.TXT"
 },
 "t": {
 " (ca. {0} m entfernt)": " (about {0} m away)",
@@ -6155,6 +6169,8 @@ I18N.addPack('en',{
 "Tagebuch · Kokon {0} · Tag {1}": "Diary · Kokon {0} · Day {1}",
 "Tagebuchseite gefunden: {0} von {1}.": "Diary page found: {0} of {1}.",
 "Unter den Wortsteinen der Ruinen stehen Zeilen von Kokon 95 und Kokon 97. Gefunden: {0} von {1}.": "Under the word stones in the ruins are lines from Kokon 95 and Kokon 97. Found: {0} of {1}.",
-"«{0}»": "“{0}”"
+"«{0}»": "“{0}”",
+"Daneben ein Tastenfeld. Den Zugangscode findest du im Logbuch von {0}.": "Next to it, a keypad. You'll find the access code in the logbook of {0}.",
+"{0}. Leer. Im Polster liegt ein Haargummi und ein zerknitterter Zettel: «Bin draussen. Bis gleich.»": "{0}. Empty. On the cushion lie a hair tie and a crumpled note: “I'm outside. Back soon.”"
 }
 });
