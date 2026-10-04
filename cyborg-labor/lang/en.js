@@ -5841,7 +5841,16 @@ I18N.addPack('en',{
 "In jeder Station melden drei Paneele Störungen. Wer sie repariert, darf das Logbuch lesen.": "In every station three panels report faults. Whoever repairs them may read the logbook.",
 "Mit dem Code aus einem Logbuch öffnen sich die Wartungsluken einer ganzen Planeten-Gruppe.": "With the code from a logbook, the maintenance hatches of a whole planet group open.",
 "Morgen ist ein neuer Tag. Ich weiss noch nicht, was passiert. Ist das nicht schön?": "Tomorrow is a new day. I don't know yet what will happen. Isn't that lovely?",
-"Sechs Risslinge … Ich glaube, die Risse kommen aus Kokon selbst. Im All gibt es Wartungsstationen. Lass uns nachsehen!": "Six rift creatures … I think the rifts come from Kokon itself. There are maintenance stations in space. Let's take a look!"
+"Sechs Risslinge … Ich glaube, die Risse kommen aus Kokon selbst. Im All gibt es Wartungsstationen. Lass uns nachsehen!": "Six rift creatures … I think the rifts come from Kokon itself. There are maintenance stations in space. Let's take a look!",
+"Handheld-Block": "Handheld block",
+"Konserventurm": "Tin tower",
+"Kassetten-Bauch": "Cassette belly",
+"Röhrenmonitor": "CRT monitor",
+"Kreisel": "Spinning top",
+"Eichel": "Acorn",
+"Limo-Flasche": "Soda bottle",
+"Erdbeere": "Strawberry",
+"Raketenbauch": "Rocket belly"
 },
 "t": {
 " (ca. {0} m entfernt)": " (about {0} m away)",
@@ -6191,6 +6200,7 @@ I18N.addPack('en',{
 "«{0}»": "“{0}”",
 "Daneben ein Tastenfeld. Den Zugangscode findest du im Logbuch von {0}.": "Next to it, a keypad. You'll find the access code in the logbook of {0}.",
 "{0}. Leer. Im Polster liegt ein Haargummi und ein zerknitterter Zettel: «Bin draussen. Bis gleich.»": "{0}. Empty. On the cushion lie a hair tie and a crumpled note: “I'm outside. Back soon.”",
-" · Logbücher {0} von 7": " · Logbooks {0} of 7"
+" · Logbücher {0} von 7": " · Logbooks {0} of 7",
+"{0} Material: {1}": "{0} Materials: {1}"
 }
 });

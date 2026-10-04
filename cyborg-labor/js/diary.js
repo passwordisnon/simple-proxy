@@ -60,7 +60,7 @@ const DIARY=(()=>{
     for(let i=0;i<3;i++)P(g,G.s(.18),m.c('#5aae4a',{gloss:.3}),[-.5+i*.5,.12,-.45],null,[1.2,.5,1]);return g}
   /* Tagebuch lesen (App und Glitch-Kern) */
   function app(){const w=UI.win('Tagebuch der Schläfer:innen',{size:'wide'});const n=count(),N=ids().length;
-    w.body.append(el('p',null,'Unter den Wortsteinen der Ruinen stehen Zeilen von Kokon 95 und Kokon 97. Gefunden: '+n+' von '+N+'.'));
+    w.body.append(el('p',null,`Unter den Wortsteinen der Ruinen stehen Zeilen von Kokon 95 und Kokon 97. Gefunden: ${n} von ${N}.`));
     const list=el('div');list.style.cssText='display:flex;flex-direction:column;gap:8px';
     for(const id of ids().sort((a,b)=>LINES[a][0]-LINES[b][0]||LINES[a][1]-LINES[b][1])){const got=S()[id];const c=el('div','card');c.style.cssText='text-align:left;padding:10px 14px';
       c.append(el('b',null,label(id)),el('span','sub',' '+PLANETS[id].n));c.append(el('p',null,got?`«${LINES[id][2]}»`:'… (Wortstein auf diesem Planeten lesen)'));if(!got)c.style.opacity=.55;list.append(c)}

@@ -64,8 +64,8 @@ const KEIM=hunt({key:'keimmond',n:6,seed:5151,host:'Tresorwärterin Saatine',voi
   goal:(m)=>{const g=new THREE.Group();P(g,G.bx(4,2.6,3,.3),m.c('#d8d0c0'),[0,1.3,0]);P(g,G.bx(4.2,.3,3.2,.1),m.c('#8a9a7a'),[0,2.7,0]);P(g,G.cy(.9,.9,.3,24),m.steel(),[0,1.3,1.55],[PI/2,0,0]);P(g,G.to(.9,.08),m.c('#ffd27a'),[0,1.3,1.7]);
     const lights=[];for(let i=0;i<6;i++)lights.push(P(g,G.s(.13),m.c('#555560'),[-1.5+i*.6,2.3,1.52]));g.userData.lights=lights;for(let i=0;i<4;i++)P(g,G.s(.3),m.c('#9ee08a',{gloss:.6}),[-1.8+i*1.2,2.95,0],null,[1,.6,1]);addOutlines(g);return g},
   paint:(g,st)=>{(g.userData.lights||[]).forEach((l,i)=>{if(i<st.given)l.material=makeMats({skin:'plastik',color:0}).glow('#9ee08a',1.8)})},
-  gotText:(n,N)=>'Samenkapsel gefunden! ('+n+' von '+N+')',giveText:(n,N)=>'Im Tresor: '+n+' von '+N+' Samenkapseln.',
-  needLine:n=>'Im Samen-Tresor fehlen noch '+n+' Kapseln. Sie liegen überall auf dem Mond verstreut.',doneLine:'Der Tresor ist voll. Hier schläft die Zukunft – gut gekühlt.',
+  gotText:(n,N)=>'Samenkapsel gefunden! ('+n+' von '+N+')',giveText:(n,N)=>`Im Tresor: ${n} von ${N} Samenkapseln.`,
+  needLine:n=>`Im Samen-Tresor fehlen noch ${n} Kapseln. Sie liegen überall auf dem Mond verstreut.`,doneLine:'Der Tresor ist voll. Hier schläft die Zukunft – gut gekühlt.',
   finish:['Alle sechs Samenkapseln sind im Tresor! Damit kann jeder Planet neu anfangen, falls einmal etwas schiefgeht.','Nimm das Saatgut-Regal mit. Und die allererste Kapsel für dein Museum.'],reward:[['furn','saatgut_regal'],['relic','erste_samenkapsel']]});
 PLANETKIT.add(ID,{def:moonDef({n:'Keim-Mond',moonOf:'kompost',sky:['#bfe6a8','#f2ffe0'],fog:'#d8f0c0',water:'#6aa0b0',deep:'#3a6a7a',shop:ID,desc:'Ein kleiner grüner Mond um den Kompost-Planeten. Im Samen-Tresor wird Saatgut für alle Planeten aufbewahrt.',orbit:[40,1],col:['#8ac860','#ffd27a'],plazaTree:'samenturm',path:'#c8a878',
     space:{deep:'#3a6a7a',water:'#6aa0b0',shore:'#a8c870',land:'#8ac860',land2:'#6a4a2a',high:'#a0c068',cap:'#f2ffe0',atmo:'#bfe6a8',cloud:.3,sea:.3,capA:.2,freq:3},climate:{hot:'humusfeld',wet:'keimufer',cold:'keimwiese'},peak:'keimwiese',
@@ -102,8 +102,8 @@ const KASS=hunt({key:'kassettenmond',n:6,seed:6262,host:'DJ Wickel',voice:{pitch
   paint:(g,st)=>{(g.userData.lamps||[]).forEach((l,i)=>{if(i<st.given)l.material=makeMats({skin:'plastik',color:0}).glow(TAPE[i],1.8)})},
   onGive:(goal,st)=>{const seq=NOTES[(st.given-1)%6];seq.forEach((n,k)=>setTimeout(()=>SND.play('pep',{rate:Math.pow(2,n/12),vol:.6}),k*220))},
   tick:(dt,t,goal,st)=>{for(const s of goal.g.userData.sp||[])s.rotation.y+=dt*(st.given?1.5:.1)},
-  gotText:(n,N)=>'Kassette gefunden! ('+n+' von '+N+')',giveText:(n,N)=>'Der Rekorder spielt jetzt '+n+' von '+N+' Liedern.',
-  needLine:n=>'Mir fehlen noch '+n+' Kassetten. Der Wind hat sie über den ganzen Mond geweht.',doneLine:'Hörst du? Alle sechs Lieder laufen im Kreis. Seite A, Seite B, und wieder von vorn.',
+  gotText:(n,N)=>'Kassette gefunden! ('+n+' von '+N+')',giveText:(n,N)=>`Der Rekorder spielt jetzt ${n} von ${N} Liedern.`,
+  needLine:n=>`Mir fehlen noch ${n} Kassetten. Der Wind hat sie über den ganzen Mond geweht.`,doneLine:'Hörst du? Alle sechs Lieder laufen im Kreis. Seite A, Seite B, und wieder von vorn.',
   finish:['Alle sechs Kassetten! Der Riesen-Rekorder spielt endlich das ganze Mixtape.','Hier, ein kleiner Rekorder für dein Zimmer. Und das allererste Mixtape fürs Museum.'],reward:[['furn','riesenrekorder_mini'],['relic','erstes_mixtape']]});
 PLANETKIT.add(ID,{def:moonDef({n:'Kassetten-Mond',moonOf:'metro',sky:['#c8a8f0','#ffd8f0'],fog:'#e0c8f0',water:'#7a6ab0',deep:'#3a2a6a',shop:ID,desc:'Ein lila Mond um die Metro-Stadt. Bandbäume, Spulenfelsen und ein Riesen-Rekorder, dem sechs Kassetten fehlen.',orbit:[60,2],col:['#b8a0d8','#ffd23f'],plazaTree:'bandbaum',path:'#d0b8e8',
     space:{deep:'#3a2a6a',water:'#7a6ab0',shore:'#d0b8e8',land:'#b8a0d8',land2:'#5a4a7a',high:'#c8b0e0',cap:'#ffd8f0',atmo:'#c8a8f0',cloud:.2,sea:.3,capA:.2,freq:3},climate:{hot:'spulenfeld',wet:'bandufer',cold:'bandwiese'},peak:'spulenfeld',
@@ -138,10 +138,10 @@ const GLW=(()=>{let W_=null,swarms=[],stumps=[],M_=null;const S=()=>SAVE.gluehwu
   function onLoad(W){W_=W;swarms=[];stumps=[];M_=makeMats({skin:'haut',color:0});const st=S();const{pts,r}=spots(W,10,7373,10);
     pts.slice(0,5).forEach((d,i)=>{const g=swarmModel(M_);GAME.placeObj(g,d,0,0,true);swarms.push({d,g,i,cool:0});W.inter.push({kind:'gluehwurm',p:d,r:2.2,label:'Glühwürmchen-Schwarm locken',act:()=>lure(i)})});
     pts.slice(5).forEach((d,i)=>{const on=st.lit.includes(i);const g=stumpModel(M_,on);GAME.placeObj(g,d,r()*TAU,0,true);stumps.push({d,g,i});W.inter.push({kind:'leuchtstumpf',p:d,r:2,label:on?'Leuchtstumpf (brennt)':'Leuchtstumpf anzünden',act:()=>light(i)})})}
-  function lure(i){const st=S();const s=swarms[i];if(s.cool>0){UI.toast('Der Schwarm ruht sich kurz aus.');return}s.cool=40;st.glow=Math.min(5,st.glow+2);persist();SND.play('pickup',{rate:1.3});UI.toast('Glühwürmchen folgen dir! Leuchtkraft: '+st.glow+' von 5.',2600)}
+  function lure(i){const st=S();const s=swarms[i];if(s.cool>0){UI.toast('Der Schwarm ruht sich kurz aus.');return}s.cool=40;st.glow=Math.min(5,st.glow+2);persist();SND.play('pickup',{rate:1.3});UI.toast(`Glühwürmchen folgen dir! Leuchtkraft: ${st.glow} von 5.`,2600)}
   async function light(i){const st=S();if(st.lit.includes(i)){UI.toast('Dieser Stumpf leuchtet schon.');return}if(st.glow<1){SND.play('error');UI.toast('Du brauchst Glühwürmchen. Locke zuerst einen Schwarm an.');return}
     st.glow--;st.lit.push(i);persist();const t=stumps[i];t.g.userData.cap.material=M_.glow('#d8ff7a',1.6);SND.play('powerup',{vol:.6});money(60);
-    if(st.lit.length<5){UI.toast('Leuchtstumpf brennt! '+st.lit.length+' von 5.',2600);return}
+    if(st.lit.length<5){UI.toast(`Leuchtstumpf brennt! ${st.lit.length} von 5.`,2600);return}
     if(!st.done){st.done=true;persist();SND.jingle('j_success');await UI.talk('Lichtwärterin Funzel',['Alle fünf Leuchtstümpfe brennen! Jetzt finden die Glühwürmchen nachts den Weg nach Hause.','Nimm diese Leuchtstumpf-Lampe mit. Und das erste Nachtlicht für dein Museum.'],{voice:{pitch:380,kind:'sanft'}});bagAdd('furn','leuchtstumpf_lampe');bagAdd('relic','erstes_nachtlicht');money(500)}}
   function tick(dt,t,W,me){const st=S();for(const s of swarms){s.cool=Math.max(0,s.cool-dt);s.g.userData.dots.forEach((d,k)=>{const a=t*.8+k*.52;d.position.set(Math.cos(a*1.3)*(.5+k%3*.25),1+Math.sin(a*.9+k)*.5,Math.sin(a)*(.5+k%4*.2));d.visible=Math.sin(t*5+k*1.7)>-.3})}
     if(me&&me.g&&st.glow>0){if(!me.g.userData.glw){const g=new THREE.Group();for(let i=0;i<5;i++)P(g,G.s(.05),M_.glow('#d8ff7a',2.2),[0,0,0]);me.g.add(g);me.g.userData.glw=g}const g=me.g.userData.glw;g.children.forEach((d,k)=>{d.visible=k<st.glow;const a=t*2+k*1.26;d.position.set(Math.cos(a)*.6,1.6+Math.sin(a*1.4)*.2,Math.sin(a)*.6)})}
@@ -181,7 +181,7 @@ const KITE=(()=>{let W_=null,poles=[],M_=null;const S=()=>SAVE.drachenmond=SAVE.
       const kg=kite(M_,i);kg.visible=st.up.includes(i);g.add(kg);const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new V(0,1.6,0),new V(0,6,3)]),new THREE.LineBasicMaterial({color:'#3b3450'}));line.visible=kg.visible;g.add(line);
       poles.push({d,g,i,kg,line});W.inter.push({kind:'drachenmast',p:d,r:2,label:st.up.includes(i)?'Drachen fliegt':'Drachen steigen lassen',act:()=>launch(i)})})}
   async function launch(i){const st=S();if(st.up.includes(i)){UI.toast('Dieser Drachen fliegt schon hoch oben.');return}const p=poles[i];st.up.push(i);persist();p.kg.visible=true;p.line.visible=true;SND.play('whoosh');money(60);
-    if(st.up.length<5){UI.toast('Der Drachen steigt! '+st.up.length+' von 5 fliegen.',2600);return}
+    if(st.up.length<5){UI.toast(`Der Drachen steigt! ${st.up.length} von 5 fliegen.`,2600);return}
     if(!st.done){st.done=true;persist();SND.jingle('j_success');await UI.talk('Windwartin Böe',['Alle fünf Drachen fliegen! Das ist das schönste Drachenfest seit Jahren.','Hier, ein Wand-Drachen für dein Zimmer. Und der allererste Drachen fürs Museum.'],{voice:{pitch:360,kind:'quirlig'}});bagAdd('furn','wanddrachen');bagAdd('relic','erster_drachen');money(500)}}
   function tick(dt,t){for(const p of poles){if(!p.kg.visible)continue;const x=Math.sin(t*.7+p.i)*1.2,y=6+Math.sin(t*1.1+p.i*2)*.6,z=3+Math.cos(t*.5+p.i)*.6;p.kg.position.set(x,y,z);p.kg.userData.k.rotation.z=Math.sin(t*1.7+p.i)*.3;
       const a=p.line.geometry.attributes.position;a.setXYZ(1,x,y-.4,z);a.needsUpdate=true}}

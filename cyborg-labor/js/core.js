@@ -260,7 +260,10 @@ const TORSOS=[{id:'ei',n:'Ei'},{id:'kugel',n:'Kugel'},{id:'kapsel',n:'Kapsel'},{
   /* WIRED: Spielzeug von 1999 mit Mechanik */
   {id:'kapselspiel',n:'Kapselspielzeug'},{id:'eigeraet',n:'Ei-Gerät'},{id:'kuschel',n:'Kuschel mit Reissverschluss'},{id:'robodose',n:'Roboter-Dose'},{id:'kessel',n:'Wasserkessel'},
   {id:'laterne',n:'Papierlaterne'},{id:'knaeuel',n:'Wollknäuel'},{id:'wecker',n:'Radiowecker'},{id:'rucksack',n:'Rucksack-Roboter'},{id:'kokon',n:'Kokon'},
-  {id:'schluepfling',n:'Schlüpfling'},{id:'goldglas',n:'Goldfischglas'},{id:'seifenblase',n:'Seifenblase'}];
+  {id:'schluepfling',n:'Schlüpfling'},{id:'goldglas',n:'Goldfischglas'},{id:'seifenblase',n:'Seifenblase'},
+  /* Körper 2.0: zwölf weitere Spielzeug-Formen */
+  {id:'handheld',n:'Handheld-Block'},{id:'konserve',n:'Konserventurm'},{id:'kassette',n:'Kassetten-Bauch'},{id:'roehre',n:'Röhrenmonitor'},{id:'honigtopf',n:'Honigtopf'},{id:'kreisel',n:'Kreisel'},
+  {id:'eichel',n:'Eichel'},{id:'limo',n:'Limo-Flasche'},{id:'muschel',n:'Muschel'},{id:'wolke',n:'Wolke'},{id:'erdbeere',n:'Erdbeere'},{id:'rakete',n:'Raketenbauch'}];
 /* Rumpf-Profile (t: -1 unten … +1 oben, r: Radius relativ zum Segment). Weiche, runde Silhouetten im Stil gemütlicher Tierfiguren. */
 const TORSO_PROF={
   ei:[[-.98,0],[-.95,.46],[-.84,.8],[-.6,.97],[-.25,1.0],[.15,.93],[.5,.76],[.8,.5],[1.0,.22],[1.08,0]],
@@ -285,7 +288,19 @@ const TORSO_PROF={
   kokon:[[-1.05,0],[-1,.4],[-.85,.72],[-.55,.9],[-.15,.94],[.25,.9],[.6,.76],[.88,.5],[1.05,0]],
   schluepfling:[[-.98,0],[-.95,.48],[-.84,.82],[-.6,.98],[-.25,1.0],[.15,.93],[.5,.76],[.8,.5],[1.0,.22],[1.08,0]],
   goldglas:[[-.9,0],[-.88,.5],[-.74,.86],[-.45,1.03],[-.05,1.05],[.35,.96],[.62,.76],[.8,.56],[.86,.5],[.9,.56],[.96,0]],
-  seifenblase:[[-.96,0],[-.93,.5],[-.78,.86],[-.46,1.02],[0,1.05],[.46,1.02],[.78,.86],[.93,.5],[.97,0]]};
+  seifenblase:[[-.96,0],[-.93,.5],[-.78,.86],[-.46,1.02],[0,1.05],[.46,1.02],[.78,.86],[.93,.5],[.97,0]],
+  handheld:[[-1,0],[-1,.6],[-.96,.82],[-.86,.9],[-.5,.92],[.5,.92],[.86,.9],[.96,.82],[1,.6],[1.02,0]],
+  konserve:[[-1,0],[-1,.78],[-.9,.82],[-.62,.84],[-.55,.9],[-.48,.84],[-.05,.86],[.02,.92],[.09,.86],[.5,.86],[.57,.92],[.64,.86],[.92,.84],[1,.76],[1.02,0]],
+  kassette:[[-.98,0],[-.96,.56],[-.86,.88],[-.6,1.0],[-.2,1.02],[.25,1.0],[.6,.92],[.86,.7],[.97,.4],[1.0,0]],
+  roehre:[[-1,0],[-.98,.58],[-.9,.9],[-.66,1.06],[-.25,1.1],[.2,1.06],[.55,.92],[.8,.7],[.94,.46],[1.0,0]],
+  honigtopf:[[-1,0],[-.98,.52],[-.86,.9],[-.55,1.08],[-.15,1.08],[.25,.96],[.55,.78],[.7,.72],[.76,.8],[.84,.82],[.92,.7],[1.0,0]],
+  kreisel:[[-1.05,0],[-.95,.18],[-.72,.5],[-.38,.88],[-.05,1.12],[.15,1.14],[.4,.98],[.66,.74],[.86,.5],[1.0,0]],
+  eichel:[[-1,0],[-.95,.44],[-.8,.78],[-.55,.95],[-.22,.98],[.1,.96],[.22,1.02],[.4,1.04],[.62,.92],[.82,.62],[.96,.3],[1.02,0]],
+  limo:[[-1,0],[-1,.7],[-.96,.84],[-.6,.88],[-.1,.88],[.25,.84],[.5,.66],[.72,.5],[.86,.44],[.96,.46],[1.0,0]],
+  muschel:[[-.92,0],[-.88,.58],[-.72,.95],[-.4,1.1],[0,1.12],[.4,1.04],[.7,.82],[.88,.5],[.96,0]],
+  wolke:[[-.86,0],[-.84,.62],[-.66,.98],[-.4,1.1],[-.15,1.02],[.1,1.12],[.38,1.06],[.62,.86],[.82,.52],[.92,0]],
+  erdbeere:[[-1.05,0],[-.94,.32],[-.72,.66],[-.38,.94],[0,1.06],[.35,1.06],[.62,.94],[.84,.7],[.96,.4],[1.0,0]],
+  rakete:[[-1,0],[-.98,.62],[-.9,.84],[-.6,.92],[-.1,.92],[.35,.86],[.62,.7],[.84,.46],[.98,.18],[1.08,0]]};
 /* WIRED: Schmuck je Rumpfform (folgt der Oberfläche; vorn ist +z). I = torsoInfo, s = Grösse, m = Materialien */
 const TORSO_DECO={
   kapselspiel(g,I,s,m){const y=(I.lo+I.hi)/2;P(g,G.to(I.R(y)*1.0+.012*s,.028*s),m.chrome(),[0,y,0],[PI/2,0,0]);P(g,G.cy(.05*s,.05*s,.04*s),m.chrome(),[I.R(y)*.98,y,0],[0,0,PI/2])},
@@ -304,6 +319,25 @@ const TORSO_DECO={
   schluepfling(g,I,s,m){const y0=I.lo+(I.hi-I.lo)*.42;const n=14;const r=I.R(y0)+.02*s;const sh=m.c('#fffdf7',{rim:.4});P(g,G.cy(r,I.R(I.lo+.1*s)*.9,y0-I.lo,undefined),sh,[0,(y0+I.lo)/2+.02*s,0]);
     for(let i=0;i<n;i++){const a=i/n*TAU;const c=P(g,G.cy(0,.06*s,.12*s),sh,[Math.sin(a)*r*.96,y0+.05*s,Math.cos(a)*r*.96]);c.lookAt(c.position.x*2,c.position.y+.4,c.position.z*2)}},
   goldglas(g,I,s,m){const y=I.lo+(I.hi-I.lo)*.45;const f=grp(g,[0,y,0]);P(f,G.s(.1*s),m.gloss('#ff8a2a'),[0,0,0],null,[1.4,1,.7]);P(f,G.cy(0,.07*s,.08*s),m.gloss('#ff8a2a'),[-.17*s,0,0],[0,0,PI/2]);const yl=I.lo+(I.hi-I.lo)*.86;P(g,G.to(I.R(yl)+.005*s,.02*s),m.c('#d8f3ff',{opacity:.7}),[0,yl,0],[PI/2,0,0])},
+  handheld(g,I,s,m){const y=I.lo+(I.hi-I.lo)*.58;const z=I.R(y)*.9+.02*s;const sc=grp(g,[0,y,z]);P(sc,G.bx(.32*s,.24*s,.03*s,.02*s),m.c('#8a8f9e'),[0,0,0]);P(sc,G.pl(.22*s,.17*s),m.flat('#9bbc0f'),[0,0,.017*s]);P(sc,G.pl(.1*s,.06*s),m.flat('#306230'),[-.03*s,.02*s,.018*s]);
+    const yb=I.lo+(I.hi-I.lo)*.3;const zb=I.R(yb)*.9+.01*s;P(g,G.bx(.12*s,.035*s,.02*s,.008*s),m.flat('#2b2340'),[-.1*s,yb,zb]);P(g,G.bx(.035*s,.12*s,.02*s,.008*s),m.flat('#2b2340'),[-.1*s,yb,zb]);[[.07,-.015],[.12,.02]].forEach(([x,dy])=>P(g,G.hs(.03*s),m.gloss('#c8205a'),[x*s,yb+dy*s,zb],[PI/2,0,0]))},
+  konserve(g,I,s,m){const y=I.lo+(I.hi-I.lo)*.5;P(g,G.cy(I.R(y)+.008*s,I.R(y)+.008*s,(I.hi-I.lo)*.28,Q(28),1,true),m.c('#e8457f'),[0,y,0]);const yl=y+.02*s;P(g,G.circ(.08*s),m.flat('#fffdf7'),[0,yl,I.R(yl)*.9+.014*s])},
+  kassette(g,I,s,m){const y=I.lo+(I.hi-I.lo)*.52;const z=I.R(y)*.9+.02*s;const b=grp(g,[0,y,z]);P(b,G.bx(.4*s,.24*s,.03*s,.02*s),m.c('#2b2340'),[0,0,0]);P(b,G.bx(.3*s,.1*s,.01*s,.004*s),m.c('#fffdf7',{opacity:.75}),[0,.02*s,.016*s]);both(x=>{P(b,G.cy(.035*s,.035*s,.012*s,10),m.c('#fffdf7'),[x*.08*s,.02*s,.018*s],[PI/2,0,0])});P(b,G.bx(.32*s,.04*s,.012*s,.004*s),m.flat('#ffd23f'),[0,-.08*s,.016*s])},
+  roehre(g,I,s,m){const y=I.lo+(I.hi-I.lo)*.56;const z=I.R(y)*.88+.02*s;const sc=grp(g,[0,y,z]);P(sc,G.bx(.36*s,.28*s,.04*s,.06*s),m.c('#d8d0bc'),[0,0,0]);P(sc,G.bx(.28*s,.21*s,.02*s,.05*s),m.glow('#45e0ff',.9),[0,0,.02*s]);P(sc,G.pl(.2*s,.012*s),m.flat('#ffffff'),[0,.03*s,.032*s]);
+    const yk=y-.2*s;[-.07,.07].forEach(x=>P(g,G.cy(.025*s,.025*s,.03*s,10),m.chrome(),[x*s,yk,I.R(yk)*.9+.01*s],[PI/2,0,0]))},
+  honigtopf(g,I,s,m){const yr=I.lo+(I.hi-I.lo)*.85;P(g,G.to(I.R(yr)+.014*s,.03*s),m.c('#ffb43a',{gloss:1.2}),[0,yr,0],[PI/2,0,0]);const hon=m.c('#ffb43a',{gloss:1.4});for(const[a,l]of[[-.5,.12],[.1,.2],[.7,.09],[2.4,.14],[3.4,.1]]){const r=I.R(yr-l*s/2);P(g,G.ca(.03*s,l*s),hon,[Math.sin(a)*r,yr-l*s*.5,Math.cos(a)*r*.9])}
+    const y=I.lo+(I.hi-I.lo)*.45;P(g,G.circ(.1*s),m.flat('#fffdf7'),[0,y,I.R(y)*.9+.012*s]);P(g,G.pl(.12*s,.03*s),m.flat('#c8702a'),[0,y,I.R(y)*.9+.013*s])},
+  kreisel(g,I,s,m,col2){for(const[t,c]of[[.38,col2||'#ffd23f'],[.56,'#ffffff'],[.72,col2||'#ffd23f']]){const y=I.lo+(I.hi-I.lo)*t;P(g,G.to(I.R(y)+.004*s,.022*s),m.gloss(c),[0,y,0],[PI/2,0,0])}P(g,G.co(.05*s,.1*s,10),m.chrome(),[0,I.lo-.03*s,0],[PI,0,0])},
+  eichel(g,I,s,m){const y0=I.lo+(I.hi-I.lo)*.6;const cap=m.c('#8a5a34',{rim:.4});const N=Math.max(8,Math.round(14*QF));for(let k=0;k<4;k++){const y=y0+k*(I.hi-y0)*.22;const r=I.R(y)+.02*s;for(let i=0;i<N;i++){const a=(i+k*.5)/N*TAU;P(g,G.s(.04*s),cap,[Math.sin(a)*r,y,Math.cos(a)*r*.9],null,[1,.7,1])}}},
+  limo(g,I,s,m){const y=I.lo+(I.hi-I.lo)*.38;const r=I.R(y)+.008*s;P(g,G.cy(r,r,(I.hi-I.lo)*.26,Q(28),1,true),m.c('#45e0ff'),[0,y,0]);P(g,G.star(.07*s,.045*s,5,.006*s),m.flat('#ffd23f'),[0,y,r*.9+.01*s]);
+    const yt=I.hi-.06*s;const N=12;for(let i=0;i<N;i++){const a=i/N*TAU;P(g,G.bx(.02*s,.05*s,.02*s),m.chrome(),[Math.sin(a)*I.R(yt)*.95,yt,Math.cos(a)*I.R(yt)*.86])}},
+  muschel(g,I,s,m,col2){const N=7;for(let i=0;i<N;i++){const a=-1.2+i/(N-1)*2.4;const pts=[];for(let k=0;k<=8;k++){const y=I.lo+(I.hi-I.lo)*(.08+k/8*.86);const r=I.R(y)+.008*s;pts.push([Math.sin(a)*r,y,Math.cos(a)*r*.9])}P(g,G.tu(pts,.016*s,.016*s,24),m.c(col2||'#fffdf7'))}},
+  wolke(g,I,s,m){const wh=m.c('#ffffff',{rim:.8});for(const[a,t,r]of[[-1.1,.55,.13],[1.0,.6,.14],[-2.4,.4,.12],[2.5,.42,.12],[.2,.25,.11]]){const y=I.lo+(I.hi-I.lo)*t;const R=I.R(y);P(g,G.s(r*s),wh,[Math.sin(a)*R*.95,y,Math.cos(a)*R*.85])}},
+  erdbeere(g,I,s,m){const sd=m.c('#ffe27a');const N=Math.max(10,Math.round(22*QF));for(let i=0;i<N;i++){const t=.15+(i*.618%1)*.7,a=i*2.4;const y=I.lo+(I.hi-I.lo)*t;const r=I.R(y);P(g,G.s(.02*s),sd,[Math.sin(a)*r*.99,y,Math.cos(a)*r*.89],null,[1,1.4,1])}
+    const yt=I.hi-.05*s;const lf=m.c('#5aae4a',{rim:.5});for(let i=0;i<6;i++){const a=i/6*TAU;P(g,G.s(.09*s),lf,[Math.sin(a)*I.R(yt)*.9,yt,Math.cos(a)*I.R(yt)*.85],[0,-a,.6],[1.6,.25,.7])}},
+  rakete(g,I,s,m,col2){const y0=I.lo+(I.hi-I.lo)*.2;const fin=m.gloss(col2||'#e8457f');for(let i=0;i<4;i++){const a=PI/4+i/4*TAU;const r=I.R(y0);const f=P(g,G.bx(.035*s,.34*s,.24*s,.012*s),fin,[Math.sin(a)*(r+.08*s),y0,Math.cos(a)*(r+.08*s)*.9]);f.rotation.y=a}
+    const yb=I.lo+(I.hi-I.lo)*.82;P(g,G.cy(I.R(yb)+.012*s,I.R(yb)+.012*s,.06*s,24),fin,[0,yb,0],0,[1,1,.9]);
+    const y=I.lo+(I.hi-I.lo)*.6;const z=I.R(y)*.9+.015*s;P(g,G.to(.07*s,.018*s),m.chrome(),[0,y,z]);P(g,G.circ(.06*s),m.c('#a8e8ff',{gloss:1.4}),[0,y,z+.004*s])},
   seifenblase(g,I,s,m){const y=(I.lo+I.hi)/2+.15*s;P(g,G.s(.07*s),m.c('#ffffff',{opacity:.7}),[-I.R(y)*.45,y+.1*s,I.R(y)*.72]);P(g,G.to(I.R(y)*.9,.008*s,PI*.7),m.metal('holo'),[0,y,.02*s],[0,0,.4])}};
 /* dichte Tabelle je Profil (Catmull-Rom geglättet) */
 const TORSO_TAB={};function torsoTab(shape){if(TORSO_TAB[shape])return TORSO_TAB[shape];const pts=TORSO_PROF[shape]||TORSO_PROF.ei;const out=[];

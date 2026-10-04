@@ -101,9 +101,9 @@ const STATIONS=(()=>{
   const voice=()=>({pitch:260,speed:1,kind:'hall'});
   async function talk(){const d=DATA[cur.st.id];const s=st(cur.st.id);const done=s.fixed.length>=3;
     const ch=await UI.talk(d.host,done?[pick(['Danke nochmal für die Reparatur! Alles läuft.','Die Paneele leuchten grün. So mag ich das.','Schön, dass du wieder andockst.'])]:d.hello,{voice:voice(),color:cur.st.col,choices:['Was ist das hier?','Stations-Laden','Logbuch','Tschüss']});
-    if(ch===0)await UI.talk(d.host,['Eine Kokon-Wartungsstation. Von hier aus werden die Planeten der Gruppe «'+d.grp+'» gewartet.','Es gibt sieben Stationen im ganzen System. In jeder liegt ein Logbuch-Eintrag von früheren Schläfer:innen.',logsRead()>=7?'Du hast alle sieben gelesen. Die Koordinaten des Glitch-Kerns sind jetzt auf deiner Karte.':'Du hast '+logsRead()+' von 7 gelesen.'],{voice:voice()});
+    if(ch===0)await UI.talk(d.host,[`Eine Kokon-Wartungsstation. Von hier aus werden die Planeten der Gruppe «${d.grp}» gewartet.`,'Es gibt sieben Stationen im ganzen System. In jeder liegt ein Logbuch-Eintrag von früheren Schläfer:innen.',logsRead()>=7?'Du hast alle sieben gelesen. Die Koordinaten des Glitch-Kerns sind jetzt auf deiner Karte.':`Du hast ${logsRead()} von 7 gelesen.`],{voice:voice()});
     else if(ch===1)shopWin();else if(ch===2)logbook()}
-  function shopWin(){const d=DATA[cur.st.id];const w=UI.win(cur.st.n+' · Laden',{size:'wide'});w.body.append(el('p',null,'Möbel, die es nur in den Wartungsstationen gibt. Zu Hause mit F aufstellen.'));const gr=el('div','grid');
+  function shopWin(){const d=DATA[cur.st.id];const w=UI.win(`${cur.st.n} · Laden`,{size:'wide'});w.body.append(el('p',null,'Möbel, die es nur in den Wartungsstationen gibt. Zu Hause mit F aufstellen.'));const gr=el('div','grid');
     for(const id of d.shop){const f=findFurn(id);if(!f)continue;const c=el('button','card');c.type='button';c.append(itemThumb('furn',id),el('span',null,f.n),el('span','sub',fmt(f.price)+' Taler'));
       c.onclick=()=>{if(SAVE.money<f.price){SND.play('error');UI.toast('Zu wenig Taler.');return}if(!bagAdd('furn',id)){UI.toast('Tasche voll.');return}money(-f.price);SND.play('j_buy');UI.toast(f.n+' gekauft! Zu Hause mit F aufstellen.')};gr.append(c)}w.body.append(gr)}
   async function fix(i,scr,lamp){const id=cur.st.id,s=st(id);if(s.fixed.includes(i)){UI.toast('Dieses Paneel läuft schon.');return}
@@ -112,7 +112,7 @@ const STATIONS=(()=>{
     money(250);SND.jingle('j_success');const d=DATA[id];await UI.talk(d.host,['Alle drei Paneele leuchten grün! Danke dir.','Hier sind 250 Taler. Und das Logbuch ist jetzt freigeschaltet – lies es an der Konsole links hinten.'],{voice:voice(),color:cur.st.col})}
   async function logbook(){const id=cur.st.id,s=st(id),d=DATA[id];if(s.fixed.length<3){UI.toast('Das Logbuch startet erst, wenn alle drei Paneele repariert sind.');SND.play('error');return}
     const first=!s.log;s.log=true;persist();SND.play('pep');await UI.talk(d.log[0],d.log.slice(1),{voice:{pitch:200,speed:.9,kind:'sanft'},color:'#3a2a7a'});
-    if(first){const n=logsRead();UI.toast('Logbuch-Eintrag '+n+' von 7 gelesen.',2600);if(n>=7){SAVE.glitchKnown=true;persist();setTimeout(()=>UI.talk('Logbuch',['Alle sieben Einträge zusammen ergeben Koordinaten: hinter der Sonne, ganz am Rand der Karte.','Der Glitch-Kern ist jetzt auf deiner Weltraumkarte zu sehen.'],{voice:{pitch:180,kind:'sanft'},color:'#c8102e'}),600)}}}
+    if(first){const n=logsRead();UI.toast(`Logbuch-Eintrag ${n} von 7 gelesen.`,2600);if(n>=7){SAVE.glitchKnown=true;persist();setTimeout(()=>UI.talk('Logbuch',['Alle sieben Einträge zusammen ergeben Koordinaten: hinter der Sonne, ganz am Rand der Karte.','Der Glitch-Kern ist jetzt auf deiner Weltraumkarte zu sehen.'],{voice:{pitch:180,kind:'sanft'},color:'#c8102e'}),600)}}}
   function race(){const s=cur;INTERIOR.exit();setTimeout(()=>RACE.openLobby(s),900)}
   /* ---------- Andocken ---------- */
   function dock(s){cur=s;SND.play('metal',{vol:.5});SPACE.pause();INTERIOR.enter('station')}

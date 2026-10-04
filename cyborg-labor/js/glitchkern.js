@@ -68,9 +68,9 @@ const GLITCHKERN=(()=>{
   function frame(dt,t){for(const f of anim)f(dt,t)}
   async function enterRoom(r,veil,sym){const st=S();SND.play('whoosh',{vol:.5});await UI.talk(r.mem[0],r.mem.slice(1),{voice:{pitch:190,speed:.9,kind:'sanft'},color:r.col});
     if(!st.rooms.includes(r.id)){st.rooms.push(r.id);persist();veil.material.color.set(r.col);veil.material.opacity=.55;sym.traverse(o=>{if(o.isMesh)o.material=M.glow(r.col,1.4)});SND.play('powerup',{vol:.6});
-      UI.toast('Erinnerung geweckt: '+st.rooms.length+' von 7.',2400);if(st.rooms.length===7)setTimeout(()=>UI.toast('Alle sieben Erinnerungen sind wach. Berühre den Kern in der Mitte.',3600),2600)}}
+      UI.toast(`Erinnerung geweckt: ${st.rooms.length} von 7.`,2400);if(st.rooms.length===7)setTimeout(()=>UI.toast('Alle sieben Erinnerungen sind wach. Berühre den Kern in der Mitte.',3600),2600)}}
   async function touchCore(){const st=S();if(st.done){await UI.talk('Kern',['Die Uhr zeigt 00:00. Die Welt atmet ruhig.','Komm wieder, wann immer du willst.'],{voice:{pitch:170,kind:'sanft'},color:'#7fd34a'});return}
-    if(st.rooms.length<7){SND.play('error');await UI.talk('Kern',['Der Kern flackert. Noch schlafen '+(7-st.rooms.length)+' Erinnerungen hinter den Toren.'],{voice:{pitch:170,kind:'sanft'},color:RED});return}
+    if(st.rooms.length<7){SND.play('error');await UI.talk('Kern',[`Der Kern flackert. Noch schlafen ${7-st.rooms.length} Erinnerungen hinter den Toren.`],{voice:{pitch:170,kind:'sanft'},color:RED});return}
     await UI.talk('Kern',['Sieben Erinnerungen, sieben Gruppen, ein Kokon.','Seit 1999 hält diese Welt den Atem an. Es ist 23:59, und niemand traut sich, die letzte Minute vergehen zu lassen.','Du darfst es. Nicht allein – mit allen, denen du begegnet bist.'],{voice:{pitch:170,speed:.9,kind:'sanft'},color:RED});
     const ch=await UI.talk('Kern',['Soll die Uhr weiterlaufen?'],{voice:{pitch:170,kind:'sanft'},color:RED,choices:['Ja, lass sie laufen','Noch nicht']});if(ch!==0)return;
     st.done=true;SAVE.finale=true;persist();finale()}
