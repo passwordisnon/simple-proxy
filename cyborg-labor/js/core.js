@@ -77,7 +77,10 @@ const pick=a=>a[Math.floor(Math.random()*a.length)];
 
 /* ---------- Canvas-Texturen ---------- */
 const TEXC={};
-function ctex(key,w,h,draw){if(TEXC[key])return TEXC[key];const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.anisotropy=4;TEXC[key]=t;return t}
+function ctex(key,w,h,draw){if(TEXC[key])return TEXC[key];const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.anisotropy=4;TEXC[key]=t;CTEXREG.push({c,w,h,draw,t});return t}
+/* Schilder und Etiketten nach einem Sprachwechsel neu zeichnen (der Text geht dabei durch I18N.t) */
+const CTEXREG=[];function ctexRedraw(){for(const r of CTEXREG){const x=r.c.getContext('2d');x.save();x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,r.w,r.h);x.restore();try{r.draw(x,r.w,r.h)}catch(e){}r.t.needsUpdate=true}}
+addEventListener('DOMContentLoaded',()=>{if(typeof I18N!=='undefined')I18N.on(()=>ctexRedraw())});
 
 /* ---------- Toon-Shading ---------- */
 /* Weicher Schattenverlauf (statt harter 4-Stufen-Kante): breite Schattenseite, sanfter Übergang, kleiner heller Sockel – nach dem Licht-Modell von folio-2025 */

@@ -57,7 +57,7 @@ function ICON(name,cls){return`<svg class="ico ${cls||''}" viewBox="0 0 24 24" f
 function iconEl(name,cls){const s=el('span','icw');s.innerHTML=ICON(name,cls);return s}
 const UI={};
 /* ---------- Toast ---------- */
-let toastT=0;UI.toast=function(m,ms){const t=$('toast');t.textContent=m;t.hidden=false;t.style.animation='none';void t.offsetWidth;t.style.animation='';clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,ms||2600)};
+let toastT=0;UI.toast=function(m,ms){const t=$('toast');if(typeof I18N!=='undefined')m=I18N.t(m);t.setAttribute('data-no-i18n','');t.textContent=m;t.hidden=false;t.style.animation='none';void t.offsetWidth;t.style.animation='';clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,ms||2600)};
 
 /* ---------- Fenster ---------- */
 const openWins=[];
@@ -72,8 +72,8 @@ UI.closeTop=()=>{const w=openWins[openWins.length-1];if(w){w.close();return true
 
 /* ---------- Dialog im Tierdorf-Stil ---------- */
 /* UI.talk(name,[zeilen],{voice:{pitch,kind},choices:[..],color}) → Promise(index der Wahl oder -1) */
-UI.talk=function(name,lines,o){o=o||{};return new Promise(res=>{
-  const box=$('talk'),txt=$('talkText'),nm=$('talkName'),more=$('talkMore'),ch=$('talkChoices');box.hidden=false;nm.textContent=name;nm.style.background=o.color||'var(--pink)';ch.replaceChildren();
+UI.talk=function(name,lines,o){o=o||{};if(typeof I18N!=='undefined'){name=I18N.t(name);lines=lines.map(x=>I18N.t(x));if(o.choices)o=Object.assign({},o,{choices:o.choices.map(x=>I18N.t(x))})}return new Promise(res=>{
+  const box=$('talk'),txt=$('talkText'),nm=$('talkName'),more=$('talkMore'),ch=$('talkChoices');box.hidden=false;txt.setAttribute('data-no-i18n','');nm.setAttribute('data-no-i18n','');ch.setAttribute('data-no-i18n','');nm.textContent=name;nm.style.background=o.color||'var(--pink)';ch.replaceChildren();
   let i=0,typing=null,full='';
   const plain=h=>o.html?h.replace(/<[^>]+>/g,''):h;
   const show=()=>{full=lines[i];txt.textContent='';more.hidden=true;let k=0;const pf=plain(full);SND.voice(pf,o.voice||{});clearInterval(typing);

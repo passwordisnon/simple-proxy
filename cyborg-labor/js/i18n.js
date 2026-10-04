@@ -6,16 +6,10 @@
    Sticker-Schmuck in jeder Sprache stehen.
    ===================================================================== */
 const I18N=(()=>{
+  /* nur Deutsch (Original) und Englisch (handübersetztes Sprachpaket lang/en.js) */
   const LANGS=[
     {id:'de',n:'Deutsch',jp:'ドイツ語'},
-    {id:'en',n:'English',jp:'英語'},
-    {id:'fr',n:'Français',jp:'フランス語'},
-    {id:'it',n:'Italiano',jp:'イタリア語'},
-    {id:'ja',n:'日本語',jp:'日本語',more:true}];
-  /* alle weiteren Sprachen: maschinell übersetzt (Chrome-Übersetzer auf dem Gerät, sonst Claude) */
-  const MORE=['sq','ar','hy','az','eu','be','bn','bs','bg','ca','zh','zh-Hant','hr','cs','da','nl','et','fi','gl','ka','el','gu','he','hi','hu','is','id','ga','kn','kk','km','ko','ku','lv','lt','lb','mk','ms','ml','mt','mr','mn','ne','no','fa','pl','pt','pa','ro','rm','ru','sr','si','sk','sl','so','es','sw','sv','tl','ta','te','th','ti','tr','uk','ur','uz','vi','cy','yo','zu'];
-  const endo=id=>{try{return new Intl.DisplayNames([id],{type:'language'}).of(id)||id}catch(e){return id}};
-  for(const id of MORE)LANGS.push({id,n:endo(id),more:true});
+    {id:'en',n:'English',jp:'英語'}];
   const RTL=['ar','he','fa','ur','ku'];
   /* Wörterbuch: Deutsch → [en, fr, it, ja] */
   const D={
@@ -153,28 +147,27 @@ const I18N=(()=>{
     [/^Karte · (.+)$/,['Map · $1','Carte · $1','Mappa · $1','ちず · $1']],
     [/^(\d+) eigene · (\d+) wohnen hier$/,['$1 own · $2 live here','$1 à toi · $2 habitent ici','$1 tuoi · $2 abitano qui','じぶん $1 · じゅうにん $2']],
   ];
-  let lang=(()=>{try{const s=JSON.parse(localStorage.getItem('cyborg-labor-sprache')||'null');if(s)return s}catch(e){}const full=navigator.language||'de',n=full.slice(0,2);return LANGS.some(l=>l.id===full)?full:LANGS.some(l=>l.id===n)?n:'de'})();
-  /* ---------- Maschinelle Übersetzung (für alles ohne Handübersetzung) ---------- */
-  const MT={};const mtKey=l=>'cyborg-labor-mt-'+l;
-  function mtLoad(l){if(MT[l])return MT[l];let m={};try{m=JSON.parse(localStorage.getItem(mtKey(l))||'{}')||{}}catch(e){}return MT[l]=m}
-  let mtSaveT=0;function mtSave(l){clearTimeout(mtSaveT);mtSaveT=setTimeout(()=>{try{const m=MT[l];let js=JSON.stringify(m);if(js.length>1.5e6){const k=Object.keys(m);for(const x of k.slice(0,k.length/3))delete m[x];js=JSON.stringify(m)}localStorage.setItem(mtKey(l),js)}catch(e){}},800)}
-  const queue=new Set();let flushT=0,engine=null,engineFor=null,engineName='';
-  const worth=s=>s.length>1&&s.length<=400&&/[A-Za-zÄÖÜäöüß]{2}/.test(s);
-  function want(s){if(!worth(s)||queue.size>400)return;queue.add(s);if(!flushT)flushT=setTimeout(flush,180)}
-  async function getEngine(l){if(engineFor===l&&engine)return engine;engine=null;engineFor=l;engineName='';
-    /* 1. Chrome: eingebauter Übersetzer, läuft auf dem Gerät (nichts verlässt den Computer) */
-    try{if(self.Translator&&Translator.availability){const av=await Translator.availability({sourceLanguage:'de',targetLanguage:l});if(av&&av!=='unavailable'){const tr=await Translator.create({sourceLanguage:'de',targetLanguage:l});engineName='device';return engine={many:async list=>Promise.all(list.map(x=>tr.translate(x).catch(()=>null)))}}}}catch(e){}
-    /* 2. Claude über die Artifact-Fähigkeit "sample" (fragt einmal um Erlaubnis) */
-    try{if(window.claude&&claude.use){const sample=await claude.use('sample');if(sample){engineName='claude';const name=endo(l)+' ('+l+')';return engine={many:async list=>{const r=await sample.json('Translate each German string from a cozy, kid-friendly sci-fi life-sim game into '+name+'. Keep it short, friendly and natural for 10 to 14 year olds. Keep names, numbers, punctuation, line breaks and symbols unchanged; do not translate Japanese text. Return only a JSON array of strings with exactly '+list.length+' items, same order.\n'+JSON.stringify(list),{modelTier:'quick'});return Array.isArray(r)&&r.length===list.length?r:list.map(()=>null)}}}}}catch(e){}
-    return null}
-  async function flush(){flushT=0;const l=lang;if(l==='de'||!queue.size)return;const all=[...queue];queue.clear();const m=mtLoad(l);const todo=all.filter(x=>m[x]==null);if(!todo.length)return;
-    const eng=await getEngine(l);if(!eng||l!==lang)return;
-    for(let i=0;i<todo.length;i+=40){const part=todo.slice(i,i+40);let out=[];try{out=await eng.many(part)}catch(e){if(e&&(e.code==='not_granted'||e.code==='rate_limited')){engine=null;return}}
-      part.forEach((x,j)=>{const y=out&&out[j];if(typeof y==='string'&&y.trim())m[x]=y});if(l!==lang)return}
-    mtSave(l);walk(document.body)}
-  function t(s){if(lang==='de'||s==null)return s;const i=IDX[lang];if(i!=null){const e=D[s];if(e&&e[i])return e[i];for(const[re,tr]of PAT){if(re.test(s))return s.replace(re,tr[i])}}
-    const m=mtLoad(lang);if(m[s]!=null)return m[s];want(s);
-    /* bis die Übersetzung da ist: Englisch, falls vorhanden */if(i==null){const e=D[s];if(e&&e[0])return e[0];for(const[re,tr]of PAT){if(re.test(s))return s.replace(re,tr[0])}}return s}
+  let lang=(()=>{try{const s=JSON.parse(localStorage.getItem('cyborg-labor-sprache')||'null');if(s)return LANGS.some(l=>l.id===s)?s:'en'}catch(e){}const full=navigator.language||'de',n=full.slice(0,2);return LANGS.some(l=>l.id===full)?full:LANGS.some(l=>l.id===n)?n:'de'})();
+  /* ---------- Sprachpakete (lang/<id>.js): handübersetzte Texte und Vorlagen mit Platzhaltern ---------- */
+  const PACK={},PACKRE={},CACHE={},UPI={};
+  function addPack(l,p){PACK[l]=p;delete UPI[l];const esc=x=>x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    PACKRE[l]=Object.keys(p.t||{}).map(k=>{const fixed=k.replace(/\{\d+\}/g,'');const src='^'+k.split(/(\{\d+\})/).map(x=>/^\{\d+\}$/.test(x)?'([\\s\\S]+?)':esc(x)).join('')+'$';
+      const idx=(k.match(/\{(\d+)\}/g)||[]).map(x=>+x.slice(1,-1));return{re:new RegExp(src),out:p.t[k],idx,w:fixed.length}}).sort((a,b)=>b.w-a.w);
+    CACHE[l]=new Map();if(l===lang)refresh()}
+  const loading={};function loadPack(l){if(PACK[l]||loading[l]||l==='de')return;loading[l]=1;const sc=document.createElement('script');sc.src='lang/'+l+'.js';sc.onerror=()=>{loading[l]=0};document.head.append(sc)}
+  function fromPack(l,s){const p=PACK[l];if(!p)return null;const c=CACHE[l];if(c.has(s))return c.get(s);let r=null;
+    const core=s.trim();const pre=/^([^A-Za-zÄÖÜäöüß0-9„«»“(]{1,3}\s)(.+)$/.exec(core);if(core!==s&&core){const x=fromPack(l,core);r=x==null?null:s.replace(core,x)}
+    else if(pre){const x=t(pre[2]);r=x===pre[2]?null:pre[1]+x}
+    else if(p.s[s]!=null)r=p.s[s];
+    else{for(const T of PACKRE[l]){const m=T.re.exec(s);if(!m)continue;r=T.out.replace(/\{(\d+)\}/g,(_,n)=>{const v=m[T.idx.indexOf(+n)+1];if(v==null)return'';if(!/[A-Za-zÄÖÜäöüß]{2}/.test(v))return v;const y=fromPack(l,v);return y==null?v:y});break}}
+    /* Schilder in Grossbuchstaben («PFLANZEN»): über die normal geschriebene Form nachschlagen */
+    if(r==null&&/[A-ZÄÖÜ]{2}/.test(s)&&s===s.toUpperCase()){let U=UPI[l];if(!U){U=UPI[l]=new Map();for(const k in p.s)U.set(k.toUpperCase(),p.s[k]);for(const k in D)if(D[k][0])U.set(k.toUpperCase(),D[k][0])}const y=U.get(core);if(y!=null)r=s.replace(core,y.toUpperCase())}
+    /* zusammengesetzte Zeilen wie «Kompost-Planet · Klar»: Teile einzeln übersetzen */
+    if(r==null&&s.includes(' · ')){const parts=s.split(' · ');let hit=false;const o=parts.map(x=>{const y=x.trim()?(D[x.trim()]&&D[x.trim()][0])||fromPack(l,x):null;if(y!=null&&y!==x){hit=true;return y}return x});if(hit)r=o.join(' · ')}
+    if(c.size<20000)c.set(s,r);return r}
+  /* nach neuem Paket oder neuer Sprache: DOM und Schild-Texturen neu übersetzen */
+  let refT=0;function refresh(){clearTimeout(refT);refT=setTimeout(()=>{if(document.body)walk(document.body);listeners.forEach(f=>{try{f(lang,'refresh')}catch(e){}})},30)}
+  function t(s){if(lang==='de'||s==null||typeof s!=='string')return s;const i=IDX[lang];if(i!=null){const e=D[s];if(e&&e[i])return e[i]}{const r=fromPack(lang,s);if(r!=null)return r}if(i!=null){for(const[re,tr]of PAT){if(re.test(s))return s.replace(re,tr[i])}}return s}
   /* ---------- DOM-Übersetzer ---------- */
   const ORIG=new WeakMap();const ATTRS=['placeholder','title','aria-label'];
   function trText(n){const raw=ORIG.has(n)?ORIG.get(n):n.nodeValue;const core=raw.trim();if(!core||core.length>400)return;const out=t(core);
@@ -186,17 +179,20 @@ const I18N=(()=>{
   const mo=new MutationObserver(list=>{for(const m of list){const n=m.target;if(m.type==='characterData'){if(WROTE.get(n)===n.nodeValue)continue;ORIG.delete(n);WROTE.delete(n);trText(n)}
       else if(m.type==='attributes'){const a=m.attributeName,k='data-de-'+a;if(n.hasAttribute(k)){const cur=n.getAttribute(a);if(cur===t(n.getAttribute(k)))continue;n.removeAttribute(k)}trEl(n)}else m.addedNodes.forEach(walk)}});
   function applyDir(){document.documentElement.lang=lang;document.documentElement.toggleAttribute('data-rtl',RTL.includes(lang.split('-')[0]))}
+  /* Text auf Canvas-Texturen (Schilder, Bildschirme, Etiketten) geht ebenfalls durch t(); zu lange Übersetzungen werden schmaler gesetzt */
+  (function patchCanvas(){const C=self.CanvasRenderingContext2D&&CanvasRenderingContext2D.prototype;if(!C||C.__i18n)return;C.__i18n=1;
+    for(const fn of['fillText','strokeText']){const orig=C[fn];C[fn]=function(text,x,y,maxW){if(lang!=='de'&&typeof text==='string'&&!(this.canvas&&this.canvas.__noI18n)){const tr=t(text);
+      if(tr!==text){if(maxW==null){const w0=this.measureText(text).width,w1=this.measureText(tr).width;if(w1>w0*1.15&&w0>0)maxW=w0*1.15}text=tr}}return maxW==null?orig.call(this,text,x,y):orig.call(this,text,x,y,maxW)}}})();
+  if(lang!=='de')loadPack(lang);
   function start(){applyDir();walk(document.body);mo.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:ATTRS})}
   /* set() bei einem Klick aufrufen: der Chrome-Übersetzer darf sein Sprachpaket nur nach einer Nutzer-Aktion laden */
-  function set(l){if(!LANGS.some(x=>x.id===l))return;lang=l;try{localStorage.setItem('cyborg-labor-sprache',JSON.stringify(l))}catch(e){}applyDir();if(l!=='de'&&IDX[l]==null)getEngine(l).then(()=>{walk(document.body)});walk(document.body);listeners.forEach(f=>{try{f(l)}catch(e){}})}
-  /* Sprachwahl: fünf schnelle Knöpfe und eine Liste mit allen weiteren Sprachen */
+  function set(l){if(!LANGS.some(x=>x.id===l))return;lang=l;if(CACHE[l])CACHE[l].clear();loadPack(l);try{localStorage.setItem('cyborg-labor-sprache',JSON.stringify(l))}catch(e){}applyDir();walk(document.body);listeners.forEach(f=>{try{f(l)}catch(e){}})}
+  /* Sprachwahl: zwei Knöpfe, Deutsch und English */
   function picker(onPick){const box=document.createElement('div');box.className='langpick';box.setAttribute('data-no-i18n','');
-    const row=document.createElement('div');row.className='langs';row.setAttribute('role','group');row.setAttribute('aria-label','Sprache / Language / 言語');
-    const sel=document.createElement('select');sel.setAttribute('aria-label','Weitere Sprachen / More languages');const o0=document.createElement('option');o0.value='';o0.textContent='+ '+(D['Weitere Sprachen']?t('Weitere Sprachen'):'Weitere Sprachen / More languages');sel.append(o0);
-    for(const L of LANGS.filter(x=>x.more).sort((a,b)=>a.n.localeCompare(b.n))){const o=document.createElement('option');o.value=L.id;o.textContent=L.n;o.lang=L.id;sel.append(o)}
-    const mark=()=>{row.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.lang===lang));sel.value=LANGS.find(x=>x.id===lang&&x.more)?lang:''};
-    for(const L of LANGS.filter(x=>!x.more)){const b=document.createElement('button');b.type='button';b.textContent=L.n;b.lang=L.id;b.onclick=()=>{set(L.id);mark();onPick&&onPick(L.id)};row.append(b)}
-    sel.onchange=()=>{if(sel.value){set(sel.value);mark();onPick&&onPick(sel.value)}};box.append(row,sel);mark();return box}
+    const row=document.createElement('div');row.className='langs';row.setAttribute('role','group');row.setAttribute('aria-label','Sprache / Language');
+    const mark=()=>row.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.lang===lang));
+    for(const L of LANGS){const b=document.createElement('button');b.type='button';b.textContent=L.n;b.lang=L.id;b.onclick=()=>{set(L.id);mark();onPick&&onPick(L.id)};row.append(b)}
+    box.append(row);mark();return box}
   const listeners=[];
   if(document.body)start();else document.addEventListener('DOMContentLoaded',start);
-  return{t,set,picker,get lang(){return lang},get engine(){return engineName},LANGS,on:f=>listeners.push(f),D}})();
+  return{t,set,picker,addPack,refresh,get lang(){return lang},get packs(){return Object.keys(PACK)},LANGS,on:f=>listeners.push(f),D}})();

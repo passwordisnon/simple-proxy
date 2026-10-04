@@ -100,7 +100,7 @@ Status: ✔ erledigt · ◐ teilweise · ☐ offen. Wird bei jedem Schritt aktua
 - ◐ Klang und Musik komplett neu (Musik im Browser erzeugt, Zerfall läuft; 効果音ラボ/DOVA noch offen): Shibuya-kei-Spielzeugpop, Dreamcast/Toonami-Breakbeat, Riss-Brummen, Countdown-Melodie, Musik zerfällt mit der Geschichte
 - ☐ Glitch-Kern als Finalort, restliche Planeten, alle Inhalte verdoppeln (Körperteile, Gegenstände, Geschichte)
 - ☐ Ruinen in der Geschichte: Überreste von Kokon 95 und Kokon 97, Wortsteine sind Tagebuchzeilen früherer Schläfer:innen, unter der grössten Ruine der alte Serversaal, im Glitch-Kern das ganze Tagebuch
-- ◐ Mehrsprachig in allen Sprachen: Deutsch, English, Français, Italiano von Hand, alle weiteren (rund 70) maschinell über den Chrome-Übersetzer auf dem Gerät oder Claude; Japanisch nur als Sticker-Schmuck
+- ✔ Zweisprachig Deutsch und English (Wunsch: nur diese zwei): komplettes englisches Sprachpaket von Hand (rund 5800 Texte und Vorlagen mit Platzhaltern) für Oberfläche, Dialoge, Meldungen, Handy und alle Schilder und Bildschirme in 3D; Japanisch nur als Sticker-Schmuck; keine maschinelle Übersetzung mehr
 - ☐ Klänge von 効果音ラボ und Musik von DOVA (gepackt, nicht als offene MP3)
 - ☐ Alte Spiele mit freien Grafiken nutzen: Glitch (CC0), Yo Frankie!/Blender (CC-BY), Hard Vacuum und Tyrian (CC-BY), Freedoom (BSD)
 - ✔ Planeten neu gedacht im WIRED-Stil, ausgehend von Urzeit, Metro und Dschungel (Liste im Briefing, Zahlen in docs/WIRED-AUFGABEN.md)

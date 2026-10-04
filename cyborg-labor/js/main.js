@@ -38,7 +38,7 @@ const MAIN=(()=>{
     const N=list.length,STEP=360/N;let rot=0;const cur=()=>((rot%N)+N)%N;
     list.forEach((o,i)=>{o.b.style.setProperty('--a',(i*STEP)+'deg');o.b.style.animationDelay=(.25+i*.025)+'s'});
     /* Text tippt sich Buchstabe für Buchstabe; Piko "spricht" dabei */
-    let typeT=0;function talk(txt,mood){clearInterval(typeT);say.textContent='';let k=0;setMood(mood||'talk');typeT=setInterval(()=>{k++;say.textContent=txt.slice(0,k);if(k%3===0)try{SND.play('click',{vol:.12,rate:2.4+Math.random()*.4})}catch(e){}if(k>=txt.length){clearInterval(typeT);setMood('ok')}},26)}
+    let typeT=0;function talk(txt,mood){clearInterval(typeT);if(typeof I18N!=='undefined')txt=I18N.t(txt);say.setAttribute('data-no-i18n','');say.textContent='';let k=0;setMood(mood||'talk');typeT=setInterval(()=>{k++;say.textContent=txt.slice(0,k);if(k%3===0)try{SND.play('click',{vol:.12,rate:2.4+Math.random()*.4})}catch(e){}if(k>=txt.length){clearInterval(typeT);setMood('ok')}},26)}
     function setMood(m){pk.dataset.m=m}
     function layout(){ring.style.setProperty('--rot',(-rot*STEP)+'deg');const c=cur();list.forEach((o,i)=>{let d=Math.abs(i-c);d=Math.min(d,N-d);o.b.style.setProperty('--s',Math.max(.5,1.25-d*.17).toFixed(2));o.b.style.opacity=d>5?.25:1;o.b.classList.toggle('sel',d===0)});appName.textContent=list[c].n}
     function turn(dir){rot+=dir;layout();pk.dataset.look=dir>0?'r':'l';clearTimeout(pk._t);pk._t=setTimeout(()=>pk.dataset.look='',420);SND.play('click',{vol:.3,rate:1.2+(cur()%5)*.08});talk(list[cur()].line)}
