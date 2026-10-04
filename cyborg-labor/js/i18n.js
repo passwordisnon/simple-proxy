@@ -150,7 +150,9 @@ const I18N=(()=>{
   let lang=(()=>{try{const s=JSON.parse(localStorage.getItem('cyborg-labor-sprache')||'null');if(s)return LANGS.some(l=>l.id===s)?s:'en'}catch(e){}const full=navigator.language||'de',n=full.slice(0,2);return LANGS.some(l=>l.id===full)?full:LANGS.some(l=>l.id===n)?n:'de'})();
   /* ---------- Sprachpakete (lang/<id>.js): handübersetzte Texte und Vorlagen mit Platzhaltern ---------- */
   const PACK={},PACKRE={},CACHE={},UPI={};
-  function addPack(l,p){PACK[l]=p;delete UPI[l];const esc=x=>x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  /* extend: weitere Texte (z. B. Fundus-Namen) in ein Paket mischen, auch bevor es geladen ist */
+  const EXT={};function extend(l,s){EXT[l]=Object.assign(EXT[l]||{},s);if(PACK[l]){Object.assign(PACK[l].s=PACK[l].s||{},s);CACHE[l]=new Map()}}
+  function addPack(l,p){if(EXT[l])p.s=Object.assign(p.s||{},EXT[l]);PACK[l]=p;delete UPI[l];const esc=x=>x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
     PACKRE[l]=Object.keys(p.t||{}).map(k=>{const fixed=k.replace(/\{\d+\}/g,'');const src='^'+k.split(/(\{\d+\})/).map(x=>/^\{\d+\}$/.test(x)?'([\\s\\S]+?)':esc(x)).join('')+'$';
       const idx=(k.match(/\{(\d+)\}/g)||[]).map(x=>+x.slice(1,-1));return{re:new RegExp(src),out:p.t[k],idx,w:fixed.length}}).sort((a,b)=>b.w-a.w);
     CACHE[l]=new Map();if(l===lang)refresh()}
@@ -195,4 +197,4 @@ const I18N=(()=>{
     box.append(row);mark();return box}
   const listeners=[];
   if(document.body)start();else document.addEventListener('DOMContentLoaded',start);
-  return{t,set,picker,addPack,refresh,get lang(){return lang},get packs(){return Object.keys(PACK)},LANGS,on:f=>listeners.push(f),D}})();
+  return{t,set,picker,addPack,extend,refresh,get lang(){return lang},get packs(){return Object.keys(PACK)},LANGS,on:f=>listeners.push(f),D}})();

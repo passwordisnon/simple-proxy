@@ -31,8 +31,15 @@ const KIT=(()=>{
     metal:'#767b92',metalD:'#5a5c6d',dark:'#3c3c42',plant:'#45af7d',plantD:'#268e6d',roof:'#4fad95',roofB:'#7089d3',roof2:'#e65059',light:'#fec047',glass:'#95c9ee'};
   const packs={},loading={};
   function load(name){if(packs[name])return Promise.resolve(packs[name]);if(loading[name])return loading[name];
-    return loading[name]=fetch('assets/kits/'+name+'.json').then(r=>r.json()).then(d=>{const sh=SHIFT[name];for(const k in d){d[k].cls=d[k].pal.map(p=>classify(p[0]));
+    return loading[name]=fetch('assets/kits/'+name+'.json').then(r=>r.json()).then(d=>{const sh=SHIFT[name];for(const k in d){unpack(d[k]);d[k].cls=d[k].pal.map(p=>classify(p[0]));
       if(sh){const P=d[k].p;for(let i=0;i<P.length;i+=3){P[i]+=sh[0]*1000;P[i+2]+=sh[2]*1000}const b=d[k].b;b[0]+=sh[0];b[3]+=sh[0];b[2]+=sh[2];b[5]+=sh[2]}}packs[name]=d;return d})}
+  /* Kompaktform (tools/kitbin.py): P int16, C uint8, I uint16/uint32 als base64 */
+  function b64(s,T){const b=atob(s);const u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return new T(u.buffer)}
+  function unpack(v){if(v.P){v.p=b64(v.P,Int16Array);v.c=b64(v.C,Uint8Array);v.i=Array.from(b64(v.I,v.iw===4?Uint32Array:Uint16Array));delete v.P;delete v.C;delete v.I}}
+  /* Erweiterung <pack>-x.json: alle Teile, die nicht schon beim Start gebraucht werden (Fundus) */
+  const extLoading={};
+  function loadExt(name){if(extLoading[name])return extLoading[name];return extLoading[name]=load(name).then(()=>fetch('assets/kits/'+name+'-x.json')).then(r=>r.ok?r.json():{}).then(d=>{const sh=SHIFT[name];const P=packs[name];
+    for(const k in d){unpack(d[k]);d[k].cls=d[k].pal.map(p=>classify(p[0]));if(sh){const Q=d[k].p;for(let i=0;i<Q.length;i+=3){Q[i]+=sh[0]*1000;Q[i+2]+=sh[2]*1000}const b=d[k].b;b[0]+=sh[0];b[3]+=sh[0];b[2]+=sh[2];b[5]+=sh[2]}P[k]=d[k]}return P}).catch(()=>packs[name])}
   /* Bausätze mit Ursprung in der Kachelecke auf die Mitte schieben */const SHIFT={space:[-2,0,-1.5]};
   const has=(pack,name)=>!!(packs[pack]&&packs[pack][name.split('#')[0]]);
   const geoCache=new Map();
@@ -57,5 +64,5 @@ const KIT=(()=>{
   function bounds(pack,name){const P=packs[pack]&&packs[pack][name.split('#')[0]];if(!P)return null;return name.endsWith('#cap')?[P.b[0],.02,P.b[2],P.b[3],P.b[4],P.b[5]]:P.b}
   function names(pack){return packs[pack]?Object.keys(packs[pack]):[]}
   const ORIG={orig:true,line:'#4a3a5e'};
-  return{load,mesh,geo,bounds,names,has,classify,BASE,ANCH,ORIG}
+  return{load,loadExt,mesh,geo,bounds,names,has,classify,BASE,ANCH,ORIG}
 })();

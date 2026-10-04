@@ -12,7 +12,7 @@ const PLANETKIT=(()=>{
   const list=[];
   function add(id,o){
     PLANETS[id]=Object.assign({base:'kompost'},o.def);PLACES[id]=o.places||[{id:'platz',n:'Dorfplatz',lat:90,lon:0,r:.18,h:.8,build:'plaza'}];
-    if(o.biomes)Object.assign(BIOMES,o.biomes);if(o.rock)NH.ROCK[id]=o.rock;
+    if(o.biomes){Object.assign(BIOMES,o.biomes);PLANETS[id].bio=Object.keys(o.biomes)}if(o.rock)NH.ROCK[id]=o.rock;
     const set=(T,v)=>{if(T&&v!==undefined)T[id]=v};
     set(TOWN.NAMES,o.names);set(TOWN.STY,o.sty);
     if(typeof BUILDINGS!=='undefined'){set(BUILDINGS.WALL,o.wall);set(BUILDINGS.FLOOR,o.floor);set(BUILDINGS.MAYORS,o.mayor);set(BUILDINGS.LORE,o.lore)}
