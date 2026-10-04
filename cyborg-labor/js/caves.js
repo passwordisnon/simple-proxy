@@ -64,6 +64,6 @@ const CAVES=(()=>{
       const has=typeof ITEMS!=='undefined'&&ITEMS.some(x=>x.id==='kristall');if(has&&bagAdd('item','kristall')){SND.play('pickup');UI.toast('Kristall abgebaut!')}else{money(25);UI.toast('Kristallsplitter verkauft: 25 Taler')}}
     return{W,D,camD:12.5}}
   function enter(c){cur=c;SAVE.stats.caves=(SAVE.stats.caves||0)+1;INTERIOR.enter('hoehle')}
-  INTERIOR.kinds.hoehle={bg:'#0C0A12',music:'museum',build,frame(dt,t){const p=INTERIOR.scene&&INTERIOR.scene.userData.pond;if(p)p.material.opacity=.7+.06*Math.sin(t*1.4)}};
+  INTERIOR.kinds.hoehle={bg:'#0C0A12',music:'mine',build,frame(dt,t){const p=INTERIOR.scene&&INTERIOR.scene.userData.pond;if(p)p.material.opacity=.7+.06*Math.sin(t*1.4)}};
   return{entrance,enter,pal,ROCK}
 })();

@@ -145,7 +145,7 @@ const SPACE=(()=>{
   const LIM=()=>Math.max(130,...planets.map(p=>p.dist+18));
   function posOf(p,t){if(p.par){const q=planets.find(x=>x.pid===p.par);if(q){const c=posOf(q,t);const md=q.r*2.2+p.r+4;const a=p.ma+t*p.msp;return c.add(new V(Math.cos(a)*md,0,Math.sin(a)*md))}}const a=p.ph+t*p.sp;return new V(Math.cos(a)*p.dist,0,Math.sin(a)*p.dist)}
   function enter(fromPid){if(!sc)build();else{ship.remove(ship.userData.rk);QF=.8;const rk=ROCKET.build(ROCKET.spec(),M());QF=1;addOutlines(rk);rk.rotation.x=-PI/2;rk.scale.setScalar(.7);ship.add(rk);ship.userData.rk=rk}
-    from=fromPid;t0=performance.now()/1000;const p=planets.find(x=>x.pid===fromPid)||planets[0];const pp=posOf(p,0);const out=pp.clone().normalize();ship.position.copy(pp).addScaledVector(out,p.r+7);const tg=new V(-out.z,0,out.x);const dir=tg.clone().multiplyScalar(.75).addScaledVector(out,-.65).normalize();yaw=Math.atan2(dir.x,dir.z);vel.copy(dir).multiplyScalar(5);landLock=2.5;intro=1;on=true;GAME.mode='space';SND.music('museum');
+    from=fromPid;t0=performance.now()/1000;const p=planets.find(x=>x.pid===fromPid)||planets[0];const pp=posOf(p,0);const out=pp.clone().normalize();ship.position.copy(pp).addScaledVector(out,p.r+7);const tg=new V(-out.z,0,out.x);const dir=tg.clone().multiplyScalar(.75).addScaledVector(out,-.65).normalize();yaw=Math.atan2(dir.x,dir.z);vel.copy(dir).multiplyScalar(5);landLock=2.5;intro=1;on=true;GAME.mode='space';SND.music('space');
     UI.talkAbort&&UI.talkAbort();document.body.classList.add('inspace');for(const q of planets)q.lbl.style.display='';hudOn(true);resize()}
   function toggleView(){view=view==='chase'?'map':'chase';SND.play('pep',{vol:.3});if(hud)hud.querySelector('.vw').textContent=view==='chase'?'Karte (M)':'Cockpit (M)'}
   function exit(){on=false;if(typeof GLITCHKERN!=='undefined')GLITCHKERN.hideLabel();RACE.quit();RACE.leaveRoom();document.body.classList.remove('inspace');for(const q of planets)q.lbl.style.display='none';hudOn(false);$('prompt').hidden=true}
@@ -177,6 +177,6 @@ const SPACE=(()=>{
   function place(p,y){ship.position.copy(p);yaw=y;vel.set(0,0,0);ship.rotation.y=y}
   /* Andocken an einer Raumstation: Cockpit anhalten, nach dem Besuch weiterfliegen */
   function pause(){on=false;document.body.classList.remove('inspace');for(const q of planets)q.lbl.style.display='none';RACE.hideLabels&&RACE.hideLabels();hudOn(false);$('prompt').hidden=true}
-  function resume(){on=true;GAME.mode='space';document.body.classList.add('inspace');for(const q of planets)q.lbl.style.display='';hudOn(true);vel.set(0,0,0);landLock=1.5;SND.music('museum');resize()}
+  function resume(){on=true;GAME.mode='space';document.body.classList.add('inspace');for(const q of planets)q.lbl.style.display='';hudOn(true);vel.set(0,0,0);landLock=1.5;SND.music('space');resize()}
   return{enter,frame,action,resize,place,pause,resume,yaw:()=>yaw,ship:()=>ship,get on(){return on},_dbg:()=>({sc,cam,ship,planets,fx,sun})}
 })();

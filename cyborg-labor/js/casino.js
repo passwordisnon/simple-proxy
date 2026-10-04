@@ -145,6 +145,6 @@ const CASINO=(()=>{
     const md=sc.userData.madame;if(md&&md.userData.tick)md.userData.tick(t,false,UI.typing?.4:0)}
   function enter(){INTERIOR.enter('casino');const s=st();setTimeout(()=>{if(!s.greeted){s.greeted=true;persist();
       say(['Willkommen in der Spielhalle! Ich bin Tilly.','Jedes Spiel kostet '+PRICE+' Taler. Wer geschickt spielt, bekommt Tickets.','An meiner Theke tauschst du Tickets gegen Preise. Hier gewinnt nicht das Glück, sondern die Übung!'].concat(s.refund?['Deine alten Jetons habe ich dir übrigens zurückgezahlt: '+s.refund+' Taler.']:[]))}},900)}
-  if(typeof INTERIOR!=='undefined')INTERIOR.kinds.casino={bg:'#1E2238',music:'museum',build,frame};
+  if(typeof INTERIOR!=='undefined')INTERIOR.kinds.casino={bg:'#1E2238',music:'bar',build,frame};
   return{enter,SYM,st,PRIZES,_games:{stopLight,whack,memory,claw,counter}}
 })();

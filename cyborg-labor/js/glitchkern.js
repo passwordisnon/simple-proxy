@@ -85,6 +85,6 @@ const GLITCHKERN=(()=>{
   if(typeof NH!=='undefined'){const{REL,relMeta}=NH;REL('glitch_kristall',relMeta('Glitch-Kristall','kompost','schatz',3,9999,'Ein Kristall, der abwechselnd farblos und bunt ist. Er tickt leise: 00:00, 00:00, 00:00.','Ein Glitch ist ein kleiner Fehler in einem System. Manchmal zeigen Fehler, wo etwas Neues anfangen kann.'),
     (g,m)=>{P(g,new THREE.IcosahedronGeometry(.2,0),m.glow(RED,1.6),[0,.24,0]);P(g,new THREE.IcosahedronGeometry(.26,0),new THREE.MeshBasicMaterial({color:'#ffffff',wireframe:true}),[0,.24,0]);P(g,G.cy(.18,.22,.06,16),m.c('#2a2a30'),[0,.03,0])})}
   function dock(){SND.play('metal',{vol:.5});SPACE.pause();hideLabel();INTERIOR.enter('glitchkern')}
-  INTERIOR.kinds.glitchkern={bg:'#141416',music:'stille',build,frame,toSpace:()=>SPACE.resume()};
+  INTERIOR.kinds.glitchkern={bg:'#141416',music:'kern',build,frame,toSpace:()=>SPACE.resume()};
   return{space,dock,hideLabel,ROOMS,POS,state:S}
 })();

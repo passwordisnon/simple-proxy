@@ -70,7 +70,7 @@ const RACE=(()=>{
     const nPeers=[...peers.values()].length;const nAI=Math.max(0,GRID-1-nPeers);const ai=[];const cols=['#FF9E6E','#A6EBC3','#C6A9FF','#FFD85A'];
     for(let i=0;i<nAI;i++){const sp=Object.assign(ROCKET.spec(),{col:cols[i%4],acc:'#3B3450',nose:['klassik','spitz','rund'][i%3]});QF=.6;const rk=ROCKET.build(sp,M());QF=1;addOutlines(rk);rk.rotation.x=-PI/2;rk.scale.setScalar(.7);const g=new THREE.Group();g.add(rk);g.position.copy(grid(i+1+nPeers));sc.add(g);
       ai.push({g,gate:1,lap:0,sp:19+Math.random()*4+i*.6,yaw:Math.atan2(dir.x,dir.z),fin:0,n:['Blitzi','Kometa','Nebelfuchs','Turbo-Tina'][i%4],wob:Math.random()*9})}
-    race={s,gates,objs,boosts,startAt,me:{gate:1,lap:0,fin:0,boost:0},ai,t0:startAt,done:false,prevPos:null};S().races++;persist();hudOn();SND.play('select')}
+    race={s,gates,objs,boosts,startAt,me:{gate:1,lap:0,fin:0,boost:0},ai,t0:startAt,done:false,prevPos:null};S().races++;persist();hudOn();SND.play('select');SND.music('race')}
   function locked(){return!!race&&Date.now()<race.startAt}
   function rocketFor(q){if(q.g)return q.g;const sp=Object.assign(ROCKET.spec(),{col:q.col,acc:q.acc});QF=.6;const rk=ROCKET.build(sp,M());QF=1;addOutlines(rk);rk.rotation.x=-PI/2;rk.scale.setScalar(.7);const g=new THREE.Group();g.add(rk);sc.add(g);
     const lbl=el('div','lbl');lbl.textContent=q.n;$('labels').append(lbl);g.userData.lbl=lbl;q.g=g;return g}
@@ -92,7 +92,7 @@ const RACE=(()=>{
     if(!R._st||now-R._st>110){R._st=now;send()}}
   function finish(){const R=race;const rank=R.rank||1;const pay=[0,150,80,40][rank]||15;money(pay);const st=S();if(rank===1)st.wins++;const b=st.best[R.s.st.id];if(!b||R.me.fin<b)st.best[R.s.st.id]=R.me.fin;persist();SND.jingle(rank===1?'j_success':'j_buy');
     setTimeout(()=>{const w=UI.win('Ziel! Platz '+rank,{size:'narrow',onClose:()=>endRace()});w.body.append(el('p',null,'Zeit: '+R.me.fin.toFixed(2)+' s'+(st.best[R.s.st.id]===R.me.fin?' – neue Bestzeit!':'')+'. Preisgeld: '+pay+' Taler.'),el('p','sub','Siege insgesamt: '+st.wins+'.'));w.foot.append(btn('Weiterfliegen','primary',()=>w.close()))},900)}
-  function endRace(){if(!race)return;for(const g of race.objs){sc.remove(g)}for(const a of race.ai)sc.remove(a.g);for(const q of peers.values()){if(q.g){sc.remove(q.g);q.g.userData.lbl&&q.g.userData.lbl.remove();q.g=null}}race=null;pres.startAt=0;send();hudOn(false);leaveRoom()}
+  function endRace(){if(!race)return;for(const g of race.objs){sc.remove(g)}for(const a of race.ai)sc.remove(a.g);for(const q of peers.values()){if(q.g){sc.remove(q.g);q.g.userData.lbl&&q.g.userData.lbl.remove();q.g=null}}race=null;pres.startAt=0;send();hudOn(false);leaveRoom();if(GAME.mode==='space')SND.music('space')}
   function hudOn(v){if(hud){hud.remove();hud=null}if(v===false)return;hud=el('div','racehud');hud.innerHTML='<span class="lap"></span><span class="gt"></span><span class="pos"></span><span class="tm"></span><b class="cd"></b>';
     hud.style.cssText='position:absolute;top:64px;left:50%;transform:translateX(-50%);display:flex;gap:14px;align-items:center;padding:8px 18px;border-radius:22px;background:rgba(255,253,247,.92);color:#3B3450;font-weight:800;z-index:30;pointer-events:none';$('world').append(hud);
     const cd=hud.querySelector('.cd');cd.style.cssText='position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);font-size:72px;color:#FFE38A;text-shadow:0 4px 0 #3B3450'}

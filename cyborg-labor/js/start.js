@@ -9,7 +9,7 @@ const START=(()=>{
   let menuEl=null;
   function langRow(){return I18N.picker(()=>SND.play&&SND.play('select',{vol:.5}))}
   /* ---------- Startbildschirm ---------- */
-  function show(){
+  function show(){try{SND.music('title')}catch(e){}
     /* direkt in die Beamer-Ansicht (nach "Beamer-Ansicht" im Spielmenü) */
     let pending=null;try{pending=sessionStorage.getItem('cyborg-labor-start');sessionStorage.removeItem('cyborg-labor-start')}catch(e){}
     if(pending==='beamer'){beamer();return}

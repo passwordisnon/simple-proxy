@@ -25,7 +25,8 @@ const SND=(()=>{
     ambBus=ctx.createGain();ambBus.gain.value=st.sfx*.6;ambBus.connect(comp);
     uiBus=ctx.createGain();uiBus.gain.value=st.ui??.7;const uiHp=ctx.createBiquadFilter();uiHp.type='highpass';uiHp.frequency.value=180;uiBus.connect(uiHp);uiHp.connect(master);
     ['click','select','open','close','confirm','pickup','place','step_grass0','step_grass1','step_grass2','coins','chat','talk'].forEach(load);
-    if(wantTrack)music(wantTrack)}
+    if(wantTrack)music(wantTrack);
+    /* Tag/Nacht: alle 20 s prüfen, ob ein anderes Stück passt (gleiches Stück läuft einfach weiter) */setInterval(()=>{if(wantTrack==='world'||wantTrack==='town')music(wantTrack)},20000)}
   function load(name){if(buf[name]||loading[name])return loading[name];if(!ctx)return null;
     loading[name]=fetch('audio/'+name+'.mp3').then(r=>{if(!r.ok)throw new Error(r.status);return r.arrayBuffer()}).then(a=>new Promise((res,rej)=>ctx.decodeAudioData(a,res,rej))).then(b=>{buf[name]=b;return b}).catch(()=>null);return loading[name]}
   function resolve(name){if(GROUPS[name])return name+Math.floor(Math.random()*GROUPS[name]);return name}
@@ -35,15 +36,25 @@ const SND=(()=>{
     const g=ctx.createGain();g.gain.value=o.vol??1;let node=src;node.connect(g);
     const bus=o.bus==='ui'||(!o.bus&&UI_SOUNDS.has(name))?uiBus:o.bus==='amb'?ambBus:sfxBus;if(o.pan&&ctx.createStereoPanner){const p=ctx.createStereoPanner();p.pan.value=Math.max(-1,Math.min(1,o.pan));g.connect(p);p.connect(bus)}else g.connect(bus);
     src.start();return src}
+  /* Echte Musik (CC0, audio/music, Quellen in docs/LIZENZEN.md): ein Stück je Planet, Mond und Ort */
+  const TRACKS=new Set(['bar','bauklotz','bernstein','bibliothek','countryside','dinofabrik','drachen','dschungel','finale','fishing','frost','funkturm','gluehwurm','heim','home','honigwabe','kassette','kaufhaus','keim','kern','klang','kompost','korallen','lab','magnetbahn','metro','mine','museum','nachtmarkt','neonarkade','oceanside','origami','pilz','pixelmond','pluesch','race','rechenzentrum','riesengarten','riss','schoner','schrott','shop','space','station','tiefsee','title','tunnel','uhrwerk','urzeit','wetterwerk','wolkenarchipel','wueste']);
+  function fileFor(track){const G=typeof GAME!=='undefined'&&GAME.G;const id=G&&G.id;const ik=typeof INTERIOR!=='undefined'&&GAME.mode==='interior'?INTERIOR.kind:'';
+    const k={lab:'lab',title:'title',museum:'museum',shop:'shop',space:'space',station:'station',race:'race',tunnel:'tunnel',kern:'kern',riss:'riss',mine:'mine',fishing:'fishing',home:'home',bar:'bar'}[track];
+    if(k&&TRACKS.has(k))return'music/m_'+k;
+    if(track==='world'||track==='town'){const h=typeof GAMETIME!=='undefined'&&GAMETIME.hour?GAMETIME.hour():12;
+      /* nachts ruhigere Stücke: am Meer Wellen-Lofi, sonst Landluft */if(GAME.mode==='outdoor'&&(h>=22||h<5)&&!(G.def&&G.def.mine))return'music/m_'+(['korallen','tiefsee','wolkenarchipel','urzeit'].includes(id)?'oceanside':'countryside');
+      if(id&&TRACKS.has(id))return'music/m_'+id;const mo=id&&typeof PLANETS!=='undefined'&&PLANETS[id]&&PLANETS[id].moonOf;if(mo&&TRACKS.has(mo))return'music/m_'+mo;return'music/m_kompost'}
+    return MUSIC[track]||null}
   function music(track){wantTrack=track;if(!ctx)return;
-    /* Klang 2.0: Musik wird im Browser erzeugt (music2.js); jeder Planet hat sein eigenes Lied */
-    if(typeof MUSIC2!=='undefined'&&st.gen!==false){const nm=(typeof GAME!=='undefined'&&GAME.G&&GAME.G.id)||'';const key=track+'|'+nm;if(key===curTrack)return;curTrack=key;
+    /* Erzeugte Musik (music2.js) nur noch, wenn sie in den Einstellungen gewählt ist */
+    if(typeof MUSIC2!=='undefined'&&st.gen===true){const nm=(typeof GAME!=='undefined'&&GAME.G&&GAME.G.id)||'';const key=track+'|'+nm;if(key===curTrack)return;curTrack=key;
       const old=curMusic;if(old){const t=ctx.currentTime;old.g.gain.cancelScheduledValues(t);old.g.gain.setValueAtTime(old.g.gain.value,t);old.g.gain.linearRampToValueAtTime(0,t+1.2);setTimeout(()=>{try{old.src.stop()}catch(e){}},1400)}curMusic=null;
       MUSIC2.play(track,track==='lab'||track==='home'||track==='museum'?track:nm||track);return}
-    if(track===curTrack)return;curTrack=track;const file=MUSIC[track]||track;
+    try{MUSIC2&&MUSIC2.stop()}catch(e){}
+    const file=track&&track!=='stille'?fileFor(track):null;const key=file||'';if(key===curTrack)return;curTrack=key;
     const old=curMusic;if(old){const t=ctx.currentTime;old.g.gain.cancelScheduledValues(t);old.g.gain.setValueAtTime(old.g.gain.value,t);old.g.gain.linearRampToValueAtTime(0,t+1.6);setTimeout(()=>{try{old.src.stop()}catch(e){}},1800)}
-    curMusic=null;if(!track||track==='stille')return;
-    Promise.resolve(load(file)).then(b=>{if(!b||curTrack!==track)return;const src=ctx.createBufferSource();src.buffer=b;src.loop=true;const g=ctx.createGain();g.gain.value=0;src.connect(g);g.connect(musicBus);src.start();
+    curMusic=null;if(!file)return;
+    Promise.resolve(load(file)).then(b=>{if(!b||curTrack!==key)return;const src=ctx.createBufferSource();src.buffer=b;src.loop=true;const g=ctx.createGain();g.gain.value=0;src.connect(g);g.connect(musicBus);src.start();
       const t=ctx.currentTime;g.gain.linearRampToValueAtTime(1,t+2);curMusic={src,g}})}
   /* Musik kurz leiser (Jingles, Dialoge) */
   function duck(sec,level){if(!ctx||!curMusic)return;const t=ctx.currentTime;const g=curMusic.g.gain;g.cancelScheduledValues(t);g.setValueAtTime(g.value,t);g.linearRampToValueAtTime(level??.25,t+.15);g.linearRampToValueAtTime(1,t+sec)}
@@ -81,5 +92,5 @@ const SND=(()=>{
       src.connect(f);f.connect(g);g.connect(ambBus);src.start();a=amb[kind]={g,level:0};}
     const t=ctx.currentTime;a.g.gain.setTargetAtTime(Math.max(0,level)*.5,t,.6)}
   function set(k,v){st[k]=v;save();if(!ctx)return;if(k==='on')master.gain.setTargetAtTime(v?1:0,ctx.currentTime,.05);if(k==='music')musicBus.gain.value=v;if(k==='sfx'){sfxBus.gain.value=v;ambBus.gain.value=v*.6}if(k==='ui'&&uiBus)uiBus.gain.value=v;if(k==='voice')voiceBus.gain.value=v}
-  return{init,play,music,jingle,duck,voice,ambience,set,get st(){return st},get ready(){return!!ctx},get ctx(){return ctx},get musicBus(){return musicBus},load};
+  return{init,play,music,jingle,duck,voice,ambience,set,get track(){return curTrack},get playing(){return!!curMusic},get st(){return st},get ready(){return!!ctx},get ctx(){return ctx},get musicBus(){return musicBus},load};
 })();

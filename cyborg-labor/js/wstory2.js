@@ -26,7 +26,7 @@ const WSTORY2=(()=>{
   function advance(){const s=S();if(s.act<2)return;let changed=false;
     if(s.act===2&&s.caught.length>=6){s.act=3;changed=true;say('Sechs Risslinge … Ich glaube, die Risse kommen aus Kokon selbst. Im All gibt es Wartungsstationen. Lass uns nachsehen!')}
     if(s.act===3&&(SAVE.glitchKnown||logs()>=7)){s.act=4;changed=true;say('Alle sieben Logbücher! Hinter der Sonne flackert etwas Rotes. Der Glitch-Kern.')}
-    if(s.act===4&&SAVE.finale){s.act=5;changed=true;midnight();say('00:00! Die Uhr läuft wieder! Wir haben es geschafft – zusammen.')}
+    if(s.act===4&&SAVE.finale){s.act=5;changed=true;midnight();try{SND.jingle('music/m_finale')}catch(e){}say('00:00! Die Uhr läuft wieder! Wir haben es geschafft – zusammen.')}
     if(s.act<5&&SAVE.finale){s.act=5;changed=true;midnight()}
     if(changed){persist();UI.toast(TITLES[s.act],3200)}}
   function say(t){if(typeof PIKO!=='undefined')PIKO.want(t)}

@@ -116,6 +116,6 @@ const STATIONS=(()=>{
   function race(){const s=cur;INTERIOR.exit();setTimeout(()=>RACE.openLobby(s),900)}
   /* ---------- Andocken ---------- */
   function dock(s){cur=s;SND.play('metal',{vol:.5});SPACE.pause();INTERIOR.enter('station')}
-  INTERIOR.kinds.station={bg:'#14162e',music:'museum',build,frame,toSpace:()=>SPACE.resume()};
+  INTERIOR.kinds.station={bg:'#14162e',music:'station',build,frame,toSpace:()=>SPACE.resume()};
   return{dock,DATA,logsRead,state:st,get current(){return cur}}
 })();

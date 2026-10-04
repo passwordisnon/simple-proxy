@@ -36,6 +36,39 @@ Stand: 2 October 2026. Jede Quelle wurde auf ihrer eigenen Lizenzseite geprüft.
 | SuperTux, 0 A.D. (Grafik) | CC-BY-SA / GPL | Share-alike: würde die gleiche Lizenz für unsere Teile verlangen, daher nicht verwendet |
 | Abandonware-ISOs (archive.org) | weiterhin urheberrechtlich geschützt | nicht verwendbar |
 
+## Musik (seit 4. Oktober 2026, alle CC0 von OpenGameArt, je Seite geprüft)
+
+Liegt in `audio/music/`, neu kodiert (64 kbit/s, Lautheit angeglichen, lange Stücke nach 3 Minuten ausgeblendet). CC0 verlangt keine Nennung; wir nennen trotzdem alle im Abspann.
+
+| Stück im Spiel | Titel | Komponist:in | Quelle (opengameart.org/content/…) |
+| --- | --- | --- | --- |
+| Labor, Titel, Museum, Heim, Origami, Glühwurm-Mond | Calm 1–6 | Juhani Junkala | jrpg-pack-4-calm |
+| Kompost, Korallen, Uhrwerk, Kaufhaus | Town 1–4 | Juhani Junkala | jrpg-pack-2-towns |
+| Urzeit, Keim-Mond, Drachen-Mond, Höhlen | Exploration 6, 4, 1, 3 | Juhani Junkala | jrpg-pack-1-exploration |
+| Neon-Arkade, Pixelmond | Stage Select, Stage 2 | Juhani Junkala | 4-chiptunes-adventure |
+| Riss-Begegnungen | Whispers From Beyond | Juhani Junkala | jrpg-pack-3-evil |
+| Zuhause, Casino, Funkturm, Dschungel, Wetterwerk, Honigwabe, Nacht (Land/Meer) | A cup of tea, Bartender, Cat caffe, Rainy Forest, Morning rain, Florist, Countryside, Oceanside | Tad | lofi-compilation |
+| Laden, Tiefsee | Buy Something!, Underwater | Cleyton Kauffman | shop-theme, underwater-theme |
+| Weltraum, Wüste, Metro, Bildschirmschoner | Out There, Caravan, Empty City, Spacelife 14 | yd | space-music-out-there, desert-theme, emptycity-background-music, spacelife-14 |
+| Station | Magic Space | CodeManu | magic-space |
+| Rennen | Winning the Race | section31 | winning-the-race |
+| Wartungstunnel, Glitch-Kern | Caves, Experiment G | TricksNTraps | t-t-free-cyberpunk-pack |
+| Finale | Victory | CelestialGhost8 | victory |
+| Schrott | Doodle | stumpystrust | doodle-menu-like-song |
+| Frost | Snowfall | Kistol | snowfall |
+| Pilz, Plüsch, Bernstein | Enchanted Tiki 86, Song 17, Song 18 | cynicmusic | enchanted-tiki-86, happy-lullaby-song17, crystal-cave-song18 |
+| Riesengarten, Kassetten-Mond | Meadow Thoughts / Next to You | écrivain / Joth | meadow-thoughts, next-to-you |
+| Wolkenarchipel | Lost in the Meadows | haeldb | lost-in-the-meadows |
+| Bibliothek, Klang | JRPG2 Piano, 8bit Bossa | Joth | jrpg2-piano, bossa-nova |
+| Dino-Fabrik | Happy Adventure | TinyWorlds | happy-adventure-loop |
+| Magnetbahn | Summer Park | Scribe | summer-park-8bit-tune-loop |
+| Rechenzentrum | Chill Lofi | omfgdude | chill-lofi-inspired |
+| Nachtmarkt | Moon Chime | Obscure Music | moon-chime |
+| Bauklotz | The Field of Dreams | pauliuw | the-field-of-dreams |
+| Zoo | Gone Fishin' | Memoraphile | gone-fishin |
+
+Die im Browser erzeugte Musik (music2.js) bleibt als Einstellung erhalten, ist aber nicht mehr Standard.
+
 ## Folgen für das Spiel
 
 - Entscheid: 効果音ラボ und DOVA werden verwendet.

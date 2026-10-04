@@ -42,6 +42,6 @@ const TUNNEL=(()=>{
   async function terminal(){await UI.talk('SCHLAEFER.TXT',['KOKON 95: zwölf Schläfer:innen. KOKON 97: neun. KOKON 99: eine Person.','Unter der letzten Zeile blinkt der Cursor. Daneben steht dein Name.','Alle, die vor dir hier waren, haben sich draussen kennengelernt. Ihre Tagebücher liegen in den Ruinen.'],{voice:{pitch:150,kind:'hall'},color:'#1a3a1a'})}
   /* Möbel: das alte Kapselbett */
   furn('kokon_bett',{n:'Kokon-Kapselbett',cat:'bett',price:4200,planet:'station',size:[1,2],h:1.3,b:(g,m)=>{P(g,G.bx(1,.35,2,.08),m.c('#2a2e3a'),[0,.18,0]);P(g,G.ca(.42,1.2),m.c('#e8ecf8',{gloss:1}),[0,.6,0],[PI/2,0,0],[1,1,.55]);P(g,G.ca(.38,1.1),m.glass('#c8ffd8'),[0,.85,-.25],[PI/2-.8,0,0],[1,1,.5]);P(g,G.s(.05),m.glow('#7fd34a',1.8),[.42,.3,1.01])}});
-  INTERIOR.kinds.tunnel={bg:'#20232c',music:'stille',build,frame};
+  INTERIOR.kinds.tunnel={bg:'#20232c',music:'tunnel',build,frame};
   return{hatch,unlocked,stationOf}
 })();

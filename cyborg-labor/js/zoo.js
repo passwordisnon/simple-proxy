@@ -99,6 +99,6 @@ const ZOO=(()=>{
     const gr=el('div','grid');for(const[n,r]of MIL){const done=Z.got.includes(n),ok=T.have>=Math.min(n,T.all);const cd=el('div','card');cd.append(el('b',null,n+' Arten'),el('span','sub',fmt(r)+' Taler'),el('span','sub',done?'abgeholt':ok?'bereit!':'noch '+(Math.min(n,T.all)-T.have)));
       if(ok&&!done){const b=btn('Abholen','primary',()=>{Z.got.push(n);money(r);persist();SND.jingle('j_success');UI.talk(NM,['Wunderbar! '+n+' Arten im Tierpark!','Hier, '+fmt(r)+' Taler für deine Mühe.'],{voice:VOICE});w.close()});cd.append(b)}gr.append(cd)}w.body.append(gr)}
   function enter(){INTERIOR.enter('zoo');const Z=SAVE.zoo=SAVE.zoo||{got:[]};if(!Z.hi){Z.hi=1;persist();setTimeout(()=>UI.talk(NM,['Willkommen im Tierpark!','Hier im Pavillon wohnen alle Fische und Insekten, die du gefangen hast.','Die Tiere, die du triffst, streifen draussen im Park durch ihre eigenen Landschaften.'],{voice:VOICE}),900)}}
-  if(typeof INTERIOR!=='undefined')INTERIOR.kinds.zoo={bg:'#DDEFD8',music:'museum',build,frame};
+  if(typeof INTERIOR!=='undefined')INTERIOR.kinds.zoo={bg:'#DDEFD8',music:'fishing',build,frame};
   return{enter,counts,total,buildPark,parkTick}
 })();
