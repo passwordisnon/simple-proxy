@@ -406,6 +406,8 @@ function buildWaterMesh(fns,detail){const def=fns.def;let wg=new THREE.Icosahedr
      float sp=pow(max(dot(N,H),0.),260.);c+=vec3(1.,.98,.9)*smoothstep(.35,.8,sp)*.9*(1.-uIce);float fr=pow(1.-max(dot(up,V),0.),4.);c=mix(c,uSky*1.05,fr*.45);
      if(uIce>.5){float cr=step(.985,h3(floor(vP*2.)));c=mix(c,vec3(.95,.98,1.),.35+.2*cr);}
      gl_FragColor=vec4(c,mix(.8,.95,d));}`});
+  /* Wo Ufer und Wasser fast gleich hoch liegen, flackerte zackiger Schaum durch den Sand (Z-Fighting): Wasser leicht nach hinten versetzen, bei Gleichstand gewinnt der Boden */
+  wm.polygonOffset=true;wm.polygonOffsetFactor=1;wm.polygonOffsetUnits=4;
   const m=new THREE.Mesh(wg,wm);m.renderOrder=2;return{mesh:m,U:wu}}
 
 /* ================= Grasbüschel (flauschig, gebogen) ================= */
