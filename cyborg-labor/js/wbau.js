@@ -20,7 +20,7 @@
   const CAND=['#2fb5d9','#9b6ae0','#ff9a45','#7fd34a','#ff6fa5','#ffd23f'];
   const WALL=['#fbf7f0','#f2f8ff','#fff1f6','#f3fbea','#f7f2ff'];
   const PLANET={kompost:{acc:['#7fd34a','#ff6fa5','#ffd23f','#ff9a45']},schrott:{acc:['#9b6ae0','#2fb5d9','#8e94b0'],rivets:1},korallen:{acc:['#ff6fa5','#2fb5d9','#ff9a45'],stilts:1},
-    frost:{acc:['#2fb5d9','#9b6ae0','#ff6fa5'],snow:1},urzeit:{acc:['#ff9a45','#7fd34a','#ffd23f']},dschungel:{acc:['#7fd34a','#2fb5d9','#9b6ae0'],vines:1},metro:{acc:['#2fb5d9','#ff6fa5','#9b6ae0']},neonarkade:{acc:['#ff6fd8','#45e0ff','#9b6ae0','#ffd23f']},funkturm:{acc:['#ff4a5a','#2fb5d9','#ffd23f','#7fd34a']},kaufhaus:{acc:['#ff6fa5','#2fb5d9','#9b6ae0','#ffd23f']},dinofabrik:{acc:['#7fd34a','#ff9a45','#2fb5d9','#ffd23f','#ff6fa5']},bernstein:{acc:['#ffb43a','#ff9a2a','#ffd27a','#e8862a']},pluesch:{acc:['#ff8fb8','#8fd0ff','#ffd27a','#b89af0','#9ee08a']},wueste:{acc:['#ff9a45','#ffd23f','#2fb5d9'],sand:1},pilz:{acc:['#9b6ae0','#ff6fa5','#7fd34a'],spots:1}};
+    frost:{acc:['#2fb5d9','#9b6ae0','#ff6fa5'],snow:1},urzeit:{acc:['#ff9a45','#7fd34a','#ffd23f']},dschungel:{acc:['#7fd34a','#2fb5d9','#9b6ae0'],vines:1},metro:{acc:['#2fb5d9','#ff6fa5','#9b6ae0']},neonarkade:{acc:['#ff6fd8','#45e0ff','#9b6ae0','#ffd23f']},magnetbahn:{acc:['#ff4a5a','#2fb5d9','#9b6ae0','#ffd23f']},funkturm:{acc:['#ff4a5a','#2fb5d9','#ffd23f','#7fd34a']},kaufhaus:{acc:['#ff6fa5','#2fb5d9','#9b6ae0','#ffd23f']},dinofabrik:{acc:['#7fd34a','#ff9a45','#2fb5d9','#ffd23f','#ff6fa5']},bernstein:{acc:['#ffb43a','#ff9a2a','#ffd27a','#e8862a']},pluesch:{acc:['#ff8fb8','#8fd0ff','#ffd27a','#b89af0','#9ee08a']},wueste:{acc:['#ff9a45','#ffd23f','#2fb5d9'],sand:1},pilz:{acc:['#9b6ae0','#ff6fa5','#7fd34a'],spots:1}};
   let MM=null;const mats=()=>MM||(MM=makeMats({skin:'plastik',color:0}));
   const gel=(M,c)=>M.c(c,{gloss:1.35,rim:1.15,rimColor:'#ffffff'});
   const pl=(M,c)=>M.c(c,{gloss:.9,rim:.8,rimColor:'#ffffff'});
@@ -224,7 +224,24 @@
     const dq=grp(g,[0,H+.45,0],[.6,0,0]);add(dq,G.hs(R*.95),pl(M,'#f2f4f8'),[0,0,0],[PI,0,0],[1,.38,1]);add(dq,G.cy(.04,.04,R*.95),ch(M),[0,R*.45,0]);add(dq,G.s(.12),gel(M,o.acc),[0,R*.95,0]);
     add(g,G.cy(.18,.22,.4,10),ch(M),[0,H+.15,0]);for(let i=0;i<5;i++){const a=i/5*TAU+PI/5;if(Math.abs(a-PI*1.5)<.5)continue;port(g,M,[Math.cos(a)*R*1.0,H*.55,Math.sin(a)*R*1.0],.2,[Math.cos(a),Math.sin(a)])}
     return{top:H+R*1.1,noAnt:1,walls:[new THREE.Box3(new V(-R,0,-R),new V(R,H,R))],hw:R,hd:R}}
-  const SHAPES={kapsel,ei,stapel,kuppel,dinoei,vulkan,knochen,serverturm,crt,modem,kapselturm,blob,slab,automat,handheld,teddy,kissen,knaeuel,tropfen,ammonit,harzstumpf,fabrik,spielkiste,dinohaus,kaufhaus,schaufenster,tuete,mast,transistor,schuesselhaus};
+  /* ---------- Magnetbahn-Ring: Bahnhof, Wagen-Haus, Spulen-Haus mit Hufeisenmagnet ---------- */
+  function bahnhof(g,M,o){const w=o.w*1.2,d=o.d,H=o.h*.75;add(g,G.bx(w,H,d,.14),pl(M,o.wall),[0,H/2,0]);
+    const rf=new THREE.CylinderGeometry(d/2+.15,d/2+.15,w+.3,24,1,true,0,PI);rf.rotateZ(PI/2);const r1=add(g,rf,M.c('#bfefff',{opacity:.5,gloss:1.5,rim:1.2,side:THREE.DoubleSide}),[0,H,0]);r1.userData.noMerge=true;
+    for(let i=0;i<5;i++){const x=-w/2-.1+i*(w+.2)/4;add(g,G.to(d/2+.15,.05,PI),pl(M,o.acc),[x,H,0],[0,PI/2,0])}add(g,G.bx(w+.3,.08,.1,.03),pl(M,o.acc),[0,H+d/2+.15,0]);
+    const clk=ctex('wb-bhuhr',128,128,(x,W,Hh)=>{x.fillStyle='#fffdf7';x.beginPath();x.arc(W/2,Hh/2,58,0,TAU);x.fill();x.strokeStyle='#3b3450';x.lineWidth=6;x.stroke();x.lineCap='round';x.beginPath();x.moveTo(W/2,Hh/2);x.lineTo(W/2,20);x.moveTo(W/2,Hh/2);x.lineTo(W/2+26,Hh/2+8);x.stroke();x.fillStyle='#ff4a5a';x.beginPath();x.arc(W/2+20,30,7,0,TAU);x.fill()});
+    const c=new THREE.Mesh(new THREE.CircleGeometry(.32,24),new THREE.MeshBasicMaterial({map:clk}));c.position.set(w*.3,H*.7,-d/2-.03);c.rotation.y=PI;c.userData.noOutline=true;g.add(c);
+    port(g,M,[-w*.3,H*.55,-d/2-.01],.22,[0,-1]);return{top:H+d/2+.2,noAnt:1,walls:[new THREE.Box3(new V(-w/2,0,-d/2),new V(w/2,H+d/2,d/2))],hw:w/2,hd:d/2}}
+  function wagenhaus(g,M,o){const w=o.w*1.35,d=o.d*.8,H=o.h*.85,y0=.5;for(const x of[-w*.3,w*.3])add(g,G.bx(.5,y0,d*.6,.06),ch(M),[x,y0/2,0]);
+    add(g,G.bx(w*.8,H,d,.45),pl(M,'#fbfbfd'),[0,y0+H/2,0]);const nose=add(g,G.s(d/2),pl(M,'#fbfbfd'),[w*.4,y0+H/2,0],null,[2.2,H/d,1]);
+    add(g,G.bx(w*.82,.16,d+.02,.05),pl(M,o.acc),[0,y0+H*.35,0]);add(g,G.s(d*.32),M.c('#3b4a6a',{gloss:1.5,rim:1}),[w*.62,y0+H*.68,0],null,[1.4,.55,1.35]);
+    for(let i=0;i<3;i++)add(g,G.bx(.5,.36,.04,.1),M.c('#8fe3ff',{gloss:1.5,rim:1,rimColor:'#ffffff'}),[-w*.3+i*.62,y0+H*.68,-d/2-.01]);
+    add(g,G.bx(w*.9,.1,.5,.03),ch(M),[0,.05,-d/2-.4]);for(const x of[-.3,.3])add(g,G.bx(.4,.12,.4,.03),ch(M),[x+w*.1,y0*.5,-d/2-.2]);
+    return{top:y0+H+.1,noAnt:1,walls:[new THREE.Box3(new V(-w/2,0,-d/2),new V(w*.6,y0+H,d/2))],hw:w/2,hd:d/2}}
+  function spulenhaus(g,M,o){const R=o.w*.45,H=o.h*1.1;add(g,G.cy(R,R,H,20),pl(M,o.wall),[0,H/2,0]);for(let i=0;i<9;i++)add(g,G.to(R+.03,.05),M.c('#c87a3a',{gloss:1.4,rim:1}),[0,H*.25+i*H*.075,0],[PI/2,0,0]);
+    const mg=grp(g,[0,H,0]);const arc=new THREE.TorusGeometry(R*.75,.28,12,24,PI);add(mg,arc,gel(M,'#ff4a5a'),[0,.9,0]);for(const s of[-1,1]){add(mg,G.cy(.28,.28,.9,12),gel(M,'#ff4a5a'),[s*R*.75,.45,0]);add(mg,G.cy(.29,.29,.3,12),ch(M),[s*R*.75,.1,0])}
+    for(const a of[-.7,.7])port(g,M,[Math.sin(a)*R,H*.15+.5,-Math.cos(a)*R],.2,[Math.sin(a),-Math.cos(a)]);
+    return{top:H+R*.75+1.2,noAnt:1,walls:[new THREE.Box3(new V(-R,0,-R),new V(R,H,R))],hw:R,hd:R}}
+  const SHAPES={kapsel,ei,stapel,kuppel,dinoei,vulkan,knochen,serverturm,crt,modem,kapselturm,blob,slab,automat,handheld,teddy,kissen,knaeuel,tropfen,ammonit,harzstumpf,fabrik,spielkiste,dinohaus,kaufhaus,schaufenster,tuete,mast,transistor,schuesselhaus,bahnhof,wagenhaus,spulenhaus};
 
   /* ---------- Familie für HAUS.FAMX ---------- */
   function kokon(pid,r,plan,A){const M=mats();const P_=PLANET[pid]||PLANET.kompost;const g=new THREE.Group();const big=plan.big?1.4:1;
@@ -249,7 +266,7 @@
   HAUS.FAMX.kokon=kokon;
   /* Bauplan der sechs alten Planeten: nur noch Kokon-Häuser (in je eigenen Formen) */
   const S=['kapsel','ei','stapel','kuppel'];
-  const PL={kompost:['kapsel','stapel','ei','kuppel'],schrott:['stapel','kapsel','kuppel'],korallen:['kuppel','ei','kapsel'],frost:['kuppel','kapsel','ei'],wueste:['kuppel','stapel','ei'],pilz:['ei','kuppel','stapel'],pluesch:['teddy','kissen','knaeuel'],bernstein:['tropfen','ammonit','harzstumpf'],dinofabrik:['fabrik','spielkiste','dinohaus'],kaufhaus:['kaufhaus','schaufenster','tuete'],funkturm:['mast','transistor','schuesselhaus']};
+  const PL={kompost:['kapsel','stapel','ei','kuppel'],schrott:['stapel','kapsel','kuppel'],korallen:['kuppel','ei','kapsel'],frost:['kuppel','kapsel','ei'],wueste:['kuppel','stapel','ei'],pilz:['ei','kuppel','stapel'],pluesch:['teddy','kissen','knaeuel'],bernstein:['tropfen','ammonit','harzstumpf'],dinofabrik:['fabrik','spielkiste','dinohaus'],kaufhaus:['kaufhaus','schaufenster','tuete'],funkturm:['mast','transistor','schuesselhaus'],magnetbahn:['bahnhof','wagenhaus','spulenhaus']};
   for(const pid in PL)HAUS.PLAN[pid]=PL[pid].map(s=>({fam:'kokon',style:s,fence:pid==='schrott'||pid==='wueste'?null:undefined}));
   /* ---------- Garten im Spielzeug-Look: ersetzt Holzzaun, Hecke, Fass, Kiste, Karren, Holzstapel, Topf, Trittsteine, Bäume und Blumen der Bausätze.
      WK.swap passt jedes Modell auf die Grundfläche des alten Teils ein, Platzierung und Kollision bleiben gleich. ---------- */
