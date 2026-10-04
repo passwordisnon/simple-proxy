@@ -49,8 +49,8 @@ const SND=(()=>{
     ['click','select','open','close','confirm','pickup','place','step_grass0','step_grass1','step_grass2','coins','chat','talk'].forEach(load);
     if(wantTrack)music(wantTrack);
     /* Tag/Nacht: alle 20 s prüfen, ob ein anderes Stück passt (gleiches Stück läuft einfach weiter) */setInterval(()=>{if(wantTrack==='world'||wantTrack==='town')music(wantTrack)},20000)}
-  /* Klang-Bündel audio/sfx.bin: einmal laden, je Klang ein Ausschnitt */
-  let bundle=null;const getBundle=()=>bundle||(bundle=fetch('audio/sfx.bin').then(r=>{if(!r.ok)throw new Error(r.status);return r.arrayBuffer()}));
+  /* Klang-Bündel audio/sfx.mp3: einmal laden, je Klang ein Ausschnitt */
+  let bundle=null;const getBundle=()=>bundle||(bundle=fetch('audio/sfx.mp3').then(r=>{if(!r.ok)throw new Error(r.status);return r.arrayBuffer()}));
   function load(name){if(buf[name]||loading[name])return loading[name];if(!ctx)return null;
     if(name.startsWith('sfx/')&&typeof SFXINDEX!=='undefined'){const ix=SFXINDEX[name.slice(4)];if(!ix)return null;
       return loading[name]=getBundle().then(a=>new Promise((res,rej)=>ctx.decodeAudioData(a.slice(ix[0],ix[0]+ix[1]),res,rej))).then(b=>{buf[name]=b;return b}).catch(()=>null)}
