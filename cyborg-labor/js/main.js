@@ -33,7 +33,7 @@ const MAIN=(()=>{
     A('star','Kleider','#F2A8C4',()=>BOUTIQUE.wardrobe(),'Etwas Neues anziehen?');A('palette','Designs','#FF8FB1',designsApp,'Malen wir zusammen?');A('house','Hausbau','#FFB27A',()=>houseBuilder(),'Dein Haus braucht bestimmt noch ein Zimmer.');
     A('coin','Jobs','#FFD35C',()=>JOBS.app(),'Ein bisschen arbeiten, ein paar Taler verdienen.');A('leaf','Terraform','#8FD07A',()=>MYPLANET.app(),'Lass uns deinen Planeten verschönern.');
     A('people','Freunde','#A6EBC3',()=>SOCIAL.playersWin(),'Wer ist gerade da?');A('chat','Chat','#8FD3FF',()=>SOCIAL.toggleChat(true),'Schreib doch jemandem!');A('wave','Emotes','#FFE27A',()=>ACT.emoteMenu(),'Tanzen? Winken? Ich mach mit!');
-    A('map','Karte','#9FD86A',mapApp,'Wo sind wir eigentlich?');A('sparkle','Risslinge','#e9e7e4',()=>WSTORY.app(),'Die Risse … mir ist ein bisschen mulmig.');A('globe','Bewohner','#FFC9A8',residentsApp,'Alle Nachbarn auf einen Blick.');
+    A('map','Karte','#9FD86A',mapApp,'Wo sind wir eigentlich?');A('sparkle','Risslinge','#e9e7e4',()=>WSTORY.app(),'Die Risse … mir ist ein bisschen mulmig.');A('think','Tagebuch','#C8B8E8',()=>DIARY.app(),'Wer hat hier vor uns geschlafen?');A('globe','Bewohner','#FFC9A8',residentsApp,'Alle Nachbarn auf einen Blick.');
     A('school','Klasse','#D9B5F2',teacherApp,'Das ist für die Lehrperson.');A('gear','Optionen','#DDD3C4',settingsApp,'Ton, Sprache, Grafik.');
     const N=list.length,STEP=360/N;let rot=0;const cur=()=>((rot%N)+N)%N;
     list.forEach((o,i)=>{o.b.style.setProperty('--a',(i*STEP)+'deg');o.b.style.animationDelay=(.25+i*.025)+'s'});

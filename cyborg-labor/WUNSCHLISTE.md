@@ -76,7 +76,7 @@ Status: ✔ erledigt · ◐ teilweise · ☐ offen. Wird bei jedem Schritt aktua
   - ✔ Klang-Planet: Harfenbäume, Glockenblumen, Klangsteine zum Drüberlaufen, vier Liedtafeln nachspielen, Konzert, Instrumenten-Häuser
   - ✔ 15 weitere (mit dem eigenen Planeten sind es 30), neu im WIRED-Stil (ersetzt die alte Liste): Plüsch-Planet, Bernstein-Mond, Dino-Spielzeugfabrik, Neon-Arkade, Kaufhaus 1999, Funkturm-Planet, Magnetbahn-Ring, Ranken-Rechenzentrum, Leuchtquallen-Tiefsee, Wetterwerk, Origami-Planet, Laternen-Nachtmarkt, Bauklotz-Planet, Bildschirmschoner-Planet, Honigwaben-Fabrik; dazu der Glitch-Kern
   - ☐ WIRED-Umbau der 14 bestehenden Planeten: Bonbon-Plastik mit Zahnrädern, LCD-Anzeigen, Wartungsluke, Rissling-Lebensraum, Kokon-95/97-Ruine
-- ☐ Monde als besuchbare Orte
+- ✔ Monde als besuchbare Orte
 
 ## Story & Spielinhalt
 - ✔ Einstieg beim Doktor (Operation, Name), Tutorial eingebaut, Erinnerungs-Splitter
@@ -102,7 +102,7 @@ Status: ✔ erledigt · ◐ teilweise · ☐ offen. Wird bei jedem Schritt aktua
 - ✔ 7 Kokon-Wartungsstationen (Nova, Aurora, Komet, Farn, Zephyr, Pendel, Pixel), andocken mit E: begehbare Halle im Toonami-Stil mit Gastgeber:in, Stations-Laden, drei Störungs-Paneelen, Logbuch der früheren Schläfer:innen (Kokon 95/97) und Renn-Terminal
 - ✔ Glitch-Kern als Finalort: erscheint hinter der Sonne, wenn alle sieben Logbücher gelesen sind; Riss-Halle mit sieben Erinnerungs-Toren, dann darf die Uhr von 23:59 auf 00:00 springen (Feuerwerk, Glitch-Kristall)
 - ☐ Alle Inhalte verdoppeln (Körperteile, Gegenstände, Geschichte)
-- ☐ Ruinen in der Geschichte: Überreste von Kokon 95 und Kokon 97, Wortsteine sind Tagebuchzeilen früherer Schläfer:innen, unter der grössten Ruine der alte Serversaal, im Glitch-Kern das ganze Tagebuch
+- ◐ Ruinen in der Geschichte: zerbrochene Kokon-95/97-Schlafkapsel an der ersten Ruine jedes Planeten, unter jedem Wortstein eine Tagebuchzeile (34 Einträge, auf dem Kompost-Planeten an der Wartungsluke), Tagebuch-App im Cy-Phone und das ganze Tagebuch im Glitch-Kern ✔; offen: alter Serversaal unter der grössten Ruine
 - ✔ Zweisprachig Deutsch und English (Wunsch: nur diese zwei): komplettes englisches Sprachpaket von Hand (rund 5800 Texte und Vorlagen mit Platzhaltern) für Oberfläche, Dialoge, Meldungen, Handy und alle Schilder und Bildschirme in 3D; Japanisch nur als Sticker-Schmuck; keine maschinelle Übersetzung mehr
 - ☐ Klänge von 効果音ラボ und Musik von DOVA (gepackt, nicht als offene MP3)
 - ☐ Alte Spiele mit freien Grafiken nutzen: Glitch (CC0), Yo Frankie!/Blender (CC-BY), Hard Vacuum und Tyrian (CC-BY), Freedoom (BSD)
