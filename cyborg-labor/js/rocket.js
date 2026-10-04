@@ -120,7 +120,7 @@ const REPAIR=(()=>{
 
 /* =================== Flug durchs Sonnensystem =================== */
 const SPACE=(()=>{
-  const V=THREE.Vector3;let sc=null,cam=null,ship=null,sun=null,planets=[],belt=null,dust=[],on=false,vel=new V(),yaw=0,t0=0,intro=0,near=null,from=null,landLock=0,view='chase',station=null;const keys={};
+  const V=THREE.Vector3;let sc=null,cam=null,ship=null,sun=null,planets=[],belt=null,dust=[],on=false,vel=new V(),yaw=0,t0=0,intro=0,near=null,from=null,landLock=0,view='chase',station=null,glitch=false;const keys={};
   addEventListener('keydown',e=>{if(!on)return;const k=e.key.toLowerCase();if(k==='m'&&!keys.m)toggleView();keys[k]=true});addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false});
   const M=()=>makeMats({skin:'haut',color:0});
   let comp=null,fx=null,camLight=null,trail=null,streak=null,moons=[];
@@ -129,11 +129,11 @@ const SPACE=(()=>{
     camLight=new THREE.DirectionalLight('#D8D0FF',.35);sc.add(camLight,camLight.target);
     fx={sky:SPACEFX.sky(),stars:SPACEFX.stars(3200)};sc.add(fx.sky,fx.stars);
     sun=SPACEFX.sun();sc.add(sun);
-    planets=[];moons=[];let si=1;for(const[pid,d]of Object.entries(PLANETS)){if(d.mine&&!SAVE.myPlanet)continue;const[dist,ph]=d.orbit;const r=2.4+d.size*2.6;const g=SPACEFX.planet(pid,r,si*3.7);si++;
+    planets=[];moons=[];let si=1;for(const[pid,d]of Object.entries(PLANETS)){if(d.mine&&!SAVE.myPlanet)continue;const par=d.moonOf&&PLANETS[d.moonOf]?d.moonOf:null;const[dist,ph]=par?PLANETS[par].orbit:d.orbit;const r=par?1.1+d.size*1.8:2.4+d.size*2.6;const g=SPACEFX.planet(pid,r,si*3.7);si++;
       g.userData.body.rotation.z=.2;let ring=null;if(d.ring||['schrott','pilz','wueste'].includes(pid)){ring=SPACEFX.ring(pid,r);g.add(ring)}
       const lbl=el('div','lbl planetlbl');lbl.textContent=d.n;$('labels').append(lbl);lbl.style.display='none';
-      sc.add(SPACEFX.orbit(dist,SPACEFX.pal(pid).atmo));sc.add(g);
-      const pd={pid,g,r,dist,ph,lbl,ring,sp:.02/Math.sqrt(dist/26)};planets.push(pd);
+      if(!par)sc.add(SPACEFX.orbit(dist,SPACEFX.pal(pid).atmo));sc.add(g);
+      const pd={pid,g,r,dist,ph,lbl,ring,sp:.02/Math.sqrt(dist/26),par,ma:hashNum(pid)%628/100,msp:.09};planets.push(pd);
       /* Monde */const nm=d.moons??{kompost:1,schrott:2,korallen:1,frost:1,wueste:2,pilz:1}[pid]??0;for(let i=0;i<nm;i++){const mo=SPACEFX.moon(.45+Math.random()*.4,['#D8D2E8','#C9B8A6','#B8C8E0','#E8D8C8'][(si+i)%4]);sc.add(mo);moons.push({o:mo,p:pd,d:r*(2.9+i*1.1)+(ring?r*.9:0),s:.5+Math.random()*.4,a:Math.random()*TAU,tilt:(Math.random()-.5)*.5})}}
     belt=SPACEFX.asteroids(HIGH?420:260,59,67);sc.add(belt);belt.userData.rocks.forEach(r=>{});
     /* Sternenstaub zum Einsammeln */dust=[];const dc=['#FFE27A','#7FDCE6','#FF8FB8'];for(let i=0;i<40+planets.length*3;i++){const a=Math.random()*TAU,rr=18+Math.random()*(LIM()-30);const s=SPACEFX.dustStar(dc[i%3]);s.position.set(Math.cos(a)*rr,0,Math.sin(a)*rr);s.userData.ph=Math.random()*6;sc.add(s);dust.push(s)}
@@ -143,12 +143,12 @@ const SPACE=(()=>{
     const eg=new THREE.Sprite(new THREE.SpriteMaterial({map:ctex('sunglow2',8,8,()=>{}),color:'#FFB070',transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false}));eg.position.set(0,0,-1.25);eg.scale.setScalar(2.2);ship.add(eg);ship.userData.eg=eg;sc.add(ship);
     if(HIGH){comp=makeComposer(GAME.R,sc,cam);comp.bloom.strength=.5;comp.bloom.radius=.55;comp.bloom.threshold=.96}}
   const LIM=()=>Math.max(130,...planets.map(p=>p.dist+18));
-  function posOf(p,t){const a=p.ph+t*p.sp;return new V(Math.cos(a)*p.dist,0,Math.sin(a)*p.dist)}
+  function posOf(p,t){if(p.par){const q=planets.find(x=>x.pid===p.par);if(q){const c=posOf(q,t);const md=q.r*2.2+p.r+4;const a=p.ma+t*p.msp;return c.add(new V(Math.cos(a)*md,0,Math.sin(a)*md))}}const a=p.ph+t*p.sp;return new V(Math.cos(a)*p.dist,0,Math.sin(a)*p.dist)}
   function enter(fromPid){if(!sc)build();else{ship.remove(ship.userData.rk);QF=.8;const rk=ROCKET.build(ROCKET.spec(),M());QF=1;addOutlines(rk);rk.rotation.x=-PI/2;rk.scale.setScalar(.7);ship.add(rk);ship.userData.rk=rk}
     from=fromPid;t0=performance.now()/1000;const p=planets.find(x=>x.pid===fromPid)||planets[0];const pp=posOf(p,0);const out=pp.clone().normalize();ship.position.copy(pp).addScaledVector(out,p.r+7);const tg=new V(-out.z,0,out.x);const dir=tg.clone().multiplyScalar(.75).addScaledVector(out,-.65).normalize();yaw=Math.atan2(dir.x,dir.z);vel.copy(dir).multiplyScalar(5);landLock=2.5;intro=1;on=true;GAME.mode='space';SND.music('museum');
     UI.talkAbort&&UI.talkAbort();document.body.classList.add('inspace');for(const q of planets)q.lbl.style.display='';hudOn(true);resize()}
   function toggleView(){view=view==='chase'?'map':'chase';SND.play('pep',{vol:.3});if(hud)hud.querySelector('.vw').textContent=view==='chase'?'Karte (M)':'Cockpit (M)'}
-  function exit(){on=false;RACE.quit();RACE.leaveRoom();document.body.classList.remove('inspace');for(const q of planets)q.lbl.style.display='none';hudOn(false);$('prompt').hidden=true}
+  function exit(){on=false;if(typeof GLITCHKERN!=='undefined')GLITCHKERN.hideLabel();RACE.quit();RACE.leaveRoom();document.body.classList.remove('inspace');for(const q of planets)q.lbl.style.display='none';hudOn(false);$('prompt').hidden=true}
   let hud=null;function hudOn(v){if(hud){hud.remove();hud=null}if(!v)return;hud=el('div','spacehud');hud.innerHTML='<b>Weltraum</b><span>'+(document.body.classList.contains('coarse')?'Joystick: lenken & Schub':'W Schub · A/D lenken · S bremsen · Shift Turbo · E landen')+'</span><span class="sp"></span>';const vb=el('button','vw','Karte (M)');vb.type='button';vb.onclick=e=>{e.stopPropagation();toggleView()};hud.append(vb);$('world').append(hud)}
   function resize(){if(!cam)return;sizeView(GAME.R,cam,comp,$('world'))}
   function frame(dt,t){if(!on)return;const tt=performance.now()/1000-t0;const st=ROCKET.stats();const J=GAME._joy&&GAME._joy();
@@ -164,8 +164,8 @@ const SPACE=(()=>{
     const eg=ship.userData.eg;eg.material.opacity=thr>0?.9:.25;eg.scale.setScalar((thr>0?2.2:1.2)*(1+Math.random()*.15));
     camLight.position.copy(cam.position);camLight.target.position.copy(ship.position);
     /* Planeten kreisen */near=null;let nd=1e9;for(const p of planets){const pp=posOf(p,tt);p.g.position.copy(pp);p.g.userData.body.rotation.y+=dt*.12;if(p.g.userData.cl)p.g.userData.cl.rotation.y+=dt*.16;const U=p.g.userData.U;U.uT.value=t;U.uSun.value.set(0,0,0);p.g.userData.at.uniforms.uC.value.copy(pp);if(p.ring){const rm=p.ring.userData.m.uniforms;rm.uC.value.copy(pp)}const d=pp.distanceTo(sp)-p.r;if(d<nd){nd=d;near=p}}
-    RACE.frame(dt,t,ship,vel,cam);station=RACE.active?null:RACE.nearStation(sp);
-    landLock=Math.max(0,landLock-dt);const pr=$('prompt');if(station&&!(near&&nd<4)){pr.hidden=false;pr.innerHTML='';pr.append(el('kbd',null,'E'),document.createTextNode('Andocken: Rennen an '+station.st.n));$('hbA').textContent='Rennen';near=null}else if(near&&nd<4&&landLock<=0&&!RACE.active){pr.hidden=false;pr.innerHTML='';pr.append(el('kbd',null,'E'),document.createTextNode('Landen auf '+PLANETS[near.pid].n));$('hbA').textContent='Landen'}else{pr.hidden=true;$('hbA').textContent='Schub';if(nd>=4)near=null}
+    RACE.frame(dt,t,ship,vel,cam);station=RACE.active?null:RACE.nearStation(sp);glitch=typeof GLITCHKERN!=='undefined'&&!RACE.active&&GLITCHKERN.space(sc,sp,t,cam);
+    landLock=Math.max(0,landLock-dt);const pr=$('prompt');if(glitch){pr.hidden=false;pr.innerHTML='';pr.append(el('kbd',null,'E'),document.createTextNode('Andocken: Glitch-Kern'));$('hbA').textContent='Andocken';near=null;station=null}else if(station&&!(near&&nd<4)){pr.hidden=false;pr.innerHTML='';pr.append(el('kbd',null,'E'),document.createTextNode('Andocken: '+station.st.n));$('hbA').textContent='Andocken';near=null}else if(near&&nd<4&&landLock<=0&&!RACE.active){pr.hidden=false;pr.innerHTML='';pr.append(el('kbd',null,'E'),document.createTextNode('Landen auf '+PLANETS[near.pid].n));$('hbA').textContent='Landen'}else{pr.hidden=true;$('hbA').textContent='Schub';if(nd>=4)near=null}
     /* Kamera: Verfolger hinter dem Schiff oder Übersichtskarte */intro=Math.max(0,intro-dt*.5);const vl=vel.length();let cp,look;
     if(view==='chase'){cp=sp.clone().addScaledVector(fwd,-(8+vl*.12)).add(new V(0,4.6+vl*.05+intro*14,0));look=sp.clone().addScaledVector(fwd,7).add(new V(0,.2,0))}
     else{cp=sp.clone().addScaledVector(fwd,-14).add(new V(0,55,0));look=sp.clone().addScaledVector(fwd,4)}
@@ -173,7 +173,10 @@ const SPACE=(()=>{
     const w=$('world').clientWidth,h=$('world').clientHeight;for(const p of planets){const v=p.g.position.clone().add(new V(0,p.r+1.4,0)).project(cam);p.lbl.style.left=((v.x+1)/2*w)+'px';p.lbl.style.top=((1-v.y)/2*h)+'px';const dl=p.g.position.distanceTo(ship.position);p.lbl.style.display=v.z<1&&(view==='map'||dl<70)?'':'none';p.lbl.style.opacity=view==='map'?1:Math.max(.35,1-dl/80)}
     RACE.labels(cam,view,ship);if(hud)hud.querySelector('.sp').textContent=Math.round(vel.length()*12)+' km/s';
     if(comp&&HIGH)comp.render();else GAME.R.render(sc,cam)}
-  function action(){if(station&&!RACE.active){RACE.openLobby(station);return}if(near&&landLock<=0&&!RACE.active){const pid=near.pid;exit();GAME.landOn(pid)}}
+  function action(){if(glitch){GLITCHKERN.dock();return}if(station&&!RACE.active){if(typeof STATIONS!=='undefined')STATIONS.dock(station);else RACE.openLobby(station);return}if(near&&landLock<=0&&!RACE.active){const pid=near.pid;exit();GAME.landOn(pid)}}
   function place(p,y){ship.position.copy(p);yaw=y;vel.set(0,0,0);ship.rotation.y=y}
-  return{enter,frame,action,resize,place,yaw:()=>yaw,get on(){return on},_dbg:()=>({sc,cam,ship,planets,fx,sun})}
+  /* Andocken an einer Raumstation: Cockpit anhalten, nach dem Besuch weiterfliegen */
+  function pause(){on=false;document.body.classList.remove('inspace');for(const q of planets)q.lbl.style.display='none';RACE.hideLabels&&RACE.hideLabels();hudOn(false);$('prompt').hidden=true}
+  function resume(){on=true;GAME.mode='space';document.body.classList.add('inspace');for(const q of planets)q.lbl.style.display='';hudOn(true);vel.set(0,0,0);landLock=1.5;SND.music('museum');resize()}
+  return{enter,frame,action,resize,place,pause,resume,yaw:()=>yaw,ship:()=>ship,get on(){return on},_dbg:()=>({sc,cam,ship,planets,fx,sun})}
 })();

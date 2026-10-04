@@ -103,6 +103,7 @@ const INTERIOR=(()=>{
   function adopt(me){if(me.g.parent)me.g.parent.remove(me.g);if(me.shadow.parent)me.shadow.parent.remove(me.shadow);scene.add(me.g);scene.add(me.shadow);me.g.visible=true;me.shadow.visible=true;me.inside=true}
   function exit(){GAME.fadeOut(()=>{const me=GAME.me;me.inside=false;scene.remove(me.g);scene.remove(me.shadow);if(kinds[kind].leave)kinds[kind].leave();
       disposeScene();GAME.scene.add(me.g);GAME.scene.add(me.shadow);for(const e of GAME.ents.values()){e.g.visible=true;e.shadow.visible=true}
+      /* Räume im Weltraum (Raumstationen, Glitch-Kern): zurück ins Cockpit statt nach draussen */if(kinds[kind].toSpace){const k=kinds[kind];kind=null;if(decoUI){decoUI.remove();decoUI=null}deco=false;SND.play('door_close');k.toSpace();return}
       const pl=GAME.G.places.find(p=>p.build===kind);if(pl&&pl.doorP){me.p.copy(pl.doorP);const d=GAME.tangentTo(me.p,me.p.clone().sub(pl.dir));if(isFinite(d.x)&&d.lengthSq()>1e-8)me.dir.copy(d.normalize())}
       /* Blickrichtung nie ungültig lassen (sonst dreht sich die Figur draussen nicht mehr) */GAME.fixDir&&GAME.fixDir(me);me.lookAt=null;me.stop=0;me.dance=0;GAME.mode='outdoor';kind=null;if(decoUI){decoUI.remove();decoUI=null}deco=false;SND.play('door_close');SND.music(GAME.G.def.music)})}
   function disposeScene(){if(!scene)return;scene.traverse(o=>{if(o.geometry&&!o.userData.keepGeo&&o!==GAME.me.g)o.geometry.dispose()});scene=null}

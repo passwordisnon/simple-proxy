@@ -118,7 +118,7 @@ function harzGlyph(x,s,r){x.save();x.lineWidth=s*.08;x.lineCap='round';const n=1
 /* ================= Mond ================= */
 PLANETKIT.add(ID,{
   def:{n:'Bernstein-Mond',base:'kompost',R:100,R0:36,sea:-.3,music:'town',sky:['#f2c27a','#fff0c8'],fog:'#f6e0b0',water:'#e8a040',deep:'#a8601a',step:1.0,shop:ID,
-    desc:'Honiggoldener Mond aus uraltem Harz: Harzkiefern, Gel-Farne und Bernsteinsäulen. In acht Bernsteinblöcken stecken Schätze aus der Urzeit.',weather:'blueten',orbit:[187,4.4],size:.8,col:['#ffb43a','#8cc070'],moons:0,
+    desc:'Honiggoldener Mond aus uraltem Harz: Harzkiefern, Gel-Farne und Bernsteinsäulen. In acht Bernsteinblöcken stecken Schätze aus der Urzeit.',weather:'blueten',orbit:[187,4.4],moonOf:'urzeit',size:.8,col:['#ffb43a','#8cc070'],moons:0,
     park:'farnlichtung',parkPond:true,phone:['#fff2c0','#ffd0a0'],stones:['kiesel','harztropfen','stein_klein'],plazaTree:'harzkiefer',path:'#e8b878',
     space:{deep:'#a8601a',water:'#e8a040',shore:'#f2dcb0',land:'#8cc070',land2:'#a8d080',high:'#e8c890',cap:'#ffe0a8',atmo:'#ffb43a',cloud:.3,sea:.34,capA:.3,freq:2.6},
     mac:{oc:-.12,m:.3,isl:1},climate:{hot:'goldduenen',wet:'fossilstrand',cold:'bernsteinbruch'},peak:'bernsteinbruch',

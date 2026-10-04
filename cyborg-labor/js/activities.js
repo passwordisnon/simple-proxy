@@ -90,7 +90,7 @@ const ACT=(()=>{
     const id=pick(pool.filter(x=>findIn(ITEMS,x)));if(Math.random()<.08){money(25);SND.play('coins');UI.toast('25 Taler sprangen aus dem Stein!');return}
     const it=findIn(ITEMS,id);if(!it)return;const p=GAME.W.near(rk.p,.06);const g=mkObj(gg=>it.b(gg,M,{},srand(rk.hits)),.5);GAME.placeObj(g,p,0,-.02);pickups.push({kind:'item',id,p,g,label:it.n+' aufheben'});g.userData.drop=0}
   /* ---------- Sammelsachen je Biom (Äste, Steine, Unkraut, Pilze ...) ---------- */
-  function spawnLitter(n){const me=GAME.me;if(!me)return;for(let i=0;i<n;i++){const p=GAME.W.near(me.p,1+Math.random()*5);const h=GG().hAt(p);if(h<GG().sea+.1)continue;const B=BIOMES[GG().biomeAt(p,h)];if(!B||!B.litter)continue;
+  function spawnLitter(n){const me=GAME.me;if(!me)return;for(let i=0;i<n;i++){const p=GAME.W.near(me.p,1+Math.random()*5);const h=GG().hAt(p);if(h<GG().sea+.1)continue;const B=BIOMES[GG().biomeAt(p,h)];if(!B||!B.litter||!B.litter.length)continue;
       let s=0;B.litter.forEach(x=>s+=x[1]);let t=Math.random()*s;let id=B.litter[0][0];for(const x of B.litter){t-=x[1];if(t<=0){id=x[0];break}}const it=findIn(ITEMS,id);if(!it)continue;
       const wp=p.clone().multiplyScalar(GG().R+h);if(!SCATTER.occFree(wp,.3))continue;const g=mkObj(gg=>it.b(gg,M,{},srand(i+3)),.5);GAME.placeObj(g,p,Math.random()*TAU,-.02);pickups.push({kind:'item',id,p,g,label:it.n+' aufheben',litter:true})}}
   /* ---------- Graben ---------- */

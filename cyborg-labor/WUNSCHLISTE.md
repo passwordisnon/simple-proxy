@@ -65,7 +65,7 @@ Status: ✔ erledigt · ◐ teilweise · ☐ offen. Wird bei jedem Schritt aktua
 - ✔ Raketen-Schutzmodul: Geschenk der Bürgermeisterin nach dem ersten Auftrag auf Kompost (keine Abstürze mehr)
 - ✔ Raumstationen im All (Nova, Aurora, Komet) mit Rennen: Tor-Ringe, Boost-Felder, 2 Runden, KI-Raketen, Mehrspieler über den Rennraum der Station, Preisgeld und Bestzeiten
 - ✔ Planeten-Grundgerüst: jeder neue Planet ist an alle Systeme angeschlossen (Dorf, Bewohner:innen, Sprache, Wetter, Kleidung, Höhlen, Tierpark-Sektor, Lexikon, Karte, Weltraum, Museum)
-- ◐ 30 Planeten in 7 Gruppen, alle von Hand gebaut, dazu 7 Monde, 7 Stationen und der Glitch-Kern (jetzt 15 von 30)
+- ✔ 30 Planeten in 7 Gruppen (Heimat, Urzeit, Metro, Dschungel, Himmel, Uhrwerk, Bildschirm), dazu 7 Monde, 7 Stationen und der Glitch-Kern
   - ✔ Urzeit-Tal: Vulkane, Farnwälder, Bernsteinstrände, 6 Dinos (Quaternius), Dino-Eier schlüpfen zu Begleitern, nächtlicher Zeitriss mit Meteoritenschauer und Fossilien
   - ✔ Dschungel-Welt: Lianen-Vorhänge wachsen über Nacht nach, Schwing-Lianen über Flüsse, drei Tempel mit Schiebe-Rätseln und Schatzkammer, 7 Tiere, Pfahlhäuser
   - ✔ Metro-Stadt (New-Donk-City-Stil): Art-déco-Wolkenkratzer, Ringstrassen mit Verkehr, Taxis an vier Ständen, abendliches Jazz-Festival zum Mitjammen, Fassaden klettern mit Stadt-Medaillen
@@ -98,7 +98,10 @@ Status: ✔ erledigt · ◐ teilweise · ☐ offen. Wird bei jedem Schritt aktua
 - ◐ Candy-Mech-Look (Oberfläche, Dorfplatz, Gebäude-Terminals, Vorgärten, Möbel-Linie 1999, Körperteile und Rumpfformen, Piko-Ei fertig; Planeten-Umbau offen) (Y2K-Niedlichkeit mit Mechanik): durchsichtiges Bonbon-Plastik mit sichtbaren Zahnrädern, Gel-Knöpfe, Sticker, Cy-Phone als Ei-Gerät
 - ◐ Neue Geschichte (Prolog bis Akt II gebaut: Piko schlüpft, Silvester-Schleife, 12 Risslinge mit Riss-Szenen; Akt III bis Finale offen): Silvester 1999 23:59, NEMURI hält alle schlafend, Partner Piko, Risslinge als fangbare Glitch-Wesen, Kehrmaschinen, Akte Prolog bis Finale 00:00 mit zwei Enden
 - ◐ Klang und Musik komplett neu (Musik im Browser erzeugt, Zerfall läuft; 効果音ラボ/DOVA noch offen): Shibuya-kei-Spielzeugpop, Dreamcast/Toonami-Breakbeat, Riss-Brummen, Countdown-Melodie, Musik zerfällt mit der Geschichte
-- ☐ Glitch-Kern als Finalort, restliche Planeten, alle Inhalte verdoppeln (Körperteile, Gegenstände, Geschichte)
+- ✔ 7 Monde, einer je Gruppe, kreisen im Weltraum um ihren Hauptplaneten: Keim-Mond (Samen-Tresor), Kassetten-Mond (Riesen-Rekorder), Glühwurm-Mond (Leuchtstümpfe), Drachen-Mond (Drachenfest), Pixel-Mond (Licht-Rätsel 3×3), dazu Bernstein-Mond und Uhrwerk-Mond; Monde haben einen kleinen Aussenposten (Rakete, Laden, Bar) und je Fisch, Insekt, Tier, Fundstück, Möbel
+- ✔ 7 Kokon-Wartungsstationen (Nova, Aurora, Komet, Farn, Zephyr, Pendel, Pixel), andocken mit E: begehbare Halle im Toonami-Stil mit Gastgeber:in, Stations-Laden, drei Störungs-Paneelen, Logbuch der früheren Schläfer:innen (Kokon 95/97) und Renn-Terminal
+- ✔ Glitch-Kern als Finalort: erscheint hinter der Sonne, wenn alle sieben Logbücher gelesen sind; Riss-Halle mit sieben Erinnerungs-Toren, dann darf die Uhr von 23:59 auf 00:00 springen (Feuerwerk, Glitch-Kristall)
+- ☐ Alle Inhalte verdoppeln (Körperteile, Gegenstände, Geschichte)
 - ☐ Ruinen in der Geschichte: Überreste von Kokon 95 und Kokon 97, Wortsteine sind Tagebuchzeilen früherer Schläfer:innen, unter der grössten Ruine der alte Serversaal, im Glitch-Kern das ganze Tagebuch
 - ✔ Zweisprachig Deutsch und English (Wunsch: nur diese zwei): komplettes englisches Sprachpaket von Hand (rund 5800 Texte und Vorlagen mit Platzhaltern) für Oberfläche, Dialoge, Meldungen, Handy und alle Schilder und Bildschirme in 3D; Japanisch nur als Sticker-Schmuck; keine maschinelle Übersetzung mehr
 - ☐ Klänge von 効果音ラボ und Musik von DOVA (gepackt, nicht als offene MP3)

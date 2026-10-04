@@ -220,7 +220,8 @@ function parkDir(c,F,R,u,v){return c.clone().addScaledVector(F.toV,u/R).addScale
 function MP(){if(typeof MYPLANET!=='undefined'&&MYPLANET.visiting)return MYPLANET.visiting.mp;return typeof SAVE!=='undefined'?SAVE.myPlanet:null}
 const TOWN_RING=[['museum','museum'],['laden','shop'],['bar','bar'],['studio','studio'],['rathaus','rathaus'],['garage','garage'],['pflanzen','pflanzen'],['rakete','rocket'],['tiere','tiere'],['praxis','praxis'],['mode','mode'],['casino','casino']];
 function townPlaces(pid){if(PLANETS[pid]&&PLANETS[pid].mine)return[];const R=PLANETS[pid].R;const pl=PLACES[pid].find(p=>p.build==='plaza');const h=pl?pl.h:.8;const d=27,lat=90-d/R*180/PI;const off={kompost:0,schrott:20,korallen:40,frost:10,wueste:30,pilz:50}[pid]??(hashNum(pid)%60);
-  return TOWN_RING.map(([id,build],i)=>({id,n:id,lat,lon:off+i*360/TOWN_RING.length,r:(build==="rocket"?3.6:6.2)/R,h,build}))}
+  /* Monde: kleiner Aussenposten mit Rakete, Laden und Bar statt ganzem Dorf */const ring=PLANETS[pid].moon?TOWN_RING.filter(([id])=>['laden','rakete','bar'].includes(id)):TOWN_RING;
+  return ring.map(([id,build],i)=>({id,n:id,lat,lon:off+i*360/ring.length,r:(build==="rocket"?3.6:6.2)/R,h,build}))}
 /* ================= Höhenfeld & Biome je Planet ================= */
 function makePlanetFns(pid,extra){const def=PLANETS[pid];const seed={kompost:1,schrott:2,korallen:3,frost:4,wueste:5,pilz:6}[pid]||def.seed||(hashNum(pid)%900+10);const N=perlin3(seed),N2=perlin3(seed+40),N3=perlin3(seed+80);
   /* Ortsgrössen sind als Winkel angegeben (für den alten Radius R0): Gebäude behalten ihre echte Grösse, Seen wachsen etwas mit */

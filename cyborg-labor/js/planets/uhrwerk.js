@@ -142,7 +142,7 @@ function clockGlyph(x,s,r){x.beginPath();x.arc(0,0,s*.3,0,TAU);const a=r()*TAU,b
 /* Zahnrad-Plateaus: Zentren und Zähne */const PLATS=[[30,40,.2,14],[-10,130,.16,11],[12,220,.22,16],[-40,300,.18,12],[-65,60,.14,9],[48,170,.12,10]].map(([la,lo,r,t])=>({d:dirLL(la,lo),r,t}));
 PLANETKIT.add(ID,{
   def:{n:'Uhrwerk-Mond',base:'kompost',R:124,R0:44,sea:-.4,music:'town',sky:['#F2C890','#FFF0D8'],fog:'#F2E4CC',water:'#4EA8A0',deep:'#2E6E6E',step:1.2,shop:ID,
-    desc:'Ein Mond aus Messing und Kupfer mit Zahnrad-Plateaus und schwingenden Pendeln. Zieh die sechs Aufzieh-Wächter auf und hör das grosse Glockenspiel.',weather:'blueten',orbit:[152,2.9],size:.9,col:['#E0B45A','#4EA8A0'],moons:0,ring:true,ringCols:['#E0B45A','#C8964A','#D08A5A'],
+    desc:'Ein Mond aus Messing und Kupfer mit Zahnrad-Plateaus und schwingenden Pendeln. Zieh die sechs Aufzieh-Wächter auf und hör das grosse Glockenspiel.',weather:'blueten',orbit:[152,2.9],moonOf:'klang',size:.9,col:['#E0B45A','#4EA8A0'],moons:0,ring:true,ringCols:['#E0B45A','#C8964A','#D08A5A'],
     park:'federwiese',parkPond:true,phone:['#F2D8A0','#B8E0D8'],stones:['kiesel','zahnrad','schraube'],plazaTree:'zahnradbaum',path:'#D8C8A8',
     space:{deep:'#2E6E6E',water:'#4EA8A0',shore:'#D8C488',land:'#D8C488',land2:'#A8C090',high:'#C8906A',cap:'#FFF1C8',atmo:'#F2C890',cloud:.35,sea:.34,capA:.4,freq:2.8},
     mac:{oc:-.15,m:.2,isl:.9},climate:{hot:'kupferschlucht',wet:'oelufer',cold:'pendelhain'},peak:'kupferschlucht',

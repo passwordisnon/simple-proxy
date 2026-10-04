@@ -11,7 +11,11 @@ const RACE=(()=>{
   const STATIONS=[
     {id:'nova',n:'Station Nova',pos:[34,0,-30],col:'#8FD0FF',track:{rx:26,rz:18,wig:4,n:10,rot:.3}},
     {id:'aurora',n:'Station Aurora',pos:[-58,0,40],col:'#FF8FB1',track:{rx:30,rz:24,wig:7,n:12,rot:1.2}},
-    {id:'komet',n:'Station Komet',pos:[70,0,62],col:'#FFD85A',track:{rx:34,rz:20,wig:9,n:14,rot:2.1}}];
+    {id:'komet',n:'Station Komet',pos:[70,0,62],col:'#FFD85A',track:{rx:34,rz:20,wig:9,n:14,rot:2.1}},
+    {id:'farn',n:'Station Farn',pos:[-30,0,128],col:'#7FD34A',track:{rx:28,rz:20,wig:6,n:11,rot:.7}},
+    {id:'pixel',n:'Station Pixel',pos:[140,0,-56],col:'#45E0FF',track:{rx:30,rz:22,wig:8,n:12,rot:1.7}},
+    {id:'zephyr',n:'Station Zephyr',pos:[-142,0,-84],col:'#C8B8FF',track:{rx:32,rz:22,wig:7,n:12,rot:2.6}},
+    {id:'pendel',n:'Station Pendel',pos:[16,0,-172],col:'#E8B04A',track:{rx:30,rz:20,wig:8,n:12,rot:.2}}];
   let sc=null,stations=[],race=null,room=null,roomName=null,peers=new Map(),lobbyW=null,hud=null,pres={};
   const S=()=>SAVE.race=SAVE.race||{wins:0,races:0,best:{}};
   const M=()=>makeMats({skin:'haut',color:0});
@@ -93,5 +97,5 @@ const RACE=(()=>{
     hud.style.cssText='position:absolute;top:64px;left:50%;transform:translateX(-50%);display:flex;gap:14px;align-items:center;padding:8px 18px;border-radius:22px;background:rgba(255,253,247,.92);color:#3B3450;font-weight:800;z-index:30;pointer-events:none';$('world').append(hud);
     const cd=hud.querySelector('.cd');cd.style.cssText='position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);font-size:72px;color:#FFE38A;text-shadow:0 4px 0 #3B3450'}
   function quit(){if(!race)return;UI.toast('Rennen abgebrochen.');endRace()}
-  return{build,nearStation,labels,openLobby,frame,locked,get active(){return!!race},quit,leaveRoom,STATIONS}
+  return{build,nearStation,labels,hideLabels,openLobby,frame,locked,get active(){return!!race},quit,leaveRoom,STATIONS}
 })();
