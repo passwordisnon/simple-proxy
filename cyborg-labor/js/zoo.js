@@ -2,7 +2,7 @@
    CYBORG-LABOR · zoo.js
    Tierpark (im Gebäude der Tierhandlung): Aquarien mit allen gefangenen
    Fischarten, Terrarien mit allen Insekten, Gehege je Planet mit allen
-   getroffenen Tieren – insgesamt über 130 Arten. Tierpfleger Pfötchen
+   getroffenen Tieren – insgesamt über 800 Arten. Tierpfleger Pfötchen
    verkauft weiterhin Haustier-Zubehör und belohnt Meilensteine.
    ===================================================================== */
 const ZOO=(()=>{
@@ -11,7 +11,7 @@ const ZOO=(()=>{
   const NM='Tierpfleger Pfötchen';const VOICE={pitch:190,kind:'',speed:1.1};
   const keeper=()=>({name:NM,body:{seg:1,size:1,skin:'fell',color:5,shape:'birne',pattern:'bauch',color2:16},parts:{kopf:'hirsch',augen:'kulleraugen',arme:'mensch',beine:'mensch',extras:[]},
     clothes:{hat:'strohhut',top:'latzhose',col:{hat:4,top:9}}});
-  const MIL=[[20,500],[50,1000],[80,2000],[110,4000],[133,8000]];
+  const MIL=[[20,500],[50,1000],[80,2000],[110,4000],[133,8000],[250,12000],[450,18000],[700,30000]];
   const fishIds=()=>FISH.filter(f=>SAVE.caught.fish[f.id]).map(f=>f.id);
   const bugIds=()=>BUGS.filter(b=>SAVE.caught.bugs[b.id]).map(b=>b.id);
   const animalIds=()=>Object.keys(FAUNA.S).filter(k=>(SAVE.faunaSeen||{})[k]);
