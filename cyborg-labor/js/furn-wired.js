@@ -17,7 +17,7 @@
     P(g,G.to(.62,.24),mt,[0,.24,0],[PI/2,0,0]);P(g,G.cy(.62,.62,.18),mt,[0,.18,0]);P(g,G.to(.5,.2,PI*1.2),mt,[0,.7,-.25],[0,0,-PI*.1],[1,1,.9]);
     both(x=>P(g,G.to(.24,.17),mt,[x*.56,.62,.05],[0,PI/2,0]));WK.sticker(g,m,'luft','ふわふわ',CA.lemon,.4,[.4,.5,.6],[-.3,0,.1]);g.userData.seat=[0,.42,.1]}});
 
-  F('roehren_tv',{n:'Röhrenfernseher mit Konsole',cat:'technik',price:1600,size:[2,1],h:1.4,b:(g,m)=>{
+  F('roehren_tv_konsole',{n:'Röhrenfernseher mit Konsole',cat:'technik',price:1600,size:[2,1],h:1.4,b:(g,m)=>{
     B(g,1.5,.5,.8,.06,m.c('#d8d2c4'),[0,.25,0]);B(g,1.1,.86,.8,.14,m.c('#e9e4d8'),[0,.93,-.05]);B(g,.9,.66,.02,.04,m.c('#2b2a38'),[0,.95,.36]);
     const sc=WK.lcdTex('tv',['PIKO','▶ START'],{bg:'#2b2340',fg:'#7fd34a',w:256,h:192});FU.decal(g,m,sc,'wk-tv',.8,.58,[0,.95,.375],null,true);
     const con=FU.B(g,.5,.12,.36,.05,cd(m,CA.grape,.65),[.4,.56,.1]);WK.gel(g,m,'#ff6fa5',.03,[.52,.63,.22],[-PI/2,0,0]);WK.gel(g,m,'#ffd23f',.03,[.44,.63,.22],[-PI/2,0,0]);
