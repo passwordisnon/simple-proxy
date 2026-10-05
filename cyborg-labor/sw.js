@@ -7,7 +7,7 @@
    Neue Versionen: zuerst aus dem Speicher spielen, im Hintergrund
    nachladen, beim nächsten Start ist die neue Version da.
    ===================================================================== */
-const VERSION='cl-2026-10-05c';
+const VERSION='cl-2026-10-05d';
 const CORE='core-'+VERSION,RUN='run-'+VERSION;
 const CDN=/^https:\/\/(cdn\.jsdelivr\.net|fonts\.googleapis\.com|fonts\.gstatic\.com)\//;
 /* welche CDN-Dateien schon im Speicher liegen (synchron prüfbar, damit fehlende ganz normal geladen werden) */

@@ -145,7 +145,7 @@ const INTERIOR=(()=>{
     /* Innenräume laufen durch dieselbe Bildpipeline wie draussen: Eckenverdeckung, warmes Split-Toning, Glanz auf Lampen, leichte Miniatur-Unschärfe */
     if(typeof LOOK!=='undefined'&&LOOK.enabled){const K=kinds[kind]||{};LOOK.render(GAME.R,scene,cam,{fogAmt:0,ao:HIGH?.85:.7,ink:.75,tilt:HIGH?.3:0,bloom:HIGH,bloomStr:.42,vig:.8,shadowTint:K.shadowTint||'#B8A0E0',lightTint:K.lightTint||'#FFE6C4',sat:1.06});return}
     if(HIGH)comp.render();else GAME.R.render(scene,cam)}
-  function resize(){const w=$('world');const W_=w.clientWidth,H_=w.clientHeight;if(!W_)return;cam.aspect=W_/H_;cam.updateProjectionMatrix();if(comp){comp.setPixelRatio(Math.min(HIGH?2:1.25,devicePixelRatio));comp.setSize(W_,H_)}}
+  function resize(){const w=$('world');const W_=w.clientWidth,H_=w.clientHeight;if(!W_)return;cam.aspect=W_/H_;cam.updateProjectionMatrix();if(comp){comp.setPixelRatio(Math.min(HIGH?2:1.25,devicePixelRatio)*(typeof PERF!=="undefined"?PERF.scale:1));comp.setSize(W_,H_)}}
   /* ---------- Tippen ---------- */
   const floorPlane=new THREE.Plane(new V3(0,1,0),0);
   function tap(ray){if(!room)return;const p=new V3();if(!ray.ray.intersectPlane(floorPlane,p))return;if(deco){hoverCell=cellAt(p);if(decoSel)placeAtHover();else pickupAt(p);return}

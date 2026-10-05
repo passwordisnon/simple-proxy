@@ -11,7 +11,7 @@ function makeComposer(r,scene,cam){const rt=new THREE.WebGLRenderTarget(4,4,{typ
     fragmentShader:'uniform sampler2D tDiffuse;varying vec2 vUv;void main(){vec4 c=texture2D(tDiffuse,vUv);\n#if __VERSION__>=300\nif(any(isnan(c))||any(isinf(c)))c=vec4(0.,0.,0.,1.);\n#endif\nc.rgb=clamp(c.rgb,0.,6.);c.a=clamp(c.a,0.,1.);gl_FragColor=c;}'}));
   const bloom=new THREE.UnrealBloomPass(new THREE.Vector2(256,256),.5,.5,1.0);c.addPass(bloom);c.addPass(new THREE.ShaderPass(THREE.CopyShader));c.bloom=bloom;return c}
 function skyTex(a,b,key){return ctex('sky'+a+b+(key||''),64,512,(x,w,h)=>{const g=x.createLinearGradient(0,0,0,h);g.addColorStop(0,a);g.addColorStop(.62,b);g.addColorStop(1,b);x.fillStyle=g;x.fillRect(0,0,w,h)})}
-function sizeView(R,cam,comp,elx){const w=elx.clientWidth,h=elx.clientHeight;if(!w||!h)return;const pr=Math.min(HIGH?2:1.25,devicePixelRatio);R.setPixelRatio(pr);R.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();if(comp){comp.setPixelRatio(pr);comp.setSize(w,h)}}
+function sizeView(R,cam,comp,elx){const w=elx.clientWidth,h=elx.clientHeight;if(!w||!h)return;const pr=Math.min(HIGH?2:1.25,devicePixelRatio)*(typeof PERF!=='undefined'?PERF.scale:1);R.setPixelRatio(pr);R.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();if(comp){comp.setPixelRatio(pr);comp.setSize(w,h)}}
 
 /* ---------- Zustand ---------- */
 let S=DEFAULT();{const d=LS.get('cyborg-labor-entwurf-v2',null);if(d&&d.parts)S=sanitize(d)}
