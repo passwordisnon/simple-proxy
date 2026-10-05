@@ -42,7 +42,7 @@ const GAME=(()=>{
     Object.assign(G_,{scene:sc,sun,hemi,fill,inter:[],yards:[],gates:[],lights:[],clouds:[],ticks:[],trees:[],rocks:[]});
     /* grosse Planeten: Natur wird in Chunks um den Spieler gestreamt */G_.stream=G_.lod&&(Rr>70||!!window.FORCE_STREAM);
     SCATTER.reset(sc,Rr,M,G_.stream?{fill:fillChunk,unload:unloadChunkRefs}:null);
-    buildPlaces();try{buildHatch()}catch(e){console.warn('Luke',e)}buildStones();try{buildDocks()}catch(e){console.warn('Stege',e)}try{buildCaves()}catch(e){console.warn('Höhlen',e)}scatterWorld();buildGrass();
+    buildPlaces();try{buildHatch()}catch(e){console.warn('Luke',e)}try{buildRift()}catch(e){console.warn('Riss',e)}buildStones();try{buildDocks()}catch(e){console.warn('Stege',e)}try{buildCaves()}catch(e){console.warn('Höhlen',e)}scatterWorld();buildGrass();
     if(G_.stream){const lp=SAVE.lastPos&&SAVE.lastPos.planet===pid?new V3(...SAVE.lastPos.p).normalize():(fns.places.find(p=>p.build==='plaza')||{dir:UPV}).dir;SCATTER.stream(lp,0,true)}buildClouds();buildBall();if(typeof WEATHER!=='undefined')WEATHER.build(G_);else buildWeather();SCATTER.finalize();
     /* nach dem Aufbau: Höhe exakt aus der sichtbaren Kachel (Figuren stehen genau auf dem Boden) */if(G_.lod){const fh=fns.hAt;G_.hAt=p=>{const h=PLANETLOD.height(p);return h==null?fh(p):h}}
     cam.far=Rr*6+500;cam.updateProjectionMatrix();
@@ -157,6 +157,16 @@ const GAME=(()=>{
   /* ---------- Gebäude & Orte ---------- */
   /* Wortsteine (fremde Ruinen): bringen je ein Wort der Planetensprache bei */
   /* WIRED: eine Wartungsluke je Planet, nahe beim Dorfplatz (ab Akt III der Weg in die Tunnel) */
+  /* Rissling-Lebensraum: ein fester Riss im Boden, weit weg vom Dorf. Hier erscheint der Rissling dieses Planeten.
+     Ist er gefangen, ist der Riss nur noch eine graue Narbe. */
+  function buildRift(){if(G_.def.mine||typeof WSTORY==='undefined')return;const pz=G_.places.find(x=>x.id==='platz')||G_.places[0];if(!pz)return;const r=srand(hashStr('riss'+G_.id).length*131+7);
+    const fam=WSTORY.RISS.find(x=>x.pl===G_.id);const done=fam&&SAVE.wired&&(SAVE.wired.caught||[]).includes(fam.id);
+    for(let i=0;i<900;i++){const p=randAround(r,40+i*.1,pz.dir);if(!p)continue;const dd=angle(p,pz.dir)*G_.R;if(dd<30||!isLand(p)||nearPlace(p,2)||flatAt(p,2)>.35)continue;
+      const g=new THREE.Group();const red=done?M.c('#8a8a90'):M.glow('#ff3a5a',1.6),cyan=done?M.c('#a8a8b0'):M.glow('#45e0ff',1.6),dark=M.c('#2a2230');
+      for(let k=0;k<7;k++){const a=k/7*TAU+r()*.4,len=.8+r()*1.4;const q=grp(g,[0,0,0],[0,a,0]);P(q,G.bx(len,.04,.12),dark,[len/2,.01,0],[0,0,0]);P(q,G.bx(len*.9,.05,.04),k%2?red:cyan,[len/2,.03,0]);if(r()<.6){const b=grp(q,[len,0,0],[0,(r()-.5)*1.4,0]);P(b,G.bx(len*.5,.05,.03),k%2?cyan:red,[len*.25,.03,0])}}
+      if(!done)for(let k=0;k<5;k++){const c=P(g,G.bx(.12,.12,.12),k%2?red:cyan,[(r()-.5)*2.4,.4+r()*.8,(r()-.5)*2.4],[r(),r(),r()]);c.userData.bob=r()*TAU}
+      if(!done){g.userData.tick=(t)=>{g.children.forEach(o=>{if(o.userData.bob!=null){o.position.y=.5+Math.sin(t*1.5+o.userData.bob)*.25;o.rotation.y=t+o.userData.bob}})};G_.ticks.push(g)}
+      g.traverse(o=>{if(o.isMesh)o.userData.noOutline=true});placeObj(g,p,r()*TAU,0,true);G_.scene.add(g);G_.rift=p;G_.riftG=g;return}}
   function buildHatch(){if(typeof WK==='undefined'||G_.def.mine)return;const pz=G_.places.find(x=>x.id==='platz');if(!pz)return;const r=srand(hashStr('hatch'+G_.id).length*97+3);
     for(let i=0;i<600;i++){const p=randAround(r,24+i*.08,pz.dir);if(!p)continue;const dd=angle(p,pz.dir)*G_.R;if(dd<12||!isLand(p)||nearPlace(p,1.15)||flatAt(p,1.1)>.28)continue;
       const g=WK.hatch(M);addOutlines(g);smartMerge(g);if(g.userData.tick)G_.ticks.push(g);placeObj(g,p,r()*TAU,-.04,true);G_.scene.add(g);addObst(p,.9);
