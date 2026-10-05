@@ -50,7 +50,7 @@ const BOUTIQUE=(()=>{
     kput(sc,'furn','loungeDesignSofa',-5.3,0,3.2,PI/2,2.2,PAL);C.push({x0:-5.9,x1:-4.7,z0:2,z1:4.3});kput(sc,'furn','rugRound',0,0,.6,0,2.6,PAL);
     /* Mitte: runde Bühne mit einer Puppe in der neuesten Kollektion (dreht sich langsam) */{const pg=grp(sc,[0,0,.6]);P(pg,G.cy(.85,.95,.3,28),M.c('#FFF4F8'),[0,.15,0]);P(pg,G.cy(.95,.95,.05,28),M.c('#C9A45A',{gloss:1}),[0,.31,0]);
       const m=mannequin(M,CLOTHES.random(srand(97+pid().length),pid()),'ei');m.position.y=.33;pg.add(m);sc.userData.podium=pg;C.push({x0:-.95,x1:.95,z0:-.35,z1:1.55});A.push({x:0,z:2.1,r:1.2,label:'Kollektion ansehen',act:()=>shop()})}
-    kput(sc,'furn','pottedPlant',5.5,0,3.8,0,1.9);kput(sc,'furn','pottedPlant',-5.5,0,-3.9,0,1.9);kput(sc,'furn','coatRackStanding',5.4,0,.1,0,2.4,PAL);C.push({x0:5.1,x1:5.7,z0:-.2,z1:.4});
+    kput(sc,'furn','pottedPlant',4.6,0,3.95,0,1.9);kput(sc,'furn','pottedPlant',-5.5,0,-3.9,0,1.9);kput(sc,'furn','coatRackStanding',5.4,0,.1,0,2.4,PAL);C.push({x0:5.1,x1:5.7,z0:-.2,z1:.4});
     /* Kasse (Kenney Mini Market) mit Monsieur Boulon dahinter */
     kput(sc,'market','cash-register',3.2,0,-3.3,PI,1.9,PAL);C.push({x0:2.3,x1:4.1,z0:-4,z1:-2.5});kput(sc,'market','shopping-basket',2.3,1.12,-3.2,.4,1.4,PAL);
     let bo=null;try{bo=buildCreature(boulon(),{q:HIGH?.65:.45,noShadow:!HIGH,blob:false,merge:true});bo.scale.setScalar(CS);bo.position.set(3.4,0,-4.05);sc.add(bo);sc.userData.boulon=bo}catch(e){console.warn('Boulon',e)}
@@ -58,8 +58,8 @@ const BOUTIQUE=(()=>{
     /* Umkleide mit Vorhang + grosser Spiegel */
     if(typeof CLINIC!=='undefined'){const c1=CLINIC.curtain(M,1.8,H,.15,false,'#F2B8CC','#C9A45A');c1.position.set(-3.1,0,3.35);c1.rotation.y=PI/2;sc.add(c1);const c2=CLINIC.curtain(M,1.6,H,.55,true,'#F2B8CC','#C9A45A');c2.position.set(-2.2,0,2.55);sc.add(c2)}
     C.push({x0:-4,x1:-2.2,z0:3.3,z1:3.5});A.push({x:-3,z:2.6,r:1.3,label:'Umkleide: Kleidung anziehen',act:()=>wardrobe()});
-    const mir=new THREE.Group();P(mir,G.bx(1.1,2.1,.1,.06),M.c('#C9A45A'),[0,0,0]);const gl=P(mir,G.bx(.92,1.9,.02,.02),new THREE.MeshBasicMaterial({color:'#EAF6FF',toneMapped:false}),[0,0,.06]);gl.userData.noOutline=true;addOutlines(mir);mir.position.set(5.93,1.35,2.4);mir.rotation.y=-PI/2;sc.add(mir);
-    A.push({x:5.1,z:2.4,r:1.2,label:'In den Spiegel schauen',act:()=>wardrobe()});
+    const mir=new THREE.Group();P(mir,G.bx(1.1,2.1,.1,.06),M.c('#C9A45A'),[0,0,0]);const gl=P(mir,G.bx(.92,1.9,.02,.02),new THREE.MeshBasicMaterial({color:'#EAF6FF',toneMapped:false}),[0,0,.06]);gl.userData.noOutline=true;addOutlines(mir);const mz=INTERIOR.wallSlot?INTERIOR.wallSlot('right',2.4,1.1):2.4;mir.position.set(5.93,1.35,mz);mir.rotation.y=-PI/2;sc.add(mir);
+    A.push({x:5.1,z:mz,r:1.2,label:'In den Spiegel schauen',act:()=>wardrobe()});
     INTERIOR.lamp(sc,'kron',0,H-.05,-.4,{H,col:'#FFF0DA',i:.85,d:10});INTERIOR.lamp(sc,'wand',-5.9,2.2,-.4,{ry:PI/2,col:'#FFE0C8'});INTERIOR.lamp(sc,'wand',5.9,2.2,-.8,{ry:-PI/2,col:'#FFE0C8'});
     /* Schild über der Kasse */const t=ctex('btq-schild-'+pid(),512,128,(x,w,h)=>{x.clearRect(0,0,w,h);x.fillStyle='#D8708E';x.font='italic bold 58px Georgia,serif';x.textAlign='center';x.textBaseline='middle';x.fillText(((TOWN.NAMES[pid()]||{}).mode)||'Boutique',w/2,h/2)});
     const sg=P(sc,G.pl(3.6,.9),new THREE.MeshBasicMaterial({map:t,transparent:true}),[3.2,2.85,-D/2+.04]);sg.userData.noOutline=true;

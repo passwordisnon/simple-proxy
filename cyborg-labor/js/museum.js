@@ -38,8 +38,10 @@ INTERIOR.kinds.museum={bg:'#E9E2F5',music:'museum',build(sc){const W=30,D=24,H=5
       if(r){const rg=new THREE.Group();QF=.6;try{r.b(rg,M,{},srand(i))}catch(e){}QF=1;addOutlines(rg);rg.scale.setScalar(.48);rg.position.y=1.0;pg.add(rg);anim.push({g:rg,spin:true,ph:i});A.push({x:x-Math.sign(x)*1.1,z,r:1,label:r.n+' '+T('ansehen'),act:()=>plaque(r.n,[['relic',r]])})}});
     /* ----- Kunst: eine Reihe an der Rückwand ----- */
     sign('Kunstgalerie',0,H-.7,-D/2+.12,'#FF8FB1');
-    const art=[...GALLERY.map(a=>Object.assign({mine:true},a)),...FOREIGN_ART,...(window.SOCIAL?SOCIAL.onlineArt():[])];const seen=new Set();const uniq=art.filter(a=>{if(seen.has(a.id))return false;seen.add(a.id);return true}).slice(0,10);
-    uniq.forEach((a,i)=>{const x=-11.25+i*2.5,z=-D/2+.06;const f=INTERIOR.framedPicture(a,1.6);f.position.set(x,2.6,z);ex.add(f);A.push({x,z:-D/2+1.2,r:1,label:`«${a.name}» ansehen`,act:()=>artPlaque(a)})});
+    const art=[...GALLERY.map(a=>Object.assign({mine:true},a)),...FOREIGN_ART,...(window.SOCIAL?SOCIAL.onlineArt():[])];const seen=new Set();const uniq=art.filter(a=>{if(seen.has(a.id))return false;seen.add(a.id);return true})
+    .slice(0,13);
+    /* Plätze zwischen den Fenstern (oben) und unter den Fenstern (unten) – nie über einem Fenster */const nb=Math.max(1,Math.floor(W/4.2));const wx=i=>-W/2+W*(i+.5)/nb;const slots=[];for(let i=0;i<nb-1;i++)slots.push([(wx(i)+wx(i+1))/2,2.7]);for(let i=0;i<nb;i++)slots.push([wx(i),1.15]);
+    uniq.slice(0,slots.length).forEach((a,i)=>{const[x,y]=slots[i],z=-D/2+.06;const f=INTERIOR.framedPicture(a,y>2?1.6:1.2);f.position.set(x,y,z);ex.add(f);A.push({x,z:-D/2+1.2,r:1,label:`«${a.name}» ansehen`,act:()=>artPlaque(a)})});
     if(!uniq.length){const t=ctex('leer-kunst',512,128,(c,w,h)=>{c.fillStyle='#8A7160';c.font='bold 30px Nunito, sans-serif';c.textAlign='center';c.fillText(T('Noch keine Kunst. Malt im Farbstudio!'),w/2,72)});const m=P(ex,G.pl(4,1),new THREE.MeshBasicMaterial({map:t,transparent:true}),[0,2.4,-D/2+.08]);m.userData.noOutline=true}
     /* ----- Eingang: Kuratorin links, Katalog rechts ----- */
     const cur=buildCreature(sanitize(CURATOR.d),{q:.8,noShadow:!HIGH});cur.scale.setScalar(CS);cur.position.set(-8,0,D/2-3.6);cur.rotation.y=PI*.15;ex.add(cur);P(ex,G.bx(2.4,1,.8,.2),M.c('#B79A6E'),[-8,.5,D/2-2.7]);C.push({x0:-9.3,x1:-6.7,z0:D/2-4.2,z1:D/2-2.2});anim.push({g:cur,creature:true});
