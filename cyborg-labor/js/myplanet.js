@@ -1,19 +1,13 @@
 /* =====================================================================
    CYBORG-LABOR · myplanet.js
    Dein eigener kleiner Planet: bekommst du früh von der Bürgermeisterin.
-   Er startet als Ödland; mit der Terraform-App (Handy) hebst du Hügel
-   und Berge, gräbst Teiche, glättest und malst Landschaften aus allen
-   Planeten, die du besucht hast. Bewohner:innen anderer Planeten kannst
+   Er startet als Ödland; im Planeten-Labor (Handy-App) wählst du wie im
+   Cyborg-Labor fertige Bausteine: Landform, drei Landschaften aus den
+   besuchten Planeten, Wasserstand und Himmel. Der Planet baut sich dann neu. Bewohner:innen anderer Planeten kannst
    du einladen – sie ziehen mit eigenem Haus bei dir ein.
    ===================================================================== */
 const MYPLANET=(()=>{
   const MAXG=12;
-  const TOOLS=[
-    {id:'huegel',n:'Hügel',i:'leaf',c:'#8FD07A',cost:120,d:'Hebt den Boden um dich herum sanft an.',edit:{dh:2.2,r:5}},
-    {id:'berg',n:'Berg',i:'rocket',c:'#A89CC8',cost:320,d:'Ein richtiger Berg zum Hochklettern.',edit:{dh:5.5,r:7.5}},
-    {id:'teich',n:'Teich',i:'fish',c:'#7FC8F0',cost:150,d:'Gräbt eine Senke, die sich mit Wasser füllt.',edit:{dh:-3.2,r:4.2}},
-    {id:'glatt',n:'Glätten',i:'wave',c:'#E8D8B8',cost:0,d:'Nimmt Hügel und Teiche in deiner Nähe wieder weg.'},
-    {id:'biom',n:'Landschaft malen',i:'palette',c:'#FF8FB1',cost:200,d:'Verwandelt die Umgebung in eine Landschaft eines besuchten Planeten.'}];
   /* Landschaften je Planet (werden freigeschaltet, sobald du den Planeten besucht hast) */
   const BIO={kompost:['wiese','blumenfeld','wald','kirschhain','herbstwald'],frost:['schneefeld','tannenwald','polarhuegel'],wueste:['duenen','kakteenfeld','oase'],korallen:['palmenhain','riffstrand'],pilz:['pilzwald','moorwiese','sporensumpf'],schrott:['schrottebene','kristallfeld','gluehwald']};
   const S=()=>SAVE.myPlanet;
@@ -21,33 +15,49 @@ const MYPLANET=(()=>{
   function applyName(){if(S()&&PLANETS.heim)PLANETS.heim.n=S().name||'Mein Planet'}
   /* ---------- Freischalten (Bürgermeisterin auf dem Kompost-Planeten) ---------- */
   async function offer(who,voice){if(S())return false;
-    await UI.talk(who,['Ach, bevor ich es vergesse: Der Rat hat beschlossen, dir etwas zu schenken.','Einen eigenen kleinen Planeten! Noch ist er kahl und staubig – aber du kannst ihn gestalten, wie du willst.','Dein Haus lassen wir gleich hinüberbringen – dort hast du Platz für Anbauten wie eine Sternwarte, ein Gewächshaus oder ein Labor. Und für einen eigenen Tierpark!','Flieg mit deiner Rakete hin. Mit der Terraform-App auf deinem Handy formst du Hügel, Teiche und Landschaften.'],{voice,color:'#B79A6E'});
+    await UI.talk(who,['Ach, bevor ich es vergesse: Der Rat hat beschlossen, dir etwas zu schenken.','Einen eigenen kleinen Planeten! Noch ist er kahl und staubig – aber du kannst ihn gestalten, wie du willst.','Dein Haus lassen wir gleich hinüberbringen – dort hast du Platz für Anbauten wie eine Sternwarte, ein Gewächshaus oder ein Labor. Und für ein eigenes Museum!','Flieg mit deiner Rakete hin. Im Planeten-Labor auf deinem Handy baust du ihn aus fertigen Bausteinen.'],{voice,color:'#B79A6E'});
     const w=UI.win('Wie soll dein Planet heissen?',{size:'narrow'});const inp=el('input');inp.maxLength=20;inp.value='Mein Planet';inp.style.cssText='width:100%;font:inherit;padding:10px;border-radius:12px;border:2px solid var(--line,#e6d8b8)';w.body.append(inp);
     await new Promise(res=>{w.foot.append(btn('Taufen','primary',()=>{const v=String(inp.value||'').replace(/[<>]/g,'').trim().slice(0,20)||'Mein Planet';SAVE.myPlanet={name:v,edits:[],paint:[],guests:[]};applyName();persist();SND.jingle('j_success');w.close();res()}));const iv=setInterval(()=>{if(w.closed){clearInterval(iv);if(!S()){SAVE.myPlanet={name:'Mein Planet',edits:[],paint:[],guests:[]};persist()}res()}},300)});
     UI.toast('„'+S().name+'“ gehört jetzt dir! Die Rakete bringt dich hin.',3600);return true}
-  /* ---------- App ---------- */
+  /* ---------- Planeten-Labor (ersetzt das Terraforming) ---------- */
+  const LANDS=[['flach','Flachland','Weite, ruhige Wiesen.'],['huegel','Hügelland','Sanfte Hügel zum Spazieren.'],['terrassen','Terrassen','Hohe Stufen wie Reisfelder.'],['berge','Gebirge','Grate und Gipfel zum Klettern.'],['inseln','Inselwelt','Viele kleine Inseln im Meer.'],['krater','Kraterland','Runde Krater wie auf dem Mond.']];
+  const WATER=[['wenig','Wenig Wasser'],['normal','Etwas Wasser'],['viel','Viel Wasser']];
+  const SKIES={morgen:{n:'Morgenblau',sky:['#a8d8ff','#ffe6f0'],fog:'#d8ecff',weather:'blueten'},abend:{n:'Abendrot',sky:['#ffb38a','#ffe6c8'],fog:'#ffe0c8',weather:'blueten'},
+    bonbon:{n:'Bonbon',sky:['#ffb8e0','#c8e8ff'],fog:'#f4dcf0',weather:'blueten'},polar:{n:'Polarlicht',sky:['#3a4a8a','#7affc8'],fog:'#b8d8e8',weather:'schnee'},
+    nebel:{n:'Nebelmorgen',sky:['#d8dce8','#f4f0f8'],fog:'#e8eaf0',weather:'regen'},sterne:{n:'Sternenhimmel',sky:['#2a2a5a','#8a7aff'],fog:'#5a5a8a',weather:'blueten'}};
+  const DEF={land:'huegel',main:'oedland',second:'oedland',high:'oedland',water:1,sky:'morgen'};
+  const lab=()=>Object.assign({},DEF,S()&&S().lab);
+  function applySky(){if(!PLANETS.heim)return;const L=lab();const k=SKIES[L.sky]||SKIES.morgen;PLANETS.heim.sky=k.sky.slice();PLANETS.heim.fog=k.fog;PLANETS.heim.weather=k.weather}
+  function biomeChoices(){const vis=Object.keys(SAVE.visited||{kompost:1});const out=[['oedland','Ödland',null]];for(const pid of Object.keys(BIO)){if(!vis.includes(pid))continue;for(const b of BIO[pid])if(BIOMES[b]&&!out.some(x=>x[0]===b))out.push([b,BIOMES[b].n,pid])}return out}
+  /* kleine Vorschau: Planetenscheibe mit den gewählten Farben */
+  function preview(cv,L){const x=cv.getContext('2d'),W=cv.width,H=cv.height,r=W*.44;x.clearRect(0,0,W,H);const k=SKIES[L.sky]||SKIES.morgen;const sg=x.createLinearGradient(0,0,0,H);sg.addColorStop(0,k.sky[0]);sg.addColorStop(1,k.sky[1]);x.fillStyle=sg;x.fillRect(0,0,W,H);
+    const col=b=>(BIOMES[b]||BIOMES.oedland).g[0];const wl=[-.35,-.05,.25][L.water]??0;const amp={flach:.25,huegel:.5,terrassen:.7,berge:.8,inseln:.9,krater:.55}[L.land]||.5;
+    const img=x.getImageData(0,0,W,H);const hex=c=>[parseInt(c.slice(1,3),16),parseInt(c.slice(3,5),16),parseInt(c.slice(5,7),16)];const C={w:hex(PLANETS.heim.water||'#62CCEA'),a:hex(col(L.main)),b:hex(col(L.second)),c:hex(col(L.high))};
+    for(let j=0;j<H;j++)for(let i=0;i<W;i++){const dx=(i-W/2)/r,dy=(j-H/2)/r,d=dx*dx+dy*dy;if(d>1)continue;const z=Math.sqrt(1-d);
+      const n=(Math.sin(dx*5.1+z*3.3)+Math.sin(dy*6.7-dx*2.1)+Math.sin((dx+dy)*9.3+z*4.4)*.5)/2.5*amp;let c=n<wl?C.w:n>wl+.45*amp+.12?C.c:(Math.sin(dx*13+dy*7)+Math.sin(dy*11-z*5))>.4?C.b:C.a;
+      if(L.land==='krater'&&Math.hypot(dx-.3,dy+.2)<.18)c=C.c;const sh=.55+.45*z;const o=(j*W+i)*4;img.data[o]=c[0]*sh;img.data[o+1]=c[1]*sh;img.data[o+2]=c[2]*sh;img.data[o+3]=255}
+    x.putImageData(img,0,0)}
   function app(){if(!S()){UI.toast('Die Bürgermeisterin im Rathaus hat noch etwas für dich …',3000);return}
-    if(visiting){UI.toast('Du bist bei '+visiting.nick+' zu Besuch. Terraformen geht nur auf deinem eigenen Planeten.',3000);return}
-    const w=UI.win('Terraform · '+S().name,{size:'wide'});
-    if(!onMine()){w.body.append(el('p',null,'Terraforming funktioniert nur auf deinem eigenen Planeten. Flieg mit der Rakete zu „'+S().name+'“.'),el('p','sub','Bewohner:innen: '+S().guests.length+' / '+MAXG+'. Lade Figuren über das Blasen-Menü ein (Mehr → Auf meinen Planeten einladen).'));guestList(w);return}
-    w.body.append(el('p',null,'Stell dich an die Stelle, die du verändern willst, und wähle ein Werkzeug. Danach baut sich die Landschaft neu auf.'));const gr=el('div','grid');
-    for(const T of TOOLS){const c=el('button','card');c.type='button';const i=el('b');i.innerHTML=ICON(T.i);i.style.cssText='display:grid;place-items:center;width:56px;height:56px;margin:4px auto;border-radius:18px;color:#fff;background:'+T.c;
-      c.append(i,el('span',null,T.n),el('span','sub',T.cost?fmt(T.cost)+' Taler':'kostenlos'),el('span','sub',T.d));c.onclick=()=>{w.close();use(T)};gr.append(c)}w.body.append(gr);guestList(w)}
+    if(visiting){UI.toast('Du bist bei '+visiting.nick+' zu Besuch. Das Planeten-Labor gibt es nur für deinen eigenen Planeten.',3000);return}
+    const L=lab();const w=UI.win('Planeten-Labor · '+S().name,{size:'wide'});
+    const top=el('div');top.style.cssText='display:flex;gap:16px;flex-wrap:wrap;align-items:center';const cv=document.createElement('canvas');cv.width=cv.height=200;cv.style.cssText='width:200px;height:200px;border-radius:24px;box-shadow:var(--gel,0 4px 12px rgba(0,0,0,.2))';
+    const info=el('div');info.style.cssText='flex:1;min-width:200px';info.append(el('p',null,'Wähle Bausteine für deinen Planeten, wie im Cyborg-Labor. Mit «Planet bauen» verwandelt er sich.'),el('p','sub','Neue Landschaften schaltest du frei, indem du andere Planeten besuchst.'));top.append(cv,info);w.body.append(top);
+    const redraw=()=>preview(cv,L);
+    const section=(title,items,key,swatch)=>{w.body.append(el('h3',null,title));const gr=el('div','tiles');gr.style.cssText='display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px';
+      const btns=[];for(const[val,n,sub]of items){const b=el('button','tile');b.type='button';b.setAttribute('aria-pressed',String(L[key]===val));if(swatch){const sw=el('div');sw.style.cssText='height:40px;border-radius:12px;background:'+swatch(val);b.append(sw)}b.append(el('span','t',n));if(sub)b.append(el('span','ab',sub));
+        b.onclick=()=>{L[key]=val;btns.forEach(x=>x.setAttribute('aria-pressed',String(x===b)));redraw();SND.play('select')};btns.push(b);gr.append(b)}w.body.append(gr)};
+    const bc=biomeChoices().map(([b,n,pid])=>[b,n,pid?(PLANETS[pid]||{}).n:'']);const bsw=b=>{const B=BIOMES[b]||BIOMES.oedland;return'linear-gradient(135deg,'+B.g[0]+','+(B.g[1]||B.g[0])+')'};
+    section('Landform',LANDS.map(([v,n,d])=>[v,n,d]),'land');
+    section('Hauptlandschaft',bc,'main',bsw);section('Zweite Landschaft',bc,'second',bsw);section('Höhen',bc,'high',bsw);
+    section('Wasser',WATER.map(([v,n],i)=>[i,n]),'water');
+    section('Himmel',Object.entries(SKIES).map(([v,k])=>[v,k.n]),'sky',v=>'linear-gradient(180deg,'+SKIES[v].sky[0]+','+SKIES[v].sky[1]+')');
+    w.foot.append(btn('Zufall',null,()=>{const pick=a=>a[Math.floor(Math.random()*a.length)];L.land=pick(LANDS)[0];L.main=pick(bc)[0];L.second=pick(bc)[0];L.high=pick(bc)[0];L.water=Math.floor(Math.random()*3);L.sky=pick(Object.keys(SKIES));w.close();S().lab=L;app()}),
+      btn('Planet bauen','primary',()=>{S().lab=Object.assign({},L);applySky();w.close();rebuild('Dein Planet verwandelt sich …')}));
+    redraw();guestList(w)}
   function guestList(w){const G=S().guests;if(!G.length)return;w.body.append(el('h3',null,'Bewohner:innen'));const gr=el('div','grid');
-    for(const d of G){const c=el('div','card');c.append(el('b',null,d.name||'Namenlos'),el('span','sub','kommt von '+((PLANETS[d.from]||{}).n||'weit her')));c.append(btn('Auszug','',()=>{if(!confirm((d.name||'Namenlos')+' soll wieder ausziehen?'))return;S().guests=G.filter(x=>x!==d);persist();w.close();UI.toast((d.name||'Namenlos')+' zieht aus. Beim nächsten Besuch ist das Haus weg.')}));gr.append(c)}w.body.append(gr)}
-  function here(){const p=GAME.me.p;return[+p.x.toFixed(5),+p.y.toFixed(5),+p.z.toFixed(5)]}
-  function pay(T){if(!T.cost)return true;if(SAVE.money<T.cost){SND.play('error');UI.toast('Dafür brauchst du '+fmt(T.cost)+' Taler.');return false}money(-T.cost);return true}
-  function use(T){const d=here();const M=S();
-    if(T.id!=='biom'&&T.id!=='glatt'){const V=GAME.me.p;const pl=GAME.G.places.find(q=>!q.pond&&q.build&&GAME.angle(V,q.dir)<q.r*1.6+4/GAME.G.R);if(pl){SND.play('error');UI.toast('Hier ist ein Bauplatz ('+pl.n+'). Geh ein paar Schritte weiter weg.',3000);return}}
-    if(T.id==='biom'){const vis=Object.keys(SAVE.visited||{kompost:1});const w=UI.win('Landschaft malen',{size:'wide'});const gr=el('div','grid');
-      for(const pid of Object.keys(BIO)){if(!vis.includes(pid))continue;for(const b of BIO[pid]){if(!BIOMES[b])continue;const B=BIOMES[b];const c=el('button','card');c.type='button';const sw=el('div');sw.style.cssText='height:44px;border-radius:12px;margin:4px;background:linear-gradient(135deg,'+B.g[0]+','+(B.g[1]||B.g[0])+')';
-        c.append(sw,el('span',null,B.n),el('span','sub',PLANETS[pid].n));c.onclick=()=>{if(!pay(T))return;w.close();M.paint.push({d,r:9,b});if(M.paint.length>160)M.paint.shift();rebuild('Die Landschaft verwandelt sich …')};gr.append(c)}}
-      if(!gr.children.length)w.body.append(el('p',null,'Besuch erst andere Planeten, dann kannst du ihre Landschaften hierher holen.'));w.body.append(el('p','sub','Neue Planeten schalten neue Landschaften frei.'),gr);return}
-    if(T.id==='glatt'){const V=new THREE.Vector3(...d);const before=M.edits.length;M.edits=M.edits.filter(e=>new THREE.Vector3(...e.d).angleTo(V)*GAME.G.R>7);if(M.edits.length===before){UI.toast('Hier gibt es nichts zu glätten.');return}rebuild('Der Boden wird wieder glatt …');return}
-    if(!pay(T))return;M.edits.push({d,r:T.edit.r,dh:T.edit.dh});if(M.edits.length>120)M.edits.shift();
-    /* dich ein Stück zur Seite stellen, damit du nicht im Berg oder im Teich stehst */rebuild(T.id==='teich'?'Wasser sprudelt in die Senke …':'Der Boden hebt sich …',T.id!=='huegel')}
-  function rebuild(msg,step){persist();SND.play('build');UI.toast(msg,2200);const me=GAME.me;let p=me.p.clone();if(step){const t=GAME.tangentTo(p,new THREE.Vector3(1,0,0));p.addScaledVector(t,(9)/GAME.G.R).normalize()}
-    SAVE.lastPos={planet:GAME.G.id,p:[p.x,p.y,p.z]};persist();const go=()=>GAME._load(GAME.G.id).then(()=>{SND.jingle('j_success')});if(GAME.fadeOut)GAME.fadeOut(go);else go()}
+    for(const d of G){const c=el('div','card');c.append(el('b',null,d.name||'Namenlos'),el('span','sub','kommt von '+((PLANETS[d.from]||{}).n||'weit her')));c.append(btn('Auszug','',()=>{if(!confirm((d.name||'Namenlos')+' soll wieder ausziehen?'))return;S().guests=G.filter(x=>x!==d);persist();w.close();UI.toast((d.name||'Namenlos')+' zieht aus.')}));gr.append(c)}w.body.append(gr)}
+  function rebuild(msg){persist();SND.play('build');UI.toast(msg,2200);const me=GAME.me;const p=me.p.clone();SAVE.lastPos={planet:GAME.G.id,p:[p.x,p.y,p.z]};persist();
+    if(!onMine()){UI.toast('Beim nächsten Besuch sieht dein Planet so aus.',2600);return}const go=()=>GAME._load(GAME.G.id).then(()=>{SND.jingle('j_success')});if(GAME.fadeOut)GAME.fadeOut(go);else go()}
   /* ---------- Einladen (aus dem Blasen-Menü) ---------- */
   async function invite(e,voice,nm,col){const M=S();if(!M)return;if(M.guests.length>=MAXG){await UI.talk(nm,['Dein Planet ist schon voll! Vielleicht später.'],{voice:voice(),color:col});return}
     if(M.guests.some(g=>g.src===e.d.id)){await UI.talk(nm,['Ich wohne doch schon bei dir! Naja, ein Teil von mir.'],{voice:voice(),color:col});return}
@@ -63,19 +73,19 @@ const MYPLANET=(()=>{
   const HKEYS=['shape','wall','wallCol','roofCol','doorCol','win','chimney','fence','flag','size'];
   const q=v=>Math.round(v*1000);
   function encode(){const M=S();if(!M)return null;const st=(SAVE.house&&SAVE.house.style)||{};const h={};for(const k of HKEYS)if(st[k]!=null)h[k]=st[k];if(st.addons)h.addons=st.addons.slice(0,3);
-    return{n:String(M.name||'').slice(0,20),e:M.edits.slice(-50).map(e=>[q(e.d[0]),q(e.d[1]),q(e.d[2]),Math.round(e.r*10),Math.round(e.dh*10)]),p:M.paint.slice(-50).map(x=>[q(x.d[0]),q(x.d[1]),q(x.d[2]),Math.round(x.r),BLIST.indexOf(x.b)]),h}}
+    const L=lab();return{n:String(M.name||'').slice(0,20),l:[L.land,L.main,L.second,L.high,L.water,L.sky],h}}
   const num=(v,lo,hi)=>typeof v==='number'&&isFinite(v)&&v>=lo&&v<=hi;
   const col=v=>typeof v==='string'&&/^#[0-9a-fA-F]{6}$/.test(v)?v:undefined;
   function decode(o){if(!o||typeof o!=='object')return null;const dir=a=>{const v=new THREE.Vector3(a[0],a[1],a[2]).normalize();return[v.x,v.y,v.z]};
-    const edits=(Array.isArray(o.e)?o.e:[]).slice(0,60).filter(a=>Array.isArray(a)&&a.length===5&&a.slice(0,3).every(v=>num(v,-1000,1000))&&num(a[3],10,120)&&num(a[4],-60,60)).map(a=>({d:dir(a),r:a[3]/10,dh:a[4]/10}));
-    const paint=(Array.isArray(o.p)?o.p:[]).slice(0,60).filter(a=>Array.isArray(a)&&a.length===5&&a.slice(0,3).every(v=>num(v,-1000,1000))&&num(a[3],1,20)&&num(a[4],0,BLIST.length-1)).map(a=>({d:dir(a),r:a[3],b:BLIST[a[4]]}));
     const hi=o.h&&typeof o.h==='object'?o.h:{};const house={shape:typeof hi.shape==='string'?hi.shape.slice(0,12):undefined,wall:typeof hi.wall==='string'?hi.wall.slice(0,12):undefined,wallCol:col(hi.wallCol),roofCol:col(hi.roofCol),doorCol:col(hi.doorCol),
       win:typeof hi.win==='string'?hi.win.slice(0,12):undefined,chimney:!!hi.chimney,fence:!!hi.fence,flag:!!hi.flag,size:num(hi.size,1,3)?Math.round(hi.size):1,addons:(Array.isArray(hi.addons)?hi.addons:[]).filter(a=>['sternwarte','gewaechshaus','labor'].includes(a))};
-    return{name:String(o.n||'Planet').replace(/[<>\u0000-\u001f]/g,'').slice(0,20)||'Planet',edits,paint,guests:[],house}}
+    const l=Array.isArray(o.l)?o.l:[];const lab={land:LANDS.some(x=>x[0]===l[0])?l[0]:'huegel',main:BLIST.includes(l[1])?l[1]:'oedland',second:BLIST.includes(l[2])?l[2]:'oedland',high:BLIST.includes(l[3])?l[3]:'oedland',water:[0,1,2].includes(l[4])?l[4]:1,sky:SKIES[l[5]]?l[5]:'morgen'};
+    return{name:String(o.n||'Planet').replace(/[<>\u0000-\u001f]/g,'').slice(0,20)||'Planet',edits:[],paint:[],lab,guests:[],house}}
   function visit(pid,nick,mp){if(!mp){UI.toast(nick+' hat noch keinen eigenen Planeten.');return}visiting={pid:String(pid),nick:String(nick).slice(0,24),mp,pending:true};PLANETS.heim.n=mp.name+' (bei '+visiting.nick+')';
+    /* Himmel des befreundeten Planeten */const k=SKIES[(mp.lab||{}).sky]||SKIES.morgen;PLANETS.heim.sky=k.sky.slice();PLANETS.heim.fog=k.fog;PLANETS.heim.weather=k.weather;
     UI.toast('Kurs auf „'+mp.name+'“, den Planeten von '+visiting.nick+'!',2600);GAME.travel('heim')}
-  function onArrive(pid){if(visiting&&visiting.pending&&pid==='heim'){visiting.pending=false;return}visiting=null;applyName()}
+  function onArrive(pid){if(visiting&&visiting.pending&&pid==='heim'){visiting.pending=false;return}visiting=null;applyName();applySky()}
   function placeId(){const id=GAME.G&&GAME.G.id;if(!id||!PLANETS[id]||!PLANETS[id].mine)return id;return id+':'+(visiting?visiting.pid:SAVE.pid)}
-  applyName();
-  return{offer,app,invite,applyName,onMine,TOOLS,BIO,encode,decode,visit,onArrive,placeId,get visiting(){return visiting}}
+  applyName();applySky();
+  return{offer,app,invite,applyName,applySky,onMine,BIO,encode,decode,visit,onArrive,placeId,get visiting(){return visiting}}
 })();

@@ -96,8 +96,9 @@ const INTERIOR=(()=>{
       const pts=new THREE.Points(pg2,pm);pts.frustumCulled=false;pts.userData.noOutline=true;q.add(pts);
       pts.onBeforeRender=()=>{const t=performance.now()/1000;for(let i=0;i<n;i++){const[a,b,c,ph]=seed[i];const f=(a+t*.02*(.5+b))%1;const y=wh*.9-(wh*.9+y0)*f;const z=.2+(far-.1)*f;pos[i*3]=(c-.5)*ww*.9+Math.sin(t*.6+ph)*.08;pos[i*3+1]=y+Math.sin(t*.9+ph)*.05;pos[i*3+2]=z}pg2.attributes.position.needsUpdate=true}}}
   function dotTex(){return ctex('dust',32,32,(x,w,h)=>{const g=x.createRadialGradient(w/2,h/2,0,w/2,h/2,w/2);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.4,'rgba(255,255,255,.5)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,w,h)})}
-  function enter(k){if(!kinds[k])return;GAME.fadeOut(()=>{kind=k;deco=false;GAME.mode='interior';const me=GAME.me;SAVE.lastPos=null;
+  function enter(k){if(!kinds[k])return;GAME.fadeOut(()=>{const prevKind=kind;kind=k;deco=false;GAME.mode='interior';const me=GAME.me;SAVE.lastPos=null;
       for(const e of GAME.ents.values()){e.g.visible=false;e.shadow.visible=false}
+      /* von Raum zu Raum (Museum -> Aquarium): alten Raum freigeben, die Figur vorher herausnehmen */if(scene){if(prevKind&&kinds[prevKind]&&kinds[prevKind].leave)kinds[prevKind].leave();scene.remove(me.g);scene.remove(me.shadow);disposeScene()}
       scene=baseScene(kinds[k].bg);comp=makeComposer(GAME.R,scene,cam);actions.length=0;colliders.length=0;room=kinds[k].build(scene);
       adopt(me);me.ix=0;me.iz=room.D/2-1.1;me.iyaw=PI;camYaw=0;camZoom=1;SND.play('door_open');SND.music(kinds[k].music||'home');resize();$('prompt').hidden=true});}
   function adopt(me){if(me.g.parent)me.g.parent.remove(me.g);if(me.shadow.parent)me.shadow.parent.remove(me.shadow);scene.add(me.g);scene.add(me.shadow);me.g.visible=true;me.shadow.visible=true;me.inside=true}
@@ -119,7 +120,7 @@ const INTERIOR=(()=>{
       const nx=me.ix+mx/L*sp*dt,nz=me.iz+mz/L*sp*dt;if(!blocked(nx,me.iz))me.ix=nx;if(!blocked(me.ix,nz))me.iz=nz;me.iyaw=Math.atan2(mx,mz);tapTo&&(Math.hypot(ix,iy)>.1&&!tapTo)&&0;
       if(!me.move.alt){stepT-=dt*sp*.6;if(stepT<=0){stepT=1;SND.play({station:'step_concrete',tunnel:'step_concrete',glitchkern:'step_concrete',shop:'step_concrete',museum:'step_carpet',boutique:'step_carpet',klinik:'step_carpet',rathaus:'step_carpet',casino:'step_carpet'}[kind]||'step_wood',{vol:.3,jitter:.15})}}}
     me.speed=sp;if(sp>0&&me.emote){me.emote=null;me.emoteT=0;me.dance=0}
-    if(me.iz>room.D/2-.45&&iy<-.1&&!deco)exit();
+    if(me.iz>room.D/2-.45&&iy<-.1&&!deco){/* Nebenräume (Aquarium, Insektenhäuser): zurück in den Raum davor */const bk=kinds[kind]&&kinds[kind].back&&kinds[kind].back();if(bk&&kinds[bk]){me.iz=room.D/2-1.2;enter(bk)}else exit()}
     /* Kamera */const dist=(room.camD||Math.max(room.W,room.D)*1.05+2)*camZoom;const tx=me.ix*.5,tz=me.iz*.3;cam.position.set(tx+Math.sin(camYaw)*dist,room.camH||dist*.78,tz+Math.cos(camYaw)*dist);cam.lookAt(tx,.6,tz-.6);
     if(scene.userData.key)scene.userData.key.position.set(me.ix+Math.sin(camYaw)*1.3,2.1,me.iz+Math.cos(camYaw)*1.3);
     kinds[kind].frame&&kinds[kind].frame(dt,t);if(ghost)updGhost();

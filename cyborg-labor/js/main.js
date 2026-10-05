@@ -33,7 +33,7 @@ const MAIN=(()=>{
     A('bag','Tasche','#FFD35C',()=>{SND.play('leather',{vol:.5});ACT.bag()},'Was hast du heute gesammelt?');A('book','Lexikon','#7FDCE6',()=>ACT.lexikon(),'Schlagen wir nach, was du gefunden hast?');
     A('paw','Tiere','#A6EBC3',()=>FAUNA.lexikon(),'Tiere! Mein Lieblingsthema.');A('rocket','Reisen','#FFC9A8',()=>UI.toast('Zur Rakete am Dorfrand gehen, um zu reisen.',3000),'Die Rakete wartet am Dorfrand.');
     A('star','Kleider','#F2A8C4',()=>BOUTIQUE.wardrobe(),'Etwas Neues anziehen?');A('palette','Designs','#FF8FB1',designsApp,'Malen wir zusammen?');A('house','Hausbau','#FFB27A',()=>houseBuilder(),'Dein Haus braucht bestimmt noch ein Zimmer.');
-    A('coin','Jobs','#FFD35C',()=>JOBS.app(),'Ein bisschen arbeiten, ein paar Taler verdienen.');A('leaf','Terraform','#8FD07A',()=>MYPLANET.app(),'Lass uns deinen Planeten verschönern.');
+    A('coin','Jobs','#FFD35C',()=>JOBS.app(),'Ein bisschen arbeiten, ein paar Taler verdienen.');A('leaf','Planeten-Labor','#8FD07A',()=>MYPLANET.app(),'Bau deinen Planeten aus fertigen Bausteinen.');
     A('people','Freunde','#A6EBC3',()=>SOCIAL.playersWin(),'Wer ist gerade da?');A('chat','Chat','#8FD3FF',()=>SOCIAL.toggleChat(true),'Schreib doch jemandem!');A('wave','Emotes','#FFE27A',()=>ACT.emoteMenu(),'Tanzen? Winken? Ich mach mit!');
     A('map','Karte','#9FD86A',mapApp,'Wo sind wir eigentlich?');A('sparkle','Risslinge','#e9e7e4',()=>WSTORY.app(),'Die Risse … mir ist ein bisschen mulmig.');A('think','Tagebuch','#C8B8E8',()=>DIARY.app(),'Wer hat hier vor uns geschlafen?');A('globe','Bewohner','#FFC9A8',residentsApp,'Alle Nachbarn auf einen Blick.');
     A('school','Klasse','#D9B5F2',teacherApp,'Das ist für die Lehrperson.');A('gear','Optionen','#DDD3C4',settingsApp,'Ton, Sprache, Grafik.');
