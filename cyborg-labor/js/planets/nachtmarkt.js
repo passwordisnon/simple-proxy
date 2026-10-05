@@ -56,7 +56,7 @@ F('mondscheinbarsch',fishMeta('Mondscheinbarsch','nachtmarkt','teich','S','immer
   (g,m)=>fishT(g,m,{id:'mondscheinbarsch',H:.2,L:.55,back:'#a8b0c8',belly:'#f4f6ff',tail:'fork',dorsal:'hi'}));
 
 /* ================= Insekten ================= */
-B('laternentraeger',bugMeta('Laternenträger','nachtmarkt','baum','nacht',3,1100,'Ich hab einen Laternenträger gefangen! Sein Kopf sieht aus wie eine kleine Laterne.','Laternenträger heissen so, weil man früher glaubte, ihr langer Kopf leuchte. In Wahrheit leuchten sie gar nicht.'),
+B('marktlaternentraeger',bugMeta('Laternenträger','nachtmarkt','baum','nacht',3,1100,'Ich hab einen Laternenträger gefangen! Sein Kopf sieht aus wie eine kleine Laterne.','Laternenträger heissen so, weil man früher glaubte, ihr langer Kopf leuchte. In Wahrheit leuchten sie gar nicht.'),
   (g,m)=>{const c=m.c('#c87a3a',{gloss:1});P(g,G.ca(.06,.24),c,[0,.15,0],[PI/2,0,0]);P(g,G.ca(.04,.22),m.c('#ff4a5a',{gloss:1.2}),[0,.2,.3],[1.2,0,0]);for(const s of[-1,1])P(g,G.s(.16),m.c('#ffd27a',{opacity:.85}),[s*.12,.2,0],null,[.9,.08,1.4]);bugFace(g,m,[0,.16,.18],.05,.5);legs(g,c,[[.06,.1,.06],[0,.1,0],[-.06,.1,-.06]],.16)});
 B('mondfalter',bugMeta('Mondfalter','nachtmarkt','luft','nacht',2,520,'Ich hab einen Mondfalter gefangen! Er ist blassgrün und hat lange Schwänze an den Flügeln.','Der amerikanische Mondspinner hat als erwachsener Falter gar keinen Mund. Er lebt nur etwa eine Woche.'),
   (g,m)=>butterfly(g,m,'mondfalter','#c8f0b8','#e8ffd8','#4a6a4a'));

@@ -57,8 +57,8 @@ F('zander',fishMeta('Zander','metro','meer','L','nacht',2,700,'Ich hab einen Zan
   (g,m)=>fishT(g,m,{id:'zander',H:.18,L:.9,back:'#7A8A6A',belly:'#E8E8D8',tail:'fork',dorsal:'spiky',pat:(x,w,h,r)=>FT.bands(x,w,h,'#5A6A4A',[.3,.45,.6],6,.25)}));
 F('brunnengoldfisch',fishMeta('Brunnen-Goldfisch','metro','teich','S','tag',1,160,'Ich hab einen Brunnen-Goldfisch gefangen! Der hat bestimmt schon viele Wünsche gehört.','In Stadtbrunnen landen jährlich viele Münzen. Manche Städte spenden das Geld – ein Goldfisch darin hat also einen sehr gemeinnützigen Arbeitsplatz.'),
   (g,m)=>fishT(g,m,{id:'brunnengold',H:.26,L:.55,back:'#FF9E3A',belly:'#FFE0A8',tail:'fancy',dorsal:'hi'}));
-F('wels',fishMeta('Stadtwels','metro','meer','XL','nacht',3,1900,'Ich hab einen Stadtwels gefangen! Sein Schnurrbart ist gepflegter als meiner.','Welse schmecken mit dem ganzen Körper: Auf ihrer Haut sitzen Zehntausende Geschmacksknospen.'),
-  (g,m)=>{const f=fishT(g,m,{id:'wels',H:.2,L:1,back:'#5A5A6A',belly:'#C8C0B8',tail:'round',dorsal:'none'});both(s=>P(g,G.tu([[s*.08,-.02,f.nz-.03],[s*.25,-.08,f.nz-.08],[s*.35,-.14,f.nz-.2]],.012,.006),m.c('#3E3E4A')))});
+F('stadtwels',fishMeta('Stadtwels','metro','meer','XL','nacht',3,1900,'Ich hab einen Stadtwels gefangen! Sein Schnurrbart ist gepflegter als meiner.','Welse schmecken mit dem ganzen Körper: Auf ihrer Haut sitzen Zehntausende Geschmacksknospen.'),
+  (g,m)=>{const f=fishT(g,m,{id:'stadtwels',H:.2,L:1,back:'#5A5A6A',belly:'#C8C0B8',tail:'round',dorsal:'none'});both(s=>P(g,G.tu([[s*.08,-.02,f.nz-.03],[s*.25,-.08,f.nz-.08],[s*.35,-.14,f.nz-.2]],.012,.006),m.c('#3E3E4A')))});
 F('flussbarsch',fishMeta('Flussbarsch','metro','teich','M','tag',1,260,'Ich hab einen Flussbarsch gefangen! Gestreift wie ein Zebrastreifen.','Flussbarsche jagen oft im Team und treiben kleine Fische in die Enge. Ihre Rückenflosse ist stachelig – vorsichtig anfassen!'),
   (g,m)=>fishT(g,m,{id:'flussbarsch',H:.24,L:.62,back:'#7A9A5A',belly:'#F4E8C8',fin:'#FF8A5A',tail:'fork',dorsal:'spiky',pat:(x,w,h,r)=>FT.bands(x,w,h,'#3E5A2E',[.3,.42,.54,.66],7,.3)}));
 
