@@ -145,7 +145,7 @@ const FAUNA=(()=>{
     hase:{n:'Hase',planet:'kompost',biomes:['wiese','blumenfeld','kirschhain','wald'],count:4,size:.62,speed:1.8,gait:'hop',shy:true,voice:['mümmel','schnupp','hopp'],pitch:380,likes:['unkraut','apfel','beeren'],product:'kleeblatt_vier',productChance:.25,
       names:['Hoppel','Mümmel','Löffel','Karottine','Flitz'],fact:'Feldhasen können bis zu 70 km/h schnell rennen und blitzschnell Haken schlagen.',
       a:{col:'#D9B08A',belly:'#FFF1E0',body:[.34,.32,.42],head:{r:.27,p:[0,.62,.34]},snout:{type:'dot',nose:'#FF8FA3'},ears:{type:'long',len:.6,x:.35,y:.75,tilt:.12,inner:'#FFC2D0'},legs:{n:4,len:.12,r:.07,foot:'#FFF1E0'},tail:{type:'puff',col:'#FFFDF7',r:.12},gait:'hop'}},
-    frosch:{n:'Frosch',planet:'kompost',biomes:['sumpf'],nearWater:true,count:3,size:.5,speed:1.3,gait:'hop',voice:['quaak','rib-bit','quark'],pitch:200,likes:['beeren','unkraut'],product:'kiesel',
+    frosch:{n:'Frosch',planet:'kompost',biomes:['sumpf'],nearWater:true,count:3,size:.5,speed:1.3,gait:'hop',voice:['quaak','rib-bit','quark'],pitch:200,likes:['beeren','unkraut'],product:'kleeblatt_vier',
       names:['Quirin','Froschkönig','Hüpfer','Moosi','Grünling'],fact:'Frösche trinken nicht mit dem Maul – sie nehmen Wasser über die Haut auf.',
       a:{col:'#7FCB5A',belly:'#E8F7B8',body:[.4,.26,.38],head:{r:.3,p:[0,.42,.24],sc:[1.2,.8,1]},snout:{type:'wide'},eyes:{r:.1,x:.5,y:.55},ears:{type:'none'},legs:{n:4,len:.1,r:.08,foot:'#6CB84A'},tail:{type:'none'},spots:{col:'#5FA548',n:5},gait:'hop'}},
     /* --- Schrott-Mond --- */
@@ -197,7 +197,7 @@ const FAUNA=(()=>{
     fennek:{n:'Fennek',planet:'wueste',biomes:['duenen','canyon'],count:3,size:.6,speed:1.7,gait:'fast',shy:true,night:true,voice:['wiff','kiek','hihi'],pitch:480,likes:['kaktusfrucht','beeren'],product:'wuestenrose',
       names:['Lauscher','Sandy','Fenni','Mondohr','Düne'],fact:'Der Fennek hat riesige Ohren: Sie geben Wärme ab und hören Beutetiere sogar unter dem Sand.',
       a:{col:'#F2CFA0',belly:'#FFF1DC',body:[.3,.26,.44],head:{r:.24,p:[0,.55,.42]},snout:{type:'long',col:'#FFF1DC',nose:'#2E2A3E'},ears:{type:'pointy',len:.95,w:1.5,x:.55,y:.6,tilt:.45,inner:'#FFD2B8'},legs:{n:4,len:.18,r:.05,foot:'#E8B888'},tail:{type:'bushy',len:1.1,tip:'#8A5A44'}}},
-    erdmaennchen:{n:'Erdmännchen',planet:'wueste',biomes:['kakteenfeld','duenen','canyon'],count:5,herd:true,size:.62,speed:1.3,gait:'fast',voice:['tschirp','piep piep','wach!'],pitch:540,likes:['kaktusfrucht','beeren','champignon'],product:'kiesel',
+    erdmaennchen:{n:'Erdmännchen',planet:'wueste',biomes:['kakteenfeld','duenen','canyon'],count:5,herd:true,size:.62,speed:1.3,gait:'fast',voice:['tschirp','piep piep','wach!'],pitch:540,likes:['kaktusfrucht','beeren','champignon'],product:'wuestenrose',
       names:['Wache Willi','Buddel','Sandra','Späher','Timo'],fact:'Erdmännchen stellen Wachen auf: Eines passt auf und warnt die Gruppe mit verschiedenen Rufen für Adler oder Schlangen.',
       a:{col:'#D8B088',belly:'#F4E2C8',body:[.24,.42,.26],by:.5,head:{r:.21,p:[0,1.0,.1]},snout:{type:'long',col:'#E8C8A0',nose:'#3B3450'},ears:{type:'nub',x:.7,y:.3},eyes:{r:.085},legs:{n:2,len:.1,r:.06,foot:'#B8906A'},flippers:{col:'#D8B088',s:.6,up:.8},tail:{type:'long',len:.8,curl:.2,tip:'#3B3450'},stripes:{col:'#B8906A',n:3}}},
     springmaus:{n:'Wüstenspringmaus',planet:'wueste',biomes:['duenen','oase','kakteenfeld'],count:4,size:.45,speed:2,gait:'hop',shy:true,night:true,voice:['piep','hüpf'],pitch:650,likes:['kaktusfrucht','unkraut'],product:'sandfeder',
