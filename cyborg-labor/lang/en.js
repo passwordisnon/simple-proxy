@@ -6103,7 +6103,9 @@ I18N.addPack('en',{
 "Ich hab einen Rosenkäfer gefangen! Er glänzt grün wie ein Edelstein.": "I caught a rose chafer! It shines green like a gemstone.",
 "Der Rosenkäfer kann fliegen, ohne die Flügeldecken ganz aufzuklappen. Er schiebt die Flügel einfach seitlich heraus.": "The rose chafer can fly without fully opening its wing cases. It simply slides its wings out at the sides.",
 "Kochen": "Cook",
-"Es duftet herrlich.": "Something smells wonderful."
+"Es duftet herrlich.": "Something smells wonderful.",
+"Erzeugte Musik statt Musikstücke": "Generated music instead of tracks",
+"Musik: Stücke von OpenGameArt (CC0). Geräusche: Kenney und OpenGameArt (CC0). Dein Spielstand liegt nur in diesem Browser.": "Music: tracks from OpenGameArt (CC0). Sounds: Kenney and OpenGameArt (CC0). Your save game stays in this browser only."
 },
 "t": {
 " (ca. {0} m entfernt)": " (about {0} m away)",

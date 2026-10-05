@@ -358,3 +358,21 @@ body.beamer-on .piko{display:none}
 .piko.want::after{right:auto;left:-4px}
 .piko .bub{left:auto;right:104px;transform:rotate(-6deg);text-align:left}
 .piko .bub::before{left:auto;right:-7px;border-right:0;border-left:7px solid #fff;border-left-color:#fff;border-right-color:transparent}
+/* ---------- UI-Prüfung: Überlauf, Klickflächen, schmale Bildschirme ---------- */
+#world{overflow:clip}
+.wstart .shell,.wmenu .shell{box-sizing:border-box}
+.tile .t{overflow-wrap:anywhere;hyphens:auto}
+.seg button{flex:1 1 auto}
+.eg-ic::after{content:"";position:absolute;inset:-5px;border-radius:50%}
+.eg-side::after{content:"";position:absolute;inset:-6px -10px}
+.logo{white-space:nowrap}
+@media (max-width:600px){
+  .wstart .shell{padding:24px 14px 20px}
+  .wstart .big{min-width:0;width:100%;max-width:260px}
+  .wstart .langs button,.win .langs button{min-height:36px;padding:6px 14px}
+  .filters button{min-height:32px;padding:4px 12px}
+  .logo .jp{display:none}
+  .clock span{display:block;max-width:44vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .piko .bub{max-width:min(200px,58vw)}
+  .toast{top:auto;bottom:150px}
+}

@@ -117,6 +117,6 @@ const SND=(()=>{
       const g=ctx.createGain();g.gain.value=0;const lfo=ctx.createOscillator();lfo.frequency.value=kind==='meer'?.13:.07;const lg=ctx.createGain();lg.gain.value=kind==='meer'?.35:.2;lfo.connect(lg);lg.connect(g.gain);lfo.start();
       src.connect(f);f.connect(g);g.connect(ambBus);src.start();a=amb[kind]={g,level:0};}
     const t=ctx.currentTime;a.g.gain.setTargetAtTime(Math.max(0,level)*.5,t,.6)}
-  function set(k,v){st[k]=v;save();if(!ctx)return;if(k==='on')master.gain.setTargetAtTime(v?1:0,ctx.currentTime,.05);if(k==='music')musicBus.gain.value=v;if(k==='sfx'){sfxBus.gain.value=v;ambBus.gain.value=v*.6}if(k==='ui'&&uiBus)uiBus.gain.value=v;if(k==='voice')voiceBus.gain.value=v}
+  function set(k,v){st[k]=v;save();if(!ctx)return;if(k==='on')master.gain.setTargetAtTime(v?1:0,ctx.currentTime,.05);if(k==='music')musicBus.gain.value=v;if(k==='sfx'){sfxBus.gain.value=v;ambBus.gain.value=v*.6}if(k==='ui'&&uiBus)uiBus.gain.value=v;if(k==='voice')voiceBus.gain.value=v;if(k==='gen'){curTrack=null;music(wantTrack)}}
   return{get pools(){return POOL},jingleFile,init,play,music,jingle,duck,voice,ambience,set,get track(){return curTrack},get playing(){return!!curMusic},get st(){return st},get ready(){return!!ctx},get ctx(){return ctx},get musicBus(){return musicBus},load};
 })();

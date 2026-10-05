@@ -3,6 +3,8 @@
    Start, Tabs, Cy-Phone, Codes (Lehrperson), Einstellungen, Hauptschleife.
    ===================================================================== */
 const MAIN=(()=>{
+  /* Touch oder schmal: Symbole im Ei nicht zu klein werden lassen */
+  const TOUCHY=matchMedia('(pointer:coarse),(max-width:600px)').matches;
   let tab='lab';let worldReady=false;
   if(matchMedia('(pointer:coarse)').matches)document.body.classList.add('coarse');
   async function setTab(t,opt){opt=opt||{};tab=t;const w=t==='world';document.body.classList.toggle('mode-world',w);$('lab').hidden=w;$('world').hidden=!w;$('tabLab').setAttribute('aria-selected',!w);$('tabWorld').setAttribute('aria-selected',w);SND.init();
@@ -40,7 +42,7 @@ const MAIN=(()=>{
     /* Text tippt sich Buchstabe für Buchstabe; Piko "spricht" dabei */
     let typeT=0;function talk(txt,mood){clearInterval(typeT);if(typeof I18N!=='undefined')txt=I18N.t(txt);say.setAttribute('data-no-i18n','');say.textContent='';let k=0;setMood(mood||'talk');typeT=setInterval(()=>{k++;say.textContent=txt.slice(0,k);if(k%3===0)try{SND.play('click',{vol:.12,rate:2.4+Math.random()*.4})}catch(e){}if(k>=txt.length){clearInterval(typeT);setMood('ok')}},26)}
     function setMood(m){pk.dataset.m=m}
-    function layout(){ring.style.setProperty('--rot',(-rot*STEP)+'deg');const c=cur();list.forEach((o,i)=>{let d=Math.abs(i-c);d=Math.min(d,N-d);o.b.style.setProperty('--s',Math.max(.5,1.25-d*.17).toFixed(2));o.b.style.opacity=d>5?.25:1;o.b.classList.toggle('sel',d===0)});appName.textContent=list[c].n}
+    function layout(){ring.style.setProperty('--rot',(-rot*STEP)+'deg');const c=cur();list.forEach((o,i)=>{let d=Math.abs(i-c);d=Math.min(d,N-d);o.b.style.setProperty('--s',Math.max(TOUCHY?.85:.5,1.25-d*.17).toFixed(2));o.b.style.opacity=d>5?.25:1;o.b.classList.toggle('sel',d===0)});appName.textContent=list[c].n}
     function turn(dir){rot+=dir;layout();pk.dataset.look=dir>0?'r':'l';clearTimeout(pk._t);pk._t=setTimeout(()=>pk.dataset.look='',420);SND.play('click',{vol:.3,rate:1.2+(cur()%5)*.08});talk(list[cur()].line)}
     function turnTo(k){let d=k-cur();if(d>N/2)d-=N;if(d<-N/2)d+=N;if(d)turn(d)}
     function openSel(){const o=list[cur()];setMood('happy');o.b.classList.add('go');SND.play('select');setTimeout(()=>{close();setTimeout(o.fn,120)},260)}
@@ -94,7 +96,8 @@ const MAIN=(()=>{
     const clr=btn('Welt leeren','danger');UI.armed(clr,'Wirklich alle entfernen?',()=>{WORLD=[];saveWorld();GAME.syncVillagers();w.close();UI.toast('Welt geleert')});w.foot.append(btn('Alles kopieren','primary',()=>{ta.select();UI.copy(ta.value,'Alle Codes kopiert',ta)}),clr)}
   function settingsApp(){const w=UI.win('Einstellungen',{size:'narrow'});{const l=el('div','f');l.append(el('span',null,'Sprache'),I18N.picker());w.body.append(l)}const st=SND.st;const sl=(label,k)=>{const l=el('label','f',label);const i=el('input');i.type='range';i.min=0;i.max=1;i.step=.05;i.value=st[k];i.id='vol-'+k;i.oninput=()=>SND.set(k,+i.value);l.append(i);w.body.append(l)};
     sl('Musik','music');sl('Geräusche','sfx');sl('Stimmen','voice');const n=el('label','f','Dein Name');const ni=el('input');ni.type='text';ni.id='setNick';ni.maxLength=24;ni.value=SAVE.nick||'';ni.addEventListener('keydown',e=>e.stopPropagation());ni.onchange=()=>{SAVE.nick=ni.value.trim().slice(0,24)||'Gast';persist();GAME.onAvatarChanged()};n.append(ni);w.body.append(n);
-    w.body.append(el('p','sub','Musik: wird im Spiel erzeugt (Klang 2.0). Geräusche: Kenney (CC0). Dein Spielstand liegt nur in diesem Browser.'));
+    {const ck=el('label','check');const cb=el('input');cb.type='checkbox';cb.id='set-gen';cb.checked=st.gen===true;cb.onchange=()=>SND.set('gen',cb.checked);ck.append(cb,el('span',null,'Erzeugte Musik statt Musikstücke'));w.body.append(ck)}
+    w.body.append(el('p','sub','Musik: Stücke von OpenGameArt (CC0). Geräusche: Kenney und OpenGameArt (CC0). Dein Spielstand liegt nur in diesem Browser.'));
     const rs=btn('Spielstand zurücksetzen','danger');UI.armed(rs,'Wirklich alles löschen?',()=>{LS.set(SAVE_KEY,null);SAVE=newSave();persist();location.reload()});w.foot.append(rs)}
   /* ---------- Kopfzeile ---------- */
   const sb=$('btnSound');const updSound=()=>{sb.setAttribute('aria-pressed',SND.st.on);sb.querySelector('.lb').textContent=SND.st.on?' Ton':' stumm';sb.firstChild.textContent=SND.st.on?'♪':'✕'};updSound();sb.onclick=()=>{SND.init();SND.set('on',!SND.st.on);updSound()};
