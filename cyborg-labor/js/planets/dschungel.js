@@ -136,7 +136,7 @@ Object.assign(FAUNA.S,{
 const CL=[];const def=(slot,id,n,price,col,b)=>CL.push({slot,id,n,price,col,b});
 def('hat','tropenhut','Tropenhelm',720,'#E8D8B0',(g,M,H,col)=>{const r=H.r;const q=grp(g,[0,H.top-r*.25,0]);P(q,G.hs(r*.92),M.c(col,{rim:.5}),[0,0,0],null,[1,.8,1]);P(q,G.cy(r*1.35,r*1.35,r*.05),M.c(col),[0,0,0]);P(q,G.to(r*.9,r*.06),M.c('#8A6A4E'),[0,r*.08,0],[PI/2,0,0])});
 def('neck','blumenlei','Orchideen-Kette',480,'#FF8FC8',(g,M,H,col)=>{const r=H.r;const y=H.neck??(H.top-r*2.05);const q=grp(g,[0,y,0]);for(let i=0;i<12;i++){const a=i/12*TAU;const f=grp(q,[Math.cos(a)*r*.62,-r*.05,Math.sin(a)*r*.62]);for(let k=0;k<4;k++){const b=k/4*TAU;P(f,G.s(r*.07),M.c(i%2?col:'#FFFFFF'),[Math.cos(b)*r*.06,0,Math.sin(b)*r*.06],null,[1,.5,1])}}});
-def('top','blatthemd','Blätter-Hemd',860,'#5FB86A',(g,M,H,col)=>{const r=H.r;const y=H.neck??(H.top-r*2.05);const q=grp(g,[0,y-r*.5,0]);for(let i=0;i<10;i++){const a=i/10*TAU;P(q,flatLeaf(leafShape(r*.9,r*.4),.012,.2),M.c(i%2?col:'#4EA85E',{rim:.5}),[Math.cos(a)*r*.75,-r*.2,Math.sin(a)*r*.75],[0,-a+PI/2,.25])}});
+def('top','blatthemd','Blätter-Hemd',860,'#5FB86A',(g,M,H,col)=>{const r=H.r;const y=H.neck??(H.top-r*2.05);const q=grp(g,[0,y,0]);P(q,G.cy(r*.84,r*.9,r*.9,Q(16),1,true),M.c('#4EA85E',{rim:.4}),[0,-r*.45,0]);for(const[yy,n,o]of[[-.12,10,0],[-.5,11,.3]])for(let i=0;i<n;i++){const a=i/n*TAU+o;P(q,flatLeaf(leafShape(r*.55,r*.3),.012,.2),M.c(i%2?col:'#7FCF6A',{rim:.5}),[Math.cos(a)*r*.9,r*yy,Math.sin(a)*r*.9],[0,-a+PI/2,PI])}});
 
 /* ---------- Bau-Familie: Pfahlhäuser mit Blätterdach ---------- */
 const shadeC=(c,f)=>'#'+new THREE.Color(c).multiplyScalar(f).getHexString();

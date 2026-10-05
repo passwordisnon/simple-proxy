@@ -139,7 +139,7 @@ def('hat','federschmuck','Federschmuck',680,'#FF8FA3',(g,M,H,col)=>{const r=H.r;
   P(f,flatLeaf(leafShape(r*.7,r*.22),.015,.1),M.c(i%2?col:'#FFD35C',{rim:.6}),[0,r*.35,0],[0,0,0]);P(f,G.cy(r*.02,r*.02,r*.6),M.c('#FFFDF7'),[0,r*.3,0])}});
 def('neck','knochenkette','Knochenkette',520,'#F3E9D2',(g,M,H,col)=>{const r=H.r;const y=H.neck??(H.top-r*2.05);const q=grp(g,[0,y,0]);P(q,G.to(r*.62,r*.03),M.c('#8A5E42'),[0,0,0],[PI/2,0,0]);
   for(let i=0;i<7;i++){const a=PI*.2+i/6*PI*.6;P(q,G.ca(r*.05,r*.16),M.c(col),[Math.cos(a)*r*.64,-r*.06,Math.sin(a)*r*.64],[0,0,0])}});
-def('top','fellumhang','Fell-Umhang',950,'#C99A6E',(g,M,H,col)=>{const r=H.r;const y=H.neck??(H.top-r*2.05);const q=grp(g,[0,y,0]);P(q,G.co(r*1.05,r*1.3,Q(16),1,true),M.c(col,{rim:.5}),[0,-r*.62,0]);range(8,(t,i)=>{const a=i/8*TAU;P(q,G.s(r*.12),M.c('#FFF6E8'),[Math.cos(a)*r*.98,-r*1.24,Math.sin(a)*r*.98],null,[1,.5,1])});
+def('top','fellumhang','Fell-Umhang',950,'#C99A6E',(g,M,H,col)=>{const r=H.r;const y=H.neck??(H.top-r*2.05);const q=grp(g,[0,y,0]);P(q,G.cy(r*.8,r*1.02,r*.95,Q(16),1,true),M.c(col,{rim:.5}),[0,-r*.47,0]);P(q,G.to(r*.8,r*.1),M.c('#FFF6E8',{rim:.6}),[0,-r*.02,0],[PI/2,0,0]);range(10,(t,i)=>{const a=i/10*TAU;P(q,G.co(r*.1,r*.22,5),M.c(col,{rim:.5}),[Math.cos(a)*r*1,-r*1.02,Math.sin(a)*r*1],[PI,0,0])});
   P(q,G.s(r*.12),M.c('#F2A83A',{gloss:1.2}),[0,-r*.06,r*.52])});
 
 /* ================= Bau-Familie: Urzeit-Hütten ================= */
