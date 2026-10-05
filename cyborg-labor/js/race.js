@@ -38,7 +38,7 @@ const RACE=(()=>{
       const dl=s.g.position.distanceTo(ship.position);s.lbl.style.display=v.z<1&&(view==='map'||dl<70)&&!race?'':'none';s.lbl.style.opacity=view==='map'?1:Math.max(.35,1-dl/80)}}
   function hideLabels(){for(const s of stations)s.lbl.style.display='none'}
   /* ---------- Mehrspieler: Rennraum je Station ---------- */
-  async function joinRoom(s){const name='race-'+s.st.id;if(roomName===name&&room)return room;await leaveRoom();try{const R=await claude.use('room');if(!R)return null;room=await R.join(name);roomName=name;peers.clear();
+  async function joinRoom(s){const name='race-'+s.st.id;if(roomName===name&&room)return room;await leaveRoom();try{const R=typeof NET!=='undefined'?await NET.room():await claude.use('room');if(!R)return null;room=await R.join(name);roomName=name;peers.clear();
       room.onPeers(ch=>{for(const p of ch.left)dropPeer(p.peer);for(const p of[...ch.joined,...ch.updated]){if(p.isMe)continue;onPeer(p)}if(lobbyW&&!lobbyW.closed)renderLobby()},()=>{});return room}catch(e){room=null;return null}}
   async function leaveRoom(){for(const k of[...peers.keys()])dropPeer(k);if(room){try{await room.leave()}catch(e){}}room=null;roomName=null}
   const clean=(s,n)=>String(s||'').replace(/[\u0000-\u001f<>]/g,'').slice(0,n);

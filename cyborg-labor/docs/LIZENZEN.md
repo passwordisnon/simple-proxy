@@ -10,6 +10,8 @@ Stand: 2 October 2026. Jede Quelle wurde auf ihrer eigenen Lizenzseite geprüft.
 | KayKit (Bausätze in `assets/kits`) | CC0 | nein | ja | kaylousberg.itch.io (Paketseiten) |
 | Quaternius (Dinos, Figuren) | CC0 | nein | ja | quaternius.com/faq.html |
 | three.js | MIT | Lizenzdatei | ja | Repository |
+| Trystero 0.26 (Mehrspieler, `js/vendor/trystero-nostr.js`) | MIT | Lizenzdatei liegt daneben | ja | npm-Paket @trystero-p2p/nostr |
+| @noble/secp256k1 (in Trystero gebündelt) | MIT | Lizenzdatei liegt daneben | ja | npm-Paket |
 | Fredoka, Nunito (Google Fonts) | SIL OFL 1.1 | nein | ja | Google Fonts |
 
 ## Für WIRED 2.0 geplant

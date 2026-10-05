@@ -52,11 +52,14 @@ const SOCIAL=(()=>{
     else if(ch===1){doEmote(GAME.me,'winken');setTimeout(()=>doEmote(e,'winken',true),400)}}
 
   /* ================= Echte Online-Leute (room) ================= */
-  async function connect(){try{if(!window.claude||!claude.use)return;room=await claude.use('room')}catch(e){room=null}
-    if(!room){addMsg('all','System','Live-Chat ist in dieser Ansicht nicht verfügbar. Die KI-Mitspielenden sind trotzdem da. (Live geht für Leute aus eurer Organisation oder per E-Mail-Einladung.)','sys');status();return}
+  /* Raum holen: in claude.ai die room-Fähigkeit, sonst direkte Verbindungen über das Internet (net.js) */
+  async function connect(){try{room=typeof NET!=='undefined'?await NET.room():(window.claude&&claude.use?await claude.use('room'):null)}catch(e){room=null}
+    if(!room){addMsg('all','System',typeof NET!=='undefined'&&!NET.inClaude()?'Keine Internet-Verbindung für den Mehrspieler-Modus. Die KI-Mitspielenden sind trotzdem da.':'Live-Chat ist in dieser Ansicht nicht verfügbar. Die KI-Mitspielenden sind trotzdem da. (Live geht für Leute aus eurer Organisation oder per E-Mail-Einladung.)','sys');status();return}
     room.onConnection(c=>{connected=c;status()},err=>{room=null;status()});
     room.onPeers(ch=>{for(const p of ch.left){dropPeer(p.peer)}for(const p of[...ch.joined,...ch.updated]){if(p.isMe&&p.sameTab)continue;onPeer(p)}status()},()=>{room=null;status()});
-    addMsg('all','System','Live-Chat verbunden. Alle, die die Seite gerade offen haben, sind auf dem Planeten.','sys')}
+    addMsg('all','System',typeof NET!=='undefined'&&NET.mode==='p2p'?'Online über das Internet. Alle mit demselben Mehrspieler-Code sind in derselben Welt.':'Live-Chat verbunden. Alle, die die Seite gerade offen haben, sind auf dem Planeten.','sys');if(typeof NET!=='undefined'&&NET.mode==='p2p')addMsg('all','System','Code: '+NET.code(),'sys')}
+  /* neuer Mehrspieler-Code: alle Online-Figuren weg, neu verbinden */
+  async function reconnect(){for(const k of[...peersSeen.keys()])dropPeer(k);for(const[,f]of frRooms){try{f.room.leave&&f.room.leave()}catch(e){}}frRooms.clear();room=null;connected=false;lastPres='';status();await connect()}
   function onPeer(p){const pr=p.presence||{};if(!pr.pid||pr.pid===SAVE.pid)return;let s=peersSeen.get(p.peer);if(!s){s={seen:new Set(),ent:null};peersSeen.set(p.peer,s)}
     s.pid=clean(pr.pid,40);s.nick=clean(pr.n,24)||'Jemand';s.pr=pr;
     /* Chat */for(const m of Array.isArray(pr.c)?pr.c:[]){if(!m||!m.i||s.seen.has(m.i))continue;s.seen.add(m.i);if(Date.now()-(+m.t||0)>120000)continue;const txt=clean(m.m,140);if(!txt)continue;addMsg('all',s.nick,txt,'');if(s.ent)GAME.say(s.ent,txt,4)}
@@ -92,5 +95,5 @@ const SOCIAL=(()=>{
     add('Deine Freundesliste');if(!SAVE.friends.length)w.body.append(el('p','empty','Noch leer.'));SAVE.friends.forEach(f=>{const row=el('div','row');row.style.alignItems='center';const fr=frRooms.get(f.pid);row.append(el('span',null,f.nick+(f.bot?' (KI)':'')),...(fr&&fr.mp?[btn('Planet besuchen','small primary',()=>{w.close();MYPLANET.visit(f.pid,f.nick,fr.mp)})]:[]),btn('Entfernen','small danger',()=>{SAVE.friends=SAVE.friends.filter(x=>x!==f);persist();w.close();playersWin()}));w.body.append(row)});
     w.body.append(el('p','note','Privater Chat: Tab «Freund:innen» im Chat. Der Chat ist für alle in eurer Klasse gedacht, bitte freundlich bleiben.'))}
   function brag(kind,def){if(def.rarity>=4&&bots.length){const b=pick(bots);setTimeout(()=>{addMsg('all',b.d.name,pick(['whoa, gratuliere!','omg der ist selten!!','neid!!','nice fang!']),'bot')},1500)}}
-  return{peers,refresh,set viewer(v){viewer=!!v;if(v){for(const b of bots)GAME.dropEnt(b.d.id);bots.length=0}},get viewer(){return viewer},get online(){return!!room},connect,frame,stepPeer,toggleChat,botTalk,emote:emoteOut,publishArt,onlineArt,onPlanet,playersWin,brag,addMsg,get bots(){return bots}};
+  return{peers,refresh,reconnect,set viewer(v){viewer=!!v;if(v){for(const b of bots)GAME.dropEnt(b.d.id);bots.length=0}},get viewer(){return viewer},get online(){return!!room},connect,frame,stepPeer,toggleChat,botTalk,emote:emoteOut,publishArt,onlineArt,onPlanet,playersWin,brag,addMsg,get bots(){return bots}};
 })();
