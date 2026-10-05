@@ -48,6 +48,8 @@ const BOUTIQUE=(()=>{
     /* Regal mit gefalteten Pullis, Sofa, Pflanzen, Teppich, Lampen (Kenney-Möbel) */
     const sh=kput(sc,'furn','bookcaseOpen',5.45,0,-2.3,-PI/2,2.4,PAL);C.push({x0:5,x1:5.9,z0:-3,z1:-1.6});for(let k=0;k<3;k++){const f=folded(M,[0,1,2].map(j=>pcols[(k*3+j)%pcols.length]||'#F28CB0'));f.position.set(5.35,.28+k*.66,-2.3);f.rotation.y=PI/2;sc.add(f)}
     kput(sc,'furn','loungeDesignSofa',-5.3,0,3.2,PI/2,2.2,PAL);C.push({x0:-5.9,x1:-4.7,z0:2,z1:4.3});kput(sc,'furn','rugRound',0,0,.6,0,2.6,PAL);
+    /* Mitte: runde Bühne mit einer Puppe in der neuesten Kollektion (dreht sich langsam) */{const pg=grp(sc,[0,0,.6]);P(pg,G.cy(.85,.95,.3,28),M.c('#FFF4F8'),[0,.15,0]);P(pg,G.cy(.95,.95,.05,28),M.c('#C9A45A',{gloss:1}),[0,.31,0]);
+      const m=mannequin(M,CLOTHES.random(srand(97+pid().length),pid()),'ei');m.position.y=.33;pg.add(m);sc.userData.podium=pg;C.push({x0:-.95,x1:.95,z0:-.35,z1:1.55});A.push({x:0,z:2.1,r:1.2,label:'Kollektion ansehen',act:()=>shop()})}
     kput(sc,'furn','pottedPlant',5.5,0,3.8,0,1.9);kput(sc,'furn','pottedPlant',-5.5,0,-3.9,0,1.9);kput(sc,'furn','coatRackStanding',5.4,0,.1,0,2.4,PAL);C.push({x0:5.1,x1:5.7,z0:-.2,z1:.4});
     /* Kasse (Kenney Mini Market) mit Monsieur Boulon dahinter */
     kput(sc,'market','cash-register',3.2,0,-3.3,PI,1.9,PAL);C.push({x0:2.3,x1:4.1,z0:-4,z1:-2.5});kput(sc,'market','shopping-basket',2.3,1.12,-3.2,.4,1.4,PAL);
@@ -89,6 +91,6 @@ const BOUTIQUE=(()=>{
       for(const o of mine){const it=CLOTHES.find(o.slot,o.id);if(!it)continue;const c=el('button','card');c.type='button';c.setAttribute('aria-pressed',wear[slot]===o.id);c.append(img(preview(slot,o.id,wear.col[slot])),el('b',null,it.n));c.onclick=()=>{wear[slot]=o.id;apply();draw()};grid.append(c)}
       sw.replaceChildren();const orig=el('button','orig');orig.type='button';orig.title='Originalfarbe';orig.setAttribute('aria-pressed',wear.col[slot]==null);orig.onclick=()=>{delete wear.col[slot];apply();draw()};sw.append(orig);
       SKIN_COLORS.forEach((c,i)=>{const b=el('button');b.type='button';b.style.background=c;b.setAttribute('aria-label','Farbe '+(i+1));b.setAttribute('aria-pressed',wear.col[slot]===i);b.onclick=()=>{wear.col[slot]=i;apply();draw()};sw.append(b)})};draw()}
-  INTERIOR.kinds.boutique={bg:'#F6E6EE',music:'shop',build,frame(dt,t){const b=INTERIOR.scene&&INTERIOR.scene.userData.boulon;if(b){b.userData.tick&&b.userData.tick(t,false,UI.typing?1:0);b.rotation.y=Math.sin(t*.6)*.2;const es=b.userData.eyes||[];const ph=(t+.7)%3.7;const k=ph<.14?1-Math.sin(ph/.14*PI)*.92:1;for(const q of es)q.scale.y=k}}};
+  INTERIOR.kinds.boutique={bg:'#F6E6EE',music:'shop',build,frame(dt,t){const pd=INTERIOR.scene&&INTERIOR.scene.userData.podium;if(pd)pd.rotation.y+=dt*.3;const b=INTERIOR.scene&&INTERIOR.scene.userData.boulon;if(b){b.userData.tick&&b.userData.tick(t,false,UI.typing?1:0);b.rotation.y=Math.sin(t*.6)*.2;const es=b.userData.eyes||[];const ph=(t+.7)%3.7;const k=ph<.14?1-Math.sin(ph/.14*PI)*.92:1;for(const q of es)q.scale.y=k}}};
   return{shop,wardrobe,talk}
 })();
