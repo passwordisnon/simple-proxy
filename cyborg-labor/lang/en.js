@@ -6157,7 +6157,13 @@ I18N.addPack('en',{
 "Im Planeten-Labor auf deinem Handy baust du ihn aus fertigen Bausteinen.": "In the Planet Lab on your phone you build it from ready-made pieces.",
 "Museum": "Museum",
 "Dein eigener kleiner Planet. Bau ihn im Planeten-Labor aus fertigen Bausteinen und lade Bewohner:innen ein.": "Your own little planet. Build it in the Planet Lab from ready-made pieces and invite residents.",
-"Dein Haus lassen wir gleich hinüberbringen – dort hast du Platz für Anbauten wie eine Sternwarte, ein Gewächshaus oder ein Labor. Und für ein eigenes Museum!": "We'll have your house carried over right away – there you have room for extensions like an observatory, a greenhouse or a lab. And for your own museum!"
+"Dein Haus lassen wir gleich hinüberbringen – dort hast du Platz für Anbauten wie eine Sternwarte, ein Gewächshaus oder ein Labor. Und für ein eigenes Museum!": "We'll have your house carried over right away – there you have room for extensions like an observatory, a greenhouse or a lab. And for your own museum!",
+"Sammlungs-Belohnungen": "Collection rewards",
+"Jede Spende und jedes neue Tier zählt.": "Every donation and every new animal counts.",
+"Tiere getroffen": "Animals met",
+"Arten": "species",
+"abgeholt": "collected",
+"noch": "still"
 },
 "t": {
 " (ca. {0} m entfernt)": " (about {0} m away)",

@@ -149,5 +149,6 @@ const HABITAT=(()=>{
         set.parts.forEach((p,i)=>{if(!have.includes(p.id))return;const r=RELICS.find(x=>x.id===p.id);if(!r)return;const q=new THREE.Group();QF=.6;try{r.b(q,M,{},srand(i))}catch(e){}QF=1;addOutlines(q);q.scale.setScalar(.9);q.position.set((i-1)*.9,0,size*.35);g.add(q)})}};
     if(typeof KIT!=='undefined'&&KIT.has&&KIT.has('dino',set.kit))add();else if(typeof KIT!=='undefined')KIT.load('dino').then(add).catch(()=>{});return{g,done}}
   try{if(typeof I18N!=='undefined'&&I18N.extend)I18N.extend('en',EN)}catch(e){}
+  /* Dino-Bausatz im Hintergrund vorladen (Skelette im Museum, Dinos im Urzeit-Insektenhaus) */setTimeout(()=>{try{KIT.load('dino')}catch(e){}},6000);
   return{enterAquarium,enterHabitat,pickPlanet,SETS,skeleton,showList,st}
 })();

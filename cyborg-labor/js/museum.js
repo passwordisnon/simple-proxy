@@ -70,7 +70,7 @@ function artPlaque(a){const w=UI.win('«'+a.name+'»',{size:'narrow'});const img
   const code=el('div','code',encodeArt(a));w.body.append(el('p','sub','Kunstcode zum Teilen:'),code);w.foot.append(btn('Code kopieren','primary',()=>UI.copy(code.textContent,'Kunstcode kopiert',code)));
   if(!a.mine){const b=btn('Als Design übernehmen',null,()=>{SAVE.designs.push({id:rid(),name:a.name,pal:[...a.pal],px:a.px,by:a.by});persist();UI.toast('In deine Designs übernommen')});w.foot.append(b)}}
 async function curatorTalk(){const voice={pitch:150,speed:.85};const nick=SAVE.nick||S.name||'Besucher:in';
-  const ch=await UI.talk(CURATOR.n,[`Huhu, ${nick}! Willkommen im Nationalmuseum.`,'Was kann ich für dich tun?'],{voice,color:'#B79A6E',choices:['Etwas spenden','Kunst ausstellen','Kunstcodes einlesen','Nichts, danke']});
+  const ch=await UI.talk(CURATOR.n,[`Huhu, ${nick}! Willkommen im Nationalmuseum.`,'Was kann ich für dich tun?'],{voice,color:'#B79A6E',choices:['Etwas spenden','Kunst ausstellen','Kunstcodes einlesen','Sammlungs-Belohnungen','Nichts, danke']});
   if(ch===0){const cand=SAVE.bag.filter(it=>['fish','bug','relic'].includes(it.kind)&&!SAVE.donated[{fish:'fish',bug:'bugs',relic:'relics'}[it.kind]].includes(it.id));
     if(!cand.length){await UI.talk(CURATOR.n,['Hmm, du hast nichts dabei, was wir noch nicht haben. Geh angeln, fang Insekten oder grab etwas aus!'],{voice});return}
     const w=UI.win('Spenden',{size:'narrow'});w.body.append(el('p','sub','Alles, was das Museum noch nicht hat:'));const gr=el('div','grid');cand.forEach(it=>{const c=el('button','card');c.type='button';c.append(itemThumb(it.kind,it.id),el('span',null,itemName(it.kind,it.id)));
@@ -78,7 +78,15 @@ async function curatorTalk(){const voice={pitch:150,speed:.85};const nick=SAVE.n
         await UI.talk(CURATOR.n,[`Oh! ${d.n}! Wie wunderbar.`,d.fact||'Das stellen wir gleich aus.','Komm bald wieder, die Ausstellung wächst mit dir.'],{voice});rebuildMuseum()};gr.append(c)});w.body.append(gr)}
   else if(ch===1){if(!SAVE.designs.length){await UI.talk(CURATOR.n,['Du hast noch keine eigenen Werke. Im Farbstudio neben dem Platz kannst du malen!'],{voice});return}
     const w=UI.win('Welches Werk ausstellen?',{size:'narrow'});const gr=el('div','grid');SAVE.designs.forEach(d=>{const c=el('button','card');c.type='button';c.append(designImg(d,96),el('span',null,d.name));c.onclick=()=>{w.close();exhibit(d)};gr.append(c)});w.body.append(gr)}
-  else if(ch===2){importArt()}}
+  else if(ch===2){importArt()}
+  else if(ch===3){rewards()}}
+/* Sammlungs-Belohnungen (früher im Tierpark): gespendete Fische, Insekten, Fundstücke und getroffene Tiere zählen */
+const MUS_MIL=[[20,500],[50,1000],[80,2000],[110,4000],[133,8000],[250,12000],[450,18000],[700,30000]];
+function rewards(){const Z=SAVE.zoo=SAVE.zoo||{got:[]};const d=SAVE.donated;const seen=Object.keys(SAVE.faunaSeen||{}).length;const have=d.fish.length+d.bugs.length+d.relics.length+seen;
+  const all=FISH.length+BUGS.length+RELICS.length+(typeof FAUNA!=='undefined'?Object.keys(FAUNA.S).length:0);
+  const w=UI.win('Sammlungs-Belohnungen · '+have+'/'+all,{size:'wide'});const T=x=>I18N.t?I18N.t(x):x;w.body.append(el('p',null,T('Fische')+' '+d.fish.length+' · '+T('Insekten')+' '+d.bugs.length+' · '+T('Fundstücke')+' '+d.relics.length+' · '+T('Tiere getroffen')+' '+seen+'. '+T('Jede Spende und jedes neue Tier zählt.')));
+  const gr=el('div','grid');for(const[n,r]of MUS_MIL){const done=Z.got.includes(n),ok=have>=n;const cd=el('div','card');cd.append(el('b',null,n+' '+T('Arten')),el('span','sub',fmt(r)+' '+T('Taler')),el('span','sub',done?T('abgeholt'):ok?T('bereit!'):T('noch')+' '+(n-have)));
+    if(ok&&!done)cd.append(btn('Abholen','primary',()=>{Z.got.push(n);money(r);persist();SND.jingle('j_success');UI.talk(CURATOR.n,['Wunderbar! '+n+' Arten in unserer Sammlung!','Hier, '+fmt(r)+' Taler als Dank.'],{voice:{pitch:150,speed:.85}});w.close()}));gr.append(cd)}w.body.append(gr)}
 function exhibit(d){const a=sanitizeArt({name:d.name,by:SAVE.nick||S.name||'',pal:d.pal,px:d.px});if(!a)return;if(!GALLERY.some(x=>x.id===a.id))GALLERY.push(a);GALLERY=GALLERY.slice(-14);saveArt();SND.jingle('j_museum');SOCIAL.publishArt&&SOCIAL.publishArt(a);
   UI.talk(CURATOR.n,[`«${a.name}» hängt jetzt in der Galerie!`,'Wer gerade online ist, sieht es auch. Und mit dem Kunstcode können es alle in ihr Museum holen.'],{voice:{pitch:150,speed:.85}}).then(()=>{if(GAME.mode==='interior'&&INTERIOR.kind==='museum')rebuildMuseum()})}
 function importArt(){const w=UI.win('Kunstcodes einlesen',{size:'narrow'});w.body.append(el('p',null,'Fügt Kunstcodes ein (beginnen mit ART1.). Mehrere dürfen untereinander stehen.'));const ta=el('textarea');ta.rows=6;ta.id='artImport';w.body.append(ta);

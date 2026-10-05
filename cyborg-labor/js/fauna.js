@@ -15,7 +15,9 @@ const FAUNA=(()=>{
      Einheiten: Körper ~1 hoch, Blick nach +z. a = Aussehen. */
   /* Bausatz-Tiere (z. B. Urzeit-Dinos von Quaternius): festes Modell, Bewegung durch Wiegen, Nicken und Hüpfen */
   function kitAnimal(a){const g=new THREE.Group();const piv=new THREE.Group();g.add(piv);const[pack,name]=a.kit;const b=KIT.bounds(pack,name);
-    const mm=KIT.mesh(pack,name,a.pal||KIT.ORIG);if(!mm){P(piv,G.s(.4),M.c(a.col||'#8FD06B'),[0,.4,0]);return g}const h=b[4]-b[1];const k=(a.h||1)/h;mm.scale.setScalar(k);mm.position.set(-(b[0]+b[3])/2*k,-b[1]*k,-(b[2]+b[5])/2*k);piv.add(mm);
+    const put=()=>{const b2=KIT.bounds(pack,name);const mm=KIT.mesh(pack,name,a.pal||KIT.ORIG);if(!mm||!b2)return false;const h=b2[4]-b2[1];const k=(a.h||1)/h;mm.scale.setScalar(k);mm.position.set(-(b2[0]+b2[3])/2*k,-b2[1]*k,-(b2[2]+b2[5])/2*k);piv.add(mm);if(typeof addOutlines==='function')addOutlines(mm);return true};
+    /* Bausatz noch nicht geladen (z. B. Dinos ausserhalb der Urzeit): kurz einen Platzhalter zeigen, laden und dann das echte Modell einsetzen */
+    if(!put()){const ph=P(piv,G.s(.4),M.c(a.col||'#8FD06B'),[0,.4,0]);KIT.load(pack).then(()=>{if(put())piv.remove(ph)}).catch(()=>{})}
     g.userData.R={legs:[],ears:[],eyes:[],wings:[],fins:[],tail:null,head:null,body:piv,by:0,gills:[]};
     g.userData.tick=(t,moving,act,mode)=>{const sp=a.gaitSpeed||7;if(mode==='sleep'){piv.rotation.set(0,0,.08);piv.scale.set(1,.92+Math.sin(t*1.5)*.02,1);piv.position.y=0;return}
       piv.scale.set(1,1,1);if(moving){piv.position.y=Math.abs(Math.sin(t*sp))*.06*(a.h||1);piv.rotation.z=Math.sin(t*sp)*.07;piv.rotation.x=Math.sin(t*sp*2)*.025}
