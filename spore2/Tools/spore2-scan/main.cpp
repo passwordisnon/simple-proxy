@@ -1,7 +1,7 @@
 // spore2-scan: verifies that the Spore2Interop core can read a local Spore install.
 //
 // Usage:
-//   spore2-scan [--verify] [--props] [--textures] [--png] [--extract DIR] [--type HEX|png|prop|rw4]
+//   spore2-scan [--verify] [--props] [--textures] [--models] [--png] [--extract DIR] [--type HEX|png|prop|rw4]
 //               [--names SMFX_DIR] [--find NAME[,NAME...]] [ROOT...]
 //
 // With no ROOT arguments it scans the default install locations listed below.
@@ -9,6 +9,7 @@
 //
 // --textures decodes .raster and .rw4 textures; with --extract each one is also written as
 //        .dds (original data) and .png (decoded, for viewing or upscaling).
+// --models decodes .rw4 meshes; with --extract each mesh is also written as .obj.
 // --names points at a SporeModder-FX folder; its reg_*.txt files turn hashes into names.
 // --find reports which packages hold a resource whose instance or group is the hash of NAME
 //        (e.g. --find CakeEditor,CellEditor to check claims about hidden editors).
@@ -21,6 +22,7 @@
 #include <zlib.h>
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <filesystem>
@@ -48,6 +50,7 @@ struct Options
 	bool bPng = false;
 	bool bProps = false;
 	bool bTextures = false;
+	bool bModels = false;
 	std::string NamesDir;
 	std::vector<std::string> FindNames;
 	std::string ExtractDir;
@@ -232,6 +235,14 @@ struct ScanTotals
 	size_t TextureFailures = 0;
 	size_t TexturesSkipped = 0;
 	size_t Rw4Models = 0;
+	size_t MeshesDecoded = 0;
+	size_t MeshesSkipped = 0;
+	size_t SkinnedMeshes = 0;
+	uint64_t MeshVertices = 0;
+	uint64_t MeshTriangles = 0;
+	double NormalLengthSum = 0.0;
+	uint64_t NormalCount = 0;
+	std::map<std::string, size_t> MeshIssues;
 	std::map<std::string, size_t> TextureFormats;
 	std::vector<std::string> TextureFailureSamples;
 	std::map<std::string, size_t> TypeCounts;
@@ -307,7 +318,8 @@ void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts
 		const bool bDecodeProp = Opts.bProps && bIsProp;
 		const bool bIsTexture = Entry.Key.Type == 0x2F4E681C || Entry.Key.Type == 0x2F4E681B; // raster, rw4
 		const bool bDecodeTexture = Opts.bTextures && bIsTexture && bWanted;
-		if (!Opts.bVerify && !bExtract && !bDecodeProp && !bDecodeTexture)
+		const bool bDecodeModel = Opts.bModels && Entry.Key.Type == 0x2F4E681B && bWanted;
+		if (!Opts.bVerify && !bExtract && !bDecodeProp && !bDecodeTexture && !bDecodeModel)
 		{
 			continue;
 		}
@@ -340,6 +352,36 @@ void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts
 					std::snprintf(Sample, sizeof(Sample), "%s %08X!%08X: %s", PackageName.c_str(), Entry.Key.Group, Entry.Key.Instance, Props.Error.c_str());
 					Totals.PropFailureSamples.push_back(Sample);
 				}
+			}
+		}
+
+		std::vector<MeshData> Meshes;
+		if (bDecodeModel)
+		{
+			Rw4Info Info;
+			std::string ModelError;
+			if (ParseRw4(Decoded.data(), Decoded.size(), Info, ModelError))
+			{
+				Totals.MeshesSkipped += Info.SkippedMeshes;
+				for (const std::string& Issue : Info.MeshIssues) ++Totals.MeshIssues[Issue];
+				for (const MeshData& Mesh : Info.Meshes)
+				{
+					++Totals.MeshesDecoded;
+					Totals.SkinnedMeshes += Mesh.bSkinned ? 1 : 0;
+					Totals.MeshVertices += Mesh.VertexCount();
+					Totals.MeshTriangles += Mesh.Indices.size() / 3;
+					for (size_t N = 0; N + 2 < Mesh.Normals.size(); N += 3)
+					{
+						const double X = Mesh.Normals[N], Y = Mesh.Normals[N + 1], Z = Mesh.Normals[N + 2];
+						Totals.NormalLengthSum += std::sqrt(X * X + Y * Y + Z * Z);
+						++Totals.NormalCount;
+					}
+				}
+				Meshes = std::move(Info.Meshes);
+			}
+			else
+			{
+				++Totals.MeshIssues["unreadable rw4: " + ModelError];
 			}
 		}
 
@@ -411,6 +453,13 @@ void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts
 			Out.write(reinterpret_cast<const char*>(Decoded.data()), static_cast<std::streamsize>(Decoded.size()));
 			++Totals.Extracted;
 
+			for (size_t M = 0; M < Meshes.size(); ++M)
+			{
+				const std::string Base = Name + (Meshes.size() > 1 ? "." + std::to_string(M) : std::string());
+				std::ofstream Obj(OutDir / (Base + ".obj"));
+				Obj << MeshToObj(Meshes[M], Base);
+			}
+
 			// Viewable companions for textures: original data as .dds, decoded pixels as .png.
 			for (size_t T = 0; T < Textures.size(); ++T)
 			{
@@ -481,7 +530,7 @@ void ScanPng(const fs::path& Path)
 
 void PrintUsage()
 {
-	std::printf("usage: spore2-scan [--verify] [--props] [--textures] [--png] [--extract DIR] [--type HEX|png|prop|rw4|raster]\n"
+	std::printf("usage: spore2-scan [--verify] [--props] [--textures] [--models] [--png] [--extract DIR] [--type HEX|png|prop|rw4|raster]\n"
 	            "                   [--names SMFX_DIR] [--find NAME[,NAME...]] [ROOT...]\n");
 }
 
@@ -497,6 +546,7 @@ int main(int Argc, char** Argv)
 		else if (Arg == "--png") Opts.bPng = true;
 		else if (Arg == "--props") Opts.bProps = true;
 		else if (Arg == "--textures") Opts.bTextures = true;
+		else if (Arg == "--models") Opts.bModels = true;
 		else if (Arg == "--names" && I + 1 < Argc) Opts.NamesDir = Argv[++I];
 		else if (Arg == "--find" && I + 1 < Argc)
 		{
@@ -621,6 +671,22 @@ int main(int Argc, char** Argv)
 	std::printf("  index issues:     %zu\n", Totals.Issues);
 	std::printf("  overridden keys:  %zu (same key in more than one package)\n", Overridden);
 	if (Opts.bVerify) std::printf("  decode failures:  %zu\n", Totals.DecodeFailures);
+	if (Opts.bModels)
+	{
+		std::printf("  meshes:           %zu decoded (%zu skinned), %zu skipped\n", Totals.MeshesDecoded, Totals.SkinnedMeshes, Totals.MeshesSkipped);
+		std::printf("  mesh geometry:    %llu vertices, %llu triangles\n", static_cast<unsigned long long>(Totals.MeshVertices), static_cast<unsigned long long>(Totals.MeshTriangles));
+		if (Totals.NormalCount > 0)
+		{
+			// Correctly decoded normals have length ~1; a very different average means the encoding guess is wrong.
+			std::printf("  avg normal length: %.3f (should be close to 1.0)\n", Totals.NormalLengthSum / static_cast<double>(Totals.NormalCount));
+		}
+		std::vector<std::pair<std::string, size_t>> Issues(Totals.MeshIssues.begin(), Totals.MeshIssues.end());
+		std::sort(Issues.begin(), Issues.end(), [](const auto& A, const auto& B) { return A.second > B.second; });
+		for (size_t I = 0; I < Issues.size() && I < 8; ++I)
+		{
+			std::printf("    ! %zu x %s\n", Issues[I].second, Issues[I].first.c_str());
+		}
+	}
 	if (Opts.bTextures)
 	{
 		std::printf("  textures:         %zu decoded, %zu files failed, %zu skipped (sub-references)\n", Totals.TexturesDecoded, Totals.TextureFailures, Totals.TexturesSkipped);

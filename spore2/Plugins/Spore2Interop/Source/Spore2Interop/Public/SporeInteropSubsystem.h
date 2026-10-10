@@ -13,6 +13,7 @@ class SWidget;
 class UMaterialInstanceDynamic;
 class UMaterialInterface;
 class UTexture2D;
+class UProceduralMeshComponent;
 struct FSporeTextureData;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogSporeInterop, Log, All);
@@ -212,6 +213,16 @@ public:
 	// Only the top mip is uploaded for now. Cube maps are not supported yet (returns null).
 	UFUNCTION(BlueprintCallable, Category = "Spore|Textures")
 	UTexture2D* LoadSporeTexture(const FSporeResourceKey& Key, int32 TextureIndex = 0);
+
+	// Builds every mesh of an .rw4 model into Target, one section per mesh. Converts from
+	// Spore's right-handed space to UE's left-handed space (Y mirrored, winding flipped) and
+	// scales by UnitScale (Spore units -> cm; 100 assumes Spore units are metres). Returns
+	// the number of sections created. Skinned meshes are built in their bind pose.
+	UFUNCTION(BlueprintCallable, Category = "Spore|Models")
+	int32 BuildSporeMesh(const FSporeResourceKey& Key, UProceduralMeshComponent* Target, float UnitScale = 100.0f);
+
+	// Summary of a .raster/.rw4: texture formats and sizes, mesh and triangle counts.
+	FString DescribeRw4(const FSporeResourceKey& Key) const;
 
 	// One-line summary such as "DXT5 512x512, 10 mips" (or the reason it cannot be read).
 	FString DescribeSporeTexture(const FSporeResourceKey& Key) const;

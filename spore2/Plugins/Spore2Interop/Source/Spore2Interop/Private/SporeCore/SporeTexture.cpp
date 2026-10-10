@@ -3,6 +3,7 @@
 #include "SporeCore/SporeTexture.h"
 
 #include <algorithm>
+#include <cstdio>
 #include <cstring>
 
 namespace sporecore
@@ -174,6 +175,279 @@ bool ParseRaster(const uint8_t* Data, size_t Size, TextureImage& Out, std::strin
 	return true;
 }
 
+namespace
+{
+
+struct Rw4Section
+{
+	uint64_t Offset = 0;
+	uint32_t Size = 0;
+	uint32_t TypeCode = 0;
+};
+
+constexpr uint32_t Rw4TypeBaseResource = 0x10030;
+constexpr uint32_t Rw4TypeRaster = 0x20003;
+constexpr uint32_t Rw4TypeVertexDescription = 0x20004;
+constexpr uint32_t Rw4TypeVertexBuffer = 0x20005;
+constexpr uint32_t Rw4TypeIndexBuffer = 0x20007;
+constexpr uint32_t Rw4TypeMesh = 0x20009;
+
+// Resolves an object index to a section of the expected type, or nullptr. Indices whose top
+// bits are non-zero refer to sub-references or "no object", which are not supported here.
+const Rw4Section* Rw4Get(const std::vector<Rw4Section>& Sections, uint32_t Index, uint32_t Type, size_t FileSize, size_t MinSize)
+{
+	if ((Index >> 22) != 0 || Index >= Sections.size())
+	{
+		return nullptr;
+	}
+	const Rw4Section& S = Sections[Index];
+	if (S.TypeCode != Type || S.Offset + MinSize > FileSize || (Type == Rw4TypeBaseResource && S.Offset + S.Size > FileSize))
+	{
+		return nullptr;
+	}
+	return &S;
+}
+
+float HalfToFloat(uint16_t H)
+{
+	const uint32_t Sign = static_cast<uint32_t>(H & 0x8000) << 16;
+	uint32_t Exp = (H >> 10) & 0x1F;
+	uint32_t Mant = H & 0x3FF;
+	uint32_t Bits;
+	if (Exp == 0)
+	{
+		if (Mant == 0)
+		{
+			Bits = Sign;
+		}
+		else
+		{
+			// Subnormal: normalise.
+			Exp = 127 - 15 + 1;
+			while ((Mant & 0x400) == 0)
+			{
+				Mant <<= 1;
+				--Exp;
+			}
+			Mant &= 0x3FF;
+			Bits = Sign | (Exp << 23) | (Mant << 13);
+		}
+	}
+	else if (Exp == 31)
+	{
+		Bits = Sign | 0x7F800000 | (Mant << 13);
+	}
+	else
+	{
+		Bits = Sign | ((Exp + 127 - 15) << 23) | (Mant << 13);
+	}
+	float F;
+	std::memcpy(&F, &Bits, sizeof(F));
+	return F;
+}
+
+float TexLEFloat(const uint8_t* P)
+{
+	const uint32_t Bits = TexLE32(P);
+	float F;
+	std::memcpy(&F, &Bits, sizeof(F));
+	return F;
+}
+
+// Reads Count components of a D3DDECLTYPE element. Returns false for unsupported types.
+// bNormalEncoding applies Spore's unsigned-byte normal packing ((b - 127.5) / 127.5).
+bool ReadElement(const uint8_t* P, uint8_t DeclType, int Count, bool bNormalEncoding, float* Out)
+{
+	switch (DeclType)
+	{
+	case 0: case 1: case 2: case 3: // FLOAT1..FLOAT4
+		for (int I = 0; I < Count; ++I) Out[I] = I <= DeclType ? TexLEFloat(P + 4 * I) : 0.0f;
+		return true;
+	case 4: case 5: case 8: // D3DCOLOR, UBYTE4, UBYTE4N
+		for (int I = 0; I < Count && I < 4; ++I)
+		{
+			const float B = P[I];
+			Out[I] = bNormalEncoding ? (B - 127.5f) / 127.5f : (DeclType == 5 ? B : B / 255.0f);
+		}
+		return true;
+	case 9: // SHORT2N
+	case 10: // SHORT4N
+		for (int I = 0; I < Count; ++I)
+		{
+			const int Max = DeclType == 9 ? 2 : 4;
+			Out[I] = I < Max ? static_cast<int16_t>(TexLE16(P + 2 * I)) / 32767.0f : 0.0f;
+		}
+		return true;
+	case 15: // FLOAT16_2
+	case 16: // FLOAT16_4
+		for (int I = 0; I < Count; ++I)
+		{
+			const int Max = DeclType == 15 ? 2 : 4;
+			Out[I] = I < Max ? HalfToFloat(TexLE16(P + 2 * I)) : 0.0f;
+		}
+		return true;
+	default:
+		return false;
+	}
+}
+
+size_t DeclTypeSize(uint8_t DeclType)
+{
+	static const uint8_t Sizes[] = {4, 8, 12, 16, 4, 4, 4, 8, 4, 4, 8, 4, 8, 4, 4, 4, 8};
+	return DeclType < sizeof(Sizes) ? Sizes[DeclType] : 0;
+}
+
+struct VertexElementInfo
+{
+	uint16_t Offset = 0;
+	uint8_t DeclType = 0;
+	uint32_t Usage = 0; // Spore RW usage: 0 position, 2 normal, 6 texcoord0, 14/15 blend data
+};
+
+bool DecodeMesh(const uint8_t* Data, size_t Size, const std::vector<Rw4Section>& Sections, const Rw4Section& MeshSection, MeshData& Out, std::string& Issue)
+{
+	const uint8_t* M = Data + MeshSection.Offset;
+	const uint32_t PrimitiveType = TexLE32(M + 4);
+	const uint32_t IndexBufferIndex = TexLE32(M + 8);
+	const uint32_t TriangleCount = TexLE32(M + 12);
+	const uint32_t BufferCount = TexLE32(M + 16);
+	const uint32_t FirstIndex = TexLE32(M + 20);
+	const uint32_t FirstVertex = TexLE32(M + 28);
+	const uint32_t VertexCount = TexLE32(M + 32);
+	if (BufferCount == 0 || MeshSection.Offset + 36 + 4ull * BufferCount > Size)
+	{
+		Issue = "mesh without vertex buffer";
+		return false;
+	}
+	if (PrimitiveType != 4 && PrimitiveType != 5)
+	{
+		Issue = "unsupported primitive type " + std::to_string(PrimitiveType);
+		return false;
+	}
+
+	const Rw4Section* VB = Rw4Get(Sections, TexLE32(M + 36), Rw4TypeVertexBuffer, Size, 28);
+	const Rw4Section* IB = Rw4Get(Sections, IndexBufferIndex, Rw4TypeIndexBuffer, Size, 28);
+	if (!VB || !IB)
+	{
+		Issue = "vertex or index buffer is a blend shape or sub-reference";
+		return false;
+	}
+	const uint8_t* V = Data + VB->Offset;
+	const uint8_t* I = Data + IB->Offset;
+	const uint32_t VertexSize = TexLE32(V + 20);
+	const Rw4Section* Desc = Rw4Get(Sections, TexLE32(V), Rw4TypeVertexDescription, Size, 24);
+	const Rw4Section* VData = Rw4Get(Sections, TexLE32(V + 24), Rw4TypeBaseResource, Size, 0);
+	const Rw4Section* IData = Rw4Get(Sections, TexLE32(I + 24), Rw4TypeBaseResource, Size, 0);
+	if (!Desc || !VData || !IData || VertexSize == 0)
+	{
+		Issue = "missing vertex description or buffer data";
+		return false;
+	}
+
+	// Vertex layout.
+	const uint8_t* D = Data + Desc->Offset;
+	const uint16_t ElementCount = TexLE16(D + 12);
+	if (Desc->Offset + 24 + 12ull * ElementCount > Size)
+	{
+		Issue = "truncated vertex description";
+		return false;
+	}
+	const VertexElementInfo* Position = nullptr;
+	const VertexElementInfo* Normal = nullptr;
+	const VertexElementInfo* TexCoord = nullptr;
+	std::vector<VertexElementInfo> Elements(ElementCount);
+	for (uint16_t E = 0; E < ElementCount; ++E)
+	{
+		const uint8_t* El = D + 24 + 12 * E;
+		Elements[E].Offset = TexLE16(El + 2);
+		Elements[E].DeclType = El[4];
+		Elements[E].Usage = TexLE32(El + 8);
+	}
+	for (const VertexElementInfo& E : Elements)
+	{
+		if (E.Usage == 0 && !Position) Position = &E;
+		else if (E.Usage == 2 && !Normal) Normal = &E;
+		else if (E.Usage == 6 && !TexCoord) TexCoord = &E;
+		else if (E.Usage == 14 || E.Usage == 15) Out.bSkinned = true;
+	}
+	if (!Position)
+	{
+		Issue = "mesh has no position element";
+		return false;
+	}
+	for (const VertexElementInfo* E : {Position, Normal, TexCoord})
+	{
+		if (E && (DeclTypeSize(E->DeclType) == 0 || E->Offset + DeclTypeSize(E->DeclType) > VertexSize))
+		{
+			Issue = "vertex element outside vertex stride";
+			return false;
+		}
+	}
+
+	// Vertices FirstVertex .. FirstVertex + VertexCount (as SporeModder-FX reads them).
+	if ((static_cast<uint64_t>(FirstVertex) + VertexCount) * VertexSize > VData->Size)
+	{
+		Issue = "vertex range outside vertex data";
+		return false;
+	}
+	const uint8_t* VBytes = Data + VData->Offset;
+	Out.Positions.resize(3ull * VertexCount);
+	if (Normal) Out.Normals.resize(3ull * VertexCount);
+	if (TexCoord) Out.UVs.resize(2ull * VertexCount);
+	for (uint32_t Vtx = 0; Vtx < VertexCount; ++Vtx)
+	{
+		const uint8_t* Base = VBytes + static_cast<size_t>(FirstVertex + Vtx) * VertexSize;
+		if (!ReadElement(Base + Position->Offset, Position->DeclType, 3, false, &Out.Positions[3ull * Vtx]) ||
+			(Normal && !ReadElement(Base + Normal->Offset, Normal->DeclType, 3, true, &Out.Normals[3ull * Vtx])) ||
+			(TexCoord && !ReadElement(Base + TexCoord->Offset, TexCoord->DeclType, 2, false, &Out.UVs[2ull * Vtx])))
+		{
+			Issue = "unsupported vertex element type";
+			return false;
+		}
+	}
+
+	// Indices: 16- or 32-bit, offset by the index buffer's start and the mesh's first vertex.
+	const uint32_t IndexFormat = TexLE32(I + 16);
+	const int32_t StartIndex = static_cast<int32_t>(TexLE32(I + 4));
+	const size_t IndexBytes = IndexFormat == 102 ? 4 : 2;
+	const size_t IndexCount = PrimitiveType == 4 ? 3ull * TriangleCount : static_cast<size_t>(TriangleCount) + 2;
+	if ((static_cast<uint64_t>(FirstIndex) + IndexCount) * IndexBytes > IData->Size)
+	{
+		Issue = "index range outside index data";
+		return false;
+	}
+	const uint8_t* IBytes = Data + IData->Offset + static_cast<size_t>(FirstIndex) * IndexBytes;
+	std::vector<uint32_t> Raw(IndexCount);
+	for (size_t Idx = 0; Idx < IndexCount; ++Idx)
+	{
+		const int64_t Value = (IndexBytes == 4 ? TexLE32(IBytes + 4 * Idx) : TexLE16(IBytes + 2 * Idx)) + static_cast<int64_t>(StartIndex) - FirstVertex;
+		if (Value < 0 || Value >= VertexCount)
+		{
+			Issue = "index out of vertex range";
+			return false;
+		}
+		Raw[Idx] = static_cast<uint32_t>(Value);
+	}
+	if (PrimitiveType == 4)
+	{
+		Out.Indices = std::move(Raw);
+	}
+	else
+	{
+		// Triangle strip -> list, alternating winding and dropping degenerate triangles.
+		for (size_t T = 0; T + 2 < Raw.size(); ++T)
+		{
+			const uint32_t A = Raw[T], B = Raw[T + 1], C = Raw[T + 2];
+			if (A == B || B == C || A == C) continue;
+			if (T % 2 == 0) Out.Indices.insert(Out.Indices.end(), {A, B, C});
+			else Out.Indices.insert(Out.Indices.end(), {B, A, C});
+		}
+	}
+	return true;
+}
+
+} // namespace
+
 bool ParseRw4(const uint8_t* Data, size_t Size, Rw4Info& Out, std::string& Error)
 {
 	Out = Rw4Info();
@@ -202,16 +476,7 @@ bool ParseRw4(const uint8_t* Data, size_t Size, Rw4Info& Out, std::string& Error
 		return false;
 	}
 
-	struct Section
-	{
-		uint64_t Offset;
-		uint32_t Size;
-		uint32_t TypeCode;
-	};
-	constexpr uint32_t TypeBaseResource = 0x10030;
-	constexpr uint32_t TypeRaster = 0x20003;
-
-	std::vector<Section> Sections(Out.SectionCount);
+	std::vector<Rw4Section> Sections(Out.SectionCount);
 	for (uint32_t I = 0; I < Out.SectionCount; ++I)
 	{
 		const uint8_t* Info = Data + SectionTable + I * SectionInfoSize;
@@ -219,26 +484,46 @@ bool ParseRw4(const uint8_t* Data, size_t Size, Rw4Info& Out, std::string& Error
 		Sections[I].Size = TexLE32(Info + 8);
 		Sections[I].TypeCode = TexLE32(Info + 20);
 		// Base resources (raw buffers) are addressed relative to the buffer data block.
-		if (Sections[I].TypeCode == TypeBaseResource)
+		if (Sections[I].TypeCode == Rw4TypeBaseResource)
 		{
 			Sections[I].Offset += BufferData;
 		}
 	}
 
-	for (const Section& Raster : Sections)
+	for (const Rw4Section& Section : Sections)
 	{
-		if (Raster.TypeCode != TypeRaster)
+		if (Section.TypeCode == Rw4TypeMesh)
+		{
+			if (Section.Offset + 36 > Size)
+			{
+				Error = "mesh section outside file";
+				return false;
+			}
+			MeshData Mesh;
+			std::string Issue;
+			if (DecodeMesh(Data, Size, Sections, Section, Mesh, Issue))
+			{
+				Out.Meshes.push_back(std::move(Mesh));
+			}
+			else
+			{
+				++Out.SkippedMeshes;
+				Out.MeshIssues.push_back(Issue);
+			}
+			continue;
+		}
+		if (Section.TypeCode != Rw4TypeRaster)
 		{
 			continue;
 		}
 		// format u32, flags u16, depth u16, dxBase u32, width u16, height u16, field_10 u8,
 		// mips u8, pad u16, field_14 u32, field_18 u32, data index u32 (32 bytes).
-		if (Raster.Offset + 32 > Size)
+		if (Section.Offset + 32 > Size)
 		{
 			Error = "raster section outside file";
 			return false;
 		}
-		const uint8_t* R = Data + Raster.Offset;
+		const uint8_t* R = Data + Section.Offset;
 		TextureImage Image;
 		Image.Format = TexLE32(R);
 		const uint16_t Flags = TexLE16(R + 4);
@@ -246,24 +531,56 @@ bool ParseRw4(const uint8_t* Data, size_t Size, Rw4Info& Out, std::string& Error
 		Image.Width = TexLE16(R + 12);
 		Image.Height = TexLE16(R + 14);
 		Image.MipCount = R[17];
-		const uint32_t DataIndex = TexLE32(R + 28);
-
-		// Indices with a non-zero top section type refer to sub-references or "no object".
-		if ((DataIndex >> 22) != 0 || DataIndex >= Sections.size())
+		const Rw4Section* Buffer = Rw4Get(Sections, TexLE32(R + 28), Rw4TypeBaseResource, Size, 0);
+		if (!Buffer)
 		{
 			++Out.SkippedTextures;
 			continue;
 		}
-		const Section& Buffer = Sections[DataIndex];
-		if (Buffer.Offset + Buffer.Size > Size)
-		{
-			Error = "texture data outside file";
-			return false;
-		}
-		Image.Data.assign(Data + Buffer.Offset, Data + Buffer.Offset + Buffer.Size);
+		Image.Data.assign(Data + Buffer->Offset, Data + Buffer->Offset + Buffer->Size);
 		Out.Textures.push_back(std::move(Image));
 	}
 	return true;
+}
+
+std::string MeshToObj(const MeshData& Mesh, const std::string& Name)
+{
+	std::string Out = "# Exported by spore2-scan from Spore RenderWare 4 data\no " + Name + "\n";
+	char Line[128];
+	const size_t Count = Mesh.VertexCount();
+	for (size_t V = 0; V < Count; ++V)
+	{
+		std::snprintf(Line, sizeof(Line), "v %g %g %g\n", Mesh.Positions[3 * V], Mesh.Positions[3 * V + 1], Mesh.Positions[3 * V + 2]);
+		Out += Line;
+	}
+	for (size_t V = 0; V < Count && !Mesh.UVs.empty(); ++V)
+	{
+		// OBJ's V axis points up, Direct3D's points down.
+		std::snprintf(Line, sizeof(Line), "vt %g %g\n", Mesh.UVs[2 * V], 1.0f - Mesh.UVs[2 * V + 1]);
+		Out += Line;
+	}
+	for (size_t V = 0; V < Count && !Mesh.Normals.empty(); ++V)
+	{
+		std::snprintf(Line, sizeof(Line), "vn %g %g %g\n", Mesh.Normals[3 * V], Mesh.Normals[3 * V + 1], Mesh.Normals[3 * V + 2]);
+		Out += Line;
+	}
+	const bool bUV = !Mesh.UVs.empty();
+	const bool bN = !Mesh.Normals.empty();
+	for (size_t T = 0; T + 2 < Mesh.Indices.size(); T += 3)
+	{
+		Out += "f";
+		for (size_t K = 0; K < 3; ++K)
+		{
+			const uint32_t Idx = Mesh.Indices[T + K] + 1;
+			if (bUV && bN) std::snprintf(Line, sizeof(Line), " %u/%u/%u", Idx, Idx, Idx);
+			else if (bUV) std::snprintf(Line, sizeof(Line), " %u/%u", Idx, Idx);
+			else if (bN) std::snprintf(Line, sizeof(Line), " %u//%u", Idx, Idx);
+			else std::snprintf(Line, sizeof(Line), " %u", Idx);
+			Out += Line;
+		}
+		Out += "\n";
+	}
+	return Out;
 }
 
 void WriteDds(const TextureImage& Image, std::vector<uint8_t>& Out)

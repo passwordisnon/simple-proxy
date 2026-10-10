@@ -31,9 +31,13 @@ resources, creation PNGs) to this repository.
 - .raster: version 1 header (w, h, mips, pixel width, format) + size-prefixed mips.
   .rw4: magic 89 'RW4w32'; type @0x1C, section count @0x24, section table @0x30, buffer base @0x44;
   24-byte section infos; raster sections (0x20003) point at base resources (0x10030).
+- rw4 meshes: mesh 0x20009 -> vertex buffer 0x20005 (-> description 0x20004, data) and index
+  buffer 0x20007 (-> data). Element "typeCode" is Spore's usage (0 pos, 2 normal, 6 uv0, 14/15 blend).
+  Normals are unsigned bytes: (b - 127.5) / 127.5 (SporeModder-FX's viewer reads them signed; we don't).
+  UE conversion mirrors Y and flips winding; the 100x unit scale is an assumption to verify.
 - Creation PNG model data is hidden in pixel low bits, not in text chunks.
 
 ## Roadmap
 
-1. ~~`.prop` decoder~~  2. ~~textures~~; `.rw4` models → UE meshes  3. creation PNG pixel decoder
+1. ~~`.prop` decoder~~  2. ~~textures~~, ~~rw4 meshes~~; materials, skeletons, animations  3. creation PNG pixel decoder
 4. skeleton → Control Rig  5. gameplay stages

@@ -1,7 +1,9 @@
-// Spore 2.0 interop layer - Spore texture containers (.raster and RenderWare 4 .rw4).
+// Spore 2.0 interop layer - Spore texture containers (.raster) and RenderWare 4 (.rw4)
+// textures and meshes.
 //
 // Layouts follow SporeModder-FX (file/raster/RasterTexture.java, file/rw4/RWHeader.java,
-// RWSectionInfo.java, RWRaster.java). Pixel data is stored as Direct3D 9 formats:
+// RWSectionInfo.java, RWRaster.java, RWMesh.java, RWVertexBuffer.java, RWIndexBuffer.java,
+// RWVertexDescription.java, RWVertexElement.java and view/editors/RWModelViewer.java). Pixel data is stored as Direct3D 9 formats:
 // DXT1/DXT3/DXT5 (FourCC) or the uncompressed D3DFMT codes below.
 
 #pragma once
@@ -53,15 +55,33 @@ enum class Rw4Kind : uint8_t
 	Special,
 };
 
+// One renderable mesh: triangle list in Spore's coordinate system (Z up).
+struct MeshData
+{
+	std::vector<float> Positions; // x, y, z per vertex
+	std::vector<float> Normals;   // x, y, z per vertex, empty when the mesh has none
+	std::vector<float> UVs;       // u, v per vertex, empty when the mesh has none
+	std::vector<uint32_t> Indices; // 3 per triangle
+	bool bSkinned = false;        // has blend indices/weights (skeleton data not decoded yet)
+
+	size_t VertexCount() const { return Positions.size() / 3; }
+};
+
 struct Rw4Info
 {
 	Rw4Kind Kind = Rw4Kind::Unknown;
 	uint32_t SectionCount = 0;
 	std::vector<TextureImage> Textures;
 	uint32_t SkippedTextures = 0; // rasters whose data lives in sub-references (not supported yet)
+	std::vector<MeshData> Meshes;
+	uint32_t SkippedMeshes = 0;   // meshes using blend shapes, sub-references or unsupported layouts
+	std::vector<std::string> MeshIssues;
 };
 
-// Reads the RenderWare 4 header and section table and extracts every raster section.
+// Wavefront OBJ text for one mesh (positions, UVs with V flipped, normals).
+std::string MeshToObj(const MeshData& Mesh, const std::string& Name);
+
+// Reads the RenderWare 4 header and section table and extracts every raster and mesh section.
 bool ParseRw4(const uint8_t* Data, size_t Size, Rw4Info& Out, std::string& Error);
 
 // Standard DirectDraw Surface file, readable by macOS Preview, GIMP, Photoshop and texture tools.

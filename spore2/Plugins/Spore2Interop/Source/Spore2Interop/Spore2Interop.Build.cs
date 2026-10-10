@@ -22,6 +22,7 @@ public class Spore2Interop : ModuleRules
 			"Slate",
 			"SlateCore",
 			"InputCore",
+			"ProceduralMeshComponent",
 		});
 
 		// zTXt / iTXt chunks in creation PNGs are zlib streams of unknown length.

@@ -16,6 +16,7 @@
 #include "Misc/Parse.h"
 #include "Misc/Paths.h"
 #include "Modules/ModuleManager.h"
+#include "ProceduralMeshComponent.h"
 #include "SporeCore/SporePng.h"
 #include "SporeCore/SporeProp.h"
 #include "SporeCore/SporeTexture.h"
@@ -223,6 +224,106 @@ bool USporeInteropSubsystem::ReadSporeTexture(const FSporeResourceKey& Key, int3
 		UE_LOG(LogSporeInterop, Warning, TEXT("Texture %s: %s"), *Key.ToString(), UTF8_TO_TCHAR(Error.c_str()));
 	}
 	return bOk;
+}
+
+int32 USporeInteropSubsystem::BuildSporeMesh(const FSporeResourceKey& Key, UProceduralMeshComponent* Target, float UnitScale)
+{
+	if (!Target)
+	{
+		return 0;
+	}
+	TArray<uint8> Bytes;
+	FString ReadError;
+	if (!ReadResource(Key, Bytes, &ReadError))
+	{
+		UE_LOG(LogSporeInterop, Warning, TEXT("Model %s: %s"), *Key.ToString(), *ReadError);
+		return 0;
+	}
+	sporecore::Rw4Info Info;
+	std::string Error;
+	if (!sporecore::ParseRw4(Bytes.GetData(), Bytes.Num(), Info, Error))
+	{
+		UE_LOG(LogSporeInterop, Warning, TEXT("Model %s: %s"), *Key.ToString(), UTF8_TO_TCHAR(Error.c_str()));
+		return 0;
+	}
+	for (const std::string& Issue : Info.MeshIssues)
+	{
+		UE_LOG(LogSporeInterop, Log, TEXT("Model %s: skipped a mesh (%s)"), *Key.ToString(), UTF8_TO_TCHAR(Issue.c_str()));
+	}
+
+	Target->ClearAllMeshSections();
+	int32 Section = 0;
+	for (const sporecore::MeshData& Mesh : Info.Meshes)
+	{
+		const int32 VertexCount = static_cast<int32>(Mesh.VertexCount());
+		TArray<FVector> Vertices;
+		TArray<FVector> Normals;
+		TArray<FVector2D> UV0;
+		Vertices.Reserve(VertexCount);
+		for (int32 V = 0; V < VertexCount; ++V)
+		{
+			// Spore (right-handed, Z up) -> UE (left-handed, Z up): mirror Y.
+			Vertices.Emplace(Mesh.Positions[3 * V] * UnitScale, -Mesh.Positions[3 * V + 1] * UnitScale, Mesh.Positions[3 * V + 2] * UnitScale);
+			if (!Mesh.Normals.empty())
+			{
+				Normals.Emplace(FVector(Mesh.Normals[3 * V], -Mesh.Normals[3 * V + 1], Mesh.Normals[3 * V + 2]).GetSafeNormal());
+			}
+			if (!Mesh.UVs.empty())
+			{
+				UV0.Emplace(Mesh.UVs[2 * V], Mesh.UVs[2 * V + 1]); // both Direct3D-style, no flip
+			}
+		}
+		TArray<int32> Triangles;
+		Triangles.Reserve(static_cast<int32>(Mesh.Indices.size()));
+		for (size_t T = 0; T + 2 < Mesh.Indices.size(); T += 3)
+		{
+			// Mirroring one axis reverses winding, so swap two corners to keep faces outward.
+			Triangles.Add(static_cast<int32>(Mesh.Indices[T]));
+			Triangles.Add(static_cast<int32>(Mesh.Indices[T + 2]));
+			Triangles.Add(static_cast<int32>(Mesh.Indices[T + 1]));
+		}
+		Target->CreateMeshSection(Section++, Vertices, Triangles, Normals, UV0, TArray<FColor>(), TArray<FProcMeshTangent>(), true);
+	}
+	UE_LOG(LogSporeInterop, Log, TEXT("Model %s: built %d mesh sections"), *Key.ToString(), Section);
+	return Section;
+}
+
+FString USporeInteropSubsystem::DescribeRw4(const FSporeResourceKey& Key) const
+{
+	if (Key.Type == 0x2F4E681C)
+	{
+		return TEXT("Texture: ") + DescribeSporeTexture(Key);
+	}
+	TArray<uint8> Bytes;
+	FString ReadError;
+	if (!ReadResource(Key, Bytes, &ReadError))
+	{
+		return ReadError;
+	}
+	sporecore::Rw4Info Info;
+	std::string Error;
+	if (!sporecore::ParseRw4(Bytes.GetData(), Bytes.Num(), Info, Error))
+	{
+		return UTF8_TO_TCHAR(Error.c_str());
+	}
+	size_t Triangles = 0;
+	size_t Vertices = 0;
+	for (const sporecore::MeshData& Mesh : Info.Meshes)
+	{
+		Triangles += Mesh.Indices.size() / 3;
+		Vertices += Mesh.VertexCount();
+	}
+	FString Summary = FString::Printf(TEXT("RenderWare 4: %d mesh(es), %llu vertices, %llu triangles"), static_cast<int32>(Info.Meshes.size()),
+		static_cast<unsigned long long>(Vertices), static_cast<unsigned long long>(Triangles));
+	if (Info.SkippedMeshes > 0)
+	{
+		Summary += FString::Printf(TEXT(" (%u skipped)"), Info.SkippedMeshes);
+	}
+	for (const sporecore::TextureImage& Image : Info.Textures)
+	{
+		Summary += FString::Printf(TEXT("\nTexture: %s %ux%u"), UTF8_TO_TCHAR(sporecore::TextureFormatName(Image.Format)), Image.Width, Image.Height);
+	}
+	return Summary;
 }
 
 FString USporeInteropSubsystem::DescribeSporeTexture(const FSporeResourceKey& Key) const

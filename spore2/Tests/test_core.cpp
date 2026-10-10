@@ -454,6 +454,123 @@ static void TestTextures()
 	CHECK(!ParseRw4(Rw.data(), Rw.size(), Info, Error));
 }
 
+static void PutLE16(std::vector<uint8_t>& B, size_t At, uint16_t V)
+{
+	B[At] = static_cast<uint8_t>(V);
+	B[At + 1] = static_cast<uint8_t>(V >> 8);
+}
+
+static void PutLEFloat(std::vector<uint8_t>& B, size_t At, float F)
+{
+	uint32_t Bits;
+	std::memcpy(&Bits, &F, 4);
+	PutLE32(B, At, Bits);
+}
+
+// Section table entry: offset, size, type code.
+static void PutSection(std::vector<uint8_t>& B, size_t Table, uint32_t Index, uint32_t Offset, uint32_t Size, uint32_t Type)
+{
+	const size_t At = Table + 24 * Index;
+	PutLE32(B, At, Offset);
+	PutLE32(B, At + 8, Size);
+	PutLE32(B, At + 20, Type);
+}
+
+static std::vector<uint8_t> BuildMeshRw4(uint32_t PrimitiveType, const std::vector<uint16_t>& Indices, uint32_t TriangleCount)
+{
+	std::vector<uint8_t> Rw(0x500, 0);
+	const uint8_t Magic[8] = {0x89, 'R', 'W', '4', 'w', '3', '2', 0x00};
+	std::memcpy(Rw.data(), Magic, 8);
+	PutLE32(Rw, 0x1C, 1);     // model
+	PutLE32(Rw, 0x24, 6);     // sections
+	PutLE32(Rw, 0x30, 0x300); // section table
+	PutLE32(Rw, 0x44, 0x400); // buffer data
+
+	// 0: vertex description: position FLOAT3 @0, normal UBYTE4 @12, texcoord FLOAT2 @16, stride 24.
+	PutLE16(Rw, 0x10C, 3);
+	Rw[0x10F] = 24;
+	const uint8_t Elements[3][4] = {{0, 2, 0, 0}, {12, 5, 3, 2}, {16, 1, 5, 6}}; // offset, decltype, d3dusage, rwusage
+	for (int E = 0; E < 3; ++E)
+	{
+		const size_t At = 0x118 + 12 * E;
+		PutLE16(Rw, At + 2, Elements[E][0]);
+		Rw[At + 4] = Elements[E][1];
+		Rw[At + 6] = Elements[E][2];
+		PutLE32(Rw, At + 8, Elements[E][3]);
+	}
+	// 1: vertex buffer -> description 0, 4 vertices, stride 24, data section 3
+	PutLE32(Rw, 0x180, 0);
+	PutLE32(Rw, 0x18C, 4);
+	PutLE32(Rw, 0x194, 24);
+	PutLE32(Rw, 0x198, 3);
+	// 2: index buffer -> 16-bit, data section 4
+	PutLE32(Rw, 0x1D0, 101);
+	PutLE32(Rw, 0x1D4, PrimitiveType);
+	PutLE32(Rw, 0x1D8, 4);
+	// 5: mesh
+	PutLE32(Rw, 0x204, PrimitiveType);
+	PutLE32(Rw, 0x208, 2);
+	PutLE32(Rw, 0x20C, TriangleCount);
+	PutLE32(Rw, 0x210, 1);
+	PutLE32(Rw, 0x220, 4); // vertex count
+	PutLE32(Rw, 0x224, 1); // vertex buffer section
+
+	// Vertex data at buffer + 0: a unit quad in the XY plane, normals +Z, UVs at corners.
+	const float Pos[4][2] = {{0, 0}, {1, 0}, {0, 1}, {1, 1}};
+	for (int V = 0; V < 4; ++V)
+	{
+		const size_t At = 0x400 + 24 * V;
+		PutLEFloat(Rw, At, Pos[V][0]);
+		PutLEFloat(Rw, At + 4, Pos[V][1]);
+		PutLEFloat(Rw, At + 8, 0.0f);
+		Rw[At + 12] = 128; Rw[At + 13] = 128; Rw[At + 14] = 255;
+		PutLEFloat(Rw, At + 16, Pos[V][0]);
+		PutLEFloat(Rw, At + 20, Pos[V][1]);
+	}
+	for (size_t I = 0; I < Indices.size(); ++I) PutLE16(Rw, 0x480 + 2 * I, Indices[I]);
+
+	PutSection(Rw, 0x300, 0, 0x100, 0x3C, 0x20004);
+	PutSection(Rw, 0x300, 1, 0x180, 28, 0x20005);
+	PutSection(Rw, 0x300, 2, 0x1C0, 28, 0x20007);
+	PutSection(Rw, 0x300, 3, 0x00, 96, 0x10030);
+	PutSection(Rw, 0x300, 4, 0x80, static_cast<uint32_t>(2 * Indices.size()), 0x10030);
+	PutSection(Rw, 0x300, 5, 0x200, 40, 0x20009);
+	return Rw;
+}
+
+static void TestMeshes()
+{
+	std::string Error;
+	Rw4Info Info;
+	std::vector<uint8_t> List = BuildMeshRw4(4, {0, 1, 2, 2, 1, 3}, 2);
+	CHECK(ParseRw4(List.data(), List.size(), Info, Error));
+	CHECK(Info.Kind == Rw4Kind::Model);
+	CHECK(Info.Meshes.size() == 1 && Info.SkippedMeshes == 0);
+	if (Info.Meshes.size() != 1) return;
+	const MeshData& Mesh = Info.Meshes[0];
+	CHECK(Mesh.VertexCount() == 4);
+	CHECK(Mesh.Indices == std::vector<uint32_t>({0, 1, 2, 2, 1, 3}));
+	CHECK(Mesh.Positions[3] == 1.0f && Mesh.Positions[10] == 1.0f);
+	CHECK(Mesh.Normals.size() == 12 && Mesh.Normals[2] == 1.0f && Mesh.Normals[0] > 0.0f && Mesh.Normals[0] < 0.01f);
+	CHECK(Mesh.UVs.size() == 8 && Mesh.UVs[6] == 1.0f);
+	CHECK(!Mesh.bSkinned);
+
+	const std::string Obj = MeshToObj(Mesh, "quad");
+	CHECK(Obj.find("v 1 1 0\n") != std::string::npos);
+	CHECK(Obj.find("vt 1 0\n") != std::string::npos); // V flipped
+	CHECK(Obj.find("f 1/1/1 2/2/2 3/3/3\n") != std::string::npos);
+
+	// Strip 0,1,2,3 -> triangles (0,1,2) and (2,1,3).
+	std::vector<uint8_t> Strip = BuildMeshRw4(5, {0, 1, 2, 3}, 2);
+	CHECK(ParseRw4(Strip.data(), Strip.size(), Info, Error));
+	CHECK(Info.Meshes.size() == 1 && Info.Meshes[0].Indices == std::vector<uint32_t>({0, 1, 2, 2, 1, 3}));
+
+	// Out-of-range index: the mesh is skipped with an issue, the file still parses.
+	std::vector<uint8_t> Bad = BuildMeshRw4(4, {0, 1, 9}, 1);
+	CHECK(ParseRw4(Bad.data(), Bad.size(), Info, Error));
+	CHECK(Info.Meshes.empty() && Info.SkippedMeshes == 1 && !Info.MeshIssues.empty());
+}
+
 int main()
 {
 	TestRefPack();
@@ -466,6 +583,7 @@ int main()
 	TestProp();
 	TestRegistry();
 	TestTextures();
+	TestMeshes();
 	if (Failures == 0)
 	{
 		std::printf("all tests passed\n");

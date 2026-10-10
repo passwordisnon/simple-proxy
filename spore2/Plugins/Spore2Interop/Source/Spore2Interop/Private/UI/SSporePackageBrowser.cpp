@@ -527,7 +527,7 @@ void SSporePackageBrowser::UpdatePropertyPreview()
 	const uint32 Type = SelectedResource->Key.Type;
 	if (Type == 0x2F4E681C || Type == 0x2F4E681B) // raster, rw4
 	{
-		PropertyPreview = TEXT("\nTexture: ") + Owner->DescribeSporeTexture(SelectedResource->Key);
+		PropertyPreview = TEXT("\n") + Owner->DescribeRw4(SelectedResource->Key);
 		return;
 	}
 	if (CategoryOf(Type) != ESporeBrowserCategory::Properties)
