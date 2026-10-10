@@ -1,0 +1,16 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "0.1.0",
+	"FriendlyName": "Spore 2.0 Interop",
+	"Description": "Reads a locally installed copy of Spore (DBPF .package archives, RefPack payloads, creation PNGs) for private, non-commercial interoperability.",
+	"Category": "Spore2",
+	"CanContainContent": false,
+	"Modules": [
+		{
+			"Name": "Spore2Interop",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}
