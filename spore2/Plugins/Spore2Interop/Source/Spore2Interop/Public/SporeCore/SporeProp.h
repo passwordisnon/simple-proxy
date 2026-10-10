@@ -11,6 +11,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -86,8 +87,13 @@ struct PropertyList
 // Returns false when the data could not be fully parsed (see Out.Error).
 bool ParsePropertyList(const uint8_t* Data, size_t Size, PropertyList& Out);
 
+// Resolves an id to a name, or returns an empty string. bType selects type names
+// (e.g. "prop") versus file/group names (e.g. "editor_setup~").
+using IdNamer = std::function<std::string(uint32_t Id, bool bType)>;
+
 // One-line human readable rendering, e.g. "0x1A2B3C4D float = 1.5" or "[3] {1, 2, 3}".
-// Name may be empty, in which case the hex id is used.
-std::string FormatProperty(const Property& Prop, const std::string& Name);
+// Name may be empty, in which case the hex id is used. With a Namer, key values print as
+// "group!instance.type" using names where known and 0x-hex otherwise.
+std::string FormatProperty(const Property& Prop, const std::string& Name, const IdNamer& Namer = nullptr);
 
 } // namespace sporecore

@@ -404,7 +404,7 @@ bool ParsePropertyList(const uint8_t* Data, size_t Size, PropertyList& Out)
 	return true;
 }
 
-std::string FormatProperty(const Property& Prop, const std::string& Name)
+std::string FormatProperty(const Property& Prop, const std::string& Name, const IdNamer& Namer)
 {
 	std::string Out;
 	if (Name.empty())
@@ -452,10 +452,25 @@ std::string FormatProperty(const Property& Prop, const std::string& Name)
 		}
 		else if (I < Prop.Keys.size())
 		{
-			char Buffer[40];
 			const ResourceKey& K = Prop.Keys[I];
-			std::snprintf(Buffer, sizeof(Buffer), "%08X!%08X.%08X", K.Group, K.Instance, K.Type);
-			Out += Buffer;
+			if (Namer)
+			{
+				auto Part = [&](uint32_t Id, bool bType)
+				{
+					std::string Known = Namer(Id, bType);
+					if (!Known.empty()) return Known;
+					char Hex[16];
+					std::snprintf(Hex, sizeof(Hex), "0x%08X", Id);
+					return std::string(Hex);
+				};
+				Out += Part(K.Group, false) + "!" + Part(K.Instance, false) + "." + Part(K.Type, true);
+			}
+			else
+			{
+				char Buffer[40];
+				std::snprintf(Buffer, sizeof(Buffer), "%08X!%08X.%08X", K.Group, K.Instance, K.Type);
+				Out += Buffer;
+			}
 		}
 		else if (I < Prop.Texts.size())
 		{

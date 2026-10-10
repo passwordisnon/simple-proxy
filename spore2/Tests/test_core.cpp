@@ -326,6 +326,13 @@ static void TestProp()
 	CHECK(FormatProperty(List.Properties[2], "scale") == "scale float = 1.5");
 	CHECK(FormatProperty(List.Properties[6], "") == "0x00000007 key[2] = {000000C0!000000A0.000000B0, 000000C0!000000A1.000000B0}");
 
+	IdNamer Namer = [](uint32_t Id, bool bType) -> std::string
+	{
+		if (bType) return Id == 0xB0 ? "prop" : "";
+		return Id == 0xC0 ? "editor_setup~" : "";
+	};
+	CHECK(FormatProperty(List.Properties[6], "parts", Namer) == "parts key[2] = {editor_setup~!0x000000A0.prop, editor_setup~!0x000000A1.prop}");
+
 	// Truncation and trailing garbage are reported, not read past.
 	PropertyList Short;
 	CHECK(!ParsePropertyList(P.data(), P.size() - 1, Short));

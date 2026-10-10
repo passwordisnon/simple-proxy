@@ -120,9 +120,9 @@ bool ReadRange(std::ifstream& File, uint64_t Offset, size_t Size, std::vector<ui
 std::string FormatSize(uint64_t Bytes)
 {
 	char Buffer[32];
-	if (Bytes >= 1024ull * 1024 * 1024) std::snprintf(Buffer, sizeof(Buffer), "%.1f GB", Bytes / (1024.0 * 1024 * 1024));
-	else if (Bytes >= 1024ull * 1024) std::snprintf(Buffer, sizeof(Buffer), "%.1f MB", Bytes / (1024.0 * 1024));
-	else std::snprintf(Buffer, sizeof(Buffer), "%.1f KB", Bytes / 1024.0);
+	if (Bytes >= 1024ull * 1024 * 1024) std::snprintf(Buffer, sizeof(Buffer), "%.1f GB", static_cast<double>(Bytes) / (1024.0 * 1024 * 1024));
+	else if (Bytes >= 1024ull * 1024) std::snprintf(Buffer, sizeof(Buffer), "%.1f MB", static_cast<double>(Bytes) / (1024.0 * 1024));
+	else std::snprintf(Buffer, sizeof(Buffer), "%.1f KB", static_cast<double>(Bytes) / 1024.0);
 	return Buffer;
 }
 
@@ -305,7 +305,10 @@ void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts
 				std::ofstream Text(OutDir / (Name + ".txt"));
 				for (const Property& Prop : Props.Properties)
 				{
-					Text << FormatProperty(Prop, NameTables::Lookup(Names.Properties, Prop.Id)) << '\n';
+					Text << FormatProperty(Prop, NameTables::Lookup(Names.Properties, Prop.Id), [](uint32_t Id, bool bType)
+					{
+						return NameTables::Lookup(bType ? Names.Types : Names.Files, Id);
+					}) << '\n';
 				}
 			}
 		}

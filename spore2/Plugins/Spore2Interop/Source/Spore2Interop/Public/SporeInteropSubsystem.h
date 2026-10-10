@@ -240,6 +240,7 @@ private:
 	void LoadNameRegistries();
 
 	TMap<uint32, FString> PropertyNames;
+	TMap<uint32, FString> FileNames;
 	TMap<uint32, FString> TypeNames;
 
 	TArray<TSharedPtr<FSporeMountedPackage>> Packages;

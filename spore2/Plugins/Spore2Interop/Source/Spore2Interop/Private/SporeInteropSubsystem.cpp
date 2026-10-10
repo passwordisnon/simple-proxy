@@ -112,6 +112,7 @@ void USporeInteropSubsystem::LoadNameRegistries()
 {
 	PropertyNames.Reset();
 	TypeNames.Reset();
+	FileNames.Reset();
 	if (NameRegistryFolder.IsEmpty())
 	{
 		return;
@@ -132,6 +133,7 @@ void USporeInteropSubsystem::LoadNameRegistries()
 	};
 	Load(TEXT("reg_property.txt"), PropertyNames);
 	Load(TEXT("reg_type.txt"), TypeNames);
+	Load(TEXT("reg_file.txt"), FileNames);
 	UE_LOG(LogSporeInterop, Log, TEXT("Loaded %d property names and %d type names from %s"), PropertyNames.Num(), TypeNames.Num(), *NameRegistryFolder);
 }
 
@@ -156,7 +158,11 @@ bool USporeInteropSubsystem::ReadProperties(const FSporeResourceKey& Key, TArray
 	{
 		const FString* Registered = PropertyNames.Find(Prop.Id);
 		const std::string Name = Registered ? std::string(TCHAR_TO_UTF8(**Registered)) : std::string();
-		const std::string Line = sporecore::FormatProperty(Prop, Name);
+		const std::string Line = sporecore::FormatProperty(Prop, Name, [this](uint32_t Id, bool bType)
+		{
+			const FString* Found = (bType ? TypeNames : FileNames).Find(Id);
+			return Found ? std::string(TCHAR_TO_UTF8(**Found)) : std::string();
+		});
 
 		// FormatProperty renders "<name> <type> = <value>"; split it back into fields.
 		const size_t NameEnd = Line.find(' ');
