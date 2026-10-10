@@ -40,7 +40,7 @@ const MAIN=(()=>{
     A('coin','Jobs','#FFD35C',()=>JOBS.app(),'Ein bisschen arbeiten, ein paar Taler verdienen.');A('leaf','Planeten-Labor','#8FD07A',()=>MYPLANET.app(),'Bau deinen Planeten aus fertigen Bausteinen.');
     A('people','Freunde','#A6EBC3',()=>SOCIAL.playersWin(),'Wer ist gerade da?');A('chat','Chat','#8FD3FF',()=>SOCIAL.toggleChat(true),'Schreib doch jemandem!');A('wave','Emotes','#FFE27A',()=>ACT.emoteMenu(),'Tanzen? Winken? Ich mach mit!');
     A('map','Karte','#9FD86A',mapApp,'Wo sind wir eigentlich?');A('sparkle','Risslinge','#e9e7e4',()=>WSTORY.app(),'Die Risse … mir ist ein bisschen mulmig.');A('think','Tagebuch','#C8B8E8',()=>DIARY.app(),'Wer hat hier vor uns geschlafen?');A('globe','Bewohner','#FFC9A8',residentsApp,'Alle Nachbarn auf einen Blick.');
-    A('school','Klasse','#D9B5F2',teacherApp,'Das ist für die Lehrperson.');A('gear','Optionen','#DDD3C4',settingsApp,'Ton, Sprache, Grafik.');
+    A('bulb','Haraway-Heft','#C6A9FF',()=>HARAWAY.app(),'Was hat Donna Haraway über Cyborgs gesagt?');A('school','Klasse','#D9B5F2',teacherApp,'Das ist für die Lehrperson.');A('gear','Optionen','#DDD3C4',settingsApp,'Ton, Sprache, Grafik.');
     const N=list.length,STEP=360/N;let rot=0;const cur=()=>((rot%N)+N)%N;
     list.forEach((o,i)=>{o.b.style.setProperty('--a',(i*STEP)+'deg');o.b.style.animationDelay=(.25+i*.025)+'s'});
     /* Text tippt sich Buchstabe für Buchstabe; Piko "spricht" dabei */

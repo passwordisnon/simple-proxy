@@ -42,7 +42,7 @@ const GAME=(()=>{
     Object.assign(G_,{scene:sc,sun,hemi,fill,inter:[],yards:[],gates:[],lights:[],clouds:[],ticks:[],trees:[],rocks:[]});
     /* grosse Planeten: Natur wird in Chunks um den Spieler gestreamt */G_.stream=G_.lod&&(Rr>70||!!window.FORCE_STREAM);
     SCATTER.reset(sc,Rr,M,G_.stream?{fill:fillChunk,unload:unloadChunkRefs}:null);
-    buildPlaces();try{buildHatch()}catch(e){console.warn('Luke',e)}try{buildRift()}catch(e){console.warn('Riss',e)}buildStones();try{buildDocks()}catch(e){console.warn('Stege',e)}try{buildCaves()}catch(e){console.warn('Höhlen',e)}scatterWorld();buildGrass();
+    buildPlaces();try{buildHatch()}catch(e){console.warn('Luke',e)}try{buildRift()}catch(e){console.warn('Riss',e)}try{if(typeof HARAWAY!=='undefined')HARAWAY.build(G_)}catch(e){console.warn('Haraway',e)}buildStones();try{buildDocks()}catch(e){console.warn('Stege',e)}try{buildCaves()}catch(e){console.warn('Höhlen',e)}scatterWorld();buildGrass();
     if(G_.stream){const lp=SAVE.lastPos&&SAVE.lastPos.planet===pid?new V3(...SAVE.lastPos.p).normalize():(fns.places.find(p=>p.build==='plaza')||{dir:UPV}).dir;SCATTER.stream(lp,0,true)}buildClouds();buildBall();if(typeof WEATHER!=='undefined')WEATHER.build(G_);else buildWeather();SCATTER.finalize();
     /* nach dem Aufbau: Höhe exakt aus der sichtbaren Kachel (Figuren stehen genau auf dem Boden) */if(G_.lod){const fh=fns.hAt;G_.hAt=p=>{const h=PLANETLOD.height(p);return h==null?fh(p):h}}
     cam.far=Rr*6+500;cam.updateProjectionMatrix();
