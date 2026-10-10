@@ -38,6 +38,14 @@ opens. The content of those unfinished editors has not been recovered.
 
 ## Step by step: what you need, when, and where
 
+### Quickest check: one command, one report
+
+After cloning (Step 1 below), this pulls the latest code, builds it, runs every check and
+copies one report to your clipboard. Add creation PNGs at the end to decode and assemble them:
+```sh
+bash ~/spore2-work/spore2/Tools/check-my-install.sh ~/SporeData/Base "/path/to/a/building.png"
+```
+
 ### Step 1 – Check that your files can be read (now, on your Mac)
 
 You need Xcode Command Line Tools (`xcode-select --install`) and CMake (`brew install cmake`).
