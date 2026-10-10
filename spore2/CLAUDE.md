@@ -37,7 +37,8 @@ resources, creation PNGs) to this repository.
   buffer 0x20007 (-> data). Element "typeCode" is Spore's usage (0 pos, 2 normal, 6 uv0, 14/15 blend).
   Normals are unsigned bytes: (b - 127.5) / 127.5 (SporeModder-FX's viewer reads them signed; we don't).
   Confirmed on the user's base game: 5,997 meshes, average normal length 0.990; 2,954 rasters and
-  all 13,478 rw4 textures decoded (DXT1/3/5, A8R8G8B8, L8); 1,391 meshes were skipped before blend shapes were read.
+  all 13,478 rw4 textures decoded (DXT1/3/5, A8R8G8B8, L8); with blend shapes all 7,388 meshes decode
+  (4,473 skinned, 1,391 blend shape, 0 skipped). A real creature (.crt) assembles 47 of 47 parts.
   Blend-shape meshes have no vertex buffer: the file's single blend shape buffer 0x200AF (u32 1,
   11 stream offsets, shape/vertex counts) holds 16-byte-per-vertex position/normal/texcoord streams,
   base shape first (SporeModder-FX RWBlendShapeBuffer / processBlendShape). Morph targets not applied.
