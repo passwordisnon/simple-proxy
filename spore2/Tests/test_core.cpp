@@ -3,6 +3,7 @@
 #include "SporeCore/SporeDbpf.h"
 #include "SporeCore/SporePng.h"
 #include "SporeCore/SporeProp.h"
+#include "SporeCore/SporeTexture.h"
 #include "SporeCore/SporeTextureGen.h"
 
 #include <cstdio>
@@ -361,6 +362,98 @@ static void TestRegistry()
 	CHECK(Names[FnvHash("CakeEditor")] == "CakeEditor");
 }
 
+static void TestTextures()
+{
+	// DXT1 block: color0 = pure red (0xF800), color1 = pure blue (0x001F), C0 > C1 -> 4-colour mode.
+	// Index pattern row 0: 0,1,2,3 ; other rows all 0.
+	const std::vector<uint8_t> Dxt1Block = {0x00, 0xF8, 0x1F, 0x00, 0xE4, 0x00, 0x00, 0x00};
+
+	std::vector<uint8_t> Raster;
+	AppendLE32(Raster, 1);           // version
+	AppendLE32(Raster, 4);           // width
+	AppendLE32(Raster, 4);           // height
+	AppendLE32(Raster, 1);           // mips
+	AppendLE32(Raster, 8);           // pixel width
+	AppendLE32(Raster, FourCC_DXT1); // format
+	AppendLE32(Raster, 8);
+	Raster.insert(Raster.end(), Dxt1Block.begin(), Dxt1Block.end());
+
+	TextureImage Image;
+	std::string Error;
+	CHECK(ParseRaster(Raster.data(), Raster.size(), Image, Error));
+	CHECK(Image.Width == 4 && Image.Height == 4 && Image.Format == FourCC_DXT1 && Image.Data.size() == 8);
+	CHECK(!ParseRaster(Raster.data(), Raster.size() - 1, Image, Error));
+
+	CHECK(ParseRaster(Raster.data(), Raster.size(), Image, Error));
+	std::vector<uint8_t> Rgba;
+	CHECK(DecodeToRgba(Image, Rgba, Error));
+	CHECK(Rgba.size() == 64);
+	CHECK(Rgba[0] == 255 && Rgba[1] == 0 && Rgba[2] == 0 && Rgba[3] == 255);   // index 0: red
+	CHECK(Rgba[4] == 0 && Rgba[5] == 0 && Rgba[6] == 255);                      // index 1: blue
+	CHECK(Rgba[8] == 170 && Rgba[10] == 85);                                    // index 2: 2/3 red + 1/3 blue
+	CHECK(Rgba[12] == 85 && Rgba[14] == 170);                                   // index 3
+
+	// DXT1 3-colour mode (C0 <= C1): index 3 is transparent black.
+	TextureImage Punch = Image;
+	Punch.Data = {0x1F, 0x00, 0x00, 0xF8, 0xC0, 0x00, 0x00, 0x00};
+	CHECK(DecodeToRgba(Punch, Rgba, Error));
+	CHECK(Rgba[12] == 0 && Rgba[15] == 0);
+
+	// DXT5: alpha endpoints 255/0, index 1 everywhere (all alpha 0) ; colour block as above.
+	TextureImage Dxt5 = Image;
+	Dxt5.Format = FourCC_DXT5;
+	Dxt5.Data = {255, 0, 0x49, 0x92, 0x24, 0x49, 0x92, 0x24};
+	Dxt5.Data.insert(Dxt5.Data.end(), Dxt1Block.begin(), Dxt1Block.end());
+	CHECK(DecodeToRgba(Dxt5, Rgba, Error));
+	CHECK(Rgba[3] == 0 && Rgba[0] == 255);
+
+	// Uncompressed A8R8G8B8 is stored B,G,R,A.
+	TextureImage Argb;
+	Argb.Width = Argb.Height = 1;
+	Argb.MipCount = 1;
+	Argb.Format = D3DFMT_A8R8G8B8;
+	Argb.Data = {10, 20, 30, 40};
+	CHECK(DecodeToRgba(Argb, Rgba, Error));
+	CHECK(Rgba[0] == 30 && Rgba[1] == 20 && Rgba[2] == 10 && Rgba[3] == 40);
+
+	// DDS header: magic, size, dimensions, FourCC, data appended.
+	std::vector<uint8_t> Dds;
+	WriteDds(Image, Dds);
+	CHECK(Dds.size() == 128 + 8);
+	CHECK(std::memcmp(Dds.data(), "DDS ", 4) == 0);
+	CHECK(Dds[4] == 124 && Dds[12] == 4 && Dds[16] == 4);
+	CHECK(std::memcmp(Dds.data() + 84, "DXT1", 4) == 0);
+
+	// Minimal RW4 texture: header, section table with a raster and a base resource.
+	std::vector<uint8_t> Rw(0x320, 0);
+	const uint8_t Magic[8] = {0x89, 'R', 'W', '4', 'w', '3', '2', 0x00};
+	std::memcpy(Rw.data(), Magic, 8);
+	PutLE32(Rw, 0x1C, 0x04000000); // texture file
+	PutLE32(Rw, 0x24, 2);          // sections
+	PutLE32(Rw, 0x30, 0x200);      // section table
+	PutLE32(Rw, 0x44, 0x300);      // buffer data
+	// Raster at 0x100: format, flags, depth, dxBase, w, h, field_10, mips, pad, f14, f18, data index 1
+	PutLE32(Rw, 0x100, FourCC_DXT1);
+	Rw[0x10C] = 4; Rw[0x10E] = 4; Rw[0x111] = 1;
+	PutLE32(Rw, 0x11C, 1);
+	// Section 0: raster ; section 1: base resource at buffer + 0x10, 8 bytes
+	PutLE32(Rw, 0x200, 0x100); PutLE32(Rw, 0x208, 32); PutLE32(Rw, 0x214, 0x20003);
+	PutLE32(Rw, 0x218, 0x10); PutLE32(Rw, 0x220, 8); PutLE32(Rw, 0x22C, 0x10030);
+	std::memcpy(Rw.data() + 0x310, Dxt1Block.data(), 8);
+
+	Rw4Info Info;
+	CHECK(ParseRw4(Rw.data(), Rw.size(), Info, Error));
+	CHECK(Info.Kind == Rw4Kind::Texture && Info.SectionCount == 2);
+	CHECK(Info.Textures.size() == 1);
+	if (Info.Textures.size() == 1)
+	{
+		CHECK(Info.Textures[0].Width == 4 && Info.Textures[0].MipCount == 1);
+		CHECK(Info.Textures[0].Data == Dxt1Block);
+	}
+	Rw[1] = 'X';
+	CHECK(!ParseRw4(Rw.data(), Rw.size(), Info, Error));
+}
+
 int main()
 {
 	TestRefPack();
@@ -372,6 +465,7 @@ int main()
 	TestTextureGen();
 	TestProp();
 	TestRegistry();
+	TestTextures();
 	if (Failures == 0)
 	{
 		std::printf("all tests passed\n");

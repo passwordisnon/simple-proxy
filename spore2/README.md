@@ -13,13 +13,14 @@ available inside Unreal Engine 5. No game files are included in or committed to 
 | Package integrity checks (duplicate keys, overlapping or out-of-range payloads) | done |
 | Mod override tracking (same key in several packages, last mounted wins) | done |
 | `.prop` property-file decoder (all 24 value types, arrays, localized text; layout from SporeModder-FX) | done, unit-tested |
+| Textures: `.raster` and textures inside `.rw4` (DXT1/3/5, A8R8G8B8, R8G8B8, A8) → `.dds` / `.png` / UE `UTexture2D` | done, unit-tested |
 | Hash → name lookup using SporeModder-FX's `reg_*.txt` files | done, unit-tested |
 | PNG chunk reader (CRC check, `tEXt`/`zTXt`/`iTXt`, creation card shape check) | done, unit-tested |
 | Scharr normal map + roughness estimate from legacy diffuse textures | done, unit-tested |
 | `spore2-scan` command-line checker for your Mac | done |
 | UE5 plugin: `USporeInteropSubsystem` (async mount, read/export, PNG inspect, normal map texture, `-state:` routing) | written, **not yet compiled against UE** |
 | UE5 Slate package browser (category tabs, search, package list, resource table, export) | written, **not yet compiled against UE** |
-| Decoding `.rw4` models and textures into UE assets | not started |
+| Decoding `.rw4` models (meshes, skeletons) into UE assets | not started |
 | Decoding the creature data inside creation PNGs | not started (see note below) |
 | Gameplay stages, editors, procedural animation | not started |
 
@@ -62,6 +63,10 @@ Useful extras:
 
 # check whether a resource with that name really exists in your files (for "hidden content" claims)
 ./build/spore2-scan --names "/Applications/SporeModder FX" --find CakeEditor,CellEditor,PlannerThumbnailGen
+
+# export every texture as .dds (original) and .png (for viewing / AI upscalers like Real-ESRGAN)
+./build/spore2-scan --textures --names ~/SporeData/names --extract ~/SporeData/textures --type raster ~/SporeData/Base
+./build/spore2-scan --textures --names ~/SporeData/names --extract ~/SporeData/textures --type rw4 ~/SporeData/Base
 
 # export all property files plus a readable .txt next to each
 ./build/spore2-scan --extract ~/Desktop/SporeDump --type prop --names "/Applications/SporeModder FX"
@@ -107,7 +112,7 @@ this improves it but cannot add real detail.
 ### Step 5 – Next pieces of code, in order
 
 1. ~~`.prop` property-file decoder~~ (done)
-2. Texture (`.raster`/DDS) and `.rw4` model decoders → UE textures and meshes.
+2. ~~Texture decoders~~ (done); `.rw4` model decoder → UE meshes.
 3. Creation PNG pixel decoder → creature data.
 4. Creature skeleton → Control Rig / procedural locomotion.
 5. Gameplay, one stage at a time.

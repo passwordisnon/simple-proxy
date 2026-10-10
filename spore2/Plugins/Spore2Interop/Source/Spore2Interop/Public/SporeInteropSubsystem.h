@@ -13,6 +13,7 @@ class SWidget;
 class UMaterialInstanceDynamic;
 class UMaterialInterface;
 class UTexture2D;
+struct FSporeTextureData;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogSporeInterop, Log, All);
 
@@ -206,6 +207,19 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Spore|Resources", meta = (DisplayName = "Read Properties"))
 	bool K2_ReadProperties(const FSporeResourceKey& Key, TArray<FSporeProperty>& OutProperties) const { return ReadProperties(Key, OutProperties); }
 
+	// Loads a .raster resource, or the Nth texture inside an .rw4, as a transient texture.
+	// DXT1/3/5 and A8R8G8B8 upload without conversion; other formats are decoded first.
+	// Only the top mip is uploaded for now. Cube maps are not supported yet (returns null).
+	UFUNCTION(BlueprintCallable, Category = "Spore|Textures")
+	UTexture2D* LoadSporeTexture(const FSporeResourceKey& Key, int32 TextureIndex = 0);
+
+	// One-line summary such as "DXT5 512x512, 10 mips" (or the reason it cannot be read).
+	FString DescribeSporeTexture(const FSporeResourceKey& Key) const;
+
+	// Decodes the same texture to RGBA8 pixels (e.g. to feed CreateNormalMapTexture).
+	UFUNCTION(BlueprintCallable, Category = "Spore|Textures")
+	bool DecodeSporeTexturePixels(const FSporeResourceKey& Key, int32 TextureIndex, TArray<uint8>& OutRgba, int32& OutWidth, int32& OutHeight);
+
 	// Registry name for a type id, or empty.
 	FString LookupTypeName(uint32 TypeId) const;
 
@@ -238,6 +252,7 @@ private:
 	static TSharedPtr<FSporeMountedPackage> ParsePackage(const FString& Path, bool bIsMod);
 
 	void LoadNameRegistries();
+	bool ReadSporeTexture(const FSporeResourceKey& Key, int32 TextureIndex, FSporeTextureData& Out) const;
 
 	TMap<uint32, FString> PropertyNames;
 	TMap<uint32, FString> FileNames;

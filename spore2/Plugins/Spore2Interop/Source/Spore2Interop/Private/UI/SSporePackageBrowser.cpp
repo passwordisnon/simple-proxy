@@ -520,7 +520,17 @@ void SSporePackageBrowser::UpdatePropertyPreview()
 {
 	PropertyPreview.Reset();
 	USporeInteropSubsystem* Owner = Subsystem.Get();
-	if (!Owner || !SelectedResource.IsValid() || CategoryOf(SelectedResource->Key.Type) != ESporeBrowserCategory::Properties)
+	if (!Owner || !SelectedResource.IsValid())
+	{
+		return;
+	}
+	const uint32 Type = SelectedResource->Key.Type;
+	if (Type == 0x2F4E681C || Type == 0x2F4E681B) // raster, rw4
+	{
+		PropertyPreview = TEXT("\nTexture: ") + Owner->DescribeSporeTexture(SelectedResource->Key);
+		return;
+	}
+	if (CategoryOf(Type) != ESporeBrowserCategory::Properties)
 	{
 		return;
 	}

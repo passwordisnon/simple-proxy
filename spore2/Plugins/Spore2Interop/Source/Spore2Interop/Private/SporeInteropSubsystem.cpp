@@ -18,6 +18,7 @@
 #include "Modules/ModuleManager.h"
 #include "SporeCore/SporePng.h"
 #include "SporeCore/SporeProp.h"
+#include "SporeCore/SporeTexture.h"
 #include "SporeCore/SporeTextureGen.h"
 #include "UI/SSporePackageBrowser.h"
 #include "Widgets/SWeakWidget.h"
@@ -177,6 +178,147 @@ bool USporeInteropSubsystem::ReadProperties(const FSporeResourceKey& Key, TArray
 		*OutError = UTF8_TO_TCHAR(List.Error.c_str());
 	}
 	return bOk;
+}
+
+struct FSporeTextureData
+{
+	sporecore::TextureImage Image;
+};
+
+bool USporeInteropSubsystem::ReadSporeTexture(const FSporeResourceKey& Key, int32 TextureIndex, FSporeTextureData& Out) const
+{
+	TArray<uint8> Bytes;
+	FString ReadError;
+	if (!ReadResource(Key, Bytes, &ReadError))
+	{
+		UE_LOG(LogSporeInterop, Warning, TEXT("Texture %s: %s"), *Key.ToString(), *ReadError);
+		return false;
+	}
+
+	std::string Error;
+	bool bOk = false;
+	if (Key.Type == 0x2F4E681C) // raster
+	{
+		bOk = TextureIndex == 0 && sporecore::ParseRaster(Bytes.GetData(), Bytes.Num(), Out.Image, Error);
+	}
+	else if (Key.Type == 0x2F4E681B) // rw4
+	{
+		sporecore::Rw4Info Info;
+		bOk = sporecore::ParseRw4(Bytes.GetData(), Bytes.Num(), Info, Error) && Info.Textures.size() > static_cast<size_t>(TextureIndex) && TextureIndex >= 0;
+		if (bOk)
+		{
+			Out.Image = MoveTemp(Info.Textures[TextureIndex]);
+		}
+		else if (Error.empty())
+		{
+			Error = "no texture at that index";
+		}
+	}
+	else
+	{
+		Error = "resource is not a raster or rw4";
+	}
+	if (!bOk)
+	{
+		UE_LOG(LogSporeInterop, Warning, TEXT("Texture %s: %s"), *Key.ToString(), UTF8_TO_TCHAR(Error.c_str()));
+	}
+	return bOk;
+}
+
+FString USporeInteropSubsystem::DescribeSporeTexture(const FSporeResourceKey& Key) const
+{
+	FSporeTextureData Data;
+	if (!ReadSporeTexture(Key, 0, Data))
+	{
+		return TEXT("no readable texture (see LogSporeInterop)");
+	}
+	return FString::Printf(TEXT("%s %ux%u, %u mip%s%s"), UTF8_TO_TCHAR(sporecore::TextureFormatName(Data.Image.Format)),
+		Data.Image.Width, Data.Image.Height, Data.Image.MipCount, Data.Image.MipCount == 1 ? TEXT("") : TEXT("s"), Data.Image.bCube ? TEXT(", cube map") : TEXT(""));
+}
+
+bool USporeInteropSubsystem::DecodeSporeTexturePixels(const FSporeResourceKey& Key, int32 TextureIndex, TArray<uint8>& OutRgba, int32& OutWidth, int32& OutHeight)
+{
+	FSporeTextureData Data;
+	if (!ReadSporeTexture(Key, TextureIndex, Data))
+	{
+		return false;
+	}
+	std::vector<uint8_t> Rgba;
+	std::string Error;
+	if (!sporecore::DecodeToRgba(Data.Image, Rgba, Error))
+	{
+		UE_LOG(LogSporeInterop, Warning, TEXT("Texture %s: %s"), *Key.ToString(), UTF8_TO_TCHAR(Error.c_str()));
+		return false;
+	}
+	OutRgba.SetNumUninitialized(static_cast<int32>(Rgba.size()));
+	FMemory::Memcpy(OutRgba.GetData(), Rgba.data(), Rgba.size());
+	OutWidth = static_cast<int32>(Data.Image.Width);
+	OutHeight = static_cast<int32>(Data.Image.Height);
+	return true;
+}
+
+UTexture2D* USporeInteropSubsystem::LoadSporeTexture(const FSporeResourceKey& Key, int32 TextureIndex)
+{
+	FSporeTextureData Data;
+	if (!ReadSporeTexture(Key, TextureIndex, Data))
+	{
+		return nullptr;
+	}
+	const sporecore::TextureImage& Image = Data.Image;
+	if (Image.bCube)
+	{
+		UE_LOG(LogSporeInterop, Warning, TEXT("Texture %s is a cube map; not supported yet"), *Key.ToString());
+		return nullptr;
+	}
+
+	// Formats the GPU can take as-is; everything else is decoded to BGRA8.
+	EPixelFormat PixelFormat = PF_B8G8R8A8;
+	bool bUploadRaw = true;
+	switch (Image.Format)
+	{
+	case sporecore::FourCC_DXT1: PixelFormat = PF_DXT1; break;
+	case sporecore::FourCC_DXT3: PixelFormat = PF_DXT3; break;
+	case sporecore::FourCC_DXT5: PixelFormat = PF_DXT5; break;
+	case sporecore::D3DFMT_A8R8G8B8: PixelFormat = PF_B8G8R8A8; break; // same memory order
+	default: bUploadRaw = false; break;
+	}
+
+	std::vector<uint8_t> Pixels;
+	if (bUploadRaw)
+	{
+		const size_t Mip0 = sporecore::MipSize(Image.Format, Image.Width, Image.Height);
+		if (Image.Data.size() < Mip0)
+		{
+			UE_LOG(LogSporeInterop, Warning, TEXT("Texture %s: data shorter than its first mip"), *Key.ToString());
+			return nullptr;
+		}
+		Pixels.assign(Image.Data.begin(), Image.Data.begin() + Mip0);
+	}
+	else
+	{
+		std::string Error;
+		if (!sporecore::DecodeToRgba(Image, Pixels, Error))
+		{
+			UE_LOG(LogSporeInterop, Warning, TEXT("Texture %s: %s"), *Key.ToString(), UTF8_TO_TCHAR(Error.c_str()));
+			return nullptr;
+		}
+		for (size_t I = 0; I + 3 < Pixels.size(); I += 4)
+		{
+			Swap(Pixels[I], Pixels[I + 2]); // RGBA -> BGRA
+		}
+	}
+
+	UTexture2D* Texture = UTexture2D::CreateTransient(static_cast<int32>(Image.Width), static_cast<int32>(Image.Height), PixelFormat, FName(*Key.ToString()));
+	if (!Texture)
+	{
+		return nullptr;
+	}
+	FTexture2DMipMap& Mip = Texture->GetPlatformData()->Mips[0];
+	void* Dest = Mip.BulkData.Lock(LOCK_READ_WRITE);
+	FMemory::Memcpy(Dest, Pixels.data(), FMath::Min<int64>(Pixels.size(), Mip.BulkData.GetBulkDataSize()));
+	Mip.BulkData.Unlock();
+	Texture->UpdateResource();
+	return Texture;
 }
 
 ESporeLaunchState USporeInteropSubsystem::ParseLaunchState(const FString& CommandLine)

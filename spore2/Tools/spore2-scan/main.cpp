@@ -1,12 +1,14 @@
 // spore2-scan: verifies that the Spore2Interop core can read a local Spore install.
 //
 // Usage:
-//   spore2-scan [--verify] [--props] [--png] [--extract DIR] [--type HEX|png|prop|rw4]
+//   spore2-scan [--verify] [--props] [--textures] [--png] [--extract DIR] [--type HEX|png|prop|rw4]
 //               [--names SMFX_DIR] [--find NAME[,NAME...]] [ROOT...]
 //
 // With no ROOT arguments it scans the default install locations listed below.
 // Nothing is modified; --extract only writes into DIR.
 //
+// --textures decodes .raster and .rw4 textures; with --extract each one is also written as
+//        .dds (original data) and .png (decoded, for viewing or upscaling).
 // --names points at a SporeModder-FX folder; its reg_*.txt files turn hashes into names.
 // --find reports which packages hold a resource whose instance or group is the hash of NAME
 //        (e.g. --find CakeEditor,CellEditor to check claims about hidden editors).
@@ -14,6 +16,7 @@
 #include "SporeCore/SporeDbpf.h"
 #include "SporeCore/SporePng.h"
 #include "SporeCore/SporeProp.h"
+#include "SporeCore/SporeTexture.h"
 
 #include <zlib.h>
 
@@ -44,6 +47,7 @@ struct Options
 	bool bVerify = false;
 	bool bPng = false;
 	bool bProps = false;
+	bool bTextures = false;
 	std::string NamesDir;
 	std::vector<std::string> FindNames;
 	std::string ExtractDir;
@@ -106,6 +110,57 @@ bool ZlibInflate(const uint8_t* Data, size_t Size, std::vector<uint8_t>& Out)
 	}
 	inflateEnd(&Stream);
 	return Result == Z_STREAM_END;
+}
+
+void AppendBE32(std::vector<uint8_t>& Out, uint32_t V)
+{
+	for (int I = 3; I >= 0; --I) Out.push_back(static_cast<uint8_t>(V >> (8 * I)));
+}
+
+void AppendPngChunk(std::vector<uint8_t>& Out, const char* Type, const std::vector<uint8_t>& Body)
+{
+	AppendBE32(Out, static_cast<uint32_t>(Body.size()));
+	const size_t TypeStart = Out.size();
+	Out.insert(Out.end(), Type, Type + 4);
+	Out.insert(Out.end(), Body.begin(), Body.end());
+	AppendBE32(Out, Crc32(Out.data() + TypeStart, Out.size() - TypeStart));
+}
+
+// RGBA8 -> PNG file bytes (no filtering, zlib-compressed).
+bool EncodePng(const std::vector<uint8_t>& Rgba, uint32_t Width, uint32_t Height, std::vector<uint8_t>& Out)
+{
+	std::vector<uint8_t> Raw;
+	Raw.reserve((static_cast<size_t>(Width) * 4 + 1) * Height);
+	for (uint32_t Y = 0; Y < Height; ++Y)
+	{
+		Raw.push_back(0); // filter type: none
+		const uint8_t* Row = Rgba.data() + static_cast<size_t>(Y) * Width * 4;
+		Raw.insert(Raw.end(), Row, Row + static_cast<size_t>(Width) * 4);
+	}
+	uLongf Compressed = compressBound(static_cast<uLong>(Raw.size()));
+	std::vector<uint8_t> Idat(Compressed);
+	if (compress2(Idat.data(), &Compressed, Raw.data(), static_cast<uLong>(Raw.size()), 6) != Z_OK)
+	{
+		return false;
+	}
+	Idat.resize(Compressed);
+
+	static const uint8_t Signature[8] = {0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A};
+	Out.assign(Signature, Signature + 8);
+	std::vector<uint8_t> Ihdr;
+	AppendBE32(Ihdr, Width);
+	AppendBE32(Ihdr, Height);
+	Ihdr.insert(Ihdr.end(), {8, 6, 0, 0, 0}); // 8-bit RGBA
+	AppendPngChunk(Out, "IHDR", Ihdr);
+	AppendPngChunk(Out, "IDAT", Idat);
+	AppendPngChunk(Out, "IEND", {});
+	return true;
+}
+
+void WriteBytes(const fs::path& File, const std::vector<uint8_t>& Bytes)
+{
+	std::ofstream Out(File, std::ios::binary);
+	Out.write(reinterpret_cast<const char*>(Bytes.data()), static_cast<std::streamsize>(Bytes.size()));
 }
 
 bool ReadRange(std::ifstream& File, uint64_t Offset, size_t Size, std::vector<uint8_t>& Out)
@@ -173,6 +228,12 @@ struct ScanTotals
 	size_t PropsDecoded = 0;
 	size_t PropsFailed = 0;
 	std::vector<std::string> PropFailureSamples;
+	size_t TexturesDecoded = 0;
+	size_t TextureFailures = 0;
+	size_t TexturesSkipped = 0;
+	size_t Rw4Models = 0;
+	std::map<std::string, size_t> TextureFormats;
+	std::vector<std::string> TextureFailureSamples;
 	std::map<std::string, size_t> TypeCounts;
 	// key -> packages that provide it, in scan order (later = higher override priority)
 	std::unordered_map<ResourceKey, std::vector<std::string>, ResourceKeyHash> Providers;
@@ -244,7 +305,9 @@ void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts
 		const bool bWanted = !Opts.bHasTypeFilter || Entry.Key.Type == Opts.TypeFilter;
 		const bool bExtract = !Opts.ExtractDir.empty() && bWanted;
 		const bool bDecodeProp = Opts.bProps && bIsProp;
-		if (!Opts.bVerify && !bExtract && !bDecodeProp)
+		const bool bIsTexture = Entry.Key.Type == 0x2F4E681C || Entry.Key.Type == 0x2F4E681B; // raster, rw4
+		const bool bDecodeTexture = Opts.bTextures && bIsTexture && bWanted;
+		if (!Opts.bVerify && !bExtract && !bDecodeProp && !bDecodeTexture)
 		{
 			continue;
 		}
@@ -280,6 +343,55 @@ void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts
 			}
 		}
 
+		std::vector<TextureImage> Textures;
+		if (bDecodeTexture)
+		{
+			std::string TexError;
+			bool bTexOk = true;
+			if (Entry.Key.Type == 0x2F4E681C)
+			{
+				TextureImage Image;
+				bTexOk = ParseRaster(Decoded.data(), Decoded.size(), Image, TexError);
+				if (bTexOk) Textures.push_back(std::move(Image));
+			}
+			else
+			{
+				Rw4Info Info;
+				bTexOk = ParseRw4(Decoded.data(), Decoded.size(), Info, TexError);
+				if (bTexOk)
+				{
+					if (Info.Kind == Rw4Kind::Model) ++Totals.Rw4Models;
+					Totals.TexturesSkipped += Info.SkippedTextures;
+					Textures = std::move(Info.Textures);
+				}
+			}
+			for (const TextureImage& Image : Textures)
+			{
+				std::vector<uint8_t> Probe;
+				if (!DecodeToRgba(Image, Probe, TexError))
+				{
+					bTexOk = false;
+					break;
+				}
+				++Totals.TextureFormats[TextureFormatName(Image.Format)];
+			}
+			if (bTexOk)
+			{
+				Totals.TexturesDecoded += Textures.size();
+			}
+			else
+			{
+				Textures.clear();
+				++Totals.TextureFailures;
+				if (Totals.TextureFailureSamples.size() < 10)
+				{
+					char Sample[256];
+					std::snprintf(Sample, sizeof(Sample), "%s %08X!%08X: %s", PackageName.c_str(), Entry.Key.Group, Entry.Key.Instance, TexError.c_str());
+					Totals.TextureFailureSamples.push_back(Sample);
+				}
+			}
+		}
+
 		if (bExtract)
 		{
 			// SporeModder-FX style layout: <package>/<group>/<instance>.<type>, using registry
@@ -298,6 +410,21 @@ void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts
 			std::ofstream Out(OutDir / Name, std::ios::binary);
 			Out.write(reinterpret_cast<const char*>(Decoded.data()), static_cast<std::streamsize>(Decoded.size()));
 			++Totals.Extracted;
+
+			// Viewable companions for textures: original data as .dds, decoded pixels as .png.
+			for (size_t T = 0; T < Textures.size(); ++T)
+			{
+				const std::string Base = Name + (Textures.size() > 1 ? "." + std::to_string(T) : std::string());
+				std::vector<uint8_t> Bytes;
+				WriteDds(Textures[T], Bytes);
+				WriteBytes(OutDir / (Base + ".dds"), Bytes);
+				std::vector<uint8_t> Rgba;
+				std::string TexError;
+				if (DecodeToRgba(Textures[T], Rgba, TexError) && EncodePng(Rgba, Textures[T].Width, Textures[T].Height, Bytes))
+				{
+					WriteBytes(OutDir / (Base + ".png"), Bytes);
+				}
+			}
 
 			// Readable companion file for property lists.
 			if (bPropOk)
@@ -354,7 +481,7 @@ void ScanPng(const fs::path& Path)
 
 void PrintUsage()
 {
-	std::printf("usage: spore2-scan [--verify] [--props] [--png] [--extract DIR] [--type HEX|png|prop|rw4|raster]\n"
+	std::printf("usage: spore2-scan [--verify] [--props] [--textures] [--png] [--extract DIR] [--type HEX|png|prop|rw4|raster]\n"
 	            "                   [--names SMFX_DIR] [--find NAME[,NAME...]] [ROOT...]\n");
 }
 
@@ -369,6 +496,7 @@ int main(int Argc, char** Argv)
 		if (Arg == "--verify") Opts.bVerify = true;
 		else if (Arg == "--png") Opts.bPng = true;
 		else if (Arg == "--props") Opts.bProps = true;
+		else if (Arg == "--textures") Opts.bTextures = true;
 		else if (Arg == "--names" && I + 1 < Argc) Opts.NamesDir = Argv[++I];
 		else if (Arg == "--find" && I + 1 < Argc)
 		{
@@ -493,6 +621,19 @@ int main(int Argc, char** Argv)
 	std::printf("  index issues:     %zu\n", Totals.Issues);
 	std::printf("  overridden keys:  %zu (same key in more than one package)\n", Overridden);
 	if (Opts.bVerify) std::printf("  decode failures:  %zu\n", Totals.DecodeFailures);
+	if (Opts.bTextures)
+	{
+		std::printf("  textures:         %zu decoded, %zu files failed, %zu skipped (sub-references)\n", Totals.TexturesDecoded, Totals.TextureFailures, Totals.TexturesSkipped);
+		std::printf("  rw4 models seen:  %zu\n", Totals.Rw4Models);
+		for (const auto& [Format, Count] : Totals.TextureFormats)
+		{
+			std::printf("    %-10s %zu\n", Format.c_str(), Count);
+		}
+		for (const std::string& Sample : Totals.TextureFailureSamples)
+		{
+			std::printf("    ! %s\n", Sample.c_str());
+		}
+	}
 	if (Opts.bProps)
 	{
 		std::printf("  prop files:       %zu decoded, %zu failed\n", Totals.PropsDecoded, Totals.PropsFailed);

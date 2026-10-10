@@ -13,6 +13,7 @@ add_library(sporecore STATIC
   ${CORE_DIR}/Private/SporeCore/SporeDbpf.cpp
   ${CORE_DIR}/Private/SporeCore/SporePng.cpp
   ${CORE_DIR}/Private/SporeCore/SporeProp.cpp
+  ${CORE_DIR}/Private/SporeCore/SporeTexture.cpp
   ${CORE_DIR}/Private/SporeCore/SporeTextureGen.cpp)
 target_include_directories(sporecore PUBLIC ${CORE_DIR}/Public)
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")

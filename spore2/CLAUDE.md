@@ -28,9 +28,12 @@ resources, creation PNGs) to this repository.
   GPL files into this repo; load them from the user's SporeModder-FX folder).
 - .prop: big-endian count/header/scalars; little-endian keys, vectors, colors, transforms, bboxes;
   single keys and vector2/vector3/colorRGB carry padding that arrays do not (see SporeProp.cpp).
+- .raster: version 1 header (w, h, mips, pixel width, format) + size-prefixed mips.
+  .rw4: magic 89 'RW4w32'; type @0x1C, section count @0x24, section table @0x30, buffer base @0x44;
+  24-byte section infos; raster sections (0x20003) point at base resources (0x10030).
 - Creation PNG model data is hidden in pixel low bits, not in text chunks.
 
 ## Roadmap
 
-1. ~~`.prop` decoder~~  2. raster/DDS + `.rw4` → UE assets  3. creation PNG pixel decoder
+1. ~~`.prop` decoder~~  2. ~~textures~~; `.rw4` models → UE meshes  3. creation PNG pixel decoder
 4. skeleton → Control Rig  5. gameplay stages
