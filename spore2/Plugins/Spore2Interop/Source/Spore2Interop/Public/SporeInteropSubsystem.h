@@ -218,8 +218,11 @@ public:
 	// Spore's right-handed space to UE's left-handed space (Y mirrored, winding flipped) and
 	// scales by UnitScale (Spore units -> cm; 100 assumes Spore units are metres). Returns
 	// the number of sections created. Skinned meshes are built in their bind pose.
+	// With BaseMaterial set, sections whose diffuse texture is inside the same .rw4 get a
+	// material instance from CreateLegacyMaterial (textures named by override are external
+	// and are not resolved yet).
 	UFUNCTION(BlueprintCallable, Category = "Spore|Models")
-	int32 BuildSporeMesh(const FSporeResourceKey& Key, UProceduralMeshComponent* Target, float UnitScale = 100.0f);
+	int32 BuildSporeMesh(const FSporeResourceKey& Key, UProceduralMeshComponent* Target, float UnitScale = 100.0f, UMaterialInterface* BaseMaterial = nullptr);
 
 	// Summary of a .raster/.rw4: texture formats and sizes, mesh and triangle counts.
 	FString DescribeRw4(const FSporeResourceKey& Key) const;

@@ -226,7 +226,7 @@ bool USporeInteropSubsystem::ReadSporeTexture(const FSporeResourceKey& Key, int3
 	return bOk;
 }
 
-int32 USporeInteropSubsystem::BuildSporeMesh(const FSporeResourceKey& Key, UProceduralMeshComponent* Target, float UnitScale)
+int32 USporeInteropSubsystem::BuildSporeMesh(const FSporeResourceKey& Key, UProceduralMeshComponent* Target, float UnitScale, UMaterialInterface* BaseMaterial)
 {
 	if (!Target)
 	{
@@ -282,7 +282,23 @@ int32 USporeInteropSubsystem::BuildSporeMesh(const FSporeResourceKey& Key, UProc
 			Triangles.Add(static_cast<int32>(Mesh.Indices[T + 2]));
 			Triangles.Add(static_cast<int32>(Mesh.Indices[T + 1]));
 		}
-		Target->CreateMeshSection(Section++, Vertices, Triangles, Normals, UV0, TArray<FColor>(), TArray<FProcMeshTangent>(), true);
+		Target->CreateMeshSection(Section, Vertices, Triangles, Normals, UV0, TArray<FColor>(), TArray<FProcMeshTangent>(), true);
+		if (BaseMaterial)
+		{
+			const sporecore::MeshTextureSlot* Slot = sporecore::DiffuseSlot(Mesh);
+			if (Slot && Slot->TextureIndex >= 0)
+			{
+				if (UTexture2D* Diffuse = LoadSporeTexture(Key, Slot->TextureIndex))
+				{
+					Target->SetMaterial(Section, CreateLegacyMaterial(BaseMaterial, Diffuse, nullptr, false));
+				}
+			}
+			else if (Slot && !Slot->OverrideName.empty())
+			{
+				UE_LOG(LogSporeInterop, Log, TEXT("Model %s section %d uses external texture '%s'"), *Key.ToString(), Section, UTF8_TO_TCHAR(Slot->OverrideName.c_str()));
+			}
+		}
+		++Section;
 	}
 	UE_LOG(LogSporeInterop, Log, TEXT("Model %s: built %d mesh sections"), *Key.ToString(), Section);
 	return Section;

@@ -21,7 +21,8 @@ available inside Unreal Engine 5. No game files are included in or committed to 
 | UE5 plugin: `USporeInteropSubsystem` (async mount, read/export, PNG inspect, normal map texture, `-state:` routing) | written, **not yet compiled against UE** |
 | UE5 Slate package browser (category tabs, search, package list, resource table, export) | written, **not yet compiled against UE** |
 | Models: `.rw4` meshes (positions, normals, UVs; lists and strips) → `.obj` / UE `ProceduralMeshComponent` | done, unit-tested |
-| Skeletons, skinning, animations, blend shapes, materials | not started |
+| Materials: mesh → texture slots (in-file rasters and named texture overrides) → `.mtl` / UE material instances | done, unit-tested |
+| Skeletons, skinning, animations, blend shapes | not started |
 | Decoding the creature data inside creation PNGs | not started (see note below) |
 | Gameplay stages, editors, procedural animation | not started |
 
@@ -116,7 +117,7 @@ this improves it but cannot add real detail.
 ### Step 5 – Next pieces of code, in order
 
 1. ~~`.prop` property-file decoder~~ (done)
-2. ~~Texture decoders~~ and ~~`.rw4` mesh decoder~~ (done); next: materials (which texture goes on which mesh), skeletons and animations.
+2. ~~Texture decoders~~ and ~~`.rw4` mesh decoder~~ (done); ~~materials~~ (done); next: skeletons and animations, and resolving named external textures.
 3. Creation PNG pixel decoder → creature data.
 4. Creature skeleton → Control Rig / procedural locomotion.
 5. Gameplay, one stage at a time.

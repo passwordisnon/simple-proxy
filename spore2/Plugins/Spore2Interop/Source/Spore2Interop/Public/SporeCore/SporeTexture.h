@@ -55,6 +55,14 @@ enum class Rw4Kind : uint8_t
 	Special,
 };
 
+// A texture bound to a mesh through its compiled material state.
+struct MeshTextureSlot
+{
+	uint32_t Sampler = 0;     // Direct3D sampler stage (0 is usually the diffuse map)
+	int32_t TextureIndex = -1; // index into Rw4Info::Textures when the raster is in this file
+	std::string OverrideName;  // name of an externally supplied texture (RW texture override)
+};
+
 // One renderable mesh: triangle list in Spore's coordinate system (Z up).
 struct MeshData
 {
@@ -63,6 +71,7 @@ struct MeshData
 	std::vector<float> UVs;       // u, v per vertex, empty when the mesh has none
 	std::vector<uint32_t> Indices; // 3 per triangle
 	bool bSkinned = false;        // has blend indices/weights (skeleton data not decoded yet)
+	std::vector<MeshTextureSlot> TextureSlots; // from the mesh's compiled states, in order
 
 	size_t VertexCount() const { return Positions.size() / 3; }
 };
@@ -76,10 +85,15 @@ struct Rw4Info
 	std::vector<MeshData> Meshes;
 	uint32_t SkippedMeshes = 0;   // meshes using blend shapes, sub-references or unsupported layouts
 	std::vector<std::string> MeshIssues;
+	uint32_t UnreadableMaterials = 0; // compiled states that could not be decoded
 };
 
-// Wavefront OBJ text for one mesh (positions, UVs with V flipped, normals).
-std::string MeshToObj(const MeshData& Mesh, const std::string& Name);
+// Wavefront OBJ text for one mesh (positions, UVs with V flipped, normals). When
+// MaterialLibrary is set, the OBJ references it and uses material MaterialName.
+std::string MeshToObj(const MeshData& Mesh, const std::string& Name, const std::string& MaterialLibrary = std::string(), const std::string& MaterialName = std::string());
+
+// The slot to use as the diffuse texture: sampler 0 if present, else the first slot, else null.
+const MeshTextureSlot* DiffuseSlot(const MeshData& Mesh);
 
 // Reads the RenderWare 4 header and section table and extracts every raster and mesh section.
 bool ParseRw4(const uint8_t* Data, size_t Size, Rw4Info& Out, std::string& Error);

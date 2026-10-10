@@ -243,6 +243,10 @@ struct ScanTotals
 	double NormalLengthSum = 0.0;
 	uint64_t NormalCount = 0;
 	std::map<std::string, size_t> MeshIssues;
+	size_t MeshesWithOwnTexture = 0;
+	size_t MeshesWithOverride = 0;
+	size_t UnreadableMaterials = 0;
+	std::map<std::string, size_t> OverrideNames;
 	std::map<std::string, size_t> TextureFormats;
 	std::vector<std::string> TextureFailureSamples;
 	std::map<std::string, size_t> TypeCounts;
@@ -356,6 +360,7 @@ void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts
 		}
 
 		std::vector<MeshData> Meshes;
+		size_t ModelTextureCount = 0; // textures inside the same rw4, for .mtl references
 		if (bDecodeModel)
 		{
 			Rw4Info Info;
@@ -363,6 +368,8 @@ void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts
 			if (ParseRw4(Decoded.data(), Decoded.size(), Info, ModelError))
 			{
 				Totals.MeshesSkipped += Info.SkippedMeshes;
+				Totals.UnreadableMaterials += Info.UnreadableMaterials;
+				ModelTextureCount = Info.Textures.size();
 				for (const std::string& Issue : Info.MeshIssues) ++Totals.MeshIssues[Issue];
 				for (const MeshData& Mesh : Info.Meshes)
 				{
@@ -370,6 +377,15 @@ void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts
 					Totals.SkinnedMeshes += Mesh.bSkinned ? 1 : 0;
 					Totals.MeshVertices += Mesh.VertexCount();
 					Totals.MeshTriangles += Mesh.Indices.size() / 3;
+					if (const MeshTextureSlot* Slot = DiffuseSlot(Mesh))
+					{
+						if (Slot->TextureIndex >= 0) ++Totals.MeshesWithOwnTexture;
+						if (!Slot->OverrideName.empty())
+						{
+							++Totals.MeshesWithOverride;
+							++Totals.OverrideNames[Slot->OverrideName];
+						}
+					}
 					for (size_t N = 0; N + 2 < Mesh.Normals.size(); N += 3)
 					{
 						const double X = Mesh.Normals[N], Y = Mesh.Normals[N + 1], Z = Mesh.Normals[N + 2];
@@ -456,8 +472,19 @@ void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts
 			for (size_t M = 0; M < Meshes.size(); ++M)
 			{
 				const std::string Base = Name + (Meshes.size() > 1 ? "." + std::to_string(M) : std::string());
+				// A .mtl pointing at the mesh's own texture PNG (written when --textures is on).
+				std::string Library, Material;
+				const MeshTextureSlot* Slot = DiffuseSlot(Meshes[M]);
+				if (Slot && Slot->TextureIndex >= 0 && Opts.bTextures)
+				{
+					const std::string Png = Name + (ModelTextureCount > 1 ? "." + std::to_string(Slot->TextureIndex) : std::string()) + ".png";
+					Library = Base + ".mtl";
+					Material = "diffuse";
+					std::ofstream Mtl(OutDir / Library);
+					Mtl << "newmtl diffuse\nKd 1 1 1\nmap_Kd " << Png << "\n";
+				}
 				std::ofstream Obj(OutDir / (Base + ".obj"));
-				Obj << MeshToObj(Meshes[M], Base);
+				Obj << MeshToObj(Meshes[M], Base, Library, Material);
 			}
 
 			// Viewable companions for textures: original data as .dds, decoded pixels as .png.
@@ -679,6 +706,14 @@ int main(int Argc, char** Argv)
 		{
 			// Correctly decoded normals have length ~1; a very different average means the encoding guess is wrong.
 			std::printf("  avg normal length: %.3f (should be close to 1.0)\n", Totals.NormalLengthSum / static_cast<double>(Totals.NormalCount));
+		}
+		std::printf("  mesh textures:    %zu use a texture in the same file, %zu use a named external texture, %zu unreadable materials\n",
+			Totals.MeshesWithOwnTexture, Totals.MeshesWithOverride, Totals.UnreadableMaterials);
+		std::vector<std::pair<std::string, size_t>> Overrides(Totals.OverrideNames.begin(), Totals.OverrideNames.end());
+		std::sort(Overrides.begin(), Overrides.end(), [](const auto& A, const auto& B) { return A.second > B.second; });
+		for (size_t I = 0; I < Overrides.size() && I < 8; ++I)
+		{
+			std::printf("    external '%s': %zu meshes\n", Overrides[I].first.c_str(), Overrides[I].second);
 		}
 		std::vector<std::pair<std::string, size_t>> Issues(Totals.MeshIssues.begin(), Totals.MeshIssues.end());
 		std::sort(Issues.begin(), Issues.end(), [](const auto& A, const auto& B) { return A.second > B.second; });

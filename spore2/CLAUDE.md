@@ -35,9 +35,12 @@ resources, creation PNGs) to this repository.
   buffer 0x20007 (-> data). Element "typeCode" is Spore's usage (0 pos, 2 normal, 6 uv0, 14/15 blend).
   Normals are unsigned bytes: (b - 127.5) / 127.5 (SporeModder-FX's viewer reads them signed; we don't).
   UE conversion mirrors Y and flips winding; the 100x unit scale is an assumption to verify.
+- rw4 materials: mesh/state link 0x2001A -> compiled states 0x2000B; texture slots sit at the end of
+  the compiled state (walk per MaterialStateCompiler.decompile); a slot's raster index points at a
+  raster 0x20003 or a texture override 0x20008 (0xFB724FAA + C-string name).
 - Creation PNG model data is hidden in pixel low bits, not in text chunks.
 
 ## Roadmap
 
-1. ~~`.prop` decoder~~  2. ~~textures~~, ~~rw4 meshes~~; materials, skeletons, animations  3. creation PNG pixel decoder
+1. ~~`.prop` decoder~~  2. ~~textures~~, ~~rw4 meshes~~, ~~materials~~; skeletons, animations  3. creation PNG pixel decoder
 4. skeleton → Control Rig  5. gameplay stages

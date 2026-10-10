@@ -191,6 +191,123 @@ constexpr uint32_t Rw4TypeVertexDescription = 0x20004;
 constexpr uint32_t Rw4TypeVertexBuffer = 0x20005;
 constexpr uint32_t Rw4TypeIndexBuffer = 0x20007;
 constexpr uint32_t Rw4TypeMesh = 0x20009;
+constexpr uint32_t Rw4TypeCompiledState = 0x2000B;
+constexpr uint32_t Rw4TypeTextureOverride = 0x20008;
+constexpr uint32_t Rw4TypeMeshStateLink = 0x2001A;
+
+// Bounds-checked little-endian cursor over one section.
+struct Rw4Cursor
+{
+	const uint8_t* Data;
+	size_t Size;
+	size_t Pos = 0;
+	bool bOk = true;
+
+	uint32_t U32()
+	{
+		if (!bOk || Size - Pos < 4) { bOk = false; return 0; }
+		const uint32_t V = TexLE32(Data + Pos);
+		Pos += 4;
+		return V;
+	}
+	uint16_t U16()
+	{
+		if (!bOk || Size - Pos < 2) { bOk = false; return 0; }
+		const uint16_t V = TexLE16(Data + Pos);
+		Pos += 2;
+		return V;
+	}
+	void Skip(size_t Bytes)
+	{
+		if (!bOk || Size - Pos < Bytes) { bOk = false; return; }
+		Pos += Bytes;
+	}
+};
+
+// Walks a compiled material state (layout from SporeModder-FX MaterialStateCompiler.decompile)
+// far enough to read its texture slots. Each slot's raster field is an object index.
+bool ReadCompiledStateSlots(const uint8_t* Data, size_t Size, std::vector<std::pair<uint32_t, uint32_t>>& OutSlots)
+{
+	Rw4Cursor C{Data, Size};
+	C.Skip(4);              // size
+	C.U32();                // primitive type
+	const uint32_t Flags1 = C.U32();
+	C.U32();                // flags2
+	const uint32_t Flags3 = C.U32();
+	const uint32_t Field14 = C.U32();
+	C.U32();                // renderer id
+	C.Skip(4);              // padding
+
+	if (Flags1 & 0x1) C.Skip((Flags1 & 0x2) ? 4 : 64); // model-to-world: object index or 4x4 floats
+	if (Flags1 & 0x100000)
+	{
+		// Embedded vertex description: 24-byte header (count at +12) + 12 bytes per element.
+		const size_t Start = C.Pos;
+		C.Skip(12);
+		const uint16_t Count = C.U16();
+		C.Pos = Start;
+		C.Skip(24 + 12ull * Count);
+	}
+	if (Flags1 & 0x8)
+	{
+		// Shader data: (index i16, offset i16, length i32, [offset bytes], data) until index 0.
+		int16_t Index = static_cast<int16_t>(C.U16());
+		while (C.bOk && Index != 0)
+		{
+			if (Index > 0)
+			{
+				const uint16_t Offset = C.U16();
+				const uint32_t Length = C.U32();
+				if (Length % 4 != 0) return false;
+				C.Skip(Offset);
+				C.Skip(Length);
+				if (Length == 0) C.Skip(4);
+			}
+			Index = static_cast<int16_t>(C.U16());
+		}
+		C.Skip(6);
+	}
+	if (Flags1 & 0x10) C.Skip(16); // material colour RGBA
+	if (Flags1 & 0x20) C.Skip(12); // ambient colour RGB
+	for (int I = 0; I < 8; ++I)
+	{
+		if (Flags1 & (1u << (6 + I))) C.Skip(4);
+	}
+	if (Flags1 & 0x8000) C.Skip(17); // 17 booleans
+	if (Flags1 & 0x10000) C.Skip(4);
+	if (Flags1 & 0x20000) C.Skip(12);
+	if (Flags1 & 0x40000) C.Skip(4);
+	if (Flags1 & 0x80000) C.Skip(4);
+	if (Field14 & 0x20000) C.Skip(28);
+	if (Field14 & 0x40000) C.Skip(44);
+	if (Field14 & 0x80000) C.Skip(44);
+	if (Flags3 & 0x20000)
+	{
+		// Render state groups: group id, (state, value)* -1, ... until group -1.
+		while (C.bOk && C.U32() != 0xFFFFFFFFu)
+		{
+			while (C.bOk && C.U32() != 0xFFFFFFFFu) C.U32();
+		}
+	}
+	C.U32(); // palette entries index (-1 when absent)
+	if (Flags3 & 0x1FFFF)
+	{
+		uint32_t Sampler;
+		while (C.bOk && (Sampler = C.U32()) != 0xFFFFFFFFu)
+		{
+			const uint32_t Raster = C.U32();
+			OutSlots.emplace_back(Sampler, Raster);
+			for (int List = 0; List < 2; ++List) // texture stage states, then sampler states
+			{
+				if (C.U32() != 0)
+				{
+					while (C.bOk && C.U32() != 0xFFFFFFFFu) C.U32();
+				}
+			}
+		}
+	}
+	return C.bOk;
+}
 
 // Resolves an object index to a section of the expected type, or nullptr. Indices whose top
 // bits are non-zero refer to sub-references or "no object", which are not supported here.
@@ -490,8 +607,11 @@ bool ParseRw4(const uint8_t* Data, size_t Size, Rw4Info& Out, std::string& Error
 		}
 	}
 
-	for (const Rw4Section& Section : Sections)
+	std::vector<int32_t> MeshOfSection(Sections.size(), -1);
+	std::vector<int32_t> TextureOfSection(Sections.size(), -1);
+	for (size_t SectionIndex = 0; SectionIndex < Sections.size(); ++SectionIndex)
 	{
+		const Rw4Section& Section = Sections[SectionIndex];
 		if (Section.TypeCode == Rw4TypeMesh)
 		{
 			if (Section.Offset + 36 > Size)
@@ -503,6 +623,7 @@ bool ParseRw4(const uint8_t* Data, size_t Size, Rw4Info& Out, std::string& Error
 			std::string Issue;
 			if (DecodeMesh(Data, Size, Sections, Section, Mesh, Issue))
 			{
+				MeshOfSection[SectionIndex] = static_cast<int32_t>(Out.Meshes.size());
 				Out.Meshes.push_back(std::move(Mesh));
 			}
 			else
@@ -538,14 +659,74 @@ bool ParseRw4(const uint8_t* Data, size_t Size, Rw4Info& Out, std::string& Error
 			continue;
 		}
 		Image.Data.assign(Data + Buffer->Offset, Data + Buffer->Offset + Buffer->Size);
+		TextureOfSection[SectionIndex] = static_cast<int32_t>(Out.Textures.size());
 		Out.Textures.push_back(std::move(Image));
+	}
+
+	// Materials: mesh/compiled-state links name the states whose texture slots apply to a mesh.
+	for (const Rw4Section& Link : Sections)
+	{
+		if (Link.TypeCode != Rw4TypeMeshStateLink || Link.Offset + 8 > Size)
+		{
+			continue;
+		}
+		Rw4Cursor C{Data + Link.Offset, Size - Link.Offset};
+		const uint32_t MeshIndex = C.U32();
+		const uint32_t StateCount = C.U32();
+		if (!C.bOk || (MeshIndex >> 22) != 0 || MeshIndex >= Sections.size() || MeshOfSection[MeshIndex] < 0)
+		{
+			continue;
+		}
+		MeshData& Mesh = Out.Meshes[MeshOfSection[MeshIndex]];
+		for (uint32_t S = 0; S < StateCount && C.bOk; ++S)
+		{
+			const Rw4Section* State = Rw4Get(Sections, C.U32(), Rw4TypeCompiledState, Size, 0);
+			std::vector<std::pair<uint32_t, uint32_t>> Slots;
+			if (!State || State->Offset + State->Size > Size || !ReadCompiledStateSlots(Data + State->Offset, State->Size, Slots))
+			{
+				++Out.UnreadableMaterials;
+				continue;
+			}
+			for (const auto& [Sampler, RasterIndex] : Slots)
+			{
+				MeshTextureSlot Slot;
+				Slot.Sampler = Sampler;
+				if ((RasterIndex >> 22) == 0 && RasterIndex < Sections.size())
+				{
+					const Rw4Section& Target = Sections[RasterIndex];
+					if (Target.TypeCode == Rw4TypeRaster)
+					{
+						Slot.TextureIndex = TextureOfSection[RasterIndex];
+					}
+					else if (Target.TypeCode == Rw4TypeTextureOverride && Target.Offset + 4 <= Size && TexLE32(Data + Target.Offset) == 0xFB724FAAu)
+					{
+						const char* Name = reinterpret_cast<const char*>(Data + Target.Offset + 4);
+						const size_t MaxLen = static_cast<size_t>(Size - Target.Offset - 4);
+						Slot.OverrideName.assign(Name, strnlen(Name, MaxLen));
+					}
+				}
+				Mesh.TextureSlots.push_back(std::move(Slot));
+			}
+		}
 	}
 	return true;
 }
 
-std::string MeshToObj(const MeshData& Mesh, const std::string& Name)
+const MeshTextureSlot* DiffuseSlot(const MeshData& Mesh)
 {
-	std::string Out = "# Exported by spore2-scan from Spore RenderWare 4 data\no " + Name + "\n";
+	for (const MeshTextureSlot& Slot : Mesh.TextureSlots)
+	{
+		if (Slot.Sampler == 0) return &Slot;
+	}
+	return Mesh.TextureSlots.empty() ? nullptr : &Mesh.TextureSlots.front();
+}
+
+std::string MeshToObj(const MeshData& Mesh, const std::string& Name, const std::string& MaterialLibrary, const std::string& MaterialName)
+{
+	std::string Out = "# Exported by spore2-scan from Spore RenderWare 4 data\n";
+	if (!MaterialLibrary.empty()) Out += "mtllib " + MaterialLibrary + "\n";
+	Out += "o " + Name + "\n";
+	if (!MaterialName.empty()) Out += "usemtl " + MaterialName + "\n";
 	char Line[128];
 	const size_t Count = Mesh.VertexCount();
 	for (size_t V = 0; V < Count; ++V)

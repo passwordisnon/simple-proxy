@@ -565,6 +565,44 @@ static void TestMeshes()
 	CHECK(ParseRw4(Strip.data(), Strip.size(), Info, Error));
 	CHECK(Info.Meshes.size() == 1 && Info.Meshes[0].Indices == std::vector<uint32_t>({0, 1, 2, 2, 1, 3}));
 
+	// Material: mesh state link -> compiled state with one texture slot -> raster in this file.
+	std::vector<uint8_t> Mat = BuildMeshRw4(4, {0, 1, 2, 2, 1, 3}, 2);
+	Mat.resize(0x700, 0);
+	PutLE32(Mat, 0x24, 10);
+	PutLE32(Mat, 0x240, FourCC_DXT1); // 6: raster -> data section 7
+	Mat[0x24C] = 4; Mat[0x24E] = 4; Mat[0x251] = 1;
+	PutLE32(Mat, 0x25C, 7);
+	PutLE32(Mat, 0x610, 1);           // 8: compiled state, flags3 = sampler 0 used
+	PutLE32(Mat, 0x620, 0xFFFFFFFF);  // no palette
+	PutLE32(Mat, 0x624, 0);           // sampler 0
+	PutLE32(Mat, 0x628, 6);           // raster section 6
+	PutLE32(Mat, 0x634, 0xFFFFFFFF);  // end of slots
+	PutLE32(Mat, 0x280, 5);           // 9: link mesh 5 -> state 8
+	PutLE32(Mat, 0x284, 1);
+	PutLE32(Mat, 0x288, 8);
+	PutSection(Mat, 0x300, 6, 0x240, 32, 0x20003);
+	PutSection(Mat, 0x300, 7, 0x100, 8, 0x10030);
+	PutSection(Mat, 0x300, 8, 0x600, 56, 0x2000B);
+	PutSection(Mat, 0x300, 9, 0x280, 12, 0x2001A);
+	CHECK(ParseRw4(Mat.data(), Mat.size(), Info, Error));
+	CHECK(Info.Textures.size() == 1 && Info.Meshes.size() == 1 && Info.UnreadableMaterials == 0);
+	if (Info.Meshes.size() == 1)
+	{
+		CHECK(Info.Meshes[0].TextureSlots.size() == 1);
+		CHECK(!Info.Meshes[0].TextureSlots.empty() && Info.Meshes[0].TextureSlots[0].TextureIndex == 0 && Info.Meshes[0].TextureSlots[0].Sampler == 0);
+	}
+
+	// Same slot pointing at a texture override (named external texture).
+	PutLE32(Mat, 0x240, 0xFB724FAA);
+	std::memcpy(Mat.data() + 0x244, "SkinPaint", 10);
+	PutSection(Mat, 0x300, 6, 0x240, 14, 0x20008);
+	CHECK(ParseRw4(Mat.data(), Mat.size(), Info, Error));
+	CHECK(Info.Meshes.size() == 1 && Info.Meshes[0].TextureSlots.size() == 1);
+	if (Info.Meshes.size() == 1 && !Info.Meshes[0].TextureSlots.empty())
+	{
+		CHECK(Info.Meshes[0].TextureSlots[0].TextureIndex == -1 && Info.Meshes[0].TextureSlots[0].OverrideName == "SkinPaint");
+	}
+
 	// Out-of-range index: the mesh is skipped with an issue, the file still parses.
 	std::vector<uint8_t> Bad = BuildMeshRw4(4, {0, 1, 9}, 1);
 	CHECK(ParseRw4(Bad.data(), Bad.size(), Info, Error));
