@@ -70,6 +70,7 @@ private:
 	FReply OnRescanClicked();
 	FReply OnExportClicked();
 	bool CanExport() const;
+	void UpdatePropertyPreview();
 
 	TWeakObjectPtr<USporeInteropSubsystem> Subsystem;
 	FSimpleDelegate OnCloseRequested;
@@ -79,6 +80,7 @@ private:
 	int32 SelectedPackage = INDEX_NONE;
 	TSharedPtr<FSporeBrowserResourceItem> SelectedResource;
 	FText LastActionMessage;
+	FString PropertyPreview;
 
 	TArray<TSharedPtr<FSporeBrowserPackageItem>> PackageItems;
 	TArray<TSharedPtr<FSporeBrowserResourceItem>> AllResources;

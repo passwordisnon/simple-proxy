@@ -17,6 +17,7 @@
 #include "Misc/Paths.h"
 #include "Modules/ModuleManager.h"
 #include "SporeCore/SporePng.h"
+#include "SporeCore/SporeProp.h"
 #include "SporeCore/SporeTextureGen.h"
 #include "UI/SSporePackageBrowser.h"
 #include "Widgets/SWeakWidget.h"
@@ -93,6 +94,7 @@ void USporeInteropSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		ModsFolder = FPaths::Combine(FPlatformProcess::UserDir(), TEXT("My Spore Creations"), TEXT("Mods"));
 	}
 
+	LoadNameRegistries();
 	LaunchState = ParseLaunchState(FCommandLine::Get());
 	UE_LOG(LogSporeInterop, Log, TEXT("Spore interop ready, %d install roots, launch state %d"), InstallRoots.Num(), static_cast<int32>(LaunchState));
 }
@@ -104,6 +106,71 @@ void USporeInteropSubsystem::Deinitialize()
 	Packages.Reset();
 	Registry.Reset();
 	Super::Deinitialize();
+}
+
+void USporeInteropSubsystem::LoadNameRegistries()
+{
+	PropertyNames.Reset();
+	TypeNames.Reset();
+	if (NameRegistryFolder.IsEmpty())
+	{
+		return;
+	}
+	auto Load = [this](const TCHAR* FileName, TMap<uint32, FString>& Out)
+	{
+		FString Text;
+		if (!FFileHelper::LoadFileToString(Text, *FPaths::Combine(NameRegistryFolder, FileName)))
+		{
+			return;
+		}
+		std::unordered_map<uint32_t, std::string> Parsed;
+		sporecore::ParseNameRegistry(TCHAR_TO_UTF8(*Text), Parsed);
+		for (const auto& [Id, Name] : Parsed)
+		{
+			Out.Add(Id, UTF8_TO_TCHAR(Name.c_str()));
+		}
+	};
+	Load(TEXT("reg_property.txt"), PropertyNames);
+	Load(TEXT("reg_type.txt"), TypeNames);
+	UE_LOG(LogSporeInterop, Log, TEXT("Loaded %d property names and %d type names from %s"), PropertyNames.Num(), TypeNames.Num(), *NameRegistryFolder);
+}
+
+FString USporeInteropSubsystem::LookupTypeName(uint32 TypeId) const
+{
+	const FString* Found = TypeNames.Find(TypeId);
+	return Found ? *Found : FString();
+}
+
+bool USporeInteropSubsystem::ReadProperties(const FSporeResourceKey& Key, TArray<FSporeProperty>& OutProperties, FString* OutError) const
+{
+	OutProperties.Reset();
+	TArray<uint8> Bytes;
+	if (!ReadResource(Key, Bytes, OutError))
+	{
+		return false;
+	}
+
+	sporecore::PropertyList List;
+	const bool bOk = sporecore::ParsePropertyList(Bytes.GetData(), Bytes.Num(), List);
+	for (const sporecore::Property& Prop : List.Properties)
+	{
+		const FString* Registered = PropertyNames.Find(Prop.Id);
+		const std::string Name = Registered ? std::string(TCHAR_TO_UTF8(**Registered)) : std::string();
+		const std::string Line = sporecore::FormatProperty(Prop, Name);
+
+		// FormatProperty renders "<name> <type> = <value>"; split it back into fields.
+		const size_t NameEnd = Line.find(' ');
+		const size_t Equals = Line.find(" = ");
+		FSporeProperty& Out = OutProperties.AddDefaulted_GetRef();
+		Out.Name = UTF8_TO_TCHAR(Line.substr(0, NameEnd).c_str());
+		Out.Type = UTF8_TO_TCHAR(Line.substr(NameEnd + 1, Equals - NameEnd - 1).c_str());
+		Out.Value = UTF8_TO_TCHAR(Line.substr(Equals + 3).c_str());
+	}
+	if (!bOk && OutError)
+	{
+		*OutError = UTF8_TO_TCHAR(List.Error.c_str());
+	}
+	return bOk;
 }
 
 ESporeLaunchState USporeInteropSubsystem::ParseLaunchState(const FString& CommandLine)

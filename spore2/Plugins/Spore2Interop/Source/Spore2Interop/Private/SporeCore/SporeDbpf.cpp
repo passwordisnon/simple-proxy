@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <cstdlib>
 #include <unordered_map>
 
 namespace sporecore
@@ -274,6 +275,46 @@ DbpfError DecodeEntry(const IndexEntry& Entry, const uint8_t* Raw, size_t RawSiz
 		return DbpfError::DecompressFailed;
 	}
 	return Out.size() == Entry.MemSize ? DbpfError::None : DbpfError::SizeMismatch;
+}
+
+size_t ParseNameRegistry(const std::string& Text, std::unordered_map<uint32_t, std::string>& Out)
+{
+	size_t Added = 0;
+	size_t LineStart = 0;
+	while (LineStart < Text.size())
+	{
+		size_t LineEnd = Text.find('\n', LineStart);
+		if (LineEnd == std::string::npos) LineEnd = Text.size();
+		std::string Line = Text.substr(LineStart, LineEnd - LineStart);
+		LineStart = LineEnd + 1;
+
+		const size_t Comment = Line.find('#');
+		if (Comment != std::string::npos) Line.resize(Comment);
+		const char* Space = " \t\r";
+		const size_t First = Line.find_first_not_of(Space);
+		if (First == std::string::npos) continue;
+		const size_t Last = Line.find_last_not_of(Space);
+		Line = Line.substr(First, Last - First + 1);
+
+		std::string Name = Line;
+		uint32_t Id = 0;
+		const size_t Split = Line.find_last_of(" \t");
+		if (Split != std::string::npos)
+		{
+			const std::string IdText = Line.substr(Split + 1);
+			char* End = nullptr;
+			const unsigned long Value = std::strtoul(IdText.c_str(), &End, 16);
+			if (End == IdText.c_str() || *End != '\0') continue;
+			Id = static_cast<uint32_t>(Value);
+			Name = Line.substr(0, Line.find_first_of(" \t"));
+		}
+		else
+		{
+			Id = FnvHash(Name);
+		}
+		if (Out.emplace(Id, Name).second) ++Added;
+	}
+	return Added;
 }
 
 const char* KnownTypeName(uint32_t TypeId)

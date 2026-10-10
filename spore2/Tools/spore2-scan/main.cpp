@@ -1,13 +1,19 @@
 // spore2-scan: verifies that the Spore2Interop core can read a local Spore install.
 //
 // Usage:
-//   spore2-scan [--verify] [--png] [--extract DIR] [--type HEX|png|prop|rw4] [ROOT...]
+//   spore2-scan [--verify] [--props] [--png] [--extract DIR] [--type HEX|png|prop|rw4]
+//               [--names SMFX_DIR] [--find NAME[,NAME...]] [ROOT...]
 //
 // With no ROOT arguments it scans the default install locations listed below.
 // Nothing is modified; --extract only writes into DIR.
+//
+// --names points at a SporeModder-FX folder; its reg_*.txt files turn hashes into names.
+// --find reports which packages hold a resource whose instance or group is the hash of NAME
+//        (e.g. --find CakeEditor,CellEditor to check claims about hidden editors).
 
 #include "SporeCore/SporeDbpf.h"
 #include "SporeCore/SporePng.h"
+#include "SporeCore/SporeProp.h"
 
 #include <zlib.h>
 
@@ -37,11 +43,47 @@ struct Options
 {
 	bool bVerify = false;
 	bool bPng = false;
+	bool bProps = false;
+	std::string NamesDir;
+	std::vector<std::string> FindNames;
 	std::string ExtractDir;
 	bool bHasTypeFilter = false;
 	uint32_t TypeFilter = 0;
 	std::vector<std::string> Roots;
 };
+
+// Hash -> name tables loaded from SporeModder-FX registries.
+struct NameTables
+{
+	std::unordered_map<uint32_t, std::string> Files;
+	std::unordered_map<uint32_t, std::string> Types;
+	std::unordered_map<uint32_t, std::string> Properties;
+
+	static std::string Lookup(const std::unordered_map<uint32_t, std::string>& Table, uint32_t Id)
+	{
+		const auto It = Table.find(Id);
+		return It == Table.end() ? std::string() : It->second;
+	}
+};
+
+NameTables Names;
+
+size_t LoadRegistry(const fs::path& File, std::unordered_map<uint32_t, std::string>& Out)
+{
+	std::ifstream In(File);
+	if (!In) return 0;
+	const std::string Text((std::istreambuf_iterator<char>(In)), std::istreambuf_iterator<char>());
+	return ParseNameRegistry(Text, Out);
+}
+
+struct FindTarget
+{
+	std::string Name;
+	uint32_t Hash = 0;
+	std::vector<std::string> Hits;
+};
+
+std::vector<FindTarget> FindTargets;
 
 bool ZlibInflate(const uint8_t* Data, size_t Size, std::vector<uint8_t>& Out)
 {
@@ -77,6 +119,11 @@ bool ReadRange(std::ifstream& File, uint64_t Offset, size_t Size, std::vector<ui
 
 std::string TypeLabel(uint32_t Type)
 {
+	const std::string Registered = NameTables::Lookup(Names.Types, Type);
+	if (!Registered.empty())
+	{
+		return Registered;
+	}
 	if (const char* Name = KnownTypeName(Type))
 	{
 		return Name;
@@ -114,6 +161,9 @@ struct ScanTotals
 	size_t DecodeFailures = 0;
 	size_t Extracted = 0;
 	size_t Issues = 0;
+	size_t PropsDecoded = 0;
+	size_t PropsFailed = 0;
+	std::vector<std::string> PropFailureSamples;
 	std::map<std::string, size_t> TypeCounts;
 	// key -> packages that provide it, in scan order (later = higher override priority)
 	std::unordered_map<ResourceKey, std::vector<std::string>, ResourceKeyHash> Providers;
@@ -160,9 +210,21 @@ void ScanPackage(const fs::path& Path, const Options& Opts, ScanTotals& Totals)
 		++Totals.TypeCounts[TypeLabel(Entry.Key.Type)];
 		Totals.Providers[Entry.Key].push_back(PackageName);
 
+		for (FindTarget& Target : FindTargets)
+		{
+			if (Entry.Key.Instance == Target.Hash || Entry.Key.Group == Target.Hash)
+			{
+				char Hit[160];
+				std::snprintf(Hit, sizeof(Hit), "%s  %08X!%08X.%s", PackageName.c_str(), Entry.Key.Group, Entry.Key.Instance, TypeLabel(Entry.Key.Type).c_str());
+				Target.Hits.push_back(Hit);
+			}
+		}
+
+		const bool bIsProp = Entry.Key.Type == 0x00B1B104;
 		const bool bWanted = !Opts.bHasTypeFilter || Entry.Key.Type == Opts.TypeFilter;
 		const bool bExtract = !Opts.ExtractDir.empty() && bWanted;
-		if (!Opts.bVerify && !bExtract)
+		const bool bDecodeProp = Opts.bProps && bIsProp;
+		if (!Opts.bVerify && !bExtract && !bDecodeProp)
 		{
 			continue;
 		}
@@ -178,6 +240,26 @@ void ScanPackage(const fs::path& Path, const Options& Opts, ScanTotals& Totals)
 			continue;
 		}
 
+		PropertyList Props;
+		const bool bPropOk = (bDecodeProp || (bExtract && bIsProp)) && ParsePropertyList(Decoded.data(), Decoded.size(), Props);
+		if (bDecodeProp)
+		{
+			if (bPropOk)
+			{
+				++Totals.PropsDecoded;
+			}
+			else
+			{
+				++Totals.PropsFailed;
+				if (Totals.PropFailureSamples.size() < 10)
+				{
+					char Sample[256];
+					std::snprintf(Sample, sizeof(Sample), "%s %08X!%08X: %s", PackageName.c_str(), Entry.Key.Group, Entry.Key.Instance, Props.Error.c_str());
+					Totals.PropFailureSamples.push_back(Sample);
+				}
+			}
+		}
+
 		if (bExtract)
 		{
 			char Name[96];
@@ -187,6 +269,16 @@ void ScanPackage(const fs::path& Path, const Options& Opts, ScanTotals& Totals)
 			std::ofstream Out(OutDir / Name, std::ios::binary);
 			Out.write(reinterpret_cast<const char*>(Decoded.data()), static_cast<std::streamsize>(Decoded.size()));
 			++Totals.Extracted;
+
+			// Readable companion file for property lists.
+			if (bPropOk)
+			{
+				std::ofstream Text(OutDir / (std::string(Name) + ".txt"));
+				for (const Property& Prop : Props.Properties)
+				{
+					Text << FormatProperty(Prop, NameTables::Lookup(Names.Properties, Prop.Id)) << '\n';
+				}
+			}
 		}
 	}
 	Totals.DecodeFailures += LocalFailures;
@@ -230,7 +322,8 @@ void ScanPng(const fs::path& Path)
 
 void PrintUsage()
 {
-	std::printf("usage: spore2-scan [--verify] [--png] [--extract DIR] [--type HEX|png|prop|rw4|raster] [ROOT...]\n");
+	std::printf("usage: spore2-scan [--verify] [--props] [--png] [--extract DIR] [--type HEX|png|prop|rw4|raster]\n"
+	            "                   [--names SMFX_DIR] [--find NAME[,NAME...]] [ROOT...]\n");
 }
 
 } // namespace
@@ -243,6 +336,21 @@ int main(int Argc, char** Argv)
 		const std::string Arg = Argv[I];
 		if (Arg == "--verify") Opts.bVerify = true;
 		else if (Arg == "--png") Opts.bPng = true;
+		else if (Arg == "--props") Opts.bProps = true;
+		else if (Arg == "--names" && I + 1 < Argc) Opts.NamesDir = Argv[++I];
+		else if (Arg == "--find" && I + 1 < Argc)
+		{
+			std::string List = Argv[++I];
+			size_t Start = 0;
+			while (Start <= List.size())
+			{
+				const size_t Comma = List.find(',', Start);
+				const std::string Item = List.substr(Start, Comma == std::string::npos ? std::string::npos : Comma - Start);
+				if (!Item.empty()) Opts.FindNames.push_back(Item);
+				if (Comma == std::string::npos) break;
+				Start = Comma + 1;
+			}
+		}
 		else if (Arg == "--extract" && I + 1 < Argc) Opts.ExtractDir = Argv[++I];
 		else if (Arg == "--type" && I + 1 < Argc)
 		{
@@ -260,6 +368,31 @@ int main(int Argc, char** Argv)
 	if (Opts.Roots.empty())
 	{
 		Opts.Roots.assign(std::begin(DefaultRoots), std::end(DefaultRoots));
+	}
+
+	if (!Opts.NamesDir.empty())
+	{
+		const fs::path Dir(Opts.NamesDir);
+		const size_t FileCount = LoadRegistry(Dir / "reg_file.txt", Names.Files);
+		const size_t TypeCount = LoadRegistry(Dir / "reg_type.txt", Names.Types);
+		const size_t PropCount = LoadRegistry(Dir / "reg_property.txt", Names.Properties);
+		std::printf("name registries: %zu files, %zu types, %zu properties\n", FileCount, TypeCount, PropCount);
+		if (FileCount + TypeCount + PropCount == 0)
+		{
+			std::printf("  (no reg_*.txt found in %s - point --names at the SporeModder-FX folder)\n", Opts.NamesDir.c_str());
+		}
+	}
+	for (const std::string& Name : Opts.FindNames)
+	{
+		FindTarget Target;
+		Target.Name = Name;
+		// Prefer an explicit registry id; fall back to the FNV hash Spore uses for names.
+		Target.Hash = FnvHash(Name);
+		for (const auto& [Id, Registered] : Names.Files)
+		{
+			if (Registered == Name) { Target.Hash = Id; break; }
+		}
+		FindTargets.push_back(Target);
 	}
 
 	ScanTotals Totals;
@@ -324,6 +457,14 @@ int main(int Argc, char** Argv)
 	std::printf("  index issues:     %zu\n", Totals.Issues);
 	std::printf("  overridden keys:  %zu (same key in more than one package)\n", Overridden);
 	if (Opts.bVerify) std::printf("  decode failures:  %zu\n", Totals.DecodeFailures);
+	if (Opts.bProps)
+	{
+		std::printf("  prop files:       %zu decoded, %zu failed\n", Totals.PropsDecoded, Totals.PropsFailed);
+		for (const std::string& Sample : Totals.PropFailureSamples)
+		{
+			std::printf("    ! %s\n", Sample.c_str());
+		}
+	}
 	if (!Opts.ExtractDir.empty()) std::printf("  extracted files:  %zu -> %s\n", Totals.Extracted, Opts.ExtractDir.c_str());
 
 	std::vector<std::pair<std::string, size_t>> Types(Totals.TypeCounts.begin(), Totals.TypeCounts.end());
@@ -332,6 +473,20 @@ int main(int Argc, char** Argv)
 	for (size_t I = 0; I < Types.size() && I < 15; ++I)
 	{
 		std::printf("    %-12s %zu\n", Types[I].first.c_str(), Types[I].second);
+	}
+
+	if (!FindTargets.empty())
+	{
+		std::printf("\nFind results\n");
+		for (const FindTarget& Target : FindTargets)
+		{
+			std::printf("  %s (0x%08X): %s\n", Target.Name.c_str(), Target.Hash, Target.Hits.empty() ? "not found" : "");
+			for (size_t I = 0; I < Target.Hits.size() && I < 20; ++I)
+			{
+				std::printf("    %s\n", Target.Hits[I].c_str());
+			}
+			if (Target.Hits.size() > 20) std::printf("    ... %zu more\n", Target.Hits.size() - 20);
+		}
 	}
 
 	return (Totals.FailedPackages == 0 && Totals.DecodeFailures == 0) ? 0 : 1;

@@ -231,6 +231,7 @@ void SSporePackageBrowser::Construct(const FArguments& InArgs)
 						{
 							SelectedResource = Item;
 							LastActionMessage = FText::GetEmpty();
+							UpdatePropertyPreview();
 						})
 						.HeaderRow
 						(
@@ -512,7 +513,34 @@ FText SSporePackageBrowser::GetDetailsText() const
 		*Item.Key.ToString(),
 		*SporeBrowser::FormatBytes(Item.CompressedSize),
 		*SporeBrowser::FormatBytes(Item.MemSize),
-		Item.ProviderCount > 1 ? *FString::Printf(TEXT("%d packages define this key; the last mounted one wins"), Item.ProviderCount) : TEXT("single provider")));
+		Item.ProviderCount > 1 ? *FString::Printf(TEXT("%d packages define this key; the last mounted one wins"), Item.ProviderCount) : TEXT("single provider")) + PropertyPreview);
+}
+
+void SSporePackageBrowser::UpdatePropertyPreview()
+{
+	PropertyPreview.Reset();
+	USporeInteropSubsystem* Owner = Subsystem.Get();
+	if (!Owner || !SelectedResource.IsValid() || CategoryOf(SelectedResource->Key.Type) != ESporeBrowserCategory::Properties)
+	{
+		return;
+	}
+
+	TArray<FSporeProperty> Properties;
+	FString Error;
+	const bool bOk = Owner->ReadProperties(SelectedResource->Key, Properties, &Error);
+	constexpr int32 MaxLines = 8;
+	for (int32 Index = 0; Index < Properties.Num() && Index < MaxLines; ++Index)
+	{
+		PropertyPreview += FString::Printf(TEXT("\n%s  (%s)  =  %s"), *Properties[Index].Name, *Properties[Index].Type, *Properties[Index].Value);
+	}
+	if (Properties.Num() > MaxLines)
+	{
+		PropertyPreview += FString::Printf(TEXT("\n... %d more properties (export to see all)"), Properties.Num() - MaxLines);
+	}
+	if (!bOk)
+	{
+		PropertyPreview += FString::Printf(TEXT("\nCould not fully decode: %s"), *Error);
+	}
 }
 
 FReply SSporePackageBrowser::OnRescanClicked()

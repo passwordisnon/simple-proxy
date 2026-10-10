@@ -12,12 +12,14 @@ available inside Unreal Engine 5. No game files are included in or committed to 
 | RefPack/QFS decompression of package entries | done, unit-tested |
 | Package integrity checks (duplicate keys, overlapping or out-of-range payloads) | done |
 | Mod override tracking (same key in several packages, last mounted wins) | done |
+| `.prop` property-file decoder (all 24 value types, arrays, localized text; layout from SporeModder-FX) | done, unit-tested |
+| Hash → name lookup using SporeModder-FX's `reg_*.txt` files | done, unit-tested |
 | PNG chunk reader (CRC check, `tEXt`/`zTXt`/`iTXt`, creation card shape check) | done, unit-tested |
 | Scharr normal map + roughness estimate from legacy diffuse textures | done, unit-tested |
 | `spore2-scan` command-line checker for your Mac | done |
 | UE5 plugin: `USporeInteropSubsystem` (async mount, read/export, PNG inspect, normal map texture, `-state:` routing) | written, **not yet compiled against UE** |
 | UE5 Slate package browser (category tabs, search, package list, resource table, export) | written, **not yet compiled against UE** |
-| Decoding `.prop`, `.rw4` models, textures into UE assets | not started |
+| Decoding `.rw4` models and textures into UE assets | not started |
 | Decoding the creature data inside creation PNGs | not started (see note below) |
 | Gameplay stages, editors, procedural animation | not started |
 
@@ -55,6 +57,15 @@ What to look for:
 
 Useful extras:
 ```sh
+# decode every .prop file; --names uses SporeModder-FX's reg_*.txt so you see names, not hashes
+./build/spore2-scan --props --names "/Applications/SporeModder FX"
+
+# check whether a resource with that name really exists in your files (for "hidden content" claims)
+./build/spore2-scan --names "/Applications/SporeModder FX" --find CakeEditor,CellEditor,PlannerThumbnailGen
+
+# export all property files plus a readable .txt next to each
+./build/spore2-scan --extract ~/Desktop/SporeDump --type prop --names "/Applications/SporeModder FX"
+
 ./build/spore2-scan --png "/Users/<you>/Documents/My Spore Creations"     # inspect creation cards
 ./build/spore2-scan --extract ~/Desktop/SporeDump --type png              # export all PNG resources
 ```
@@ -79,6 +90,7 @@ You need Unreal Engine 5.5+ (Epic Games Launcher) and Xcode.
    +InstallRoots=/Volumes/Macintosh SD/Spore.Creepy.&.Cute.Parts.Pack.2008.EA
    +InstallRoots=/Volumes/Macintosh SD/Spore.Galactic.Adventures.Expansion.Pack.2009.EA
    ModsFolder=/Users/<you>/Documents/My Spore Creations/Mods
+   NameRegistryFolder=/Applications/SporeModder FX
    ```
 5. In the Level Blueprint's BeginPlay: *Get Game Instance Subsystem (SporeInteropSubsystem)* →
    *Open Package Browser* (Player Controller 0). Press Play. The browser mounts everything and lists it.
@@ -94,7 +106,7 @@ this improves it but cannot add real detail.
 
 ### Step 5 – Next pieces of code, in order
 
-1. `.prop` property-file decoder, which most game configuration (parts, editors, mods) is built on.
+1. ~~`.prop` property-file decoder~~ (done)
 2. Texture (`.raster`/DDS) and `.rw4` model decoders → UE textures and meshes.
 3. Creation PNG pixel decoder → creature data.
 4. Creature skeleton → Control Rig / procedural locomotion.

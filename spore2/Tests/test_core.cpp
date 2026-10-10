@@ -2,11 +2,13 @@
 
 #include "SporeCore/SporeDbpf.h"
 #include "SporeCore/SporePng.h"
+#include "SporeCore/SporeProp.h"
 #include "SporeCore/SporeTextureGen.h"
 
 #include <cstdio>
 #include <cstring>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 using namespace sporecore;
@@ -247,6 +249,111 @@ static void TestTextureGen()
 	CHECK(Rough[0] == 51);
 }
 
+
+static void AppendBE16(std::vector<uint8_t>& B, uint16_t V)
+{
+	B.push_back(static_cast<uint8_t>(V >> 8));
+	B.push_back(static_cast<uint8_t>(V));
+}
+
+static void AppendLEFloat(std::vector<uint8_t>& B, float F)
+{
+	uint32_t Bits;
+	std::memcpy(&Bits, &F, 4);
+	AppendLE32(B, Bits);
+}
+
+static void AppendBEFloat(std::vector<uint8_t>& B, float F)
+{
+	uint32_t Bits;
+	std::memcpy(&Bits, &F, 4);
+	AppendBE32(B, Bits);
+}
+
+static void PropHeader(std::vector<uint8_t>& B, uint32_t Id, uint16_t Type, bool bArray, uint32_t Count = 0, uint32_t ItemSize = 0)
+{
+	AppendBE32(B, Id);
+	AppendBE16(B, Type);
+	AppendBE16(B, bArray ? 0x30 : 0x00);
+	if (bArray)
+	{
+		AppendBE32(B, Count);
+		AppendBE32(B, ItemSize);
+	}
+}
+
+static void TestProp()
+{
+	std::vector<uint8_t> P;
+	AppendBE32(P, 10); // property count
+
+	PropHeader(P, 1, 0x0001, false); P.push_back(1);                       // bool
+	PropHeader(P, 2, 0x0009, false); AppendBE32(P, static_cast<uint32_t>(-5)); // int32
+	PropHeader(P, 3, 0x000D, false); AppendBEFloat(P, 1.5f);               // float
+	PropHeader(P, 4, 0x0012, true, 1, 0); AppendBE32(P, 5); for (char C : std::string("hello")) P.push_back(static_cast<uint8_t>(C)); // string8[1]
+	PropHeader(P, 5, 0x0013, true, 1, 0); AppendBE32(P, 2); P.insert(P.end(), {'h', 0, 'i', 0}); // string16[1]
+	PropHeader(P, 6, 0x0020, false); AppendLE32(P, 0x11); AppendLE32(P, 0x22); AppendLE32(P, 0x33); AppendLE32(P, 0); // key + pad
+	PropHeader(P, 7, 0x0020, true, 2, 12);
+	for (uint32_t I = 0; I < 2; ++I) { AppendLE32(P, 0xA0 + I); AppendLE32(P, 0xB0); AppendLE32(P, 0xC0); } // key[2], no pad
+	PropHeader(P, 8, 0x0031, false); AppendLEFloat(P, 1); AppendLEFloat(P, 2); AppendLEFloat(P, 3); AppendLE32(P, 0); // vector3 + pad
+	PropHeader(P, 9, 0x0022, true, 1, 520);
+	AppendLE32(P, 0xDEAD); AppendLE32(P, 0xBEEF);
+	{
+		std::vector<uint8_t> Slot(512, 0);
+		Slot[0] = 'O'; Slot[2] = 'K';
+		P.insert(P.end(), Slot.begin(), Slot.end());
+	}
+	PropHeader(P, 10, 0x0777, true, 2, 3); P.insert(P.end(), {1, 2, 3, 4, 5, 6}); // unknown type array, skipped by size
+
+	PropertyList List;
+	const bool bOk = ParsePropertyList(P.data(), P.size(), List);
+	if (!bOk) std::printf("prop error: %s\n", List.Error.c_str());
+	CHECK(bOk);
+	CHECK(List.Properties.size() == 10);
+	if (List.Properties.size() != 10) return;
+
+	CHECK(List.Properties[0].Integers[0] == 1);
+	CHECK(List.Properties[1].Integers[0] == -5);
+	CHECK(List.Properties[2].Floats[0] == 1.5);
+	CHECK(List.Properties[3].Strings[0] == "hello");
+	CHECK(List.Properties[4].Strings[0] == "hi");
+	CHECK(List.Properties[5].Keys[0].Instance == 0x11 && List.Properties[5].Keys[0].Type == 0x22 && List.Properties[5].Keys[0].Group == 0x33);
+	CHECK(List.Properties[6].Keys.size() == 2 && List.Properties[6].Keys[1].Instance == 0xA1);
+	CHECK(List.Properties[7].Floats.size() == 3 && List.Properties[7].Floats[2] == 3.0);
+	CHECK(List.Properties[8].Texts[0].TableId == 0xDEAD && List.Properties[8].Texts[0].Fallback == "OK");
+	CHECK(List.Properties[9].bArray && List.Properties[9].Count == 2);
+
+	CHECK(FormatProperty(List.Properties[2], "scale") == "scale float = 1.5");
+	CHECK(FormatProperty(List.Properties[6], "") == "0x00000007 key[2] = {000000C0!000000A0.000000B0, 000000C0!000000A1.000000B0}");
+
+	// Truncation and trailing garbage are reported, not read past.
+	PropertyList Short;
+	CHECK(!ParsePropertyList(P.data(), P.size() - 1, Short));
+	CHECK(!Short.Error.empty());
+	std::vector<uint8_t> Extra = P;
+	Extra.push_back(0);
+	PropertyList Trailing;
+	CHECK(!ParsePropertyList(Extra.data(), Extra.size(), Trailing));
+
+	// A single property of unknown type cannot be skipped safely.
+	std::vector<uint8_t> Unknown;
+	AppendBE32(Unknown, 1);
+	PropHeader(Unknown, 1, 0x0777, false);
+	PropertyList UnknownList;
+	CHECK(!ParsePropertyList(Unknown.data(), Unknown.size(), UnknownList));
+}
+
+static void TestRegistry()
+{
+	std::unordered_map<uint32_t, std::string> Names;
+	const std::string Text = "description\t0x00B2CCCA\n# comment\n\npng.dds 0xb8444447\nsoundProp\t0x2b9f662\naudioProp\t0x2b9f662\nCakeEditor\nbroken\tzz\n";
+	CHECK(ParseNameRegistry(Text, Names) == 4);
+	CHECK(Names[0x00B2CCCA] == "description");
+	CHECK(Names[0xB8444447] == "png.dds");
+	CHECK(Names[0x02B9F662] == "soundProp"); // first name wins
+	CHECK(Names[FnvHash("CakeEditor")] == "CakeEditor");
+}
+
 int main()
 {
 	TestRefPack();
@@ -256,6 +363,8 @@ int main()
 	TestFnv();
 	TestPng();
 	TestTextureGen();
+	TestProp();
+	TestRegistry();
 	if (Failures == 0)
 	{
 		std::printf("all tests passed\n");

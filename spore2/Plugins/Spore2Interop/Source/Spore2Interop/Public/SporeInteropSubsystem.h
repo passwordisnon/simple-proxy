@@ -115,6 +115,23 @@ struct SPORE2INTEROP_API FSporePngReport
 	TArray<FString> Issues;
 };
 
+USTRUCT(BlueprintType)
+struct SPORE2INTEROP_API FSporeProperty
+{
+	GENERATED_BODY()
+
+	// Registry name when NameRegistryFolder is set, otherwise the hex id.
+	UPROPERTY(BlueprintReadOnly, Category = "Spore")
+	FString Name;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Spore")
+	FString Type;
+
+	// Human readable value, e.g. "0.75" or "{1, 2, 3}".
+	UPROPERTY(BlueprintReadOnly, Category = "Spore")
+	FString Value;
+};
+
 // One mounted .package and its parsed index. Owned by the subsystem.
 struct FSporeMountedPackage
 {
@@ -154,6 +171,10 @@ public:
 	UPROPERTY(Config, EditAnywhere, BlueprintReadWrite, Category = "Spore|Mount")
 	FString ModsFolder;
 
+	// Optional SporeModder-FX folder; its reg_property.txt / reg_type.txt give hashes readable names.
+	UPROPERTY(Config, EditAnywhere, BlueprintReadWrite, Category = "Spore|Mount")
+	FString NameRegistryFolder;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Spore")
 	ESporeEvolutionPhase ActivePhase = ESporeEvolutionPhase::Molecular;
 
@@ -178,6 +199,15 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Spore|Resources")
 	bool ExportResource(const FSporeResourceKey& Key, const FString& TargetFile);
+
+	// Decodes a .prop resource. Returns false (with OutError) when it is not a readable property list.
+	bool ReadProperties(const FSporeResourceKey& Key, TArray<FSporeProperty>& OutProperties, FString* OutError = nullptr) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Spore|Resources", meta = (DisplayName = "Read Properties"))
+	bool K2_ReadProperties(const FSporeResourceKey& Key, TArray<FSporeProperty>& OutProperties) const { return ReadProperties(Key, OutProperties); }
+
+	// Registry name for a type id, or empty.
+	FString LookupTypeName(uint32 TypeId) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Spore|Resources")
 	FSporePngReport InspectPng(const FString& PngFile) const;
@@ -206,6 +236,11 @@ public:
 private:
 	void FinishMount(uint32 Generation, TArray<TSharedPtr<FSporeMountedPackage>> NewPackages);
 	static TSharedPtr<FSporeMountedPackage> ParsePackage(const FString& Path, bool bIsMod);
+
+	void LoadNameRegistries();
+
+	TMap<uint32, FString> PropertyNames;
+	TMap<uint32, FString> TypeNames;
 
 	TArray<TSharedPtr<FSporeMountedPackage>> Packages;
 	TMap<FSporeResourceKey, FSporeResourceRef> Registry;

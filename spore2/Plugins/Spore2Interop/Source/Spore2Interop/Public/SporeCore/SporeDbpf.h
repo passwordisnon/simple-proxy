@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace sporecore
@@ -90,6 +91,11 @@ DbpfError DecodeEntry(const IndexEntry& Entry, const uint8_t* Raw, size_t RawSiz
 
 // Human readable name for well-known Spore type IDs, or nullptr.
 const char* KnownTypeName(uint32_t TypeId);
+
+// Parses a SporeModder-FX registry file (reg_type.txt, reg_property.txt, ...):
+// one "name<whitespace>0xID" per line; a line holding only a name maps to FnvHash(name).
+// The first name seen for an ID wins. Returns the number of entries added.
+size_t ParseNameRegistry(const std::string& Text, std::unordered_map<uint32_t, std::string>& Out);
 
 // Integrity checks run over one package index (overlapping payloads, duplicate
 // keys, zero-sized entries). Each issue is appended as a readable line.
