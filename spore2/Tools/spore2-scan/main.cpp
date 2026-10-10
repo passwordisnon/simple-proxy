@@ -117,6 +117,15 @@ bool ReadRange(std::ifstream& File, uint64_t Offset, size_t Size, std::vector<ui
 	return static_cast<size_t>(File.gcount()) == Size;
 }
 
+std::string FormatSize(uint64_t Bytes)
+{
+	char Buffer[32];
+	if (Bytes >= 1024ull * 1024 * 1024) std::snprintf(Buffer, sizeof(Buffer), "%.1f GB", Bytes / (1024.0 * 1024 * 1024));
+	else if (Bytes >= 1024ull * 1024) std::snprintf(Buffer, sizeof(Buffer), "%.1f MB", Bytes / (1024.0 * 1024));
+	else std::snprintf(Buffer, sizeof(Buffer), "%.1f KB", Bytes / 1024.0);
+	return Buffer;
+}
+
 std::string TypeLabel(uint32_t Type)
 {
 	const std::string Registered = NameTables::Lookup(Names.Types, Type);
@@ -169,8 +178,11 @@ struct ScanTotals
 	std::unordered_map<ResourceKey, std::vector<std::string>, ResourceKeyHash> Providers;
 };
 
-void ScanPackage(const fs::path& Path, const Options& Opts, ScanTotals& Totals)
+void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts, ScanTotals& Totals)
 {
+	// Shown relative to the scan root so same-named packages (one per language, etc.) are distinguishable.
+	std::error_code RelEc;
+	const std::string DisplayName = fs::relative(Path, Root, RelEc).string();
 	++Totals.Packages;
 	std::error_code Ec;
 	const uint64_t FileSize = fs::file_size(Path, Ec);
@@ -283,7 +295,7 @@ void ScanPackage(const fs::path& Path, const Options& Opts, ScanTotals& Totals)
 	}
 	Totals.DecodeFailures += LocalFailures;
 
-	std::printf("  ok   %-48s v%u.%u  %6zu entries", PackageName.c_str(), Header.MajorVersion, Header.MinorVersion, Entries.size());
+	std::printf("  ok   %-56s v%u.%u  %6zu entries  %s", RelEc ? PackageName.c_str() : DisplayName.c_str(), Header.MajorVersion, Header.MinorVersion, Entries.size(), FormatSize(FileSize).c_str());
 	if (Opts.bVerify)
 	{
 		std::printf("  decode failures: %zu", LocalFailures);
@@ -427,6 +439,10 @@ int main(int Argc, char** Argv)
 		{
 			// Typical when the folder holds an installer or disc image rather than an install.
 			std::printf("  no .package files found. File types present:\n");
+			if (Extensions.count(".iso"))
+			{
+				std::printf("  hint: this folder holds a disc image. Mount it (hdiutil attach <file>.iso) and scan the mounted volume.\n");
+			}
 			for (const auto& [Ext, Count] : Extensions)
 			{
 				std::printf("    %-10s %zu\n", Ext.c_str(), Count);
@@ -434,7 +450,7 @@ int main(int Argc, char** Argv)
 		}
 		for (const fs::path& Package : Packages)
 		{
-			ScanPackage(Package, Opts, Totals);
+			ScanPackage(Package, Root, Opts, Totals);
 		}
 		if (Opts.bPng)
 		{
