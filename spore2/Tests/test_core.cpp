@@ -610,6 +610,40 @@ static void TestMeshes()
 	CHECK(Obj.find("vt 1 0\n") != std::string::npos); // V flipped
 	CHECK(Obj.find("f 1/1/1 2/2/2 3/3/3\n") != std::string::npos);
 
+	// Blend-shape model: the mesh's vertex buffer slot names no vertex buffer; vertices come
+	// from the blend shape buffer (0x200AF), 16 bytes per vertex per stream.
+	std::vector<uint8_t> Blend = BuildMeshRw4(4, {0, 1, 2, 2, 1, 3}, 2);
+	Blend.resize(0x800, 0);
+	PutLE32(Blend, 0x24, 7);
+	PutLE32(Blend, 0x224, 6);  // mesh -> section 6, which is not a vertex buffer
+	PutLE32(Blend, 0x600, 1);
+	PutLE32(Blend, 0x604, 64);  // positions
+	PutLE32(Blend, 0x608, 128); // normals
+	PutLE32(Blend, 0x610, 192); // texcoords
+	PutLE32(Blend, 0x630, 1);   // shape count
+	PutLE32(Blend, 0x634, 4);   // vertex count
+	for (int V = 0; V < 4; ++V)
+	{
+		PutLEFloat(Blend, 0x640 + 16 * V, static_cast<float>(V));     // x = vertex number
+		PutLEFloat(Blend, 0x680 + 16 * V + 8, 1.0f);                   // normal +Z
+		PutLEFloat(Blend, 0x6C0 + 16 * V + 4, 0.25f * static_cast<float>(V)); // v
+	}
+	PutSection(Blend, 0x300, 6, 0x600, 256, 0x200AF);
+	CHECK(ParseRw4(Blend.data(), Blend.size(), Info, Error));
+	CHECK(Info.Meshes.size() == 1 && Info.SkippedMeshes == 0);
+	if (Info.Meshes.size() == 1)
+	{
+		const MeshData& B = Info.Meshes[0];
+		CHECK(B.bBlendShape && !B.bSkinned);
+		CHECK(B.VertexCount() == 4 && B.Positions[9] == 3.0f);
+		CHECK(B.Normals.size() == 12 && B.Normals[11] == 1.0f);
+		CHECK(B.UVs.size() == 8 && B.UVs[7] == 0.75f);
+		CHECK(B.Indices == std::vector<uint32_t>({0, 1, 2, 2, 1, 3}));
+	}
+	PutLE32(Blend, 0x600, 2); // malformed buffer -> skipped, not crashed
+	CHECK(ParseRw4(Blend.data(), Blend.size(), Info, Error));
+	CHECK(Info.Meshes.empty() && Info.SkippedMeshes == 1);
+
 	// Strip 0,1,2,3 -> triangles (0,1,2) and (2,1,3).
 	std::vector<uint8_t> Strip = BuildMeshRw4(5, {0, 1, 2, 3}, 2);
 	CHECK(ParseRw4(Strip.data(), Strip.size(), Info, Error));

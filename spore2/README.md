@@ -20,10 +20,10 @@ available inside Unreal Engine 5. No game files are included in or committed to 
 | `spore2-scan` command-line checker for your Mac | done |
 | UE5 plugin: `USporeInteropSubsystem` (async mount, read/export, PNG inspect, normal map texture, `-state:` routing) | written, **not yet compiled against UE** |
 | UE5 Slate package browser (category tabs, search, package list, resource table, export) | written, **not yet compiled against UE** |
-| Models: `.rw4` meshes (positions, normals, UVs; lists and strips) → `.obj` / UE `ProceduralMeshComponent` | done, unit-tested |
+| Models: `.rw4` meshes (positions, normals, UVs; lists and strips; blend-shape parts in their base shape) → `.obj` / UE `ProceduralMeshComponent` | done, unit-tested |
 | Materials: mesh → texture slots (in-file rasters and named texture overrides) → `.mtl` / UE material instances | done, unit-tested |
 | Creation assembly: card parts → part `.prop` → `modelMeshLOD*` model → placed meshes → one textured `.obj` / UE `AssembleCreationPng` | done on synthetic data; needs a real card + game data |
-| Skeletons, skinning, animations, blend shapes | not started |
+| Skeletons, skinning, animations, blend shape morphing | not started |
 | Saved creations in packages (`EditorSaves.package`, `Pollination.package`): `.crt`/`.bld`/... XML assembles directly; `.pollen_metadata` → name, author, tags (`.txt` + `creations.tsv` on extract) | done, unit-tested |
 | Creation PNGs: hidden payload → metadata + `<sporemodel>` XML → parts (ID, transform, paints, children) → UE `DecodeCreationPng` | done, checked on real Spore PNGs |
 | Gameplay stages, editors, procedural animation | not started |

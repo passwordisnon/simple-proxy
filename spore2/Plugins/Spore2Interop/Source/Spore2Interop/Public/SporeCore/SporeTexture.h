@@ -81,6 +81,7 @@ struct MeshData
 	std::vector<float> UVs;       // u, v per vertex, empty when the mesh has none
 	std::vector<uint32_t> Indices; // 3 per triangle
 	bool bSkinned = false;        // has blend indices/weights (skeleton data not decoded yet)
+	bool bBlendShape = false;     // vertices came from a blend shape buffer (base shape only, morphs not applied)
 	std::vector<MeshTextureSlot> TextureSlots; // from the mesh's compiled states, in order
 
 	size_t VertexCount() const { return Positions.size() / 3; }

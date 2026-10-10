@@ -278,6 +278,7 @@ struct ScanTotals
 	size_t MeshesDecoded = 0;
 	size_t MeshesSkipped = 0;
 	size_t SkinnedMeshes = 0;
+	size_t BlendShapeMeshes = 0;
 	uint64_t MeshVertices = 0;
 	uint64_t MeshTriangles = 0;
 	double NormalLengthSum = 0.0;
@@ -444,6 +445,7 @@ void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts
 				{
 					++Totals.MeshesDecoded;
 					Totals.SkinnedMeshes += Mesh.bSkinned ? 1 : 0;
+					Totals.BlendShapeMeshes += Mesh.bBlendShape ? 1 : 0;
 					Totals.MeshVertices += Mesh.VertexCount();
 					Totals.MeshTriangles += Mesh.Indices.size() / 3;
 					if (const MeshTextureSlot* Slot = DiffuseSlot(Mesh))
@@ -1005,7 +1007,7 @@ int main(int Argc, char** Argv)
 	if (Opts.bVerify) std::printf("  decode failures:  %zu\n", Totals.DecodeFailures);
 	if (Opts.bModels)
 	{
-		std::printf("  meshes:           %zu decoded (%zu skinned), %zu skipped\n", Totals.MeshesDecoded, Totals.SkinnedMeshes, Totals.MeshesSkipped);
+		std::printf("  meshes:           %zu decoded (%zu skinned, %zu blend shape), %zu skipped\n", Totals.MeshesDecoded, Totals.SkinnedMeshes, Totals.BlendShapeMeshes, Totals.MeshesSkipped);
 		std::printf("  mesh geometry:    %llu vertices, %llu triangles\n", static_cast<unsigned long long>(Totals.MeshVertices), static_cast<unsigned long long>(Totals.MeshTriangles));
 		if (Totals.NormalCount > 0)
 		{

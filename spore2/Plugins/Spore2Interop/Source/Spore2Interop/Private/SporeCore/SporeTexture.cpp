@@ -249,6 +249,7 @@ constexpr uint32_t Rw4TypeMesh = 0x20009;
 constexpr uint32_t Rw4TypeCompiledState = 0x2000B;
 constexpr uint32_t Rw4TypeTextureOverride = 0x20008;
 constexpr uint32_t Rw4TypeMeshStateLink = 0x2001A;
+constexpr uint32_t Rw4TypeBlendShapeBuffer = 0x200AF;
 
 // Bounds-checked little-endian cursor over one section.
 struct Rw4Cursor
@@ -476,41 +477,13 @@ struct VertexElementInfo
 	uint32_t Usage = 0; // Spore RW usage: 0 position, 2 normal, 6 texcoord0, 14/15 blend data
 };
 
-bool DecodeMesh(const uint8_t* Data, size_t Size, const std::vector<Rw4Section>& Sections, const Rw4Section& MeshSection, MeshData& Out, std::string& Issue)
+bool DecodeVertexBuffer(const uint8_t* Data, size_t Size, const std::vector<Rw4Section>& Sections, const Rw4Section& VB, uint32_t FirstVertex, uint32_t VertexCount, MeshData& Out, std::string& Issue)
 {
-	const uint8_t* M = Data + MeshSection.Offset;
-	const uint32_t PrimitiveType = TexLE32(M + 4);
-	const uint32_t IndexBufferIndex = TexLE32(M + 8);
-	const uint32_t TriangleCount = TexLE32(M + 12);
-	const uint32_t BufferCount = TexLE32(M + 16);
-	const uint32_t FirstIndex = TexLE32(M + 20);
-	const uint32_t FirstVertex = TexLE32(M + 28);
-	const uint32_t VertexCount = TexLE32(M + 32);
-	if (BufferCount == 0 || MeshSection.Offset + 36 + 4ull * BufferCount > Size)
-	{
-		Issue = "mesh without vertex buffer";
-		return false;
-	}
-	if (PrimitiveType != 4 && PrimitiveType != 5)
-	{
-		Issue = "unsupported primitive type " + std::to_string(PrimitiveType);
-		return false;
-	}
-
-	const Rw4Section* VB = Rw4Get(Sections, TexLE32(M + 36), Rw4TypeVertexBuffer, Size, 28);
-	const Rw4Section* IB = Rw4Get(Sections, IndexBufferIndex, Rw4TypeIndexBuffer, Size, 28);
-	if (!VB || !IB)
-	{
-		Issue = "vertex or index buffer is a blend shape or sub-reference";
-		return false;
-	}
-	const uint8_t* V = Data + VB->Offset;
-	const uint8_t* I = Data + IB->Offset;
+	const uint8_t* V = Data + VB.Offset;
 	const uint32_t VertexSize = TexLE32(V + 20);
 	const Rw4Section* Desc = Rw4Get(Sections, TexLE32(V), Rw4TypeVertexDescription, Size, 24);
 	const Rw4Section* VData = Rw4Get(Sections, TexLE32(V + 24), Rw4TypeBaseResource, Size, 0);
-	const Rw4Section* IData = Rw4Get(Sections, TexLE32(I + 24), Rw4TypeBaseResource, Size, 0);
-	if (!Desc || !VData || !IData || VertexSize == 0)
+	if (!Desc || !VData || VertexSize == 0)
 	{
 		Issue = "missing vertex description or buffer data";
 		return false;
@@ -578,6 +551,135 @@ bool DecodeMesh(const uint8_t* Data, size_t Size, const std::vector<Rw4Section>&
 		}
 	}
 
+	return true;
+}
+
+// Blend shape buffer 0x200AF (SporeModder-FX RWBlendShapeBuffer): u32 1, eleven u32 data offsets
+// relative to the section (0 position, 1 normal, 2 tangent, 3 texcoord, 9 blend indices,
+// 10 blend weights; 0 = absent), then shape count, vertex count, unknown, bone index count.
+// A stream runs to the next present offset or the section end. Position, normal and texcoord
+// streams hold 16 bytes per vertex (3 or 2 floats, padded); the base shape comes first.
+bool DecodeBlendShapeVertices(const uint8_t* Data, size_t Size, const std::vector<Rw4Section>& Sections, uint32_t FirstVertex, uint32_t VertexCount, MeshData& Out, std::string& Issue)
+{
+	const Rw4Section* Buffer = nullptr;
+	for (const Rw4Section& S : Sections)
+	{
+		if (S.TypeCode != Rw4TypeBlendShapeBuffer) continue;
+		if (Buffer)
+		{
+			Issue = "more than one blend shape buffer";
+			return false;
+		}
+		Buffer = &S;
+	}
+	if (!Buffer)
+	{
+		Issue = "vertex buffer is a sub-reference (no blend shape buffer either)";
+		return false;
+	}
+	if (Buffer->Size < 64 || Buffer->Offset + Buffer->Size > Size || TexLE32(Data + Buffer->Offset) != 1)
+	{
+		Issue = "malformed blend shape buffer";
+		return false;
+	}
+	const uint8_t* B = Data + Buffer->Offset;
+	uint32_t Offsets[11];
+	for (int K = 0; K < 11; ++K) Offsets[K] = TexLE32(B + 4 + 4 * K);
+	// Stream K's bytes: from its offset to the next larger present offset (or the section end).
+	auto Stream = [&](int K, uint32_t& OutSize) -> const uint8_t*
+	{
+		if (Offsets[K] == 0 || Offsets[K] >= Buffer->Size) return nullptr;
+		uint32_t End = Buffer->Size;
+		for (int J = 0; J < 11; ++J)
+		{
+			if (Offsets[J] > Offsets[K] && Offsets[J] < End) End = Offsets[J];
+		}
+		OutSize = End - Offsets[K];
+		return B + Offsets[K];
+	};
+	auto Fits = [&](uint32_t StreamSize) { return (static_cast<uint64_t>(FirstVertex) + VertexCount) * 16 <= StreamSize; };
+	auto Float = [](const uint8_t* P)
+	{
+		const uint32_t Bits = TexLE32(P);
+		float F;
+		std::memcpy(&F, &Bits, sizeof(F));
+		return F;
+	};
+
+	uint32_t PosSize = 0, NormalSize = 0, UvSize = 0;
+	const uint8_t* Pos = Stream(0, PosSize);
+	const uint8_t* Normal = Stream(1, NormalSize);
+	const uint8_t* Uv = Stream(3, UvSize);
+	if (!Pos || !Fits(PosSize))
+	{
+		Issue = "blend shape buffer without usable positions";
+		return false;
+	}
+	if (Normal && !Fits(NormalSize)) Normal = nullptr;
+	if (Uv && !Fits(UvSize)) Uv = nullptr;
+	Out.bBlendShape = true;
+	Out.bSkinned = Offsets[9] != 0 || Offsets[10] != 0;
+	Out.Positions.resize(3ull * VertexCount);
+	if (Normal) Out.Normals.resize(3ull * VertexCount);
+	if (Uv) Out.UVs.resize(2ull * VertexCount);
+	for (uint32_t Vtx = 0; Vtx < VertexCount; ++Vtx)
+	{
+		const size_t At = (static_cast<size_t>(FirstVertex) + Vtx) * 16;
+		for (int C = 0; C < 3; ++C) Out.Positions[3ull * Vtx + C] = Float(Pos + At + 4 * C);
+		if (Normal) for (int C = 0; C < 3; ++C) Out.Normals[3ull * Vtx + C] = Float(Normal + At + 4 * C);
+		if (Uv) for (int C = 0; C < 2; ++C) Out.UVs[2ull * Vtx + C] = Float(Uv + At + 4 * C);
+	}
+	return true;
+}
+
+bool DecodeMesh(const uint8_t* Data, size_t Size, const std::vector<Rw4Section>& Sections, const Rw4Section& MeshSection, MeshData& Out, std::string& Issue)
+{
+	const uint8_t* M = Data + MeshSection.Offset;
+	const uint32_t PrimitiveType = TexLE32(M + 4);
+	const uint32_t IndexBufferIndex = TexLE32(M + 8);
+	const uint32_t TriangleCount = TexLE32(M + 12);
+	const uint32_t BufferCount = TexLE32(M + 16);
+	const uint32_t FirstIndex = TexLE32(M + 20);
+	const uint32_t FirstVertex = TexLE32(M + 28);
+	const uint32_t VertexCount = TexLE32(M + 32);
+	if (BufferCount == 0 || MeshSection.Offset + 36 + 4ull * BufferCount > Size)
+	{
+		Issue = "mesh without vertex buffer";
+		return false;
+	}
+	if (PrimitiveType != 4 && PrimitiveType != 5)
+	{
+		Issue = "unsupported primitive type " + std::to_string(PrimitiveType);
+		return false;
+	}
+
+	const Rw4Section* VB = Rw4Get(Sections, TexLE32(M + 36), Rw4TypeVertexBuffer, Size, 28);
+	const Rw4Section* IB = Rw4Get(Sections, IndexBufferIndex, Rw4TypeIndexBuffer, Size, 28);
+	if (!IB)
+	{
+		Issue = "index buffer is a sub-reference";
+		return false;
+	}
+	if (!VB)
+	{
+		// Blend-shape models (morphing editor parts) have no vertex buffer; their vertices live
+		// in the file's blend shape buffer instead (SporeModder-FX RWModelViewer.processBlendShape).
+		if (!DecodeBlendShapeVertices(Data, Size, Sections, FirstVertex, VertexCount, Out, Issue))
+		{
+			return false;
+		}
+	}
+	else if (!DecodeVertexBuffer(Data, Size, Sections, *VB, FirstVertex, VertexCount, Out, Issue))
+	{
+		return false;
+	}
+	const uint8_t* I = Data + IB->Offset;
+	const Rw4Section* IData = Rw4Get(Sections, TexLE32(I + 24), Rw4TypeBaseResource, Size, 0);
+	if (!IData)
+	{
+		Issue = "missing index buffer data";
+		return false;
+	}
 	// Indices: 16- or 32-bit, offset by the index buffer's start and the mesh's first vertex.
 	const uint32_t IndexFormat = TexLE32(I + 16);
 	const int32_t StartIndex = static_cast<int32_t>(TexLE32(I + 4));
