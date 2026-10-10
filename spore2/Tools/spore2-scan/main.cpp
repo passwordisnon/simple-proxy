@@ -228,7 +228,15 @@ void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts
 			{
 				char Hit[160];
 				std::snprintf(Hit, sizeof(Hit), "%s  %08X!%08X.%s", PackageName.c_str(), Entry.Key.Group, Entry.Key.Instance, TypeLabel(Entry.Key.Type).c_str());
-				Target.Hits.push_back(Hit);
+				std::string Line = Hit;
+				// Registry names make hits readable, e.g. "lighting_properties~/CellEditor".
+				const std::string GroupName = NameTables::Lookup(Names.Files, Entry.Key.Group);
+				const std::string InstanceName = NameTables::Lookup(Names.Files, Entry.Key.Instance);
+				if (!GroupName.empty() || !InstanceName.empty())
+				{
+					Line += "  (" + (GroupName.empty() ? std::string("?") : GroupName) + "/" + (InstanceName.empty() ? std::string("?") : InstanceName) + ")";
+				}
+				Target.Hits.push_back(Line);
 			}
 		}
 
