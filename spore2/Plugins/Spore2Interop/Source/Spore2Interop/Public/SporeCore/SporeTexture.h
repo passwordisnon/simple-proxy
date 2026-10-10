@@ -86,6 +86,7 @@ struct MeshData
 	// (the stored value divided by 3, as SporeModder's Blender importer does) and their weights.
 	std::vector<uint16_t> BoneIndices;
 	std::vector<float> BoneWeights;
+	std::string SkinIssue; // set when the mesh is skinned but its weights could not be read
 	std::vector<MeshTextureSlot> TextureSlots; // from the mesh's compiled states, in order
 
 	size_t VertexCount() const { return Positions.size() / 3; }
@@ -107,7 +108,9 @@ struct SkeletonData
 {
 	uint32_t Id = 0; // hash
 	std::vector<SkeletonBone> Bones;
-	bool bHasBindPose = false; // false when the file has a skeleton but no matching animation skin
+	// True for the skeleton a skin-in-K links to its bind pose (the one meshes are weighted to).
+	// Other skeleton sections are listed after those, without a pose; their role is unknown.
+	bool bHasBindPose = false;
 };
 
 struct Rw4Info

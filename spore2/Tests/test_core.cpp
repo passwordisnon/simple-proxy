@@ -694,6 +694,10 @@ static void TestMeshes()
 			CHECK(S.BoneIndices.size() == 16 && S.BoneIndices[0] == 42 && S.BoneIndices[2] == 85 && S.BoneIndices[3] == 0);
 			CHECK(S.BoneWeights.size() == 16 && S.BoneWeights[2] == 1.0f && S.BoneWeights[3] == 0.0f);
 		}
+		Vs[0x118 + 12 * 3 + 4] = 6; // SHORT2 indices: not supported -> mesh kept, weights dropped
+		CHECK(ParseRw4(Vs.data(), Vs.size(), Info, Error));
+		CHECK(Info.Meshes.size() == 1 && Info.SkippedMeshes == 0);
+		CHECK(Info.Meshes.size() == 1 && Info.Meshes[0].BoneIndices.empty() && !Info.Meshes[0].SkinIssue.empty());
 	}
 
 	// Skeleton: skin-in-K -> skeleton (2 bones) + animation skin (bind poses).

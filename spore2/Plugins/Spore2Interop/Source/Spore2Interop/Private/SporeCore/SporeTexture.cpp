@@ -546,7 +546,7 @@ bool DecodeVertexBuffer(const uint8_t* Data, size_t Size, const std::vector<Rw4S
 	Out.Positions.resize(3ull * VertexCount);
 	if (Normal) Out.Normals.resize(3ull * VertexCount);
 	if (TexCoord) Out.UVs.resize(2ull * VertexCount);
-	const bool bReadSkin = BlendIndices && BlendWeights;
+	bool bReadSkin = BlendIndices && BlendWeights;
 	if (bReadSkin)
 	{
 		Out.BoneIndices.resize(4ull * VertexCount);
@@ -559,16 +559,22 @@ bool DecodeVertexBuffer(const uint8_t* Data, size_t Size, const std::vector<Rw4S
 		{
 			// UBYTE4 indices hold bone * 3 (3 shader registers per bone); UBYTE4N weights are /255.
 			float Indices[4], Weights[4];
-			if (!ReadElement(Base + BlendIndices->Offset, BlendIndices->DeclType, 4, false, Indices) ||
-				!ReadElement(Base + BlendWeights->Offset, BlendWeights->DeclType, 4, false, Weights))
+			if (ReadElement(Base + BlendIndices->Offset, BlendIndices->DeclType, 4, false, Indices) &&
+				ReadElement(Base + BlendWeights->Offset, BlendWeights->DeclType, 4, false, Weights))
 			{
-				Issue = "unsupported blend index or weight type";
-				return false;
+				for (int K = 0; K < 4; ++K)
+				{
+					Out.BoneIndices[4ull * Vtx + K] = static_cast<uint16_t>(static_cast<uint32_t>(Indices[K]) / 3);
+					Out.BoneWeights[4ull * Vtx + K] = Weights[K];
+				}
 			}
-			for (int K = 0; K < 4; ++K)
+			else
 			{
-				Out.BoneIndices[4ull * Vtx + K] = static_cast<uint16_t>(static_cast<uint32_t>(Indices[K]) / 3);
-				Out.BoneWeights[4ull * Vtx + K] = Weights[K];
+				// Unknown weight layout: keep the geometry, drop the weights.
+				Out.BoneIndices.clear();
+				Out.BoneWeights.clear();
+				Out.SkinIssue = "unsupported blend index/weight types " + std::to_string(BlendIndices->DeclType) + "/" + std::to_string(BlendWeights->DeclType);
+				bReadSkin = false;
 			}
 		}
 		if (!ReadElement(Base + Position->Offset, Position->DeclType, 3, false, &Out.Positions[3ull * Vtx]) ||

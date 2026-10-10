@@ -470,14 +470,23 @@ void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts
 					}
 				}
 				Meshes = std::move(Info.Meshes);
-				for (const MeshData& Mesh : Meshes) Totals.WeightedMeshes += Mesh.BoneIndices.empty() ? 0 : 1;
-				for (const SkeletonData& Skeleton : Info.Skeletons)
+				for (const MeshData& Mesh : Meshes)
 				{
+					Totals.WeightedMeshes += Mesh.BoneIndices.empty() ? 0 : 1;
+					if (!Mesh.SkinIssue.empty()) ++Totals.MeshIssues[Mesh.SkinIssue + " (mesh kept without weights)"];
+				}
+				// Only skeletons with a bind pose are the meshes' skeletons; others are just counted.
+				for (SkeletonData& Skeleton : Info.Skeletons)
+				{
+					if (!Skeleton.bHasBindPose)
+					{
+						++Totals.SkeletonsWithoutPose;
+						continue;
+					}
 					++Totals.Skeletons;
 					Totals.SkeletonBones += Skeleton.Bones.size();
-					Totals.SkeletonsWithoutPose += Skeleton.bHasBindPose ? 0 : 1;
+					Skeletons.push_back(std::move(Skeleton));
 				}
-				Skeletons = std::move(Info.Skeletons);
 			}
 			else
 			{
@@ -583,7 +592,7 @@ void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts
 					std::snprintf(Hex, sizeof(Hex), "0x%08X", Hash);
 					return Known.empty() ? std::string(Hex) : Known;
 				};
-				Text << "skeleton " << BoneName(Skeleton.Id) << ", " << Skeleton.Bones.size() << " bones" << (Skeleton.bHasBindPose ? "" : ", no bind pose") << "\n";
+				Text << "skeleton " << BoneName(Skeleton.Id) << ", " << Skeleton.Bones.size() << " bones\n";
 				Text << "index\tname\tparent\tflags\thead x\thead y\thead z\n";
 				for (size_t B = 0; B < Skeleton.Bones.size(); ++B)
 				{
@@ -1044,7 +1053,7 @@ int main(int Argc, char** Argv)
 	if (Opts.bModels)
 	{
 		std::printf("  meshes:           %zu decoded (%zu skinned, %zu blend shape), %zu skipped\n", Totals.MeshesDecoded, Totals.SkinnedMeshes, Totals.BlendShapeMeshes, Totals.MeshesSkipped);
-		std::printf("  skeletons:        %zu (%zu bones, %zu without bind pose); %zu meshes carry bone weights\n", Totals.Skeletons, Totals.SkeletonBones, Totals.SkeletonsWithoutPose, Totals.WeightedMeshes);
+		std::printf("  skeletons:        %zu with bind pose (%zu bones), %zu other skeleton sections; %zu meshes carry bone weights\n", Totals.Skeletons, Totals.SkeletonBones, Totals.SkeletonsWithoutPose, Totals.WeightedMeshes);
 		std::printf("  mesh geometry:    %llu vertices, %llu triangles\n", static_cast<unsigned long long>(Totals.MeshVertices), static_cast<unsigned long long>(Totals.MeshTriangles));
 		if (Totals.NormalCount > 0)
 		{
