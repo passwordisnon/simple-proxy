@@ -29,6 +29,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <map>
@@ -181,6 +182,37 @@ bool ReadRange(std::ifstream& File, uint64_t Offset, size_t Size, std::vector<ui
 	return static_cast<size_t>(File.gcount()) == Size;
 }
 
+// For files named .package that are not DBPF: says what they start with, since downloads are
+// often a zip (.sporemod), a renamed creation PNG, or a saved web page instead of the file.
+std::string DescribeNonDbpf(std::ifstream& File)
+{
+	std::vector<uint8_t> Head(16, 0);
+	File.clear();
+	File.seekg(0);
+	File.read(reinterpret_cast<char*>(Head.data()), static_cast<std::streamsize>(Head.size()));
+	Head.resize(static_cast<size_t>(File.gcount()));
+	auto StartsWith = [&Head](const char* Magic, size_t Size)
+	{
+		return Head.size() >= Size && std::memcmp(Head.data(), Magic, Size) == 0;
+	};
+	std::string Hex;
+	for (uint8_t Byte : Head)
+	{
+		char Buffer[4];
+		std::snprintf(Buffer, sizeof(Buffer), "%02X ", Byte);
+		Hex += Buffer;
+	}
+	const char* Kind = "unknown file type";
+	if (Head.empty()) Kind = "empty file";
+	else if (StartsWith("DBBF", 4)) Kind = "DBBF (64-bit DBPF, used by Darkspore, not Spore) - not supported";
+	else if (StartsWith("\x89PNG", 4)) Kind = "a PNG image - if it is a creation card, scan it with --png or --assemble";
+	else if (StartsWith("PK\x03\x04", 4)) Kind = "a zip archive (a .sporemod is one) - unzip it and scan the .package files inside";
+	else if (StartsWith("7z\xBC\xAF", 4)) Kind = "a 7-Zip archive - extract it first";
+	else if (StartsWith("Rar!", 4)) Kind = "a RAR archive - extract it first";
+	else if (StartsWith("<", 1) || StartsWith("\xEF\xBB\xBF<", 4)) Kind = "HTML/XML text - probably a saved web page, not the download itself";
+	return std::string(Kind) + "; first bytes: " + Hex;
+}
+
 std::string FormatSize(uint64_t Bytes)
 {
 	char Buffer[32];
@@ -288,6 +320,10 @@ void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts
 	{
 		++Totals.FailedPackages;
 		std::printf("  FAIL %s: %s\n", Path.string().c_str(), ToString(Error));
+		if ((Error == DbpfError::BadMagic || Error == DbpfError::TooSmall) && File.is_open())
+		{
+			std::printf("       file is %s\n", DescribeNonDbpf(File).c_str());
+		}
 		return;
 	}
 
