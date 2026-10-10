@@ -23,15 +23,16 @@ const TUT=(()=>{
     {id:'end',t:'Geschafft!',hint:'',intro:null,final:true}];
   function cur(){return SAVE.tut??0}
   function show(){if(!card){card=el('div','tutcard');card.setAttribute('role','status');$('world').append(card)}const i=cur();const s=STEPS[i];if(!s||s.final||SAVE.tutDone){card.hidden=true;return}card.hidden=false;
-    const hint=typeof s.hint==='function'?s.hint():s.hint;card.innerHTML='';const top=el('div','tut-top');const ic=el('span','tut-ic');ic.innerHTML=ICON('star');top.append(ic,el('b',null,s.t));
+    let hint=typeof s.hint==='function'?s.hint():s.hint;/* Aufgaben zählen draussen: in der Praxis oder einem Haus zuerst hinaus */if(GAME.mode==='interior'&&s.id!=='name'&&s.id!=='phone'){const T=x=>typeof I18N!=='undefined'?I18N.t(x):x;hint=T('Geh zuerst durch die Tür nach draussen.')+' '+T(hint)}card.innerHTML='';const top=el('div','tut-top');const ic=el('span','tut-ic');ic.innerHTML=ICON('star');top.append(ic,el('b',null,s.t));
     const dots=el('div','tut-dots');STEPS.slice(0,-1).forEach((x,k)=>{const d=el('i');if(k<i)d.className='on';if(k===i)d.className='cur';dots.append(d)});
     const skip=el('button','tut-skip','Tutorial überspringen');skip.type='button';skip.onclick=()=>{SAVE.tutDone=true;persist();card.hidden=true};card.append(top,el('p',null,hint),dots,skip)}
   async function next(){busy=true;SAVE.tut=cur()+1;persist();const s=STEPS[cur()];SND.play('j_success');
     if(s&&s.final){await UI.talk(GUIDE,['Super gemacht! Du kennst jetzt die wichtigsten Dinge.','Hier sind 1000 Taler als Startgeld.','Tipp: Mit der Rakete kannst du andere Planeten besuchen. Und bald bekommst du sogar einen eigenen Planeten mit eigenem Haus …'],{voice:V,color:'#8C6FE0'});money(1000);SAVE.tutDone=true;persist();show();busy=false;return}
     if(s&&s.intro)await UI.talk(GUIDE,s.intro,{voice:V,color:'#8C6FE0'});else UI.toast('Gut gemacht! Nächste Aufgabe: '+s.t,2600);
     s&&s.begin&&s.begin();show();busy=false}
-  function tick(){if(SAVE.tutDone||busy||!GAME.me||GAME.mode!=='outdoor'||UI.anyOpen())return;const s=STEPS[cur()];if(!s){SAVE.tutDone=true;return}if(!start.begun){start.begun=true;s.begin&&s.begin()}
+  let lastMode='';function tick(){if(card&&GAME.mode!==lastMode){lastMode=GAME.mode;show()}if(SAVE.tutDone||busy||!GAME.me||GAME.mode!=='outdoor'||UI.anyOpen())return;const s=STEPS[cur()];if(!s){SAVE.tutDone=true;return}if(!start.begun){start.begun=true;s.begin&&s.begin()}
     try{if(s.done())next()}catch(e){}}
   function startWorld(){if(SAVE.tutDone)return;show();setInterval(tick,700);const s=STEPS[cur()];if(s&&s.intro&&cur()<=1){const iv=setInterval(()=>{if(GAME.mode==='outdoor'&&!UI.anyOpen()){clearInterval(iv);UI.talk(GUIDE,['Da bist du ja! Dr. Bolzen hat mir schon alles erzählt.',...s.intro],{voice:V,color:'#8C6FE0'})}},800)}}
+  try{if(typeof I18N!=='undefined'&&I18N.extend)I18N.extend('en',{'Geh zuerst durch die Tür nach draussen.':'First go out through the door.'})}catch(e){}
   return{startWorld,ev:mark,show,get step(){return cur()}}
 })();
