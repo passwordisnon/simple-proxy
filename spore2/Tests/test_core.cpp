@@ -719,6 +719,41 @@ static void TestCreation()
 		CHECK(Creation.Blocks[1].Instance == 0x12345678 && Creation.Blocks[1].bAsymmetric && Creation.Blocks[1].Scale == 1.0f);
 	}
 	CHECK(!ParseSporeModelXml("<notamodel/>", Creation, Error));
+
+	// Model lookup prefers LOD0, falls back to lower detail, defaults the type to rw4.
+	PropertyList PartProps;
+	Property Low;
+	Low.Id = PropModelMeshLOD2;
+	Low.Type = static_cast<uint16_t>(PropType::Key);
+	Low.Count = 1;
+	Low.Keys.push_back({0x22, 0, 0x33});
+	PartProps.Properties.push_back(Low);
+	ResourceKey ModelKey;
+	CHECK(FindPartModelKey(PartProps, ModelKey));
+	CHECK(ModelKey.Instance == 0x22 && ModelKey.Group == 0x33 && ModelKey.Type == 0x2F4E681B);
+	Property High = Low;
+	High.Id = PropModelMeshLOD0;
+	High.Keys[0] = {0x11, 0x2F4E681B, 0x33};
+	PartProps.Properties.push_back(High);
+	CHECK(FindPartModelKey(PartProps, ModelKey) && ModelKey.Instance == 0x11);
+	CHECK(!FindPartModelKey(PropertyList(), ModelKey));
+
+	// Placement: scale 2, rotate 90 degrees about Z (rows (0,1,0),(-1,0,0),(0,0,1)), move by (10,0,0).
+	CreationBlock Place;
+	Place.Scale = 2.0f;
+	const float Rot[9] = {0, 1, 0, -1, 0, 0, 0, 0, 1};
+	std::memcpy(Place.Rotation, Rot, sizeof(Rot));
+	Place.Position[0] = 10.0f;
+	MeshData Unit;
+	Unit.Positions = {1, 0, 0};
+	Unit.Normals = {1, 0, 0};
+	MeshData RowVec = Unit;
+	PlaceMesh(RowVec, Place, false); // v * R: (1,0,0) -> first row (0,1,0)
+	CHECK(RowVec.Positions == std::vector<float>({10, 2, 0}));
+	CHECK(RowVec.Normals == std::vector<float>({0, 1, 0}));
+	MeshData ColVec = Unit;
+	PlaceMesh(ColVec, Place, true);  // R * v: (1,0,0) -> first column (0,-1,0)
+	CHECK(ColVec.Positions == std::vector<float>({10, -2, 0}));
 }
 
 int main()

@@ -22,6 +22,7 @@ available inside Unreal Engine 5. No game files are included in or committed to 
 | UE5 Slate package browser (category tabs, search, package list, resource table, export) | written, **not yet compiled against UE** |
 | Models: `.rw4` meshes (positions, normals, UVs; lists and strips) → `.obj` / UE `ProceduralMeshComponent` | done, unit-tested |
 | Materials: mesh → texture slots (in-file rasters and named texture overrides) → `.mtl` / UE material instances | done, unit-tested |
+| Creation assembly: card parts → part `.prop` → `modelMeshLOD*` model → placed meshes → one textured `.obj` / UE `AssembleCreationPng` | done on synthetic data; needs a real card + game data |
 | Skeletons, skinning, animations, blend shapes | not started |
 | Creation PNGs: hidden payload → metadata + `<sporemodel>` XML → parts (ID, transform, paints, children) → UE `DecodeCreationPng` | done, checked on real Spore PNGs |
 | Gameplay stages, editors, procedural animation | not started |
@@ -66,6 +67,11 @@ Useful extras:
 
 # decode creation cards (creatures, buildings, vehicles...): part counts, names; --extract saves the XML
 ./build/spore2-scan --png --names ~/SporeData/names --extract ~/SporeData/creations "/Users/<you>/Documents/My Spore Creations"
+
+# rebuild a whole creation from its parts as one textured OBJ (open in Blender)
+./build/spore2-scan --assemble "/path/to/card.png" --names ~/SporeData/names --extract ~/SporeData/assembled ~/SporeData/Base
+# if parts look rotated wrong, try the other orientation convention:
+./build/spore2-scan --assemble "/path/to/card.png" --flip-rotation --extract ~/SporeData/assembled ~/SporeData/Base
 
 # check whether a resource with that name really exists in your files (for "hidden content" claims)
 ./build/spore2-scan --names "/Applications/SporeModder FX" --find CakeEditor,CellEditor,PlannerThumbnailGen

@@ -10,6 +10,9 @@
 // --textures decodes .raster and .rw4 textures; with --extract each one is also written as
 //        .dds (original data) and .png (decoded, for viewing or upscaling).
 // --models decodes .rw4 meshes; with --extract each mesh is also written as .obj.
+// --assemble CARD.png rebuilds a creation from its parts into one textured OBJ in the
+//        --extract directory (default ./assembled), using the packages under ROOT...
+//        --flip-rotation tries the other orientation convention if parts look misrotated.
 // --names points at a SporeModder-FX folder; its reg_*.txt files turn hashes into names.
 // --find reports which packages hold a resource whose instance or group is the hash of NAME
 //        (e.g. --find CakeEditor,CellEditor to check claims about hidden editors).
@@ -52,6 +55,8 @@ struct Options
 	bool bProps = false;
 	bool bTextures = false;
 	bool bModels = false;
+	std::string AssemblePng;
+	bool bFlipRotation = false;
 	std::string NamesDir;
 	std::vector<std::string> FindNames;
 	std::string ExtractDir;
@@ -592,10 +597,170 @@ void ScanPng(const fs::path& Path, const Options& Opts)
 	}
 }
 
+
+// Every resource of every package under the roots; later packages override earlier ones.
+struct ResourceLibrary
+{
+	struct Package
+	{
+		fs::path Path;
+		std::vector<IndexEntry> Entries;
+	};
+	std::vector<Package> Packages;
+	std::unordered_map<ResourceKey, std::pair<size_t, size_t>, ResourceKeyHash> Index;
+
+	void AddRoot(const fs::path& Root)
+	{
+		std::vector<fs::path> Found;
+		std::error_code Ec;
+		for (auto It = fs::recursive_directory_iterator(Root, fs::directory_options::skip_permission_denied, Ec); !Ec && It != fs::recursive_directory_iterator(); It.increment(Ec))
+		{
+			if (It->is_regular_file(Ec) && It->path().extension() == ".package") Found.push_back(It->path());
+		}
+		std::sort(Found.begin(), Found.end());
+		for (const fs::path& Path : Found)
+		{
+			std::ifstream File(Path, std::ios::binary);
+			const uint64_t FileSize = fs::file_size(Path, Ec);
+			std::vector<uint8_t> Buffer;
+			DbpfHeader Header;
+			Package Pkg;
+			Pkg.Path = Path;
+			if (Ec || !ReadRange(File, 0, DbpfHeaderSize, Buffer) || ParseHeader(Buffer.data(), Buffer.size(), FileSize, Header) != DbpfError::None ||
+				!ReadRange(File, Header.IndexOffset, Header.IndexSize, Buffer) || ParseIndex(Buffer.data(), Buffer.size(), Header, FileSize, Pkg.Entries) != DbpfError::None)
+			{
+				continue;
+			}
+			const size_t PkgIndex = Packages.size();
+			for (size_t E = 0; E < Pkg.Entries.size(); ++E) Index[Pkg.Entries[E].Key] = {PkgIndex, E};
+			Packages.push_back(std::move(Pkg));
+		}
+	}
+
+	bool Read(const ResourceKey& Key, std::vector<uint8_t>& Out) const
+	{
+		const auto It = Index.find(Key);
+		if (It == Index.end()) return false;
+		const Package& Pkg = Packages[It->second.first];
+		const IndexEntry& Entry = Pkg.Entries[It->second.second];
+		std::ifstream File(Pkg.Path, std::ios::binary);
+		std::vector<uint8_t> Raw;
+		return ReadRange(File, Entry.Offset, Entry.CompressedSize, Raw) && DecodeEntry(Entry, Raw.data(), Raw.size(), Out) == DbpfError::None;
+	}
+};
+
+std::string KeyLabel(const ResourceKey& Key)
+{
+	char Hex[48];
+	std::snprintf(Hex, sizeof(Hex), "%08X!%08X.%08X", Key.Group, Key.Instance, Key.Type);
+	const std::string Group = NameTables::Lookup(Names.Files, Key.Group);
+	const std::string Instance = NameTables::Lookup(Names.Files, Key.Instance);
+	return (Group.empty() && Instance.empty()) ? std::string(Hex) : std::string(Hex) + " (" + (Group.empty() ? "?" : Group) + "/" + (Instance.empty() ? "?" : Instance) + ")";
+}
+
+int RunAssemble(const Options& Opts)
+{
+	std::ifstream PngFile(Opts.AssemblePng, std::ios::binary);
+	const std::vector<uint8_t> PngData((std::istreambuf_iterator<char>(PngFile)), std::istreambuf_iterator<char>());
+	SporeCreation Creation;
+	std::string Error;
+	if (!DecodeSporeCreation(PngData.data(), PngData.size(), ZlibInflate, Creation, Error))
+	{
+		std::fprintf(stderr, "cannot decode %s: %s\n", Opts.AssemblePng.c_str(), Error.c_str());
+		return 1;
+	}
+	if (Creation.Blocks.empty())
+	{
+		std::fprintf(stderr, "%s has no parts (adventure or non-model asset)\n", Opts.AssemblePng.c_str());
+		return 1;
+	}
+
+	ResourceLibrary Library;
+	for (const std::string& Root : Opts.Roots) Library.AddRoot(Root);
+	std::printf("indexed %zu packages, %zu resources\n", Library.Packages.size(), Library.Index.size());
+
+	const std::string Stem = fs::path(Opts.AssemblePng).stem().string();
+	const fs::path OutDir = fs::path(Opts.ExtractDir.empty() ? std::string("assembled") : Opts.ExtractDir) / Stem;
+	std::error_code Ec;
+	fs::create_directories(OutDir, Ec);
+
+	std::string Obj = "# Assembled by spore2-scan from " + fs::path(Opts.AssemblePng).filename().string() + "\nmtllib " + Stem + ".mtl\n";
+	std::string Mtl;
+	size_t VertexBase = 0;
+	size_t PartsBuilt = 0;
+	std::map<std::string, size_t> Problems;
+	char Line[160];
+
+	for (size_t B = 0; B < Creation.Blocks.size(); ++B)
+	{
+		const CreationBlock& Block = Creation.Blocks[B];
+		ResourceKey PropKey;
+		PropKey.Group = Block.Group;
+		PropKey.Instance = Block.Instance;
+		PropKey.Type = 0x00B1B104;
+		std::vector<uint8_t> Bytes;
+		PropertyList Props;
+		ResourceKey ModelKey;
+		if (!Library.Read(PropKey, Bytes)) { ++Problems["part property file not found"]; std::printf("  part %zu %s: property file not found\n", B, KeyLabel(PropKey).c_str()); continue; }
+		if (!ParsePropertyList(Bytes.data(), Bytes.size(), Props)) { ++Problems["part property file unreadable"]; continue; }
+		if (!FindPartModelKey(Props, ModelKey)) { ++Problems["part names no model (modelMeshLOD*)"]; std::printf("  part %zu %s: no modelMeshLOD key\n", B, KeyLabel(PropKey).c_str()); continue; }
+		if (!Library.Read(ModelKey, Bytes)) { ++Problems["model file not found"]; std::printf("  part %zu: model %s not found\n", B, KeyLabel(ModelKey).c_str()); continue; }
+		Rw4Info Info;
+		if (!ParseRw4(Bytes.data(), Bytes.size(), Info, Error) || Info.Meshes.empty()) { ++Problems["model has no readable mesh"]; continue; }
+
+		std::printf("  part %zu %s -> %s: %zu mesh(es)\n", B, KeyLabel(PropKey).c_str(), KeyLabel(ModelKey).c_str(), Info.Meshes.size());
+		++PartsBuilt;
+		for (size_t M = 0; M < Info.Meshes.size(); ++M)
+		{
+			MeshData Mesh = Info.Meshes[M];
+			PlaceMesh(Mesh, Block, Opts.bFlipRotation);
+
+			// Material: the mesh's own texture written next to the OBJ, else plain white.
+			const std::string MatName = "part" + std::to_string(B) + "_" + std::to_string(M);
+			Mtl += "newmtl " + MatName + "\nKd 1 1 1\n";
+			const MeshTextureSlot* Slot = DiffuseSlot(Mesh);
+			std::vector<uint8_t> Rgba, Png;
+			std::string TexError;
+			if (Slot && Slot->TextureIndex >= 0 && DecodeToRgba(Info.Textures[Slot->TextureIndex], Rgba, TexError) &&
+				EncodePng(Rgba, Info.Textures[Slot->TextureIndex].Width, Info.Textures[Slot->TextureIndex].Height, Png))
+			{
+				const std::string TexName = MatName + ".png";
+				WriteBytes(OutDir / TexName, Png);
+				Mtl += "map_Kd " + TexName + "\n";
+			}
+
+			Obj += "g " + MatName + "\nusemtl " + MatName + "\n";
+			const size_t Count = Mesh.VertexCount();
+			for (size_t V = 0; V < Count; ++V)
+			{
+				std::snprintf(Line, sizeof(Line), "v %g %g %g\n", Mesh.Positions[3 * V], Mesh.Positions[3 * V + 1], Mesh.Positions[3 * V + 2]);
+				Obj += Line;
+				std::snprintf(Line, sizeof(Line), "vt %g %g\n", Mesh.UVs.empty() ? 0.0f : Mesh.UVs[2 * V], Mesh.UVs.empty() ? 0.0f : 1.0f - Mesh.UVs[2 * V + 1]);
+				Obj += Line;
+				std::snprintf(Line, sizeof(Line), "vn %g %g %g\n", Mesh.Normals.empty() ? 0.0f : Mesh.Normals[3 * V], Mesh.Normals.empty() ? 0.0f : Mesh.Normals[3 * V + 1], Mesh.Normals.empty() ? 1.0f : Mesh.Normals[3 * V + 2]);
+				Obj += Line;
+			}
+			for (size_t T = 0; T + 2 < Mesh.Indices.size(); T += 3)
+			{
+				const size_t A = VertexBase + Mesh.Indices[T] + 1, Bv = VertexBase + Mesh.Indices[T + 1] + 1, C = VertexBase + Mesh.Indices[T + 2] + 1;
+				std::snprintf(Line, sizeof(Line), "f %zu/%zu/%zu %zu/%zu/%zu %zu/%zu/%zu\n", A, A, A, Bv, Bv, Bv, C, C, C);
+				Obj += Line;
+			}
+			VertexBase += Count;
+		}
+	}
+
+	std::ofstream(OutDir / (Stem + ".obj")) << Obj;
+	std::ofstream(OutDir / (Stem + ".mtl")) << Mtl;
+	std::printf("\nassembled %zu of %zu parts -> %s\n", PartsBuilt, Creation.Blocks.size(), (OutDir / (Stem + ".obj")).string().c_str());
+	for (const auto& [Problem, Count] : Problems) std::printf("  ! %zu x %s\n", Count, Problem.c_str());
+	return PartsBuilt > 0 ? 0 : 1;
+}
+
 void PrintUsage()
 {
 	std::printf("usage: spore2-scan [--verify] [--props] [--textures] [--models] [--png] [--extract DIR] [--type HEX|png|prop|rw4|raster]\n"
-	            "                   [--names SMFX_DIR] [--find NAME[,NAME...]] [ROOT...]\n");
+	            "                   [--names SMFX_DIR] [--find NAME[,NAME...]] [--assemble CARD.png [--flip-rotation]] [ROOT...]\n");
 }
 
 } // namespace
@@ -611,6 +776,8 @@ int main(int Argc, char** Argv)
 		else if (Arg == "--props") Opts.bProps = true;
 		else if (Arg == "--textures") Opts.bTextures = true;
 		else if (Arg == "--models") Opts.bModels = true;
+		else if (Arg == "--assemble" && I + 1 < Argc) Opts.AssemblePng = Argv[++I];
+		else if (Arg == "--flip-rotation") Opts.bFlipRotation = true;
 		else if (Arg == "--names" && I + 1 < Argc) Opts.NamesDir = Argv[++I];
 		else if (Arg == "--find" && I + 1 < Argc)
 		{
@@ -667,6 +834,11 @@ int main(int Argc, char** Argv)
 			if (Registered == Name) { Target.Hash = Id; break; }
 		}
 		FindTargets.push_back(Target);
+	}
+
+	if (!Opts.AssemblePng.empty())
+	{
+		return RunAssemble(Opts);
 	}
 
 	ScanTotals Totals;

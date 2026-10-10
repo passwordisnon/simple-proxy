@@ -227,6 +227,53 @@ bool USporeInteropSubsystem::ReadSporeTexture(const FSporeResourceKey& Key, int3
 	return bOk;
 }
 
+void USporeInteropSubsystem::AddSporeMeshSection(UProceduralMeshComponent* Target, int32 Section, const sporecore::MeshData& Mesh, float UnitScale, UMaterialInterface* BaseMaterial, const FSporeResourceKey& Key)
+{
+	const int32 VertexCount = static_cast<int32>(Mesh.VertexCount());
+	TArray<FVector> Vertices;
+	TArray<FVector> Normals;
+	TArray<FVector2D> UV0;
+	Vertices.Reserve(VertexCount);
+	for (int32 V = 0; V < VertexCount; ++V)
+	{
+		// Spore (right-handed, Z up) -> UE (left-handed, Z up): mirror Y.
+		Vertices.Emplace(Mesh.Positions[3 * V] * UnitScale, -Mesh.Positions[3 * V + 1] * UnitScale, Mesh.Positions[3 * V + 2] * UnitScale);
+		if (!Mesh.Normals.empty())
+		{
+			Normals.Emplace(FVector(Mesh.Normals[3 * V], -Mesh.Normals[3 * V + 1], Mesh.Normals[3 * V + 2]).GetSafeNormal());
+		}
+		if (!Mesh.UVs.empty())
+		{
+			UV0.Emplace(Mesh.UVs[2 * V], Mesh.UVs[2 * V + 1]); // both Direct3D-style, no flip
+		}
+	}
+	TArray<int32> Triangles;
+	Triangles.Reserve(static_cast<int32>(Mesh.Indices.size()));
+	for (size_t T = 0; T + 2 < Mesh.Indices.size(); T += 3)
+	{
+		// Mirroring one axis reverses winding, so swap two corners to keep faces outward.
+		Triangles.Add(static_cast<int32>(Mesh.Indices[T]));
+		Triangles.Add(static_cast<int32>(Mesh.Indices[T + 2]));
+		Triangles.Add(static_cast<int32>(Mesh.Indices[T + 1]));
+	}
+	Target->CreateMeshSection(Section, Vertices, Triangles, Normals, UV0, TArray<FColor>(), TArray<FProcMeshTangent>(), true);
+	if (BaseMaterial)
+	{
+		const sporecore::MeshTextureSlot* Slot = sporecore::DiffuseSlot(Mesh);
+		if (Slot && Slot->TextureIndex >= 0)
+		{
+			if (UTexture2D* Diffuse = LoadSporeTexture(Key, Slot->TextureIndex))
+			{
+				Target->SetMaterial(Section, CreateLegacyMaterial(BaseMaterial, Diffuse, nullptr, false));
+			}
+		}
+		else if (Slot && !Slot->OverrideName.empty())
+		{
+			UE_LOG(LogSporeInterop, Log, TEXT("Model %s section %d uses external texture '%s'"), *Key.ToString(), Section, UTF8_TO_TCHAR(Slot->OverrideName.c_str()));
+		}
+	}
+}
+
 int32 USporeInteropSubsystem::BuildSporeMesh(const FSporeResourceKey& Key, UProceduralMeshComponent* Target, float UnitScale, UMaterialInterface* BaseMaterial)
 {
 	if (!Target)
@@ -256,53 +303,68 @@ int32 USporeInteropSubsystem::BuildSporeMesh(const FSporeResourceKey& Key, UProc
 	int32 Section = 0;
 	for (const sporecore::MeshData& Mesh : Info.Meshes)
 	{
-		const int32 VertexCount = static_cast<int32>(Mesh.VertexCount());
-		TArray<FVector> Vertices;
-		TArray<FVector> Normals;
-		TArray<FVector2D> UV0;
-		Vertices.Reserve(VertexCount);
-		for (int32 V = 0; V < VertexCount; ++V)
-		{
-			// Spore (right-handed, Z up) -> UE (left-handed, Z up): mirror Y.
-			Vertices.Emplace(Mesh.Positions[3 * V] * UnitScale, -Mesh.Positions[3 * V + 1] * UnitScale, Mesh.Positions[3 * V + 2] * UnitScale);
-			if (!Mesh.Normals.empty())
-			{
-				Normals.Emplace(FVector(Mesh.Normals[3 * V], -Mesh.Normals[3 * V + 1], Mesh.Normals[3 * V + 2]).GetSafeNormal());
-			}
-			if (!Mesh.UVs.empty())
-			{
-				UV0.Emplace(Mesh.UVs[2 * V], Mesh.UVs[2 * V + 1]); // both Direct3D-style, no flip
-			}
-		}
-		TArray<int32> Triangles;
-		Triangles.Reserve(static_cast<int32>(Mesh.Indices.size()));
-		for (size_t T = 0; T + 2 < Mesh.Indices.size(); T += 3)
-		{
-			// Mirroring one axis reverses winding, so swap two corners to keep faces outward.
-			Triangles.Add(static_cast<int32>(Mesh.Indices[T]));
-			Triangles.Add(static_cast<int32>(Mesh.Indices[T + 2]));
-			Triangles.Add(static_cast<int32>(Mesh.Indices[T + 1]));
-		}
-		Target->CreateMeshSection(Section, Vertices, Triangles, Normals, UV0, TArray<FColor>(), TArray<FProcMeshTangent>(), true);
-		if (BaseMaterial)
-		{
-			const sporecore::MeshTextureSlot* Slot = sporecore::DiffuseSlot(Mesh);
-			if (Slot && Slot->TextureIndex >= 0)
-			{
-				if (UTexture2D* Diffuse = LoadSporeTexture(Key, Slot->TextureIndex))
-				{
-					Target->SetMaterial(Section, CreateLegacyMaterial(BaseMaterial, Diffuse, nullptr, false));
-				}
-			}
-			else if (Slot && !Slot->OverrideName.empty())
-			{
-				UE_LOG(LogSporeInterop, Log, TEXT("Model %s section %d uses external texture '%s'"), *Key.ToString(), Section, UTF8_TO_TCHAR(Slot->OverrideName.c_str()));
-			}
-		}
-		++Section;
+		AddSporeMeshSection(Target, Section++, Mesh, UnitScale, BaseMaterial, Key);
 	}
 	UE_LOG(LogSporeInterop, Log, TEXT("Model %s: built %d mesh sections"), *Key.ToString(), Section);
 	return Section;
+}
+
+int32 USporeInteropSubsystem::AssembleCreationPng(const FString& PngFile, UProceduralMeshComponent* Target, float UnitScale, UMaterialInterface* BaseMaterial, bool bFlipRotation)
+{
+	if (!Target)
+	{
+		return 0;
+	}
+	TArray<uint8> Data;
+	if (!FFileHelper::LoadFileToArray(Data, *PngFile))
+	{
+		UE_LOG(LogSporeInterop, Warning, TEXT("Cannot read %s"), *PngFile);
+		return 0;
+	}
+	sporecore::SporeCreation Creation;
+	std::string Error;
+	if (!sporecore::DecodeSporeCreation(Data.GetData(), Data.Num(), &SporeInterop::ZlibInflate, Creation, Error))
+	{
+		UE_LOG(LogSporeInterop, Warning, TEXT("%s: %s"), *PngFile, UTF8_TO_TCHAR(Error.c_str()));
+		return 0;
+	}
+
+	Target->ClearAllMeshSections();
+	int32 Section = 0;
+	int32 PartsBuilt = 0;
+	for (int32 B = 0; B < static_cast<int32>(Creation.Blocks.size()); ++B)
+	{
+		const sporecore::CreationBlock& Block = Creation.Blocks[B];
+		FSporeResourceKey PropKey;
+		PropKey.Group = Block.Group;
+		PropKey.Instance = Block.Instance;
+		PropKey.Type = 0x00B1B104;
+
+		TArray<uint8> Bytes;
+		FString ReadError;
+		sporecore::PropertyList Props;
+		sporecore::ResourceKey ModelKey;
+		if (!ReadResource(PropKey, Bytes, &ReadError) || !sporecore::ParsePropertyList(Bytes.GetData(), Bytes.Num(), Props) || !sporecore::FindPartModelKey(Props, ModelKey))
+		{
+			UE_LOG(LogSporeInterop, Log, TEXT("%s part %d (%s): no readable part file or model reference"), *PngFile, B, *PropKey.ToString());
+			continue;
+		}
+		const FSporeResourceKey ModelResource(ModelKey);
+		sporecore::Rw4Info Info;
+		if (!ReadResource(ModelResource, Bytes, &ReadError) || !sporecore::ParseRw4(Bytes.GetData(), Bytes.Num(), Info, Error))
+		{
+			UE_LOG(LogSporeInterop, Log, TEXT("%s part %d: model %s not readable"), *PngFile, B, *ModelResource.ToString());
+			continue;
+		}
+		++PartsBuilt;
+		for (sporecore::MeshData& Mesh : Info.Meshes)
+		{
+			sporecore::PlaceMesh(Mesh, Block, bFlipRotation); // into creation space, still Spore axes
+			AddSporeMeshSection(Target, Section++, Mesh, UnitScale, BaseMaterial, ModelResource);
+		}
+	}
+	UE_LOG(LogSporeInterop, Log, TEXT("%s: assembled %d of %d parts into %d sections"), *PngFile, PartsBuilt, static_cast<int32>(Creation.Blocks.size()), Section);
+	return PartsBuilt;
 }
 
 FString USporeInteropSubsystem::DescribeRw4(const FSporeResourceKey& Key) const

@@ -10,6 +10,8 @@
 #pragma once
 
 #include "SporeCore/SporePng.h"
+#include "SporeCore/SporeProp.h"
+#include "SporeCore/SporeTexture.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -67,6 +69,23 @@ struct SporeCreation
 
 // Full pipeline: PNG pixels -> hidden payload -> inflate -> metadata + XML -> parts.
 bool DecodeSporeCreation(const uint8_t* Data, size_t Size, const InflateFn& Inflate, SporeCreation& Out, std::string& Error);
+
+// Property ids (from SporeModder-FX reg_property.txt) that point a part at its model.
+constexpr uint32_t PropModelMeshLOD0 = 0x00F9EFBB;
+constexpr uint32_t PropModelMeshLOD1 = 0x00F9EFBC;
+constexpr uint32_t PropModelMeshLOD2 = 0x00F9EFBD;
+constexpr uint32_t PropModelMeshLOD3 = 0x00F9EFBE;
+constexpr uint32_t PropModelMeshLowRes = 0x00F9EFBF;
+
+// Finds the most detailed model key in a part's property list (LOD0, then LOD1..3, then
+// low-res). Keys without a type get the rw4 type. Returns false when the part names no model.
+bool FindPartModelKey(const PropertyList& Props, ResourceKey& OutKey);
+
+// Moves a part's mesh into creation space: scale, then rotate, then translate, applied to
+// positions (and rotation to normals). bTransposeRotation switches between treating the
+// orientation rows as basis vectors (row-vector convention, the default) or as columns -
+// which one Spore uses is still to be confirmed on real creations.
+void PlaceMesh(MeshData& Mesh, const CreationBlock& Block, bool bTransposeRotation);
 
 // Parses a <sporemodel> document into blocks (exposed for tests and for XML files from mods).
 bool ParseSporeModelXml(const std::string& Xml, SporeCreation& Out, std::string& Error);

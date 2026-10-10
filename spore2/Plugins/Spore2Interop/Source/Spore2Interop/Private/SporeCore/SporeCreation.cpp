@@ -273,6 +273,54 @@ bool ParseSporeModelXml(const std::string& Xml, SporeCreation& Out, std::string&
 	return true;
 }
 
+bool FindPartModelKey(const PropertyList& Props, ResourceKey& OutKey)
+{
+	static const uint32_t Order[] = {PropModelMeshLOD0, PropModelMeshLOD1, PropModelMeshLOD2, PropModelMeshLOD3, PropModelMeshLowRes};
+	for (uint32_t Wanted : Order)
+	{
+		for (const Property& Prop : Props.Properties)
+		{
+			if (Prop.Id == Wanted && Prop.Type == static_cast<uint16_t>(PropType::Key) && !Prop.Keys.empty())
+			{
+				OutKey = Prop.Keys.front();
+				if (OutKey.Type == 0)
+				{
+					OutKey.Type = 0x2F4E681B; // rw4
+				}
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+void PlaceMesh(MeshData& Mesh, const CreationBlock& Block, bool bTransposeRotation)
+{
+	const float* R = Block.Rotation;
+	// Row-vector convention: v' = v * R, so output component j = sum_i v_i * R[i][j].
+	auto Rotate = [&](const float* V, float* Out)
+	{
+		for (int J = 0; J < 3; ++J)
+		{
+			Out[J] = bTransposeRotation ? (R[J * 3 + 0] * V[0] + R[J * 3 + 1] * V[1] + R[J * 3 + 2] * V[2])
+			                            : (V[0] * R[0 * 3 + J] + V[1] * R[1 * 3 + J] + V[2] * R[2 * 3 + J]);
+		}
+	};
+	for (size_t I = 0; I + 2 < Mesh.Positions.size(); I += 3)
+	{
+		const float Scaled[3] = {Mesh.Positions[I] * Block.Scale, Mesh.Positions[I + 1] * Block.Scale, Mesh.Positions[I + 2] * Block.Scale};
+		float Rotated[3];
+		Rotate(Scaled, Rotated);
+		for (int K = 0; K < 3; ++K) Mesh.Positions[I + K] = Rotated[K] + Block.Position[K];
+	}
+	for (size_t I = 0; I + 2 < Mesh.Normals.size(); I += 3)
+	{
+		float Rotated[3];
+		Rotate(&Mesh.Normals[I], Rotated);
+		for (int K = 0; K < 3; ++K) Mesh.Normals[I + K] = Rotated[K];
+	}
+}
+
 bool DecodeSporeCreation(const uint8_t* Data, size_t Size, const InflateFn& Inflate, SporeCreation& Out, std::string& Error)
 {
 	Out = SporeCreation();

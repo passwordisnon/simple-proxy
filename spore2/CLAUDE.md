@@ -42,6 +42,10 @@ resources, creation PNGs) to this repository.
   16-bit LFSR from 0xB400 with a running FNV hash (see SporeCreation.cpp, after emd4600's decoder);
   8-byte header (magic, LE length), zlib payload = pollen metadata + <sporemodel> XML; large
   creations use an "spOr" chunk after IEND. Never commit sample PNGs from that repo (no license).
+- Assembly: block (group, instance) + type prop = part file (buildings: group building_parts~
+  0x40636000); its modelMeshLOD0..3 / modelMeshLowRes key names the rw4. Orientation rows are applied
+  as row vectors (v * R) by default; --flip-rotation / bFlipRotation uses columns. Unconfirmed which
+  is right, and whether positions are absolute or parent-relative (treated as absolute).
 
 ## Roadmap
 

@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "SporeCore/SporeDbpf.h"
+#include "SporeCore/SporeTexture.h"
 #include "SporeInteropSubsystem.generated.h"
 
 class APlayerController;
@@ -271,6 +272,13 @@ public:
 	// Summary of a .raster/.rw4: texture formats and sizes, mesh and triangle counts.
 	FString DescribeRw4(const FSporeResourceKey& Key) const;
 
+	// Rebuilds a creation card as one procedural mesh: each part's property file is looked up
+	// in the mounted packages, its modelMeshLOD model loaded, placed at the part's transform and
+	// added as sections (with materials when BaseMaterial is set). Returns parts built.
+	// bFlipRotation tries the other orientation convention if parts come out misrotated.
+	UFUNCTION(BlueprintCallable, Category = "Spore|Creations")
+	int32 AssembleCreationPng(const FString& PngFile, UProceduralMeshComponent* Target, float UnitScale = 100.0f, UMaterialInterface* BaseMaterial = nullptr, bool bFlipRotation = false);
+
 	// One-line summary such as "DXT5 512x512, 10 mips" (or the reason it cannot be read).
 	FString DescribeSporeTexture(const FSporeResourceKey& Key) const;
 
@@ -316,6 +324,7 @@ private:
 	static TSharedPtr<FSporeMountedPackage> ParsePackage(const FString& Path, bool bIsMod);
 
 	void LoadNameRegistries();
+	void AddSporeMeshSection(UProceduralMeshComponent* Target, int32 Section, const sporecore::MeshData& Mesh, float UnitScale, UMaterialInterface* BaseMaterial, const FSporeResourceKey& Key);
 	bool ReadSporeTexture(const FSporeResourceKey& Key, int32 TextureIndex, FSporeTextureData& Out) const;
 
 	TMap<uint32, FString> PropertyNames;
