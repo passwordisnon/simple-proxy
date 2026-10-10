@@ -640,9 +640,108 @@ static void TestMeshes()
 		CHECK(B.UVs.size() == 8 && B.UVs[7] == 0.75f);
 		CHECK(B.Indices == std::vector<uint32_t>({0, 1, 2, 2, 1, 3}));
 	}
+	// Skin streams in the blend shape buffer: 2 u16 indices (bone * 3) and 2 float weights per vertex.
+	{
+		std::vector<uint8_t> Skinned = Blend;
+		Skinned.resize(0x900, 0);
+		PutLE32(Skinned, 0x628, 256); // stream 9: blend indices
+		PutLE32(Skinned, 0x62C, 272); // stream 10: blend weights
+		PutLE32(Skinned, 0x63C, 2);   // bone index count
+		for (int V = 0; V < 4; ++V)
+		{
+			PutLE16(Skinned, 0x700 + 4 * V, 3);     // bone 1
+			PutLE16(Skinned, 0x702 + 4 * V, 6);     // bone 2
+			PutLEFloat(Skinned, 0x710 + 8 * V, 0.75f);
+			PutLEFloat(Skinned, 0x714 + 8 * V, 0.25f);
+		}
+		PutSection(Skinned, 0x300, 6, 0x600, 304, 0x200AF);
+		CHECK(ParseRw4(Skinned.data(), Skinned.size(), Info, Error));
+		CHECK(Info.Meshes.size() == 1);
+		if (Info.Meshes.size() == 1)
+		{
+			const MeshData& S = Info.Meshes[0];
+			CHECK(S.bSkinned && S.BoneIndices.size() == 16 && S.BoneWeights.size() == 16);
+			CHECK(S.BoneIndices.size() == 16 && S.BoneIndices[12] == 1 && S.BoneIndices[13] == 2 && S.BoneIndices[14] == 0);
+			CHECK(S.BoneWeights.size() == 16 && S.BoneWeights[12] == 0.75f && S.BoneWeights[13] == 0.25f && S.BoneWeights[15] == 0.0f);
+		}
+	}
+
 	PutLE32(Blend, 0x600, 2); // malformed buffer -> skipped, not crashed
 	CHECK(ParseRw4(Blend.data(), Blend.size(), Info, Error));
 	CHECK(Info.Meshes.empty() && Info.SkippedMeshes == 1);
+
+	// Vertex-buffer skin elements: blend indices (UBYTE4, bone * 3) and weights (UBYTE4N), here
+	// both pointed at the normal's bytes (128, 128, 255, 0).
+	{
+		std::vector<uint8_t> Vs = BuildMeshRw4(4, {0, 1, 2, 2, 1, 3}, 2);
+		PutLE16(Vs, 0x10C, 5);
+		const uint8_t SkinElements[2][4] = {{12, 5, 2, 14}, {12, 8, 1, 15}};
+		for (int E = 0; E < 2; ++E)
+		{
+			const size_t At = 0x118 + 12 * (3 + E);
+			PutLE16(Vs, At + 2, SkinElements[E][0]);
+			Vs[At + 4] = SkinElements[E][1];
+			Vs[At + 6] = SkinElements[E][2];
+			PutLE32(Vs, At + 8, SkinElements[E][3]);
+		}
+		PutSection(Vs, 0x300, 0, 0x100, 0x54, 0x20004);
+		CHECK(ParseRw4(Vs.data(), Vs.size(), Info, Error));
+		CHECK(Info.Meshes.size() == 1);
+		if (Info.Meshes.size() == 1)
+		{
+			const MeshData& S = Info.Meshes[0];
+			CHECK(S.bSkinned && S.BoneIndices.size() == 16);
+			CHECK(S.BoneIndices.size() == 16 && S.BoneIndices[0] == 42 && S.BoneIndices[2] == 85 && S.BoneIndices[3] == 0);
+			CHECK(S.BoneWeights.size() == 16 && S.BoneWeights[2] == 1.0f && S.BoneWeights[3] == 0.0f);
+		}
+	}
+
+	// Skeleton: skin-in-K -> skeleton (2 bones) + animation skin (bind poses).
+	{
+		std::vector<uint8_t> Sk = BuildMeshRw4(4, {0, 1, 2, 2, 1, 3}, 2);
+		Sk.resize(0x900, 0);
+		PutLE32(Sk, 0x24, 9);
+		PutLE32(Sk, 0x600, 0x640);       // 6: skeleton -> flags, parents, names
+		PutLE32(Sk, 0x604, 0x648);
+		PutLE32(Sk, 0x608, 0x650);
+		PutLE32(Sk, 0x60C, 2);
+		PutLE32(Sk, 0x610, FnvHash("test_skeleton"));
+		PutLE32(Sk, 0x614, 2);
+		PutLE32(Sk, 0x644, 7);           // bone 1 flags
+		PutLE32(Sk, 0x648, 0xFFFFFFFFu); // bone 0: root
+		PutLE32(Sk, 0x64C, 0);           // bone 1: child of 0
+		PutLE32(Sk, 0x650, FnvHash("root"));
+		PutLE32(Sk, 0x654, FnvHash("tip"));
+		PutLE32(Sk, 0x660, 0x680);       // 7: animation skin -> poses
+		PutLE32(Sk, 0x664, 2);
+		for (int B = 0; B < 2; ++B)      // identity rotations
+		{
+			for (int R = 0; R < 3; ++R) PutLEFloat(Sk, 0x680 + 64 * B + 16 * R + 4 * R, 1.0f);
+		}
+		PutLEFloat(Sk, 0x6C0 + 48 + 8, -2.0f); // bone 1 inverse translation z = -2 -> head z = 2
+		PutLE32(Sk, 0x6F0 + 12, 6);      // 8: skin-in-K -> skeleton 6, animation skin 7
+		PutLE32(Sk, 0x6F0 + 16, 7);
+		PutSection(Sk, 0x300, 6, 0x600, 24, 0x70002);
+		PutSection(Sk, 0x300, 7, 0x660, 16, 0x70003);
+		PutSection(Sk, 0x300, 8, 0x6F0, 20, 0x7000C);
+		CHECK(ParseRw4(Sk.data(), Sk.size(), Info, Error));
+		CHECK(Info.Skeletons.size() == 1);
+		if (Info.Skeletons.size() == 1)
+		{
+			const SkeletonData& Skel = Info.Skeletons[0];
+			CHECK(Skel.Id == FnvHash("test_skeleton") && Skel.bHasBindPose);
+			CHECK(Skel.Bones.size() == 2);
+			if (Skel.Bones.size() == 2)
+			{
+				CHECK(Skel.Bones[0].Parent == -1 && Skel.Bones[1].Parent == 0);
+				CHECK(Skel.Bones[1].Name == FnvHash("tip") && Skel.Bones[1].Flags == 7);
+				CHECK(Skel.Bones[1].Head[2] == 2.0f && Skel.Bones[0].Head[2] == 0.0f);
+			}
+		}
+		PutLE32(Sk, 0x64C, 5); // parent out of range -> skeleton rejected
+		CHECK(ParseRw4(Sk.data(), Sk.size(), Info, Error));
+		CHECK(Info.Skeletons.empty());
+	}
 
 	// Strip 0,1,2,3 -> triangles (0,1,2) and (2,1,3).
 	std::vector<uint8_t> Strip = BuildMeshRw4(5, {0, 1, 2, 3}, 2);

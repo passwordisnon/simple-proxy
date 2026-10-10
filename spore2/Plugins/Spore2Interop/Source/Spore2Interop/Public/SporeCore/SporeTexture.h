@@ -82,9 +82,32 @@ struct MeshData
 	std::vector<uint32_t> Indices; // 3 per triangle
 	bool bSkinned = false;        // has blend indices/weights (skeleton data not decoded yet)
 	bool bBlendShape = false;     // vertices came from a blend shape buffer (base shape only, morphs not applied)
+	// Skin weights, 4 per vertex when the mesh is skinned: bone numbers into the file's skeleton
+	// (the stored value divided by 3, as SporeModder's Blender importer does) and their weights.
+	std::vector<uint16_t> BoneIndices;
+	std::vector<float> BoneWeights;
 	std::vector<MeshTextureSlot> TextureSlots; // from the mesh's compiled states, in order
 
 	size_t VertexCount() const { return Positions.size() / 3; }
+};
+
+// One bone of an rw4 skeleton (SporeModder-FX RWSkeleton + RWAnimationSkin).
+struct SkeletonBone
+{
+	uint32_t Name = 0;  // hash; resolve with reg_file.txt
+	uint32_t Flags = 0; // meaning not documented; kept raw
+	int32_t Parent = -1;
+	// Bind pose as stored: a 3x3 rotation (row-major) and the inverse bind translation.
+	float BindRotation[9] = {1, 0, 0, 0, 1, 0, 0, 0, 1};
+	float InverseTranslation[3] = {0, 0, 0};
+	float Head[3] = {0, 0, 0}; // bone position in model space: BindRotation * -InverseTranslation
+};
+
+struct SkeletonData
+{
+	uint32_t Id = 0; // hash
+	std::vector<SkeletonBone> Bones;
+	bool bHasBindPose = false; // false when the file has a skeleton but no matching animation skin
 };
 
 struct Rw4Info
@@ -97,6 +120,7 @@ struct Rw4Info
 	uint32_t SkippedMeshes = 0;   // meshes using blend shapes, sub-references or unsupported layouts
 	std::vector<std::string> MeshIssues;
 	uint32_t UnreadableMaterials = 0; // compiled states that could not be decoded
+	std::vector<SkeletonData> Skeletons;
 };
 
 // Wavefront OBJ text for one mesh (positions, UVs with V flipped, normals). When

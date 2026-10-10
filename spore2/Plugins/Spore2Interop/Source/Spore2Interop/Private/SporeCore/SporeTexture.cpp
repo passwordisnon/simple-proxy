@@ -250,6 +250,9 @@ constexpr uint32_t Rw4TypeCompiledState = 0x2000B;
 constexpr uint32_t Rw4TypeTextureOverride = 0x20008;
 constexpr uint32_t Rw4TypeMeshStateLink = 0x2001A;
 constexpr uint32_t Rw4TypeBlendShapeBuffer = 0x200AF;
+constexpr uint32_t Rw4TypeSkeleton = 0x70002;
+constexpr uint32_t Rw4TypeAnimationSkin = 0x70003;
+constexpr uint32_t Rw4TypeSkinsInK = 0x7000C;
 
 // Bounds-checked little-endian cursor over one section.
 struct Rw4Cursor
@@ -500,6 +503,8 @@ bool DecodeVertexBuffer(const uint8_t* Data, size_t Size, const std::vector<Rw4S
 	const VertexElementInfo* Position = nullptr;
 	const VertexElementInfo* Normal = nullptr;
 	const VertexElementInfo* TexCoord = nullptr;
+	const VertexElementInfo* BlendIndices = nullptr;
+	const VertexElementInfo* BlendWeights = nullptr;
 	std::vector<VertexElementInfo> Elements(ElementCount);
 	for (uint16_t E = 0; E < ElementCount; ++E)
 	{
@@ -513,14 +518,16 @@ bool DecodeVertexBuffer(const uint8_t* Data, size_t Size, const std::vector<Rw4S
 		if (E.Usage == 0 && !Position) Position = &E;
 		else if (E.Usage == 2 && !Normal) Normal = &E;
 		else if (E.Usage == 6 && !TexCoord) TexCoord = &E;
-		else if (E.Usage == 14 || E.Usage == 15) Out.bSkinned = true;
+		else if (E.Usage == 14 && !BlendIndices) BlendIndices = &E;
+		else if (E.Usage == 15 && !BlendWeights) BlendWeights = &E;
 	}
+	Out.bSkinned = BlendIndices || BlendWeights;
 	if (!Position)
 	{
 		Issue = "mesh has no position element";
 		return false;
 	}
-	for (const VertexElementInfo* E : {Position, Normal, TexCoord})
+	for (const VertexElementInfo* E : {Position, Normal, TexCoord, BlendIndices, BlendWeights})
 	{
 		if (E && (DeclTypeSize(E->DeclType) == 0 || E->Offset + DeclTypeSize(E->DeclType) > VertexSize))
 		{
@@ -539,9 +546,31 @@ bool DecodeVertexBuffer(const uint8_t* Data, size_t Size, const std::vector<Rw4S
 	Out.Positions.resize(3ull * VertexCount);
 	if (Normal) Out.Normals.resize(3ull * VertexCount);
 	if (TexCoord) Out.UVs.resize(2ull * VertexCount);
+	const bool bReadSkin = BlendIndices && BlendWeights;
+	if (bReadSkin)
+	{
+		Out.BoneIndices.resize(4ull * VertexCount);
+		Out.BoneWeights.resize(4ull * VertexCount);
+	}
 	for (uint32_t Vtx = 0; Vtx < VertexCount; ++Vtx)
 	{
 		const uint8_t* Base = VBytes + static_cast<size_t>(FirstVertex + Vtx) * VertexSize;
+		if (bReadSkin)
+		{
+			// UBYTE4 indices hold bone * 3 (3 shader registers per bone); UBYTE4N weights are /255.
+			float Indices[4], Weights[4];
+			if (!ReadElement(Base + BlendIndices->Offset, BlendIndices->DeclType, 4, false, Indices) ||
+				!ReadElement(Base + BlendWeights->Offset, BlendWeights->DeclType, 4, false, Weights))
+			{
+				Issue = "unsupported blend index or weight type";
+				return false;
+			}
+			for (int K = 0; K < 4; ++K)
+			{
+				Out.BoneIndices[4ull * Vtx + K] = static_cast<uint16_t>(static_cast<uint32_t>(Indices[K]) / 3);
+				Out.BoneWeights[4ull * Vtx + K] = Weights[K];
+			}
+		}
 		if (!ReadElement(Base + Position->Offset, Position->DeclType, 3, false, &Out.Positions[3ull * Vtx]) ||
 			(Normal && !ReadElement(Base + Normal->Offset, Normal->DeclType, 3, true, &Out.Normals[3ull * Vtx])) ||
 			(TexCoord && !ReadElement(Base + TexCoord->Offset, TexCoord->DeclType, 2, false, &Out.UVs[2ull * Vtx])))
@@ -617,8 +646,30 @@ bool DecodeBlendShapeVertices(const uint8_t* Data, size_t Size, const std::vecto
 	}
 	if (Normal && !Fits(NormalSize)) Normal = nullptr;
 	if (Uv && !Fits(UvSize)) Uv = nullptr;
+	// Skin streams: per vertex, BoneIndexCount u16 indices (bone * 3) and as many float weights.
+	const uint32_t BoneIndexCount = TexLE32(B + 60);
+	uint32_t IndexSize = 0, WeightSize = 0;
+	const uint8_t* SkinIndices = Stream(9, IndexSize);
+	const uint8_t* SkinWeights = Stream(10, WeightSize);
+	const uint64_t SkinEnd = static_cast<uint64_t>(FirstVertex) + VertexCount;
+	const bool bReadSkin = SkinIndices && SkinWeights && BoneIndexCount > 0 && BoneIndexCount <= 4 &&
+		SkinEnd * BoneIndexCount * 2 <= IndexSize && SkinEnd * BoneIndexCount * 4 <= WeightSize;
 	Out.bBlendShape = true;
 	Out.bSkinned = Offsets[9] != 0 || Offsets[10] != 0;
+	if (bReadSkin)
+	{
+		Out.BoneIndices.assign(4ull * VertexCount, 0);
+		Out.BoneWeights.assign(4ull * VertexCount, 0.0f);
+		for (uint32_t Vtx = 0; Vtx < VertexCount; ++Vtx)
+		{
+			const size_t First = (static_cast<size_t>(FirstVertex) + Vtx) * BoneIndexCount;
+			for (uint32_t K = 0; K < BoneIndexCount; ++K)
+			{
+				Out.BoneIndices[4ull * Vtx + K] = static_cast<uint16_t>(TexLE16(SkinIndices + 2 * (First + K)) / 3);
+				Out.BoneWeights[4ull * Vtx + K] = Float(SkinWeights + 4 * (First + K));
+			}
+		}
+	}
 	Out.Positions.resize(3ull * VertexCount);
 	if (Normal) Out.Normals.resize(3ull * VertexCount);
 	if (Uv) Out.UVs.resize(2ull * VertexCount);
@@ -629,6 +680,57 @@ bool DecodeBlendShapeVertices(const uint8_t* Data, size_t Size, const std::vecto
 		if (Normal) for (int C = 0; C < 3; ++C) Out.Normals[3ull * Vtx + C] = Float(Normal + At + 4 * C);
 		if (Uv) for (int C = 0; C < 2; ++C) Out.UVs[2ull * Vtx + C] = Float(Uv + At + 4 * C);
 	}
+	return true;
+}
+
+// Skeleton 0x70002 (SporeModder-FX RWSkeleton): pointers (file offsets) to bone flags, parents
+// and names, bone count, skeleton id. Animation skin 0x70003 (RWAnimationSkin): pointer, count,
+// then per bone a 3x4 matrix (rotation in the first three columns) and a padded translation.
+bool DecodeSkeleton(const uint8_t* Data, size_t Size, const std::vector<Rw4Section>& Sections, uint32_t SkeletonIndex, uint32_t SkinIndex, SkeletonData& Out)
+{
+	const Rw4Section* Skel = Rw4Get(Sections, SkeletonIndex, Rw4TypeSkeleton, Size, 24);
+	if (!Skel) return false;
+	const uint8_t* S = Data + Skel->Offset;
+	const uint32_t FlagsAt = TexLE32(S), ParentsAt = TexLE32(S + 4), NamesAt = TexLE32(S + 8);
+	const uint32_t Count = TexLE32(S + 12);
+	if (Count == 0 || Count > 4096) return false;
+	for (uint32_t At : {FlagsAt, ParentsAt, NamesAt})
+	{
+		if (static_cast<uint64_t>(At) + 4ull * Count > Size) return false;
+	}
+	Out.Id = TexLE32(S + 16);
+	Out.Bones.resize(Count);
+	for (uint32_t I = 0; I < Count; ++I)
+	{
+		SkeletonBone& Bone = Out.Bones[I];
+		Bone.Name = TexLE32(Data + NamesAt + 4 * I);
+		Bone.Flags = TexLE32(Data + FlagsAt + 4 * I);
+		Bone.Parent = static_cast<int32_t>(TexLE32(Data + ParentsAt + 4 * I));
+		if (Bone.Parent < -1 || Bone.Parent >= static_cast<int32_t>(Count)) return false;
+	}
+
+	const Rw4Section* Skin = Rw4Get(Sections, SkinIndex, Rw4TypeAnimationSkin, Size, 16);
+	if (!Skin) return true;
+	const uint32_t PosesAt = TexLE32(Data + Skin->Offset);
+	if (TexLE32(Data + Skin->Offset + 4) != Count || static_cast<uint64_t>(PosesAt) + 64ull * Count > Size) return true;
+	for (uint32_t I = 0; I < Count; ++I)
+	{
+		SkeletonBone& Bone = Out.Bones[I];
+		const uint8_t* P = Data + PosesAt + 64 * I;
+		for (int Row = 0; Row < 3; ++Row)
+		{
+			for (int Col = 0; Col < 3; ++Col) Bone.BindRotation[3 * Row + Col] = TexLEFloat(P + 16 * Row + 4 * Col);
+		}
+		for (int C = 0; C < 3; ++C) Bone.InverseTranslation[C] = TexLEFloat(P + 48 + 4 * C);
+		// Inverting the bind transform: position = -R * t (as SporeModder's Blender importer does).
+		for (int Row = 0; Row < 3; ++Row)
+		{
+			float Sum = 0.0f;
+			for (int Col = 0; Col < 3; ++Col) Sum += Bone.BindRotation[3 * Row + Col] * Bone.InverseTranslation[Col];
+			Bone.Head[Row] = -Sum;
+		}
+	}
+	Out.bHasBindPose = true;
 	return true;
 }
 
@@ -864,6 +966,30 @@ bool ParseRw4(const uint8_t* Data, size_t Size, Rw4Info& Out, std::string& Error
 				}
 				Mesh.TextureSlots.push_back(std::move(Slot));
 			}
+		}
+	}
+
+	// Skeletons: each skin-in-K (0x7000C) names a skeleton and its bind pose (animation skin).
+	// Skeletons without one are still listed, without a bind pose.
+	std::vector<bool> SkeletonDone(Sections.size(), false);
+	for (const Rw4Section& Section : Sections)
+	{
+		if (Section.TypeCode != Rw4TypeSkinsInK || Section.Offset + 20 > Size) continue;
+		const uint32_t SkeletonIndex = TexLE32(Data + Section.Offset + 12);
+		SkeletonData Skeleton;
+		if (DecodeSkeleton(Data, Size, Sections, SkeletonIndex, TexLE32(Data + Section.Offset + 16), Skeleton))
+		{
+			SkeletonDone[SkeletonIndex] = true;
+			Out.Skeletons.push_back(std::move(Skeleton));
+		}
+	}
+	for (size_t SectionIndex = 0; SectionIndex < Sections.size(); ++SectionIndex)
+	{
+		if (Sections[SectionIndex].TypeCode != Rw4TypeSkeleton || SkeletonDone[SectionIndex]) continue;
+		SkeletonData Skeleton;
+		if (DecodeSkeleton(Data, Size, Sections, static_cast<uint32_t>(SectionIndex), 0xFFFFFFFFu, Skeleton))
+		{
+			Out.Skeletons.push_back(std::move(Skeleton));
 		}
 	}
 	return true;

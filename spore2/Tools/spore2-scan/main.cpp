@@ -279,6 +279,10 @@ struct ScanTotals
 	size_t MeshesSkipped = 0;
 	size_t SkinnedMeshes = 0;
 	size_t BlendShapeMeshes = 0;
+	size_t Skeletons = 0;
+	size_t SkeletonBones = 0;
+	size_t SkeletonsWithoutPose = 0;
+	size_t WeightedMeshes = 0;
 	uint64_t MeshVertices = 0;
 	uint64_t MeshTriangles = 0;
 	double NormalLengthSum = 0.0;
@@ -430,6 +434,7 @@ void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts
 		}
 
 		std::vector<MeshData> Meshes;
+		std::vector<SkeletonData> Skeletons;
 		size_t ModelTextureCount = 0; // textures inside the same rw4, for .mtl references
 		if (bDecodeModel)
 		{
@@ -465,6 +470,14 @@ void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts
 					}
 				}
 				Meshes = std::move(Info.Meshes);
+				for (const MeshData& Mesh : Meshes) Totals.WeightedMeshes += Mesh.BoneIndices.empty() ? 0 : 1;
+				for (const SkeletonData& Skeleton : Info.Skeletons)
+				{
+					++Totals.Skeletons;
+					Totals.SkeletonBones += Skeleton.Bones.size();
+					Totals.SkeletonsWithoutPose += Skeleton.bHasBindPose ? 0 : 1;
+				}
+				Skeletons = std::move(Info.Skeletons);
 			}
 			else
 			{
@@ -556,6 +569,29 @@ void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts
 				}
 				std::ofstream Obj(OutDir / (Base + ".obj"));
 				Obj << MeshToObj(Meshes[M], Base, Library, Material);
+			}
+
+			// Readable bone list: index, name, parent, model-space position.
+			for (size_t K = 0; K < Skeletons.size(); ++K)
+			{
+				const SkeletonData& Skeleton = Skeletons[K];
+				std::ofstream Text(OutDir / (Name + (Skeletons.size() > 1 ? "." + std::to_string(K) : std::string()) + ".skeleton.txt"));
+				auto BoneName = [](uint32_t Hash)
+				{
+					const std::string Known = NameTables::Lookup(Names.Files, Hash);
+					char Hex[16];
+					std::snprintf(Hex, sizeof(Hex), "0x%08X", Hash);
+					return Known.empty() ? std::string(Hex) : Known;
+				};
+				Text << "skeleton " << BoneName(Skeleton.Id) << ", " << Skeleton.Bones.size() << " bones" << (Skeleton.bHasBindPose ? "" : ", no bind pose") << "\n";
+				Text << "index\tname\tparent\tflags\thead x\thead y\thead z\n";
+				for (size_t B = 0; B < Skeleton.Bones.size(); ++B)
+				{
+					const SkeletonBone& Bone = Skeleton.Bones[B];
+					char Line[160];
+					std::snprintf(Line, sizeof(Line), "\t%d\t0x%X\t%g\t%g\t%g\n", Bone.Parent, Bone.Flags, Bone.Head[0], Bone.Head[1], Bone.Head[2]);
+					Text << B << '\t' << BoneName(Bone.Name) << Line;
+				}
 			}
 
 			// Viewable companions for textures: original data as .dds, decoded pixels as .png.
@@ -1008,6 +1044,7 @@ int main(int Argc, char** Argv)
 	if (Opts.bModels)
 	{
 		std::printf("  meshes:           %zu decoded (%zu skinned, %zu blend shape), %zu skipped\n", Totals.MeshesDecoded, Totals.SkinnedMeshes, Totals.BlendShapeMeshes, Totals.MeshesSkipped);
+		std::printf("  skeletons:        %zu (%zu bones, %zu without bind pose); %zu meshes carry bone weights\n", Totals.Skeletons, Totals.SkeletonBones, Totals.SkeletonsWithoutPose, Totals.WeightedMeshes);
 		std::printf("  mesh geometry:    %llu vertices, %llu triangles\n", static_cast<unsigned long long>(Totals.MeshVertices), static_cast<unsigned long long>(Totals.MeshTriangles));
 		if (Totals.NormalCount > 0)
 		{

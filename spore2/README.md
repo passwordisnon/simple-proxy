@@ -23,7 +23,8 @@ available inside Unreal Engine 5. No game files are included in or committed to 
 | Models: `.rw4` meshes (positions, normals, UVs; lists and strips; blend-shape parts in their base shape) → `.obj` / UE `ProceduralMeshComponent` | done, unit-tested |
 | Materials: mesh → texture slots (in-file rasters and named texture overrides) → `.mtl` / UE material instances | done, unit-tested |
 | Creation assembly: card parts → part `.prop` → `modelMeshLOD*` model → placed meshes → one textured `.obj` / UE `AssembleCreationPng` | done on synthetic data; needs a real card + game data |
-| Skeletons, skinning, animations, blend shape morphing | not started |
+| Skeletons (bones, parents, bind pose) and per-vertex bone weights from `.rw4` → `.skeleton.txt` | done, unit-tested; not yet checked on real files |
+| Animations, blend shape morphing, UE skeletal meshes | not started |
 | Saved creations in packages (`EditorSaves.package`, `Pollination.package`): `.crt`/`.bld`/... XML assembles directly; `.pollen_metadata` → name, author, tags (`.txt` + `creations.tsv` on extract) | done, unit-tested |
 | Creation PNGs: hidden payload → metadata + `<sporemodel>` XML → parts (ID, transform, paints, children) → UE `DecodeCreationPng` | done, checked on real Spore PNGs |
 | Gameplay stages, editors, procedural animation | not started |
