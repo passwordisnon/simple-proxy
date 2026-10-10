@@ -46,7 +46,10 @@ resources, creation PNGs) to this repository.
   skin-in-K 0x7000C -> skeleton 0x70002 (file-offset pointers to flags/parents/names, count, id) and
   animation skin 0x70003 (per bone 3x4 matrix + padded inverse translation; head = -R * t). Vertex
   blend indices store bone * 3 (UBYTE4 or, in blend shape buffers, u16), weights UBYTE4N or float.
-  Not yet checked against the user's files.
+  Confirmed on the user's base game: 2,756 skeletons with bind pose (17,285 bones, names such as
+  joint1.. resolve via reg_file.txt, plausible positions); 4,472 meshes carry weights. 6,289 other
+  skeleton sections have no bind pose (role unknown). One mesh uses SHORT2 indices + FLOAT1 weight
+  (decl 6/0), not decoded - layout unconfirmed, so its weights are dropped rather than guessed.
   UE conversion mirrors Y and flips winding; the 100x unit scale is an assumption to verify.
 - rw4 materials: mesh/state link 0x2001A -> compiled states 0x2000B; texture slots sit at the end of
   the compiled state (walk per MaterialStateCompiler.decompile); a slot's raster index points at a
@@ -66,5 +69,5 @@ resources, creation PNGs) to this repository.
 
 ## Roadmap
 
-1. ~~`.prop` decoder~~  2. ~~textures~~, ~~rw4 meshes~~, ~~materials~~, skeletons (read, unverified); animations  3. ~~creation PNG decoder~~
+1. ~~`.prop` decoder~~  2. ~~textures~~, ~~rw4 meshes~~, ~~materials~~, skeletons; animations  3. ~~creation PNG decoder~~
 4. skeleton → Control Rig  5. gameplay stages
