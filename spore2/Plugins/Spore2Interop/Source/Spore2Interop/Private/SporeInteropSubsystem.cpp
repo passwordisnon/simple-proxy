@@ -17,6 +17,7 @@
 #include "Misc/Paths.h"
 #include "Modules/ModuleManager.h"
 #include "ProceduralMeshComponent.h"
+#include "SporeCore/SporeCreation.h"
 #include "SporeCore/SporePng.h"
 #include "SporeCore/SporeProp.h"
 #include "SporeCore/SporeTexture.h"
@@ -640,6 +641,59 @@ bool USporeInteropSubsystem::ExportResource(const FSporeResourceKey& Key, const 
 		return false;
 	}
 	return FFileHelper::SaveArrayToFile(Bytes, *TargetFile);
+}
+
+bool USporeInteropSubsystem::DecodeCreationPng(const FString& PngFile, FSporeCreationInfo& OutCreation, float UnitScale) const
+{
+	OutCreation = FSporeCreationInfo();
+	TArray<uint8> Data;
+	if (!FFileHelper::LoadFileToArray(Data, *PngFile))
+	{
+		UE_LOG(LogSporeInterop, Warning, TEXT("Cannot read %s"), *PngFile);
+		return false;
+	}
+	sporecore::SporeCreation Creation;
+	std::string Error;
+	if (!sporecore::DecodeSporeCreation(Data.GetData(), Data.Num(), &SporeInterop::ZlibInflate, Creation, Error))
+	{
+		UE_LOG(LogSporeInterop, Warning, TEXT("%s: %s"), *PngFile, UTF8_TO_TCHAR(Error.c_str()));
+		return false;
+	}
+
+	auto ToFString = [](const std::string& Text)
+	{
+		const FUTF8ToTCHAR Converted(Text.data(), static_cast<int32>(Text.size()));
+		return FString(Converted.Length(), Converted.Get());
+	};
+	OutCreation.Metadata = ToFString(Creation.Metadata);
+	OutCreation.ModelXml = ToFString(Creation.ModelXml);
+	OutCreation.ModelType = Creation.ModelType;
+
+	for (const sporecore::CreationBlock& Block : Creation.Blocks)
+	{
+		FSporeCreationPart& Part = OutCreation.Parts.AddDefaulted_GetRef();
+		Part.PartKey.Group = Block.Group;
+		Part.PartKey.Instance = Block.Instance;
+		Part.PartKey.Type = 0x00B1B104; // part descriptions are property lists
+
+		// Mirror Y on both sides of the rotation (S * R * S with S = diag(1,-1,1)).
+		const float* R = Block.Rotation;
+		const FMatrix Rotation(
+			FPlane(R[0], -R[1], R[2], 0.0f),
+			FPlane(-R[3], R[4], -R[5], 0.0f),
+			FPlane(R[6], -R[7], R[8], 0.0f),
+			FPlane(0.0f, 0.0f, 0.0f, 1.0f));
+		Part.Transform = FTransform(Rotation.ToQuat(),
+			FVector(Block.Position[0], -Block.Position[1], Block.Position[2]) * UnitScale,
+			FVector(Block.Scale));
+		Part.Children.Append(Block.Children.data(), static_cast<int32>(Block.Children.size()));
+		Part.bAsymmetric = Block.bAsymmetric;
+		for (const sporecore::CreationPaint& Paint : Block.Paints)
+		{
+			Part.PaintColors.Emplace(Paint.Color1[0], Paint.Color1[1], Paint.Color1[2], 1.0f);
+		}
+	}
+	return true;
 }
 
 FSporePngReport USporeInteropSubsystem::InspectPng(const FString& PngFile) const

@@ -1,5 +1,6 @@
 // Unit tests for the engine-independent Spore2Interop core, on synthetic data.
 
+#include "SporeCore/SporeCreation.h"
 #include "SporeCore/SporeDbpf.h"
 #include "SporeCore/SporePng.h"
 #include "SporeCore/SporeProp.h"
@@ -7,6 +8,7 @@
 #include "SporeCore/SporeTextureGen.h"
 
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <string>
 #include <unordered_map>
@@ -609,6 +611,116 @@ static void TestMeshes()
 	CHECK(Info.Meshes.empty() && Info.SkippedMeshes == 1 && !Info.MeshIssues.empty());
 }
 
+// Inverse of ExtractHiddenBytes: writes Payload into the low bits along the same walk.
+static void HideBytes(std::vector<uint8_t>& Bgra, const std::vector<uint8_t>& Payload)
+{
+	uint32_t Hash = 0x811C9DC5u;
+	uint32_t Next = 0x0B400;
+	for (uint8_t Byte : Payload)
+	{
+		for (int Bit = 0; Bit < 8; ++Bit)
+		{
+			const uint32_t N = Next;
+			const uint32_t D = Bgra[N];
+			Hash = (Hash * 0x01000193u) ^ ((N & 7) | (D & 0xF8)); // independent of the low bit
+			const uint32_t Wanted = (Byte >> Bit) & 1;
+			const uint32_t Lsb = Wanted ^ ((Hash >> 15) & 1);
+			Bgra[N] = static_cast<uint8_t>((D & 0xFE) | Lsb);
+			Next = (N >> 1) ^ (0x0B400u & (0u - (N & 1)));
+		}
+	}
+}
+
+static void TestCreation()
+{
+	// Hidden-bit walk round trip over a noisy 128x128 BGRA buffer.
+	std::vector<uint8_t> Bgra(0x10000);
+	uint32_t Seed = 12345;
+	for (uint8_t& B : Bgra) { Seed = Seed * 1103515245u + 12345u; B = static_cast<uint8_t>(Seed >> 16); }
+	const std::string Message = "spore-hidden-payload";
+	HideBytes(Bgra, std::vector<uint8_t>(Message.begin(), Message.end()));
+	const std::vector<uint8_t> Back = ExtractHiddenBytes(Bgra.data(), Bgra.size(), Message.size());
+	CHECK(std::string(Back.begin(), Back.end()) == Message);
+	CHECK(ExtractHiddenBytes(Bgra.data(), 100, 4).empty());
+	// The walk visits 0xFFFF positions, so at most 8191 whole bytes can be extracted.
+	CHECK(ExtractHiddenBytes(Bgra.data(), Bgra.size(), 100000).size() == 0xFFFF / 8);
+
+	// PNG decoding with every filter type; a pass-through "inflater" feeds raw scanlines.
+	std::vector<uint8_t> Png = {0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A};
+	std::vector<uint8_t> Ihdr;
+	AppendBE32(Ihdr, 2);
+	AppendBE32(Ihdr, 5);
+	Ihdr.insert(Ihdr.end(), {8, 6, 0, 0, 0});
+	AppendChunk(Png, "IHDR", Ihdr);
+	// Target image: pixel (x, y) = (10x + y, 20, 30 + y, 255). Encode each row with filter y.
+	auto PixelAt = [](int X, int Y, int C) -> uint8_t
+	{
+		const uint8_t Px[4] = {static_cast<uint8_t>(10 * X + Y), 20, static_cast<uint8_t>(30 + Y), 255};
+		return Px[C];
+	};
+	std::vector<uint8_t> Raw;
+	for (int Y = 0; Y < 5; ++Y)
+	{
+		Raw.push_back(static_cast<uint8_t>(Y));
+		for (int X = 0; X < 2; ++X)
+		{
+			for (int C = 0; C < 4; ++C)
+			{
+				const int A = X > 0 ? PixelAt(X - 1, Y, C) : 0;
+				const int B = Y > 0 ? PixelAt(X, Y - 1, C) : 0;
+				const int Cc = (X > 0 && Y > 0) ? PixelAt(X - 1, Y - 1, C) : 0;
+				int Predictor = 0;
+				if (Y == 1) Predictor = A;
+				else if (Y == 2) Predictor = B;
+				else if (Y == 3) Predictor = (A + B) / 2;
+				else if (Y == 4)
+				{
+					const int P = A + B - Cc, PA = std::abs(P - A), PB = std::abs(P - B), PC = std::abs(P - Cc);
+					Predictor = (PA <= PB && PA <= PC) ? A : (PB <= PC ? B : Cc);
+				}
+				Raw.push_back(static_cast<uint8_t>(PixelAt(X, Y, C) - Predictor));
+			}
+		}
+	}
+	AppendChunk(Png, "IDAT", Raw);
+	AppendChunk(Png, "IEND", {});
+	InflateFn PassThrough = [](const uint8_t* D, size_t N, std::vector<uint8_t>& Out) { Out.assign(D, D + N); return true; };
+	PngImage Image;
+	std::string Error;
+	CHECK(DecodePngImage(Png.data(), Png.size(), PassThrough, Image, Error));
+	CHECK(Image.Width == 2 && Image.Height == 5 && Image.Rgba.size() == 40);
+	bool bPixelsMatch = Image.Rgba.size() == 40;
+	for (int Y = 0; Y < 5 && bPixelsMatch; ++Y)
+		for (int X = 0; X < 2; ++X)
+			for (int C = 0; C < 4; ++C)
+				bPixelsMatch = bPixelsMatch && Image.Rgba[(Y * 2 + X) * 4 + C] == PixelAt(X, Y, C);
+	CHECK(bPixelsMatch);
+
+	// Model XML parsing.
+	const std::string Xml =
+		"<?xml version=\"1.0\"?><sporemodel>\r\n<formatversion>18</formatversion><properties><modeltype>0x47c10953</modeltype></properties>"
+		"<blocks count=\"2\"><blockref><blockid>0x40636000, 0xd86e4607</blockid><transform><scale>1.5</scale>"
+		"<position>1,2,3.5</position><orientation><row0>0,1,0</row0><row1>-1,0,0</row1><row2>0,0,1</row2></orientation></transform>"
+		"<snapped>true</snapped><paintlist count=\"1\"><paint><paintregion>0x00000004</paintregion><paintid>0xe5210f0f</paintid>"
+		"<color1>0.5,0.25,1</color1><color2>0,0,0</color2></paint></paintlist><childlist count=\"1\"><childid>1</childid></childlist>"
+		"<isasymmetric>false</isasymmetric></blockref><blockref><blockid>0x12345678</blockid><isasymmetric>true</isasymmetric></blockref></blocks></sporemodel>";
+	SporeCreation Creation;
+	CHECK(ParseSporeModelXml(Xml, Creation, Error));
+	CHECK(Creation.FormatVersion == 18 && Creation.ModelType == 0x47C10953);
+	CHECK(Creation.Blocks.size() == 2);
+	if (Creation.Blocks.size() == 2)
+	{
+		const CreationBlock& B0 = Creation.Blocks[0];
+		CHECK(B0.Group == 0x40636000 && B0.Instance == 0xD86E4607);
+		CHECK(B0.Scale == 1.5f && B0.Position[2] == 3.5f && B0.Rotation[1] == 1.0f && B0.Rotation[3] == -1.0f);
+		CHECK(B0.bSnapped && !B0.bAsymmetric);
+		CHECK(B0.Children == std::vector<int32_t>({1}));
+		CHECK(B0.Paints.size() == 1 && B0.Paints[0].PaintId == 0xE5210F0F && B0.Paints[0].Color1[1] == 0.25f);
+		CHECK(Creation.Blocks[1].Instance == 0x12345678 && Creation.Blocks[1].bAsymmetric && Creation.Blocks[1].Scale == 1.0f);
+	}
+	CHECK(!ParseSporeModelXml("<notamodel/>", Creation, Error));
+}
+
 int main()
 {
 	TestRefPack();
@@ -622,6 +734,7 @@ int main()
 	TestRegistry();
 	TestTextures();
 	TestMeshes();
+	TestCreation();
 	if (Failures == 0)
 	{
 		std::printf("all tests passed\n");

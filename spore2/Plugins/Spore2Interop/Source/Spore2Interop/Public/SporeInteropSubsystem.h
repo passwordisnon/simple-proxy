@@ -134,6 +134,50 @@ struct SPORE2INTEROP_API FSporeProperty
 	FString Value;
 };
 
+USTRUCT(BlueprintType)
+struct SPORE2INTEROP_API FSporeCreationPart
+{
+	GENERATED_BODY()
+
+	// Part file key ("group!instance") - usually a .prop describing the part.
+	UPROPERTY(BlueprintReadOnly, Category = "Spore")
+	FSporeResourceKey PartKey;
+
+	// Placement converted to UE space (Y mirrored, scaled by the UnitScale passed in).
+	UPROPERTY(BlueprintReadOnly, Category = "Spore")
+	FTransform Transform;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Spore")
+	TArray<int32> Children;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Spore")
+	bool bAsymmetric = false;
+
+	// Primary colour of each paint region on the part, in file order.
+	UPROPERTY(BlueprintReadOnly, Category = "Spore")
+	TArray<FLinearColor> PaintColors;
+};
+
+USTRUCT(BlueprintType)
+struct SPORE2INTEROP_API FSporeCreationInfo
+{
+	GENERATED_BODY()
+
+	// Pollen metadata text (name, author, description, tags as length-prefixed fields).
+	UPROPERTY(BlueprintReadOnly, Category = "Spore")
+	FString Metadata;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Spore")
+	FString ModelXml;
+
+	// e.g. a creature, building or vehicle type id; 0 for adventures and other non-model assets.
+	UPROPERTY(BlueprintReadOnly, Category = "Spore")
+	int64 ModelType = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Spore")
+	TArray<FSporeCreationPart> Parts;
+};
+
 // One mounted .package and its parsed index. Owned by the subsystem.
 struct FSporeMountedPackage
 {
@@ -236,6 +280,12 @@ public:
 
 	// Registry name for a type id, or empty.
 	FString LookupTypeName(uint32 TypeId) const;
+
+	// Decodes the data Spore hides in a creation card PNG (creature, building, vehicle, UFO...).
+	// UnitScale converts Spore units to cm. The orientation convention (rows as basis vectors)
+	// still needs checking against real creations in-engine.
+	UFUNCTION(BlueprintCallable, Category = "Spore|Creations")
+	bool DecodeCreationPng(const FString& PngFile, FSporeCreationInfo& OutCreation, float UnitScale = 100.0f) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Spore|Resources")
 	FSporePngReport InspectPng(const FString& PngFile) const;

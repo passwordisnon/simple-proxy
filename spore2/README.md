@@ -23,12 +23,13 @@ available inside Unreal Engine 5. No game files are included in or committed to 
 | Models: `.rw4` meshes (positions, normals, UVs; lists and strips) → `.obj` / UE `ProceduralMeshComponent` | done, unit-tested |
 | Materials: mesh → texture slots (in-file rasters and named texture overrides) → `.mtl` / UE material instances | done, unit-tested |
 | Skeletons, skinning, animations, blend shapes | not started |
-| Decoding the creature data inside creation PNGs | not started (see note below) |
+| Creation PNGs: hidden payload → metadata + `<sporemodel>` XML → parts (ID, transform, paints, children) → UE `DecodeCreationPng` | done, checked on real Spore PNGs |
 | Gameplay stages, editors, procedural animation | not started |
 
 **About creation PNGs:** Spore does not store creature data in `tEXt`/`zTXt` chunks. It hides
-the data in the low bits of the image's pixels. The chunk reader is useful for checking cards,
-but you need a separate pixel decoder to get the creature data out.
+the data in the low bits of the image's pixels. The decoder follows emd4600's Spore PNG Decoder
+(github.com/Spore-Community/PNG-Decoder-NetCore). "Overcomplex" creations whose data does not fit
+in the card, and Darkspore assets, are not supported; adventures decode to binary data, not parts.
 
 **About `-state:CellEditor`, `-state:CakeEditor`, `-state:PlannerThumbnailGen`:** these are
 state names that exist in the original executable. Here they only choose which UI workspace
@@ -62,6 +63,9 @@ Useful extras:
 ```sh
 # decode every .prop file; --names uses SporeModder-FX's reg_*.txt so you see names, not hashes
 ./build/spore2-scan --props --names "/Applications/SporeModder FX"
+
+# decode creation cards (creatures, buildings, vehicles...): part counts, names; --extract saves the XML
+./build/spore2-scan --png --names ~/SporeData/names --extract ~/SporeData/creations "/Users/<you>/Documents/My Spore Creations"
 
 # check whether a resource with that name really exists in your files (for "hidden content" claims)
 ./build/spore2-scan --names "/Applications/SporeModder FX" --find CakeEditor,CellEditor,PlannerThumbnailGen

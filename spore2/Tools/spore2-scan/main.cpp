@@ -14,6 +14,7 @@
 // --find reports which packages hold a resource whose instance or group is the hash of NAME
 //        (e.g. --find CakeEditor,CellEditor to check claims about hidden editors).
 
+#include "SporeCore/SporeCreation.h"
 #include "SporeCore/SporeDbpf.h"
 #include "SporeCore/SporePng.h"
 #include "SporeCore/SporeProp.h"
@@ -534,7 +535,7 @@ void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts
 	}
 }
 
-void ScanPng(const fs::path& Path)
+void ScanPng(const fs::path& Path, const Options& Opts)
 {
 	std::ifstream File(Path, std::ios::binary);
 	std::vector<uint8_t> Data((std::istreambuf_iterator<char>(File)), std::istreambuf_iterator<char>());
@@ -543,15 +544,51 @@ void ScanPng(const fs::path& Path)
 	{
 		return;
 	}
-	std::printf("  png  %s  %ux%u%s  text chunks: %zu\n", Path.filename().string().c_str(), Info.Width, Info.Height,
-		Info.LooksLikeSporeCard() ? "  [card-shaped]" : "", Info.TextChunks.size());
-	for (const PngTextChunk& Text : Info.TextChunks)
+	std::printf("  png  %s  %ux%u", Path.filename().string().c_str(), Info.Width, Info.Height);
+	if (!Info.LooksLikeSporeCard())
 	{
-		std::printf("         %s '%s' (%zu bytes%s)\n", Text.ChunkType.c_str(), Text.Keyword.c_str(), Text.Value.size(), Text.bInflated ? ", inflated" : "");
+		std::printf("  (not a creation card)\n");
+		return;
 	}
-	for (const std::string& Issue : Info.Issues)
+
+	SporeCreation Creation;
+	std::string Error;
+	if (!DecodeSporeCreation(Data.data(), Data.size(), ZlibInflate, Creation, Error))
 	{
-		std::printf("         ! %s\n", Issue.c_str());
+		std::printf("  card-shaped, not decodable: %s\n", Error.c_str());
+		return;
+	}
+	if (Creation.ModelXml.empty())
+	{
+		// Adventures (and a few other asset kinds) carry binary data instead of a part list.
+		std::printf("  adventure or other non-model asset (%zu bytes of data)\n", Creation.Metadata.size());
+	}
+	else
+	{
+		const std::string ModelTypeName = Creation.ModelType ? NameTables::Lookup(Names.Files, Creation.ModelType) : std::string();
+		std::printf("  creation: %zu parts, model type 0x%08X%s%s%s%s\n", Creation.Blocks.size(), Creation.ModelType,
+			ModelTypeName.empty() ? "" : " (", ModelTypeName.c_str(), ModelTypeName.empty() ? "" : ")",
+			Creation.bUsedExtraChunk ? ", data from spOr chunk" : "");
+	}
+
+	// The metadata is a run of length-prefixed text fields; print the readable stretches.
+	std::string Readable;
+	for (char C : Creation.Metadata)
+	{
+		Readable += (C >= 32 && C < 127) ? C : ' ';
+	}
+	if (Readable.size() > 160) Readable = Readable.substr(0, 157) + "...";
+	std::printf("         metadata: %s\n", Readable.c_str());
+
+	if (!Opts.ExtractDir.empty())
+	{
+		std::error_code Ec;
+		const fs::path OutDir = fs::path(Opts.ExtractDir) / "creations";
+		fs::create_directories(OutDir, Ec);
+		std::ofstream Xml(OutDir / (Path.stem().string() + ".xml"));
+		Xml << Creation.ModelXml;
+		std::ofstream Meta(OutDir / (Path.stem().string() + ".metadata.txt"));
+		Meta << Creation.Metadata;
 	}
 }
 
@@ -637,6 +674,11 @@ int main(int Argc, char** Argv)
 	{
 		std::printf("%s\n", Root.c_str());
 		std::error_code Ec;
+		if (fs::is_regular_file(Root, Ec) && fs::path(Root).extension() == ".png")
+		{
+			ScanPng(Root, Opts);
+			continue;
+		}
 		if (!fs::is_directory(Root, Ec))
 		{
 			std::printf("  missing or not a directory\n");
@@ -681,7 +723,7 @@ int main(int Argc, char** Argv)
 		{
 			for (const fs::path& Png : Pngs)
 			{
-				ScanPng(Png);
+				ScanPng(Png, Opts);
 			}
 		}
 	}

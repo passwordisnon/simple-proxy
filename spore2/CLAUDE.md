@@ -38,9 +38,12 @@ resources, creation PNGs) to this repository.
 - rw4 materials: mesh/state link 0x2001A -> compiled states 0x2000B; texture slots sit at the end of
   the compiled state (walk per MaterialStateCompiler.decompile); a slot's raster index points at a
   raster 0x20003 or a texture override 0x20008 (0xFB724FAA + C-string name).
-- Creation PNG model data is hidden in pixel low bits, not in text chunks.
+- Creation PNG model data is hidden in pixel low bits, not in text chunks: BGRA bytes walked by a
+  16-bit LFSR from 0xB400 with a running FNV hash (see SporeCreation.cpp, after emd4600's decoder);
+  8-byte header (magic, LE length), zlib payload = pollen metadata + <sporemodel> XML; large
+  creations use an "spOr" chunk after IEND. Never commit sample PNGs from that repo (no license).
 
 ## Roadmap
 
-1. ~~`.prop` decoder~~  2. ~~textures~~, ~~rw4 meshes~~, ~~materials~~; skeletons, animations  3. creation PNG pixel decoder
+1. ~~`.prop` decoder~~  2. ~~textures~~, ~~rw4 meshes~~, ~~materials~~; skeletons, animations  3. ~~creation PNG decoder~~
 4. skeleton → Control Rig  5. gameplay stages
