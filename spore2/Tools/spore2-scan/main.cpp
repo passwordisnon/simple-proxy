@@ -204,7 +204,6 @@ std::string DescribeNonDbpf(std::ifstream& File)
 	}
 	const char* Kind = "unknown file type";
 	if (Head.empty()) Kind = "empty file";
-	else if (StartsWith("DBBF", 4)) Kind = "DBBF (64-bit DBPF, used by Darkspore, not Spore) - not supported";
 	else if (StartsWith("\x89PNG", 4)) Kind = "a PNG image - if it is a creation card, scan it with --png or --assemble";
 	else if (StartsWith("PK\x03\x04", 4)) Kind = "a zip archive (a .sporemod is one) - unzip it and scan the .package files inside";
 	else if (StartsWith("7z\xBC\xAF", 4)) Kind = "a 7-Zip archive - extract it first";
@@ -560,7 +559,7 @@ void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts
 	}
 	Totals.DecodeFailures += LocalFailures;
 
-	std::printf("  ok   %-56s v%u.%u  %6zu entries  %s", RelEc ? PackageName.c_str() : DisplayName.c_str(), Header.MajorVersion, Header.MinorVersion, Entries.size(), FormatSize(FileSize).c_str());
+	std::printf("  ok   %-56s %s%u.%u  %6zu entries  %s", RelEc ? PackageName.c_str() : DisplayName.c_str(), Header.bBigFile ? "DBBF " : "v", Header.MajorVersion, Header.MinorVersion, Entries.size(), FormatSize(FileSize).c_str());
 	if (Opts.bVerify)
 	{
 		std::printf("  decode failures: %zu", LocalFailures);

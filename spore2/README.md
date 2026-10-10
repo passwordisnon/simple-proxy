@@ -8,7 +8,7 @@ available inside Unreal Engine 5. No game files are included in or committed to 
 
 | Piece | Status |
 |---|---|
-| DBPF 2.0 `.package` header and index parsing (shared-field flags, bounds checks) | done, unit-tested |
+| DBPF 2.0 `.package` header and index parsing (shared-field flags, bounds checks), including the 64-bit "DBBF" variant some mods use | done, unit-tested |
 | RefPack/QFS decompression of package entries | done, unit-tested |
 | Package integrity checks (duplicate keys, overlapping or out-of-range payloads) | done |
 | Mod override tracking (same key in several packages, last mounted wins) | done |

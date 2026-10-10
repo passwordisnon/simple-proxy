@@ -72,10 +72,11 @@ static void TestRefPack()
 	CHECK(!RefPackDecompress(RefPackAbc.data(), 3, Out));
 }
 
-static std::vector<uint8_t> BuildPackage(bool bSharedType)
+// bBigFile builds a DBBF package (SporeModder-FX writeDBBF: 120-byte header, 64-bit offsets).
+static std::vector<uint8_t> BuildPackage(bool bSharedType, bool bBigFile = false)
 {
-	std::vector<uint8_t> File(DbpfHeaderSize, 0);
-	File[0] = 'D'; File[1] = 'B'; File[2] = 'P'; File[3] = 'F';
+	std::vector<uint8_t> File(bBigFile ? 120 : DbpfHeaderSize, 0);
+	File[0] = 'D'; File[1] = 'B'; File[2] = bBigFile ? 'B' : 'P'; File[3] = 'F';
 	PutLE32(File, 4, 2);
 	PutLE32(File, 8, 0);
 
@@ -97,6 +98,7 @@ static std::vector<uint8_t> BuildPackage(bool bSharedType)
 		AppendLE32(File, 0); // unknown / instance-high
 		AppendLE32(File, Instance);
 		AppendLE32(File, Offset);
+		if (bBigFile) AppendLE32(File, 0); // offset high half
 		AppendLE32(File, CSize | 0x80000000u);
 		AppendLE32(File, MSize);
 		File.push_back(bCompressed ? 0xFF : 0x00);
@@ -108,18 +110,27 @@ static std::vector<uint8_t> BuildPackage(bool bSharedType)
 	AddEntry(0x40404000, FnvHash("packed"), PackedOffset, static_cast<uint32_t>(RefPackAbc.size()), 9, true);
 
 	PutLE32(File, 36, 2);
+	if (bBigFile)
+	{
+		PutLE32(File, 40, static_cast<uint32_t>(File.size() - IndexOffset));
+		PutLE32(File, 52, 3);
+		PutLE32(File, 56, IndexOffset);
+		return File;
+	}
 	PutLE32(File, 44, static_cast<uint32_t>(File.size() - IndexOffset));
 	PutLE32(File, 60, 3);
 	PutLE32(File, 64, IndexOffset);
 	return File;
 }
 
-static void TestDbpf(bool bSharedType)
+static void TestDbpf(bool bSharedType, bool bBigFile = false)
 {
-	const std::vector<uint8_t> File = BuildPackage(bSharedType);
+	const std::vector<uint8_t> File = BuildPackage(bSharedType, bBigFile);
 	DbpfHeader Header;
 	CHECK(ParseHeader(File.data(), File.size(), File.size(), Header) == DbpfError::None);
 	CHECK(Header.IndexEntryCount == 2);
+	CHECK(Header.bBigFile == bBigFile);
+	CHECK(Header.IndexMinorVersion == 3);
 
 	std::vector<IndexEntry> Entries;
 	CHECK(ParseIndex(File.data() + Header.IndexOffset, Header.IndexSize, Header, File.size(), Entries) == DbpfError::None);
@@ -151,7 +162,7 @@ static void TestDbpf(bool bSharedType)
 	PutLE32(Broken, 4, 3);
 	CHECK(ParseHeader(Broken.data(), Broken.size(), Broken.size(), Header) == DbpfError::UnsupportedVersion);
 	Broken = File;
-	PutLE32(Broken, 64, static_cast<uint32_t>(File.size()));
+	PutLE32(Broken, bBigFile ? 56 : 64, static_cast<uint32_t>(File.size()));
 	CHECK(ParseHeader(Broken.data(), Broken.size(), Broken.size(), Header) == DbpfError::IndexOutOfRange);
 }
 
@@ -798,6 +809,8 @@ int main()
 	TestRefPack();
 	TestDbpf(false);
 	TestDbpf(true);
+	TestDbpf(false, true);
+	TestDbpf(true, true);
 	TestValidate();
 	TestFnv();
 	TestPng();

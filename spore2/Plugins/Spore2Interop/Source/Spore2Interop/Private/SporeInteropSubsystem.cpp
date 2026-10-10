@@ -593,7 +593,7 @@ TSharedPtr<FSporeMountedPackage> USporeInteropSubsystem::ParsePackage(const FStr
 	std::vector<sporecore::IndexEntry> Entries;
 	if (Error == sporecore::DbpfError::None)
 	{
-		Error = SporeInterop::ReadFileRange(*Handle, Header.IndexOffset, Header.IndexSize, Buffer)
+		Error = SporeInterop::ReadFileRange(*Handle, static_cast<int64>(Header.IndexOffset), Header.IndexSize, Buffer)
 			? sporecore::ParseIndex(Buffer.GetData(), Buffer.Num(), Header, Result->FileSize, Entries)
 			: sporecore::DbpfError::IndexOutOfRange;
 	}
@@ -675,7 +675,7 @@ bool USporeInteropSubsystem::ReadResource(const FSporeResourceKey& Key, TArray<u
 
 	TUniquePtr<IFileHandle> Handle(FPlatformFileManager::Get().GetPlatformFile().OpenRead(*Package.Path));
 	TArray<uint8> Raw;
-	if (!Handle || !SporeInterop::ReadFileRange(*Handle, Entry.Offset, Entry.CompressedSize, Raw))
+	if (!Handle || !SporeInterop::ReadFileRange(*Handle, static_cast<int64>(Entry.Offset), Entry.CompressedSize, Raw))
 	{
 		if (OutError) *OutError = TEXT("could not read package");
 		return false;

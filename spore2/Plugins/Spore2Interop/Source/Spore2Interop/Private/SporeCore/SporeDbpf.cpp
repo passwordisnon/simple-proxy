@@ -18,6 +18,11 @@ uint32_t ReadLE32(const uint8_t* P)
 	return static_cast<uint32_t>(P[0]) | (static_cast<uint32_t>(P[1]) << 8) | (static_cast<uint32_t>(P[2]) << 16) | (static_cast<uint32_t>(P[3]) << 24);
 }
 
+uint64_t ReadLE64(const uint8_t* P)
+{
+	return static_cast<uint64_t>(ReadLE32(P)) | (static_cast<uint64_t>(ReadLE32(P + 4)) << 32);
+}
+
 uint16_t ReadLE16(const uint8_t* P)
 {
 	return static_cast<uint16_t>(P[0] | (P[1] << 8));
@@ -50,7 +55,7 @@ const char* ToString(DbpfError Error)
 	{
 	case DbpfError::None: return "ok";
 	case DbpfError::TooSmall: return "file too small for a DBPF header";
-	case DbpfError::BadMagic: return "missing DBPF magic";
+	case DbpfError::BadMagic: return "missing DBPF/DBBF magic";
 	case DbpfError::UnsupportedVersion: return "unsupported DBPF version (expected 2.0)";
 	case DbpfError::IndexOutOfRange: return "index lies outside the file";
 	case DbpfError::TruncatedIndex: return "index is shorter than its entry count requires";
@@ -67,10 +72,11 @@ DbpfError ParseHeader(const uint8_t* Data, size_t Size, uint64_t FileSize, DbpfH
 	{
 		return DbpfError::TooSmall;
 	}
-	if (Data[0] != 'D' || Data[1] != 'B' || Data[2] != 'P' || Data[3] != 'F')
+	if (Data[0] != 'D' || Data[1] != 'B' || (Data[2] != 'P' && Data[2] != 'B') || Data[3] != 'F')
 	{
 		return DbpfError::BadMagic;
 	}
+	Out.bBigFile = Data[2] == 'B';
 
 	Out.MajorVersion = ReadLE32(Data + 4);
 	Out.MinorVersion = ReadLE32(Data + 8);
@@ -80,11 +86,22 @@ DbpfError ParseHeader(const uint8_t* Data, size_t Size, uint64_t FileSize, DbpfH
 	}
 
 	Out.IndexEntryCount = ReadLE32(Data + 36);
-	Out.IndexSize = ReadLE32(Data + 44);
-	Out.IndexMinorVersion = ReadLE32(Data + 60);
-	Out.IndexOffset = ReadLE32(Data + 64);
+	if (Out.bBigFile)
+	{
+		// SporeModder-FX writeDBBF: count @36, u64 index size @40, index minor @52, u64 index offset @56.
+		// The index size is stored as 64 bits but an index never exceeds 4 GB; keep the low half.
+		Out.IndexSize = ReadLE32(Data + 40);
+		Out.IndexMinorVersion = ReadLE32(Data + 52);
+		Out.IndexOffset = ReadLE64(Data + 56);
+	}
+	else
+	{
+		Out.IndexSize = ReadLE32(Data + 44);
+		Out.IndexMinorVersion = ReadLE32(Data + 60);
+		Out.IndexOffset = ReadLE32(Data + 64);
+	}
 
-	if (static_cast<uint64_t>(Out.IndexOffset) + Out.IndexSize > FileSize)
+	if (Out.IndexOffset > FileSize || Out.IndexSize > FileSize - Out.IndexOffset)
 	{
 		return DbpfError::IndexOutOfRange;
 	}
@@ -120,7 +137,8 @@ DbpfError ParseIndex(const uint8_t* Data, size_t Size, const DbpfHeader& Header,
 	if (Flags & 2u) { SharedGroup = ReadLE32(Data + Pos); Pos += 4; }
 	if (Flags & 4u) { Pos += 4; }
 
-	const size_t EntrySize = (3 - SharedFieldCount) * 4 + 4 * 4 + 2 * 2;
+	const size_t OffsetBytes = Header.bBigFile ? 8 : 4;
+	const size_t EntrySize = (3 - SharedFieldCount) * 4 + 4 + OffsetBytes + 4 * 2 + 2 * 2;
 	if ((Size - Pos) / EntrySize < Header.IndexEntryCount)
 	{
 		return DbpfError::TruncatedIndex;
@@ -137,13 +155,15 @@ DbpfError ParseIndex(const uint8_t* Data, size_t Size, const DbpfHeader& Header,
 		if (!(Flags & 4u)) Pos += 4;
 
 		Entry.Key.Instance = ReadLE32(Data + Pos);
-		Entry.Offset = ReadLE32(Data + Pos + 4);
-		Entry.CompressedSize = ReadLE32(Data + Pos + 8) & 0x7FFFFFFFu;
-		Entry.MemSize = ReadLE32(Data + Pos + 12);
-		Entry.bCompressed = ReadLE16(Data + Pos + 16) == 0xFFFF;
-		Pos += 20;
+		Pos += 4;
+		Entry.Offset = Header.bBigFile ? ReadLE64(Data + Pos) : ReadLE32(Data + Pos);
+		Pos += OffsetBytes;
+		Entry.CompressedSize = ReadLE32(Data + Pos) & 0x7FFFFFFFu;
+		Entry.MemSize = ReadLE32(Data + Pos + 4);
+		Entry.bCompressed = ReadLE16(Data + Pos + 8) == 0xFFFF;
+		Pos += 12;
 
-		if (static_cast<uint64_t>(Entry.Offset) + Entry.CompressedSize > FileSize)
+		if (Entry.Offset > FileSize || Entry.CompressedSize > FileSize - Entry.Offset)
 		{
 			return DbpfError::EntryOutOfRange;
 		}

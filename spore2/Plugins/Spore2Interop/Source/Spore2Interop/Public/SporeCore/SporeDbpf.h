@@ -5,6 +5,8 @@
 // Format notes follow the layout used by SporeModder-FX (DatabasePackedFile):
 // Spore ships DBPF 2.0 containers with a 96-byte header, an index of
 // (type, group, instance) keyed entries and RefPack (QFS) compressed payloads.
+// Some mods are saved as "DBBF", the same container with 64-bit index and entry offsets
+// (SporeModder-FX's isDBBF option); both are read.
 
 #pragma once
 
@@ -43,7 +45,7 @@ struct ResourceKeyHash
 struct IndexEntry
 {
 	ResourceKey Key;
-	uint32_t Offset = 0;
+	uint64_t Offset = 0;
 	uint32_t CompressedSize = 0;
 	uint32_t MemSize = 0;
 	bool bCompressed = false;
@@ -64,19 +66,21 @@ enum class DbpfError : uint8_t
 
 const char* ToString(DbpfError Error);
 
+// Bytes to read for ParseHeader. A DBBF header is 120 bytes, but its fields all lie in the first 96.
 constexpr size_t DbpfHeaderSize = 96;
 
 struct DbpfHeader
 {
+	bool bBigFile = false; // "DBBF": 64-bit index offset and entry offsets
 	uint32_t MajorVersion = 0;
 	uint32_t MinorVersion = 0;
 	uint32_t IndexEntryCount = 0;
-	uint32_t IndexOffset = 0;
+	uint64_t IndexOffset = 0;
 	uint32_t IndexSize = 0;
 	uint32_t IndexMinorVersion = 0;
 };
 
-// Parses the fixed 96-byte header. FileSize is used to bounds-check the index.
+// Parses the fixed DBPF (96-byte) or DBBF (120-byte) header. FileSize is used to bounds-check the index.
 DbpfError ParseHeader(const uint8_t* Data, size_t Size, uint64_t FileSize, DbpfHeader& Out);
 
 // Parses the index block located at Header.IndexOffset (Header.IndexSize bytes).
