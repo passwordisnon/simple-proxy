@@ -3,6 +3,7 @@
 #include "SporeCore/SporeTexture.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <cstring>
 
@@ -29,7 +30,37 @@ void PutTexLE32(std::vector<uint8_t>& Out, uint32_t V)
 
 bool IsBlockCompressed(uint32_t Format)
 {
-	return Format == FourCC_DXT1 || Format == FourCC_DXT3 || Format == FourCC_DXT5;
+	return Format == FourCC_DXT1 || Format == FourCC_DXT3 || Format == FourCC_DXT5 || Format == FourCC_ATI1 || Format == FourCC_ATI2;
+}
+
+// Bits-per-pixel and RGBA masks of the uncompressed formats, for DDS headers.
+struct UncompressedLayout
+{
+	uint32_t Bits, R, G, B, A, Flags;
+};
+
+bool GetUncompressedLayout(uint32_t Format, UncompressedLayout& Out)
+{
+	constexpr uint32_t Rgb = 0x40, AlphaPixels = 0x1, Alpha = 0x2, Luminance = 0x20000;
+	switch (Format)
+	{
+	case D3DFMT_A8R8G8B8: Out = {32, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000, Rgb | AlphaPixels}; return true;
+	case D3DFMT_X8R8G8B8: Out = {32, 0x00FF0000, 0x0000FF00, 0x000000FF, 0, Rgb}; return true;
+	case D3DFMT_R8G8B8: Out = {24, 0x00FF0000, 0x0000FF00, 0x000000FF, 0, Rgb}; return true;
+	case D3DFMT_R5G6B5: Out = {16, 0xF800, 0x07E0, 0x001F, 0, Rgb}; return true;
+	case D3DFMT_X1R5G5B5: Out = {16, 0x7C00, 0x03E0, 0x001F, 0, Rgb}; return true;
+	case D3DFMT_A1R5G5B5: Out = {16, 0x7C00, 0x03E0, 0x001F, 0x8000, Rgb | AlphaPixels}; return true;
+	case D3DFMT_A4R4G4B4: Out = {16, 0x0F00, 0x00F0, 0x000F, 0xF000, Rgb | AlphaPixels}; return true;
+	case D3DFMT_A8: Out = {8, 0, 0, 0, 0xFF, Alpha}; return true;
+	case D3DFMT_L8: Out = {8, 0xFF, 0, 0, 0, Luminance}; return true;
+	case D3DFMT_A8L8: Out = {16, 0x00FF, 0, 0, 0xFF00, Luminance | AlphaPixels}; return true;
+	default: return false;
+	}
+}
+
+uint8_t Expand(uint32_t Value, int Bits)
+{
+	return static_cast<uint8_t>(Value * 255 / ((1u << Bits) - 1));
 }
 
 void Rgb565(uint16_t C, uint8_t Out[3])
@@ -105,32 +136,56 @@ void DecodeDxt5Alpha(const uint8_t* Block, uint8_t Pixels[16][4])
 
 } // namespace
 
-const char* TextureFormatName(uint32_t Format)
+std::string TextureFormatName(uint32_t Format)
 {
 	switch (Format)
 	{
 	case FourCC_DXT1: return "DXT1";
 	case FourCC_DXT3: return "DXT3";
 	case FourCC_DXT5: return "DXT5";
+	case FourCC_ATI1: return "ATI1";
+	case FourCC_ATI2: return "ATI2";
 	case D3DFMT_R8G8B8: return "R8G8B8";
 	case D3DFMT_A8R8G8B8: return "A8R8G8B8";
+	case D3DFMT_X8R8G8B8: return "X8R8G8B8";
+	case D3DFMT_R5G6B5: return "R5G6B5";
+	case D3DFMT_X1R5G5B5: return "X1R5G5B5";
+	case D3DFMT_A1R5G5B5: return "A1R5G5B5";
+	case D3DFMT_A4R4G4B4: return "A4R4G4B4";
 	case D3DFMT_A8: return "A8";
-	default: return "unknown";
+	case D3DFMT_L8: return "L8";
+	case D3DFMT_A8L8: return "A8L8";
+	default: break;
 	}
+	// Show FourCC codes as text when they are printable, otherwise the number.
+	char Text[5] = {static_cast<char>(Format & 0xFF), static_cast<char>((Format >> 8) & 0xFF), static_cast<char>((Format >> 16) & 0xFF), static_cast<char>(Format >> 24), 0};
+	bool bPrintable = true;
+	for (int I = 0; I < 4; ++I) bPrintable = bPrintable && Text[I] >= 32 && Text[I] < 127;
+	return bPrintable ? "unknown('" + std::string(Text) + "')" : "unknown(" + std::to_string(Format) + ")";
 }
 
 size_t MipSize(uint32_t Format, uint32_t Width, uint32_t Height)
 {
 	const size_t BlocksW = std::max<size_t>(1, (Width + 3) / 4);
 	const size_t BlocksH = std::max<size_t>(1, (Height + 3) / 4);
+	const size_t Pixels = static_cast<size_t>(Width) * Height;
 	switch (Format)
 	{
-	case FourCC_DXT1: return BlocksW * BlocksH * 8;
+	case FourCC_DXT1:
+	case FourCC_ATI1: return BlocksW * BlocksH * 8;
 	case FourCC_DXT3:
-	case FourCC_DXT5: return BlocksW * BlocksH * 16;
-	case D3DFMT_R8G8B8: return static_cast<size_t>(Width) * Height * 3;
-	case D3DFMT_A8R8G8B8: return static_cast<size_t>(Width) * Height * 4;
-	case D3DFMT_A8: return static_cast<size_t>(Width) * Height;
+	case FourCC_DXT5:
+	case FourCC_ATI2: return BlocksW * BlocksH * 16;
+	case D3DFMT_R8G8B8: return Pixels * 3;
+	case D3DFMT_A8R8G8B8:
+	case D3DFMT_X8R8G8B8: return Pixels * 4;
+	case D3DFMT_R5G6B5:
+	case D3DFMT_X1R5G5B5:
+	case D3DFMT_A1R5G5B5:
+	case D3DFMT_A4R4G4B4:
+	case D3DFMT_A8L8: return Pixels * 2;
+	case D3DFMT_A8:
+	case D3DFMT_L8: return Pixels;
 	default: return 0;
 	}
 }
@@ -768,32 +823,11 @@ void WriteDds(const TextureImage& Image, std::vector<uint8_t>& Out)
 {
 	Out.clear();
 	const bool bCompressed = IsBlockCompressed(Image.Format);
-	uint32_t BitCount = 32;
-	uint32_t PixelFlags = 0;
-	uint32_t RMask = 0x00FF0000, GMask = 0x0000FF00, BMask = 0x000000FF, AMask = 0xFF000000;
-	if (bCompressed)
-	{
-		PixelFlags = 0x4; // FOURCC
-		BitCount = 0;
-		RMask = GMask = BMask = AMask = 0;
-	}
-	else if (Image.Format == D3DFMT_A8)
-	{
-		PixelFlags = 0x2; // ALPHA
-		BitCount = 8;
-		RMask = GMask = BMask = 0;
-		AMask = 0xFF;
-	}
-	else if (Image.Format == D3DFMT_R8G8B8)
-	{
-		PixelFlags = 0x40; // RGB
-		BitCount = 24;
-		AMask = 0;
-	}
-	else
-	{
-		PixelFlags = 0x40 | 0x1; // RGB | ALPHAPIXELS
-	}
+	UncompressedLayout Layout{32, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000, 0x41};
+	if (!bCompressed) GetUncompressedLayout(Image.Format, Layout);
+	const uint32_t BitCount = bCompressed ? 0 : Layout.Bits;
+	const uint32_t PixelFlags = bCompressed ? 0x4 : Layout.Flags; // FOURCC or the layout's flags
+	const uint32_t RMask = bCompressed ? 0 : Layout.R, GMask = bCompressed ? 0 : Layout.G, BMask = bCompressed ? 0 : Layout.B, AMask = bCompressed ? 0 : Layout.A;
 
 	const uint32_t Mips = std::max(1u, Image.MipCount);
 	const uint32_t HeaderFlags = 0x1 | 0x2 | 0x4 | 0x1000 | 0x20000 | (bCompressed ? 0x80000 : 0x8);
@@ -839,7 +873,7 @@ bool DecodeToRgba(const TextureImage& Image, std::vector<uint8_t>& OutRgba, std:
 	const size_t Needed = MipSize(Image.Format, Image.Width, Image.Height);
 	if (Needed == 0)
 	{
-		Error = std::string("unsupported texture format ") + TextureFormatName(Image.Format);
+		Error = "unsupported texture format " + TextureFormatName(Image.Format);
 		return false;
 	}
 	if (Image.Data.size() < Needed)
@@ -855,7 +889,7 @@ bool DecodeToRgba(const TextureImage& Image, std::vector<uint8_t>& OutRgba, std:
 
 	if (IsBlockCompressed(Image.Format))
 	{
-		const size_t BlockBytes = Image.Format == FourCC_DXT1 ? 8 : 16;
+		const size_t BlockBytes = (Image.Format == FourCC_DXT1 || Image.Format == FourCC_ATI1) ? 8 : 16;
 		const uint32_t BlocksW = std::max(1u, (W + 3) / 4);
 		const uint32_t BlocksH = std::max(1u, (H + 3) / 4);
 		for (uint32_t By = 0; By < BlocksH; ++By)
@@ -864,7 +898,31 @@ bool DecodeToRgba(const TextureImage& Image, std::vector<uint8_t>& OutRgba, std:
 			{
 				const uint8_t* Block = Src + (static_cast<size_t>(By) * BlocksW + Bx) * BlockBytes;
 				uint8_t Pixels[16][4];
-				if (Image.Format == FourCC_DXT1)
+				if (Image.Format == FourCC_ATI1 || Image.Format == FourCC_ATI2)
+				{
+					// BC4/BC5 channels use DXT5-style alpha blocks. ATI1 -> grey; ATI2 -> red, green,
+					// and blue rebuilt as a unit normal's Z.
+					uint8_t First[16][4], Second[16][4];
+					DecodeDxt5Alpha(Block, First);
+					if (Image.Format == FourCC_ATI2) DecodeDxt5Alpha(Block + 8, Second);
+					for (int I = 0; I < 16; ++I)
+					{
+						if (Image.Format == FourCC_ATI1)
+						{
+							Pixels[I][0] = Pixels[I][1] = Pixels[I][2] = First[I][3];
+						}
+						else
+						{
+							Pixels[I][0] = First[I][3];
+							Pixels[I][1] = Second[I][3];
+							const float X = Pixels[I][0] / 127.5f - 1.0f, Y = Pixels[I][1] / 127.5f - 1.0f;
+							const float Z2 = 1.0f - X * X - Y * Y;
+							Pixels[I][2] = static_cast<uint8_t>((Z2 > 0.0f ? std::sqrt(Z2) : 0.0f) * 127.5f + 127.5f);
+						}
+						Pixels[I][3] = 255;
+					}
+				}
+				else if (Image.Format == FourCC_DXT1)
 				{
 					DecodeColorBlock(Block, true, Pixels);
 				}
@@ -907,16 +965,46 @@ bool DecodeToRgba(const TextureImage& Image, std::vector<uint8_t>& OutRgba, std:
 		switch (Image.Format)
 		{
 		case D3DFMT_A8R8G8B8:
+		case D3DFMT_X8R8G8B8:
 			Dst[0] = Src[I * 4 + 2];
 			Dst[1] = Src[I * 4 + 1];
 			Dst[2] = Src[I * 4 + 0];
-			Dst[3] = Src[I * 4 + 3];
+			Dst[3] = Image.Format == D3DFMT_A8R8G8B8 ? Src[I * 4 + 3] : 255;
 			break;
 		case D3DFMT_R8G8B8:
 			Dst[0] = Src[I * 3 + 2];
 			Dst[1] = Src[I * 3 + 1];
 			Dst[2] = Src[I * 3 + 0];
 			Dst[3] = 255;
+			break;
+		case D3DFMT_R5G6B5:
+		case D3DFMT_X1R5G5B5:
+		case D3DFMT_A1R5G5B5:
+		case D3DFMT_A4R4G4B4:
+		{
+			const uint32_t P = TexLE16(Src + I * 2);
+			if (Image.Format == D3DFMT_R5G6B5)
+			{
+				Dst[0] = Expand((P >> 11) & 0x1F, 5); Dst[1] = Expand((P >> 5) & 0x3F, 6); Dst[2] = Expand(P & 0x1F, 5); Dst[3] = 255;
+			}
+			else if (Image.Format == D3DFMT_A4R4G4B4)
+			{
+				Dst[0] = Expand((P >> 8) & 0xF, 4); Dst[1] = Expand((P >> 4) & 0xF, 4); Dst[2] = Expand(P & 0xF, 4); Dst[3] = Expand(P >> 12, 4);
+			}
+			else
+			{
+				Dst[0] = Expand((P >> 10) & 0x1F, 5); Dst[1] = Expand((P >> 5) & 0x1F, 5); Dst[2] = Expand(P & 0x1F, 5);
+				Dst[3] = (Image.Format == D3DFMT_A1R5G5B5 && !(P & 0x8000)) ? 0 : 255;
+			}
+			break;
+		}
+		case D3DFMT_L8:
+			Dst[0] = Dst[1] = Dst[2] = Src[I];
+			Dst[3] = 255;
+			break;
+		case D3DFMT_A8L8:
+			Dst[0] = Dst[1] = Dst[2] = Src[I * 2];
+			Dst[3] = Src[I * 2 + 1];
 			break;
 		default: // D3DFMT_A8: white with alpha
 			Dst[0] = Dst[1] = Dst[2] = 255;

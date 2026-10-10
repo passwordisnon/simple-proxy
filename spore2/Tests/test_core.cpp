@@ -418,6 +418,43 @@ static void TestTextures()
 	CHECK(DecodeToRgba(Argb, Rgba, Error));
 	CHECK(Rgba[0] == 30 && Rgba[1] == 20 && Rgba[2] == 10 && Rgba[3] == 40);
 
+	// 16-bit, luminance and BC4/BC5 formats.
+	TextureImage One;
+	One.Width = One.Height = 1;
+	One.MipCount = 1;
+	One.Format = D3DFMT_R5G6B5;
+	One.Data = {0x00, 0xF8}; // pure red
+	CHECK(DecodeToRgba(One, Rgba, Error) && Rgba[0] == 255 && Rgba[1] == 0 && Rgba[2] == 0 && Rgba[3] == 255);
+	One.Format = D3DFMT_A4R4G4B4;
+	One.Data = {0xF0, 0x8F}; // A=8, R=F, G=F, B=0
+	CHECK(DecodeToRgba(One, Rgba, Error) && Rgba[0] == 255 && Rgba[1] == 255 && Rgba[2] == 0 && Rgba[3] == 136);
+	One.Format = D3DFMT_A1R5G5B5;
+	One.Data = {0x1F, 0x00}; // blue, alpha bit clear
+	CHECK(DecodeToRgba(One, Rgba, Error) && Rgba[2] == 255 && Rgba[3] == 0);
+	One.Format = D3DFMT_L8;
+	One.Data = {77};
+	CHECK(DecodeToRgba(One, Rgba, Error) && Rgba[0] == 77 && Rgba[2] == 77 && Rgba[3] == 255);
+	One.Format = D3DFMT_A8L8;
+	One.Data = {10, 200};
+	CHECK(DecodeToRgba(One, Rgba, Error) && Rgba[1] == 10 && Rgba[3] == 200);
+	One.Format = D3DFMT_X8R8G8B8;
+	One.Data = {1, 2, 3, 0};
+	CHECK(DecodeToRgba(One, Rgba, Error) && Rgba[0] == 3 && Rgba[2] == 1 && Rgba[3] == 255);
+
+	// ATI2 normal map: both channels at their midpoint (index 0 = endpoint a0 = 128) -> flat normal.
+	TextureImage Ati2;
+	Ati2.Width = Ati2.Height = 4;
+	Ati2.MipCount = 1;
+	Ati2.Format = FourCC_ATI2;
+	Ati2.Data = {128, 128, 0, 0, 0, 0, 0, 0, 128, 128, 0, 0, 0, 0, 0, 0};
+	CHECK(DecodeToRgba(Ati2, Rgba, Error));
+	CHECK(Rgba[0] == 128 && Rgba[1] == 128 && Rgba[2] >= 254 && Rgba[3] == 255);
+
+	// Unsupported formats name their code.
+	One.Format = 0x12345;
+	CHECK(!DecodeToRgba(One, Rgba, Error) && Error.find("unknown(74565)") != std::string::npos);
+	CHECK(TextureFormatName(MakeFourCC('B', 'C', '7', 'X')) == "unknown('BC7X')");
+
 	// DDS header: magic, size, dimensions, FourCC, data appended.
 	std::vector<uint8_t> Dds;
 	WriteDds(Image, Dds);

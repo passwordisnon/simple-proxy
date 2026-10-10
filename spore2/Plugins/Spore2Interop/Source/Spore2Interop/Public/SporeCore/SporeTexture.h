@@ -28,6 +28,15 @@ constexpr uint32_t FourCC_DXT5 = MakeFourCC('D', 'X', 'T', '5');
 constexpr uint32_t D3DFMT_R8G8B8 = 20;   // memory order B, G, R
 constexpr uint32_t D3DFMT_A8R8G8B8 = 21; // memory order B, G, R, A
 constexpr uint32_t D3DFMT_A8 = 28;
+constexpr uint32_t D3DFMT_X8R8G8B8 = 22; // B, G, R, unused
+constexpr uint32_t D3DFMT_R5G6B5 = 23;
+constexpr uint32_t D3DFMT_X1R5G5B5 = 24;
+constexpr uint32_t D3DFMT_A1R5G5B5 = 25;
+constexpr uint32_t D3DFMT_A4R4G4B4 = 26;
+constexpr uint32_t D3DFMT_L8 = 50;
+constexpr uint32_t D3DFMT_A8L8 = 51;
+constexpr uint32_t FourCC_ATI1 = MakeFourCC('A', 'T', 'I', '1'); // BC4: one 8-bit channel
+constexpr uint32_t FourCC_ATI2 = MakeFourCC('A', 'T', 'I', '2'); // BC5: two channels (normal maps)
 
 struct TextureImage
 {
@@ -39,7 +48,8 @@ struct TextureImage
 	std::vector<uint8_t> Data; // all mips (and faces) back to back, largest first
 };
 
-const char* TextureFormatName(uint32_t Format);
+// Short name, or "unknown(<code>)" / "unknown('ABCD')" for unsupported formats.
+std::string TextureFormatName(uint32_t Format);
 
 // Bytes for one mip level of the given format, or 0 for unsupported formats.
 size_t MipSize(uint32_t Format, uint32_t Width, uint32_t Height);

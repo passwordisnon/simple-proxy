@@ -34,6 +34,8 @@ resources, creation PNGs) to this repository.
 - rw4 meshes: mesh 0x20009 -> vertex buffer 0x20005 (-> description 0x20004, data) and index
   buffer 0x20007 (-> data). Element "typeCode" is Spore's usage (0 pos, 2 normal, 6 uv0, 14/15 blend).
   Normals are unsigned bytes: (b - 127.5) / 127.5 (SporeModder-FX's viewer reads them signed; we don't).
+  Confirmed on the user's base game: 5,997 meshes, average normal length 0.990; 2,954 rasters and
+  13,258 rw4 textures decoded; 1,391 meshes skipped (blend shapes / sub-references, not done yet).
   UE conversion mirrors Y and flips winding; the 100x unit scale is an assumption to verify.
 - rw4 materials: mesh/state link 0x2001A -> compiled states 0x2000B; texture slots sit at the end of
   the compiled state (walk per MaterialStateCompiler.decompile); a slot's raster index points at a

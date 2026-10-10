@@ -613,7 +613,8 @@ struct ResourceLibrary
 	{
 		std::vector<fs::path> Found;
 		std::error_code Ec;
-		for (auto It = fs::recursive_directory_iterator(Root, fs::directory_options::skip_permission_denied, Ec); !Ec && It != fs::recursive_directory_iterator(); It.increment(Ec))
+		if (fs::is_regular_file(Root, Ec) && Root.extension() == ".package") Found.push_back(Root);
+		else for (auto It = fs::recursive_directory_iterator(Root, fs::directory_options::skip_permission_denied, Ec); !Ec && It != fs::recursive_directory_iterator(); It.increment(Ec))
 		{
 			if (It->is_regular_file(Ec) && It->path().extension() == ".package") Found.push_back(It->path());
 		}
@@ -849,6 +850,12 @@ int main(int Argc, char** Argv)
 		if (fs::is_regular_file(Root, Ec) && fs::path(Root).extension() == ".png")
 		{
 			ScanPng(Root, Opts);
+			continue;
+		}
+		if (fs::is_regular_file(Root, Ec) && fs::path(Root).extension() == ".package")
+		{
+			// A single downloaded mod or creation package.
+			ScanPackage(Root, fs::path(Root).parent_path(), Opts, Totals);
 			continue;
 		}
 		if (!fs::is_directory(Root, Ec))

@@ -400,7 +400,7 @@ FString USporeInteropSubsystem::DescribeRw4(const FSporeResourceKey& Key) const
 	}
 	for (const sporecore::TextureImage& Image : Info.Textures)
 	{
-		Summary += FString::Printf(TEXT("\nTexture: %s %ux%u"), UTF8_TO_TCHAR(sporecore::TextureFormatName(Image.Format)), Image.Width, Image.Height);
+		Summary += FString::Printf(TEXT("\nTexture: %s %ux%u"), UTF8_TO_TCHAR(sporecore::TextureFormatName(Image.Format).c_str()), Image.Width, Image.Height);
 	}
 	return Summary;
 }
@@ -412,7 +412,7 @@ FString USporeInteropSubsystem::DescribeSporeTexture(const FSporeResourceKey& Ke
 	{
 		return TEXT("no readable texture (see LogSporeInterop)");
 	}
-	return FString::Printf(TEXT("%s %ux%u, %u mip%s%s"), UTF8_TO_TCHAR(sporecore::TextureFormatName(Data.Image.Format)),
+	return FString::Printf(TEXT("%s %ux%u, %u mip%s%s"), UTF8_TO_TCHAR(sporecore::TextureFormatName(Data.Image.Format).c_str()),
 		Data.Image.Width, Data.Image.Height, Data.Image.MipCount, Data.Image.MipCount == 1 ? TEXT("") : TEXT("s"), Data.Image.bCube ? TEXT(", cube map") : TEXT(""));
 }
 
