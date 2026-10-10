@@ -282,9 +282,18 @@ void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts
 
 		if (bExtract)
 		{
-			char Name[96];
-			std::snprintf(Name, sizeof(Name), "%08X!%08X.%s", Entry.Key.Group, Entry.Key.Instance, TypeLabel(Entry.Key.Type).c_str());
-			const fs::path OutDir = fs::path(Opts.ExtractDir) / Path.stem();
+			// SporeModder-FX style layout: <package>/<group>/<instance>.<type>, using registry
+			// names where known and 0x-hex otherwise.
+			auto NameOrHex = [](const std::string& Known, uint32_t Id)
+			{
+				if (!Known.empty()) return Known;
+				char Hex[16];
+				std::snprintf(Hex, sizeof(Hex), "0x%08X", Id);
+				return std::string(Hex);
+			};
+			const std::string GroupPart = NameOrHex(NameTables::Lookup(Names.Files, Entry.Key.Group), Entry.Key.Group);
+			const std::string Name = NameOrHex(NameTables::Lookup(Names.Files, Entry.Key.Instance), Entry.Key.Instance) + "." + TypeLabel(Entry.Key.Type);
+			const fs::path OutDir = fs::path(Opts.ExtractDir) / Path.stem() / GroupPart;
 			fs::create_directories(OutDir, Ec);
 			std::ofstream Out(OutDir / Name, std::ios::binary);
 			Out.write(reinterpret_cast<const char*>(Decoded.data()), static_cast<std::streamsize>(Decoded.size()));
@@ -293,7 +302,7 @@ void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts
 			// Readable companion file for property lists.
 			if (bPropOk)
 			{
-				std::ofstream Text(OutDir / (std::string(Name) + ".txt"));
+				std::ofstream Text(OutDir / (Name + ".txt"));
 				for (const Property& Prop : Props.Properties)
 				{
 					Text << FormatProperty(Prop, NameTables::Lookup(Names.Properties, Prop.Id)) << '\n';
