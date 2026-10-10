@@ -3,6 +3,7 @@
 #include "SporeCore/SporeCreation.h"
 
 #include <algorithm>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 
@@ -391,6 +392,196 @@ bool DecodeSporeCreation(const uint8_t* Data, size_t Size, const InflateFn& Infl
 	Out.Metadata = Text.substr(0, XmlStart);
 	Out.ModelXml = Text.substr(XmlStart);
 	return ParseSporeModelXml(Out.ModelXml, Out, Error);
+}
+
+bool IsCreationXmlType(uint32_t Type)
+{
+	return Type == TypeCreature || Type == TypeBuilding || Type == TypeVehicle || Type == TypeUfo || Type == TypeCell || Type == TypeFlora;
+}
+
+namespace
+{
+
+struct BeReader
+{
+	const uint8_t* Data;
+	size_t Size;
+	size_t Pos = 0;
+	bool bOk = true;
+
+	uint32_t U32()
+	{
+		if (Pos > Size || Size - Pos < 4) { bOk = false; Pos = Size; return 0; }
+		const uint8_t* P = Data + Pos;
+		Pos += 4;
+		return (static_cast<uint32_t>(P[0]) << 24) | (static_cast<uint32_t>(P[1]) << 16) | (static_cast<uint32_t>(P[2]) << 8) | P[3];
+	}
+	int64_t I64()
+	{
+		const uint64_t High = U32();
+		return static_cast<int64_t>((High << 32) | U32());
+	}
+	void Key(ResourceKey& K)
+	{
+		K.Type = U32();
+		K.Group = U32();
+		K.Instance = U32();
+	}
+	// Length prefix counts characters; bWide = UTF-16LE, otherwise single-byte ASCII.
+	std::string Text(bool bWide)
+	{
+		const uint32_t Length = U32();
+		const size_t Bytes = static_cast<size_t>(Length) * (bWide ? 2 : 1);
+		if (!bOk || Length > Size || Size - Pos < Bytes) { bOk = false; Pos = Size; return {}; }
+		std::string Out = bWide ? Utf16LeToUtf8(Data + Pos, Length, false) : std::string(reinterpret_cast<const char*>(Data + Pos), Length);
+		Pos += Bytes;
+		return Out;
+	}
+};
+
+} // namespace
+
+bool ParsePollenMetadata(const uint8_t* Data, size_t Size, PollenMetadata& Out, std::string& Error)
+{
+	Out = PollenMetadata();
+	BeReader R{Data, Size};
+	Out.Version = R.U32();
+	if (R.bOk && Out.Version > 13)
+	{
+		Error = "unsupported pollen_metadata version " + std::to_string(Out.Version);
+		return false;
+	}
+	Out.AssetId = R.I64();
+	R.Key(Out.AssetKey);
+	R.Key(Out.ParentKey);
+	if (Out.Version >= 10) Out.ParentAssetId = R.I64();
+	if (Out.Version >= 12) Out.OriginalParentAssetId = R.I64();
+	Out.TimeCreated = R.I64();
+	if (Out.Version == 10)
+	{
+		// Version 10 writes a single 0xFFFFFFFF when there is no download time.
+		const uint64_t High = R.U32();
+		if (High != 0xFFFFFFFFu) Out.TimeDownloaded = static_cast<int64_t>((High << 32) | R.U32());
+	}
+	else if (Out.Version >= 9)
+	{
+		Out.TimeDownloaded = R.I64();
+	}
+
+	if (R.U32() == 0)
+	{
+		Out.AuthorId = R.I64();
+		Out.AuthorName = R.Text(true);
+		Out.Name = R.Text(true);
+		Out.Description = R.Text(true);
+	}
+	else
+	{
+		Out.bLocalized = true;
+		Out.LocaleTable = R.U32();
+		Out.AuthorNameLocale = R.U32();
+		Out.NameLocale = R.U32();
+		Out.DescriptionLocale = R.U32();
+	}
+
+	if (Out.Version >= 2)
+	{
+		const uint32_t Count = R.U32();
+		for (uint32_t I = 0; I < Count && R.bOk; ++I) Out.Authors.push_back(R.Text(false));
+	}
+	else if (Out.Version == 1)
+	{
+		Out.Authors.push_back(R.Text(false));
+	}
+
+	const uint32_t TagMode = Out.Version >= 13 ? R.U32() : 0;
+	if (TagMode == 0)
+	{
+		const uint32_t Count = R.U32();
+		for (uint32_t I = 0; I < Count && R.bOk; ++I) Out.Tags.push_back(R.Text(true));
+	}
+	else
+	{
+		R.U32(); // table id (same table as the names)
+		Out.TagsLocale = R.U32();
+	}
+
+	if (Out.Version >= 8)
+	{
+		Out.bShareable = R.U32() != 0;
+		const uint32_t Count = R.U32();
+		for (uint32_t I = 0; I < Count && R.bOk; ++I) Out.ConsequenceTraits.push_back(R.U32());
+	}
+
+	if (!R.bOk)
+	{
+		Error = "pollen_metadata is truncated";
+		return false;
+	}
+	return true;
+}
+
+std::string FormatPollenMetadata(const PollenMetadata& Meta)
+{
+	char Buffer[160];
+	std::string Out;
+	auto Line = [&Out](const char* Field, const std::string& Value) { Out += Field; Out += ": "; Out += Value; Out += '\n'; };
+	auto KeyText = [&Buffer](const ResourceKey& K)
+	{
+		std::snprintf(Buffer, sizeof(Buffer), "%08X!%08X.%08X", K.Group, K.Instance, K.Type);
+		return std::string(Buffer);
+	};
+	// Seconds since 0001-01-01 (as real files suggest) -> civil UTC date, or the raw value.
+	auto TimeText = [&Buffer](int64_t T)
+	{
+		constexpr int64_t UnixEpochFromYear1 = 62135596800ll;
+		if (T < UnixEpochFromYear1)
+		{
+			std::snprintf(Buffer, sizeof(Buffer), "%lld", static_cast<long long>(T));
+			return std::string(Buffer);
+		}
+		const int64_t Days = (T - UnixEpochFromYear1) / 86400;
+		// Howard Hinnant's days_from_civil inverse.
+		const int64_t Z = Days + 719468;
+		const int64_t Era = Z / 146097;
+		const int64_t Doe = Z - Era * 146097;
+		const int64_t Yoe = (Doe - Doe / 1460 + Doe / 36524 - Doe / 146096) / 365;
+		const int64_t Doy = Doe - (365 * Yoe + Yoe / 4 - Yoe / 100);
+		const int64_t Mp = (5 * Doy + 2) / 153;
+		const int64_t Day = Doy - (153 * Mp + 2) / 5 + 1;
+		const int64_t Month = Mp < 10 ? Mp + 3 : Mp - 9;
+		const int64_t Year = Yoe + Era * 400 + (Month <= 2 ? 1 : 0);
+		std::snprintf(Buffer, sizeof(Buffer), "%04lld-%02lld-%02lld (raw %lld)", static_cast<long long>(Year), static_cast<long long>(Month), static_cast<long long>(Day), static_cast<long long>(T));
+		return std::string(Buffer);
+	};
+
+	Line("version", std::to_string(Meta.Version));
+	if (Meta.bLocalized)
+	{
+		std::snprintf(Buffer, sizeof(Buffer), "locale table 0x%08X: author 0x%08X, name 0x%08X, description 0x%08X", Meta.LocaleTable, Meta.AuthorNameLocale, Meta.NameLocale, Meta.DescriptionLocale);
+		Line("localized", Buffer);
+	}
+	else
+	{
+		Line("name", Meta.Name);
+		Line("author", Meta.AuthorName);
+		Line("description", Meta.Description);
+		Line("author id", std::to_string(Meta.AuthorId));
+	}
+	Line("asset id", std::to_string(Meta.AssetId));
+	Line("asset key", KeyText(Meta.AssetKey));
+	Line("parent key", KeyText(Meta.ParentKey));
+	Line("parent asset id", std::to_string(Meta.ParentAssetId));
+	Line("created", Meta.TimeCreated == -1 ? std::string("-") : TimeText(Meta.TimeCreated));
+	Line("downloaded", Meta.TimeDownloaded == -1 ? std::string("-") : TimeText(Meta.TimeDownloaded));
+	std::string List;
+	for (const std::string& A : Meta.Authors) List += (List.empty() ? "" : ", ") + A;
+	Line("authors", List);
+	List.clear();
+	for (const std::string& T : Meta.Tags) List += (List.empty() ? "" : ", ") + T;
+	Line("tags", List);
+	Line("shareable", Meta.bShareable ? "yes" : "no");
+	return Out;
 }
 
 } // namespace sporecore

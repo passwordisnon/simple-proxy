@@ -116,27 +116,6 @@ void AppendUtf8(std::string& Out, uint32_t CodePoint)
 	}
 }
 
-// UTF-16LE code units -> UTF-8, stopping at a NUL when bStopAtNul is set.
-std::string Utf16LeToUtf8(const uint8_t* Bytes, size_t Units, bool bStopAtNul)
-{
-	std::string Out;
-	for (size_t I = 0; I < Units; ++I)
-	{
-		uint32_t Unit = static_cast<uint32_t>(Bytes[I * 2] | (Bytes[I * 2 + 1] << 8));
-		if (bStopAtNul && Unit == 0) break;
-		if (Unit >= 0xD800 && Unit < 0xDC00 && I + 1 < Units)
-		{
-			const uint32_t Low = static_cast<uint32_t>(Bytes[I * 2 + 2] | (Bytes[I * 2 + 3] << 8));
-			if (Low >= 0xDC00 && Low < 0xE000)
-			{
-				Unit = 0x10000 + ((Unit - 0xD800) << 10) + (Low - 0xDC00);
-				++I;
-			}
-		}
-		AppendUtf8(Out, Unit);
-	}
-	return Out;
-}
 
 size_t IntegerWidth(PropType Type)
 {
@@ -287,6 +266,28 @@ void AppendNumber(std::string& Out, double Value)
 }
 
 } // namespace
+
+// UTF-16LE code units -> UTF-8, stopping at a NUL when bStopAtNul is set.
+std::string Utf16LeToUtf8(const uint8_t* Bytes, size_t Units, bool bStopAtNul)
+{
+	std::string Out;
+	for (size_t I = 0; I < Units; ++I)
+	{
+		uint32_t Unit = static_cast<uint32_t>(Bytes[I * 2] | (Bytes[I * 2 + 1] << 8));
+		if (bStopAtNul && Unit == 0) break;
+		if (Unit >= 0xD800 && Unit < 0xDC00 && I + 1 < Units)
+		{
+			const uint32_t Low = static_cast<uint32_t>(Bytes[I * 2 + 2] | (Bytes[I * 2 + 3] << 8));
+			if (Low >= 0xDC00 && Low < 0xE000)
+			{
+				Unit = 0x10000 + ((Unit - 0xD800) << 10) + (Low - 0xDC00);
+				++I;
+			}
+		}
+		AppendUtf8(Out, Unit);
+	}
+	return Out;
+}
 
 const char* PropTypeName(uint16_t Type)
 {

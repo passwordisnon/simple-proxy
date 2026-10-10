@@ -84,6 +84,9 @@ struct PropertyList
 	std::string Error;
 };
 
+// UTF-16LE code units -> UTF-8, stopping at a NUL when bStopAtNul is set.
+std::string Utf16LeToUtf8(const uint8_t* Bytes, size_t Units, bool bStopAtNul);
+
 // Returns false when the data could not be fully parsed (see Out.Error).
 bool ParsePropertyList(const uint8_t* Data, size_t Size, PropertyList& Out);
 

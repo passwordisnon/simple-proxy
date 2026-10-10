@@ -24,6 +24,7 @@ available inside Unreal Engine 5. No game files are included in or committed to 
 | Materials: mesh → texture slots (in-file rasters and named texture overrides) → `.mtl` / UE material instances | done, unit-tested |
 | Creation assembly: card parts → part `.prop` → `modelMeshLOD*` model → placed meshes → one textured `.obj` / UE `AssembleCreationPng` | done on synthetic data; needs a real card + game data |
 | Skeletons, skinning, animations, blend shapes | not started |
+| Saved creations in packages (`EditorSaves.package`, `Pollination.package`): `.crt`/`.bld`/... XML assembles directly; `.pollen_metadata` → name, author, tags (`.txt` + `creations.tsv` on extract) | done, unit-tested |
 | Creation PNGs: hidden payload → metadata + `<sporemodel>` XML → parts (ID, transform, paints, children) → UE `DecodeCreationPng` | done, checked on real Spore PNGs |
 | Gameplay stages, editors, procedural animation | not started |
 
@@ -80,6 +81,10 @@ Useful extras:
 ./build/spore2-scan --assemble "/path/to/card.png" --names ~/SporeData/names --extract ~/SporeData/assembled ~/SporeData/Base
 # if parts look rotated wrong, try the other orientation convention:
 ./build/spore2-scan --assemble "/path/to/card.png" --flip-rotation --extract ~/SporeData/assembled ~/SporeData/Base
+
+# list downloaded creations (name, author, tags) and rebuild one straight from its .crt file
+./build/spore2-scan --props --names ~/SporeData/names --extract ~/SporeData/pollination "/path/to/Pollination.package"
+./build/spore2-scan --assemble ~/SporeData/pollination/Pollination/creature_editorModel~/0x251F774F.crt --names ~/SporeData/names --extract ~/SporeData/assembled ~/SporeData/Base
 
 # check whether a resource with that name really exists in your files (for "hidden content" claims)
 ./build/spore2-scan --names "/Applications/SporeModder FX" --find CakeEditor,CellEditor,PlannerThumbnailGen

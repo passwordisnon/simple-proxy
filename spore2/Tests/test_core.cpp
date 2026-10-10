@@ -804,6 +804,57 @@ static void TestCreation()
 	CHECK(ColVec.Positions == std::vector<float>({10, -2, 0}));
 }
 
+static void TestPollenMetadata()
+{
+	// Version 10 layout as written by the game for downloaded creations (synthetic values).
+	std::vector<uint8_t> B;
+	auto Wide = [&B](const std::string& Text)
+	{
+		AppendBE32(B, static_cast<uint32_t>(Text.size()));
+		for (char C : Text) { B.push_back(static_cast<uint8_t>(C)); B.push_back(0); }
+	};
+	AppendBE32(B, 10);
+	AppendBE32(B, 0xFFFFFFFFu); AppendBE32(B, 0xFFFFFFFFu);            // asset id -1
+	AppendBE32(B, TypeCreature); AppendBE32(B, 0x40626200); AppendBE32(B, 0x12345678); // asset key
+	AppendBE32(B, 0xFFFFFFFFu); AppendBE32(B, 0xFFFFFFFFu); AppendBE32(B, 0xFFFFFFFFu); // parent key
+	AppendBE32(B, 0xFFFFFFFFu); AppendBE32(B, 0xFFFFFFFFu);            // parent asset id
+	AppendBE32(B, 0x0000000E); AppendBE32(B, 0xDCFFE485);              // created
+	AppendBE32(B, 0x0000000E); AppendBE32(B, 0xDCFFE485);              // downloaded
+	AppendBE32(B, 0);                                                  // not localized
+	AppendBE32(B, 0xFFFFFFFFu); AppendBE32(B, 0xFFFFFFFEu);            // author id -2
+	Wide("Tester");
+	Wide("Test Bug");
+	Wide("");
+	AppendBE32(B, 1);                                                  // authors (ASCII)
+	AppendBE32(B, 5); for (char C : std::string("abc:1")) B.push_back(static_cast<uint8_t>(C));
+	AppendBE32(B, 1); Wide("green");                                   // tags
+	AppendBE32(B, 0xFFFFFFFFu);                                        // shareable
+	AppendBE32(B, 0);                                                  // consequence traits
+
+	PollenMetadata Meta;
+	std::string Error;
+	CHECK(ParsePollenMetadata(B.data(), B.size(), Meta, Error));
+	CHECK(Meta.Version == 10);
+	CHECK(Meta.AssetId == -1);
+	CHECK(Meta.AssetKey.Type == TypeCreature && Meta.AssetKey.Instance == 0x12345678);
+	CHECK(Meta.AuthorId == -2);
+	CHECK(Meta.AuthorName == "Tester");
+	CHECK(Meta.Name == "Test Bug");
+	CHECK(Meta.Description.empty());
+	CHECK(Meta.Authors.size() == 1 && Meta.Authors[0] == "abc:1");
+	CHECK(Meta.Tags.size() == 1 && Meta.Tags[0] == "green");
+	CHECK(Meta.bShareable);
+	const std::string Text = FormatPollenMetadata(Meta);
+	CHECK(Text.find("name: Test Bug\n") != std::string::npos);
+	CHECK(Text.find("created: 2023-12-04") != std::string::npos);
+
+	CHECK(!ParsePollenMetadata(B.data(), B.size() - 3, Meta, Error));
+	std::vector<uint8_t> Future = B;
+	Future[3] = 14;
+	CHECK(!ParsePollenMetadata(Future.data(), Future.size(), Meta, Error));
+	CHECK(IsCreationXmlType(TypeCreature) && !IsCreationXmlType(TypePollenMetadata));
+}
+
 int main()
 {
 	TestRefPack();
@@ -820,6 +871,7 @@ int main()
 	TestTextures();
 	TestMeshes();
 	TestCreation();
+	TestPollenMetadata();
 	if (Failures == 0)
 	{
 		std::printf("all tests passed\n");

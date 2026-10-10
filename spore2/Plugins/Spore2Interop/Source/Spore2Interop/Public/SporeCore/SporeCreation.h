@@ -88,6 +88,49 @@ bool FindPartModelKey(const PropertyList& Props, ResourceKey& OutKey);
 void PlaceMesh(MeshData& Mesh, const CreationBlock& Block, bool bTransposeRotation);
 
 // Parses a <sporemodel> document into blocks (exposed for tests and for XML files from mods).
+// The game's own creation files (.crt, .bld, .vcl, .ufo, .cll, .flr in EditorSaves.package or
+// Pollination.package) are this same XML, so they can be passed in directly.
 bool ParseSporeModelXml(const std::string& Xml, SporeCreation& Out, std::string& Error);
+
+// Resource types (SporeModder-FX reg_type.txt) of saved creations and their metadata.
+constexpr uint32_t TypePollenMetadata = 0x030BDEE3;
+constexpr uint32_t TypeCreature = 0x2B978C46;  // crt
+constexpr uint32_t TypeBuilding = 0x2399BE55;  // bld
+constexpr uint32_t TypeVehicle = 0x24682294;   // vcl
+constexpr uint32_t TypeUfo = 0x476A98C7;       // ufo
+constexpr uint32_t TypeCell = 0x3D97A8E4;      // cll
+constexpr uint32_t TypeFlora = 0x438F6347;     // flr
+bool IsCreationXmlType(uint32_t Type);
+
+// A .pollen_metadata resource: who made a creation and what it is called. Layout follows
+// SporeModder-FX PollenMetadata.read (versions up to 13). Integers are big-endian, names
+// UTF-16LE with a length prefix, the authors list ASCII. Strings are converted to UTF-8.
+struct PollenMetadata
+{
+	uint32_t Version = 0;
+	int64_t AssetId = -1; // Sporepedia ID, -1 for local creations
+	ResourceKey AssetKey;
+	ResourceKey ParentKey;
+	int64_t ParentAssetId = -1;
+	int64_t OriginalParentAssetId = -1;
+	int64_t TimeCreated = -1;    // raw value; seconds since 0001-01-01 judging by real files (unconfirmed)
+	int64_t TimeDownloaded = -1; // same unit
+	bool bLocalized = false;     // names come from a locale table instead of the strings below
+	uint32_t LocaleTable = 0;
+	uint32_t AuthorNameLocale = 0, NameLocale = 0, DescriptionLocale = 0, TagsLocale = 0;
+	int64_t AuthorId = -1;
+	std::string AuthorName;
+	std::string Name;
+	std::string Description;
+	std::vector<std::string> Authors; // in practice also holds markers like "tag:spore.com,2006:ImportedContent"
+	std::vector<std::string> Tags;
+	bool bShareable = false;
+	std::vector<uint32_t> ConsequenceTraits;
+};
+
+bool ParsePollenMetadata(const uint8_t* Data, size_t Size, PollenMetadata& Out, std::string& Error);
+
+// Multi-line readable dump of the metadata (one "field: value" per line).
+std::string FormatPollenMetadata(const PollenMetadata& Meta);
 
 } // namespace sporecore

@@ -10,7 +10,7 @@
 // --textures decodes .raster and .rw4 textures; with --extract each one is also written as
 //        .dds (original data) and .png (decoded, for viewing or upscaling).
 // --models decodes .rw4 meshes; with --extract each mesh is also written as .obj.
-// --assemble CARD.png rebuilds a creation from its parts into one textured OBJ in the
+// --assemble CARD rebuilds a creation (a card .png or a saved .crt/.bld/... XML) from its parts into one textured OBJ in the
 //        --extract directory (default ./assembled), using the packages under ROOT...
 //        --flip-rotation tries the other orientation convention if parts look misrotated.
 // --names points at a SporeModder-FX folder; its reg_*.txt files turn hashes into names.
@@ -266,6 +266,9 @@ struct ScanTotals
 	size_t Extracted = 0;
 	size_t Issues = 0;
 	size_t PropsDecoded = 0;
+	size_t MetadataDecoded = 0;
+	size_t MetadataFailed = 0;
+	size_t CreationFiles = 0; // crt/bld/vcl/ufo/cll/flr creation XML resources
 	size_t PropsFailed = 0;
 	std::vector<std::string> PropFailureSamples;
 	size_t TexturesDecoded = 0;
@@ -333,6 +336,7 @@ void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts
 
 	size_t LocalFailures = 0;
 	const std::string PackageName = Path.filename().string();
+	std::vector<std::string> CreationIndex;
 	std::vector<uint8_t> Decoded;
 	for (const IndexEntry& Entry : Entries)
 	{
@@ -364,7 +368,9 @@ void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts
 		const bool bIsTexture = Entry.Key.Type == 0x2F4E681C || Entry.Key.Type == 0x2F4E681B; // raster, rw4
 		const bool bDecodeTexture = Opts.bTextures && bIsTexture && bWanted;
 		const bool bDecodeModel = Opts.bModels && Entry.Key.Type == 0x2F4E681B && bWanted;
-		if (!Opts.bVerify && !bExtract && !bDecodeProp && !bDecodeTexture && !bDecodeModel)
+		const bool bDecodeMetadata = Entry.Key.Type == TypePollenMetadata && (Opts.bProps || bExtract);
+		if (IsCreationXmlType(Entry.Key.Type)) ++Totals.CreationFiles;
+		if (!Opts.bVerify && !bExtract && !bDecodeProp && !bDecodeTexture && !bDecodeModel && !bDecodeMetadata)
 		{
 			continue;
 		}
@@ -397,6 +403,28 @@ void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts
 					std::snprintf(Sample, sizeof(Sample), "%s %08X!%08X: %s", PackageName.c_str(), Entry.Key.Group, Entry.Key.Instance, Props.Error.c_str());
 					Totals.PropFailureSamples.push_back(Sample);
 				}
+			}
+		}
+
+		PollenMetadata Meta;
+		bool bMetaOk = false;
+		if (bDecodeMetadata)
+		{
+			std::string MetaError;
+			bMetaOk = ParsePollenMetadata(Decoded.data(), Decoded.size(), Meta, MetaError);
+			if (bMetaOk)
+			{
+				++Totals.MetadataDecoded;
+				// One line per creation for creations.tsv: what it is, its name and author.
+				char Head[64];
+				std::snprintf(Head, sizeof(Head), "0x%08X\t%s\t", Meta.AssetKey.Instance, TypeLabel(Meta.AssetKey.Type).c_str());
+				std::string Tags;
+				for (const std::string& Tag : Meta.Tags) Tags += (Tags.empty() ? "" : ", ") + Tag;
+				CreationIndex.push_back(Head + Meta.Name + "\t" + Meta.AuthorName + "\t" + std::to_string(Meta.AssetId) + "\t" + Tags);
+			}
+			else
+			{
+				++Totals.MetadataFailed;
 			}
 		}
 
@@ -543,6 +571,12 @@ void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts
 				}
 			}
 
+			if (bMetaOk)
+			{
+				std::ofstream Text(OutDir / (Name + ".txt"));
+				Text << FormatPollenMetadata(Meta);
+			}
+
 			// Readable companion file for property lists.
 			if (bPropOk)
 			{
@@ -558,6 +592,15 @@ void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts
 		}
 	}
 	Totals.DecodeFailures += LocalFailures;
+	if (!CreationIndex.empty() && !Opts.ExtractDir.empty())
+	{
+		std::sort(CreationIndex.begin(), CreationIndex.end());
+		const fs::path OutDir = fs::path(Opts.ExtractDir) / Path.stem();
+		fs::create_directories(OutDir, Ec);
+		std::ofstream Index(OutDir / "creations.tsv");
+		Index << "instance\ttype\tname\tauthor\tsporepedia id\ttags\n";
+		for (const std::string& Line : CreationIndex) Index << Line << '\n';
+	}
 
 	std::printf("  ok   %-56s %s%u.%u  %6zu entries  %s", RelEc ? PackageName.c_str() : DisplayName.c_str(), Header.bBigFile ? "DBBF " : "v", Header.MajorVersion, Header.MinorVersion, Entries.size(), FormatSize(FileSize).c_str());
 	if (Opts.bVerify)
@@ -700,7 +743,13 @@ int RunAssemble(const Options& Opts)
 	const std::vector<uint8_t> PngData((std::istreambuf_iterator<char>(PngFile)), std::istreambuf_iterator<char>());
 	SporeCreation Creation;
 	std::string Error;
-	if (!DecodeSporeCreation(PngData.data(), PngData.size(), ZlibInflate, Creation, Error))
+	// The game's saved creation files (.crt, .bld, ... from EditorSaves/Pollination packages)
+	// are the <sporemodel> XML itself; anything else is treated as a creation card PNG.
+	const bool bIsXml = PngData.size() > 1 && (PngData[0] == '<' || (PngData.size() > 3 && PngData[0] == 0xEF && PngData[3] == '<'));
+	const bool bDecoded = bIsXml
+		? ParseSporeModelXml(std::string(PngData.begin(), PngData.end()), Creation, Error)
+		: DecodeSporeCreation(PngData.data(), PngData.size(), ZlibInflate, Creation, Error);
+	if (!bDecoded)
 	{
 		std::fprintf(stderr, "cannot decode %s: %s\n", Opts.AssemblePng.c_str(), Error.c_str());
 		return 1;
@@ -796,7 +845,7 @@ int RunAssemble(const Options& Opts)
 void PrintUsage()
 {
 	std::printf("usage: spore2-scan [--verify] [--props] [--textures] [--models] [--png] [--extract DIR] [--type HEX|png|prop|rw4|raster]\n"
-	            "                   [--names SMFX_DIR] [--find NAME[,NAME...]] [--assemble CARD.png [--flip-rotation]] [ROOT...]\n");
+	            "                   [--names SMFX_DIR] [--find NAME[,NAME...]] [--assemble CARD.png|FILE.crt [--flip-rotation]] [ROOT...]\n");
 }
 
 } // namespace
@@ -998,6 +1047,10 @@ int main(int Argc, char** Argv)
 		{
 			std::printf("    ! %s\n", Sample.c_str());
 		}
+	}
+	if (Totals.MetadataDecoded + Totals.MetadataFailed + Totals.CreationFiles > 0)
+	{
+		std::printf("  creations:        %zu creation files (crt/bld/vcl/ufo/cll/flr), %zu metadata decoded, %zu failed\n", Totals.CreationFiles, Totals.MetadataDecoded, Totals.MetadataFailed);
 	}
 	if (!Opts.ExtractDir.empty()) std::printf("  extracted files:  %zu -> %s\n", Totals.Extracted, Opts.ExtractDir.c_str());
 
