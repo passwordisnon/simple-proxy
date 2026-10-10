@@ -49,7 +49,7 @@ resources, creation PNGs) to this repository.
 - Saved creations (EditorSaves.package, Pollination.package = downloaded creations): .crt/.bld/
   .vcl/.ufo/.cll/.flr are the plain <sporemodel> XML; .pollen_metadata is big-endian binary per
   SporeModder-FX PollenMetadata (name, author, tags; times look like seconds since 0001-01-01).
-  Confirmed on the user's Pollination.package (DBBF, 684 creatures, all cards decode).
+  Confirmed on the user's Pollination.package (DBBF, 684 creatures; the sampled cards decode).
 - Assembly: block (group, instance) + type prop = part file (buildings: group building_parts~
   0x40636000); its modelMeshLOD0..3 / modelMeshLowRes key names the rw4. Orientation rows are applied
   as row vectors (v * R) by default; --flip-rotation / bFlipRotation uses columns. Unconfirmed which
