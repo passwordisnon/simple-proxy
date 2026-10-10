@@ -1,0 +1,378 @@
+/* =====================================================================
+   CYBORG-LABOR WIRED · Candy-Mech
+   Y2K-Niedlichkeit mit Mechanik: durchsichtiges Bonbon-Plastik über
+   sichtbaren Zahnrädern, Chrom-Rahmen mit Schrauben, Gel-Knöpfe,
+   Sticker, LCD-Anzeigen. Überschreibt die Grundfarben aus index.html.
+   ===================================================================== */
+@import url("https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=DotGothic16&family=Michroma&family=M+PLUS+Rounded+1c:wght@500;700;800&display=swap");
+
+:root{
+  /* Kokon (Bonbon-Traum) */
+  --sky:#d6efff; --sky2:#eef8ff;
+  --paper:#fdf6ff; --paper2:#f1e9fb; --paper3:#e6dbf7; --line:#e3d8f2; --line2:#c9b8e6;
+  --ink:#2b2340; --ink2:#5f5878; --ink3:#9a90b3;
+  --leaf:#00799f; --leafD:#005a78; --leafL:#d6f1fa;
+  --pink:#e8457f; --pinkL:#ffe1ee; --sun:#ffd23f; --sunL:#fff3c2; --berry:#c22c46;
+  --sea:#00799f; --seaL:#d6f1fa; --lilac:#7c4dc8; --lilacL:#efe6ff;
+  --signal:#ff8a2a; --on-signal:#2b2340; --grape:#7c4dc8; --lime:#3d7a0a;
+  --shell-bondi:rgba(0,150,190,.42); --shell-grape:rgba(124,77,200,.38); --shell-tangerine:rgba(255,138,42,.42);
+  --chrome-hi:#ffffff; --chrome-mid:#c9cfdb; --chrome-lo:#7e879a; --on-chrome:#2b2340; --gear:#d6dce8;
+  --lcd-bg:#c9f27a; --lcd-ink:#1d2b0b; --focus:#0b78a8;
+  --display:"Dela Gothic One","Hiragino Sans","Arial Black",sans-serif;
+  --body:"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Arial Rounded MT Bold",ui-rounded,sans-serif;
+  --system:DotGothic16,"MS Gothic",ui-monospace,monospace;
+  --label:Michroma,Eurostile,"Arial Narrow",sans-serif;
+  --gel:inset 0 2px 0 rgba(255,255,255,.75),inset 0 -3px 0 rgba(0,0,0,.18),0 3px 0 rgba(43,35,64,.25);
+  --well:inset 0 2px 4px rgba(43,35,64,.18);
+  --shadow:0 3px 0 rgba(43,35,64,.18),0 10px 24px rgba(43,35,64,.14);
+  --drop:0 2px 0 rgba(43,35,64,.14),0 6px 14px rgba(43,35,64,.12);
+  --drop-lg:0 6px 0 rgba(43,35,64,.16),0 22px 48px rgba(43,35,64,.26);
+  --hi:rgba(255,255,255,.8);
+  /* Zahnräder und Leiterbahnen, die durch das Plastik scheinen */
+  --gears:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cg fill='none' stroke='%23ffffff' stroke-opacity='.55' stroke-width='3'%3E%3Ccircle cx='36' cy='40' r='18'/%3E%3Ccircle cx='36' cy='40' r='6'/%3E%3Cpath d='M36 16v6M36 58v6M12 40h6M54 40h6M19 23l4 4M49 53l4 4M19 57l4-4M49 27l4-4'/%3E%3Ccircle cx='112' cy='108' r='26'/%3E%3Ccircle cx='112' cy='108' r='8'/%3E%3Cpath d='M112 76v8M112 132v8M80 108h8M136 108h8M89 85l6 6M129 125l6 6M89 131l6-6M129 91l6-6'/%3E%3Cpath stroke-width='2' d='M60 40h30v40h-6M0 120h40v30M140 20v30h20'/%3E%3Ccircle cx='84' cy='80' r='3' fill='%23ffffff' fill-opacity='.55'/%3E%3C/g%3E%3C/svg%3E");
+}
+body{font-family:var(--body);font-weight:500}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+b,strong{font-weight:800}
+
+/* ---------- Kopfzeile: Chrom-Leiste mit Schrauben ---------- */
+header.top{background:linear-gradient(180deg,var(--chrome-hi),var(--chrome-mid));border-bottom:0;box-shadow:inset 0 -3px 0 var(--chrome-lo),0 3px 0 rgba(43,35,64,.15);padding-inline:28px}
+header.top::before,header.top::after{content:"";position:absolute;top:50%;width:10px;height:10px;margin-top:-5px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,var(--chrome-mid) 55%,var(--chrome-lo));box-shadow:0 1px 0 var(--chrome-lo)}
+header.top::before{left:10px}header.top::after{right:10px}
+.logo{font-family:var(--display);font-weight:400;font-size:24px;color:var(--ink);letter-spacing:.02em}
+.logo i{background:radial-gradient(circle at 35% 30%,#fff 0 16%,transparent 17%),var(--shell-bondi);box-shadow:inset 0 0 0 3px var(--leaf),inset 0 -4px 0 rgba(0,0,0,.15)}
+.logo .jp{font:800 12px/1 var(--body);background:var(--sun);color:var(--ink);padding:5px 10px;border-radius:999px;border:3px solid #fff;box-shadow:var(--gel);transform:rotate(-4deg);display:inline-block;margin-left:6px}
+.iconbtn,.pill{background:linear-gradient(180deg,#fff,var(--paper2));border:0;box-shadow:var(--gel);color:var(--ink)}
+.iconbtn[aria-pressed="true"]{background:linear-gradient(180deg,#fff7d0,var(--sun));color:var(--ink)}
+
+/* ---------- Knöpfe: Gel ---------- */
+.btn{position:relative;overflow:hidden;border-radius:999px;background:linear-gradient(180deg,#fff,var(--paper2));color:var(--ink);box-shadow:var(--gel);font-weight:800}
+.btn::before{content:"";position:absolute;left:12px;right:12px;top:3px;height:40%;border-radius:999px;background:linear-gradient(180deg,rgba(255,255,255,.75),rgba(255,255,255,0));pointer-events:none}
+.btn:hover{background:linear-gradient(180deg,#fff,var(--paper3))}
+.btn:active{box-shadow:var(--well);transform:translateY(2px)}
+.btn.primary{background:var(--signal);color:var(--on-signal);box-shadow:var(--gel)}
+.btn.primary:hover{background:#ff9a45}
+.btn.sea{background:var(--leaf);color:#fff;box-shadow:var(--gel)}
+.btn.pink{background:var(--pink);color:#fff;box-shadow:var(--gel)}
+.btn.danger{background:#ffe0e8;color:#a3213a;box-shadow:var(--gel)}
+.btn.primary:disabled{background:var(--paper3);color:var(--ink2);box-shadow:none}
+.abtn{background:var(--signal);color:var(--on-signal);font-family:var(--body);font-weight:800;box-shadow:var(--gel),0 6px 16px rgba(43,35,64,.25);position:relative;overflow:hidden}
+.abtn::before{content:"";position:absolute;left:14px;right:14px;top:6px;height:34%;border-radius:999px;background:linear-gradient(180deg,rgba(255,255,255,.7),rgba(255,255,255,0))}
+.bbtn,.hudbtn,.money,.xbtn{background:linear-gradient(180deg,#fff,var(--paper2));box-shadow:var(--gel);color:var(--ink)}
+.hudbtn{border-radius:999px;font-weight:800}
+.money{font-family:var(--system);font-weight:400;font-size:18px}
+.prompt{background:#fff;box-shadow:var(--gel);font-weight:800}
+.prompt kbd{font-family:var(--system);background:var(--ink);color:var(--lcd-bg);box-shadow:none}
+
+/* ---------- Uhr: LCD ---------- */
+.clock{background:var(--lcd-bg);color:var(--lcd-ink);font-family:var(--system);border-radius:8px;padding:6px 14px 7px;position:relative;overflow:hidden;box-shadow:0 0 0 5px #fff,0 0 0 7px var(--chrome-mid),var(--shadow)}
+.clock::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 3px,rgba(0,0,0,.06) 3px 4px),repeating-linear-gradient(180deg,transparent 0 3px,rgba(0,0,0,.06) 3px 4px);pointer-events:none}
+.clock b{font-weight:400;letter-spacing:2px}.clock span{color:var(--lcd-ink);font-weight:400;opacity:.85}
+
+/* ---------- Fenster: Bonbon-Schale über Zahnrädern, Chrom-Rand, vier Schrauben ---------- */
+.veil{background:rgba(43,35,64,.32)}
+.win{border:0;border-radius:28px;padding:10px;background:var(--gears) 0 0/160px 160px,var(--shell-bondi);box-shadow:inset 0 2px 0 rgba(255,255,255,.6),inset 0 -4px 0 rgba(0,0,0,.12),var(--drop-lg);position:relative}
+.win::before,.win::after{content:"";position:absolute;top:12px;width:12px;height:12px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,var(--chrome-mid) 55%,var(--chrome-lo));box-shadow:0 1px 0 var(--chrome-lo);z-index:2}
+.win::before{left:12px}.win::after{right:12px}
+.win>.wh,.win>.wb,.win>.wf{background:var(--paper)}
+.win>.wh{border-radius:20px 20px 0 0;border-bottom:2px solid var(--line);background:linear-gradient(180deg,#fff,var(--paper));animation:none;box-shadow:inset 0 0 0 4px var(--chrome-mid)}
+.win>.wh{box-shadow:none;border:4px solid var(--chrome-mid);border-bottom:2px solid var(--line)}
+.win>.wb{border-left:4px solid var(--chrome-mid);border-right:4px solid var(--chrome-mid)}
+.win>.wf{border:4px solid var(--chrome-mid);border-top:2px solid var(--line);border-radius:0 0 20px 20px}
+.win>.wb:last-child{border-bottom:4px solid var(--chrome-mid);border-radius:0 0 20px 20px}
+.win .wh h3{font-family:var(--display);font-weight:400;font-size:22px;text-shadow:none;color:var(--ink)}
+.win.grape{background:var(--gears) 0 0/160px 160px,var(--shell-grape)}
+.win.tangerine{background:var(--gears) 0 0/160px 160px,var(--shell-tangerine)}
+
+/* ---------- Karten, Listen, Eingaben ---------- */
+.card,.tile,.pcard,.skin,.seg button,.slottabs button{border-color:var(--line);border-radius:16px}
+.card.sel,.tile[aria-pressed="true"],.skin[aria-pressed="true"],.seg button[aria-pressed="true"]{border-color:var(--leaf);background:var(--leafL);color:var(--ink)}
+.card .badge{background:var(--sun);color:var(--ink)}.card .badge.g{background:var(--leaf);color:#fff}
+input[type=text],input[type=search],textarea,select{border-color:var(--line);border-radius:12px;box-shadow:var(--well)}
+input:focus,textarea:focus,select:focus{border-color:var(--focus)}
+.step h2{font-family:var(--display);font-weight:400}
+.step h2 .num{background:var(--signal);color:var(--on-signal);box-shadow:var(--gel);font-family:var(--system);font-weight:400}
+.slottabs button[aria-selected="true"]{background:var(--leaf);border-color:var(--leaf);color:#fff}
+.nameplate .n{font-family:var(--display);font-weight:400}
+
+/* ---------- Dialog ---------- */
+.talk .box{background:#fff;border:3px solid var(--leaf);border-radius:28px;box-shadow:var(--gel),var(--drop-lg);font-weight:700}
+.talk .name{background:var(--signal);color:var(--on-signal);font-family:var(--body);font-weight:800;border-radius:999px;box-shadow:var(--gel);transform:none}
+.talk .more{color:var(--leaf)}
+.talk .choices button{background:#fff;box-shadow:var(--gel);border-radius:999px}
+.talk .choices button:hover,.talk .choices button:focus-visible{background:var(--sunL)}
+
+/* ---------- Meldungen, Laden ---------- */
+.toast{background:var(--ink);color:var(--lcd-bg);font-family:var(--system);font-weight:400;letter-spacing:.5px}
+.ticker div{background:rgba(255,255,255,.9);color:var(--ink2);box-shadow:var(--gel)}
+.loading{background:#0b1530;color:#f2f6ff;font-family:var(--system);font-weight:400}
+.loading i{background:var(--signal);box-shadow:var(--gel)}
+
+/* ---------- Cy-Phone: Bonbon-Gehäuse mit Chrom-Bildschirm ---------- */
+.phone.gta{background:var(--gears) 0 0/120px 120px,linear-gradient(160deg,rgba(0,150,190,.85),rgba(0,95,130,.92));border-radius:46px 46px 40px 40px;box-shadow:inset 0 3px 0 rgba(255,255,255,.45),inset 0 -6px 0 rgba(0,0,0,.2),var(--drop-lg)}
+.phone.gta .ph-scr{box-shadow:0 0 0 5px var(--chrome-mid),inset 0 2px 6px rgba(0,0,0,.25)}
+.phone.gta .ph-notch{background:transparent;width:auto;height:auto;font:800 9px/1 var(--label);letter-spacing:2px;color:#fff;opacity:.85}
+.phone.gta .ph-notch::before{content:"サイフォン";font-family:var(--body)}
+.phone.gta .ph-clock b{font-family:var(--system);font-weight:400}
+
+/* ---------- Gemeinsame WIRED-Bausteine (Start, Menü, Beamer) ---------- */
+.cw-plate{display:inline-flex;align-items:center;gap:8px;font:400 11px/1.3 var(--label);letter-spacing:2px;text-transform:uppercase;color:var(--on-chrome);padding:4px 10px;background:linear-gradient(180deg,var(--chrome-hi),var(--chrome-mid));border-radius:6px;box-shadow:var(--gel)}
+.cw-sticker{display:inline-flex;align-items:center;gap:6px;font:800 14px/1.1 var(--body);padding:6px 12px;border-radius:999px;background:var(--sun);color:var(--ink);border:3px solid #fff;box-shadow:var(--gel);transform:rotate(-4deg)}
+.cw-sticker.pink{background:var(--pink);color:#fff}.cw-sticker.grape{background:var(--grape);color:#fff}
+.cw-lcd{font:16px/1.25 var(--system);color:var(--lcd-ink);background:var(--lcd-bg);border-radius:6px;padding:6px 12px;box-shadow:var(--well);letter-spacing:1px;position:relative;overflow:hidden}
+.cw-lcd::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 3px,rgba(0,0,0,.06) 3px 4px),repeating-linear-gradient(180deg,transparent 0 3px,rgba(0,0,0,.06) 3px 4px);pointer-events:none}
+.cw-screw{position:absolute;width:12px;height:12px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,var(--chrome-mid) 55%,var(--chrome-lo));box-shadow:0 1px 0 var(--chrome-lo)}
+.cw-screw::after{content:"";position:absolute;left:2px;right:2px;top:5px;height:2px;background:var(--chrome-lo);transform:rotate(-35deg);border-radius:1px}
+.cw-screw.s1{top:12px;left:12px}.cw-screw.s2{top:12px;right:12px}.cw-screw.s3{bottom:12px;left:12px}.cw-screw.s4{bottom:12px;right:12px}
+
+/* Startbildschirm: Wired (Geräte-Nacht) */
+.wstart{position:fixed;inset:0;z-index:90;display:grid;place-items:center;padding:16px;box-sizing:border-box;overflow:auto;
+  background:radial-gradient(circle at 50% 30%,#1c2f5e,#0b1530 70%);color:#f2f6ff;font-family:var(--body)}
+.wstart::before{content:"";position:absolute;inset:0;background:var(--gears) 0 0/200px 200px;opacity:.14;pointer-events:none}
+.wstart .shell{position:relative;width:min(560px,100%);border-radius:28px;padding:30px 26px 26px;background:rgba(47,196,236,.18);box-shadow:inset 0 2px 0 rgba(255,255,255,.35),inset 0 -4px 0 rgba(0,0,0,.3),0 30px 70px rgba(0,0,0,.5);text-align:center;display:flex;flex-direction:column;gap:16px;align-items:center}
+.wstart h1{margin:4px 0 0;font:400 clamp(40px,9vw,64px)/.95 var(--display);color:#fff;letter-spacing:.01em}
+.wstart h1 small{display:block;font:400 clamp(13px,3vw,16px)/1.4 var(--label);letter-spacing:6px;color:#45e0ff;margin-top:8px}
+.wstart .tag{font:16px/1.4 var(--system);color:#a9b8d8;margin:0}
+.wstart .cw-lcd{background:#b6f25c}
+.wstart .row2{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;width:100%}
+.wstart .big{font-size:18px;padding:14px 28px;min-width:200px}
+.wstart .big small{display:block;font-size:12px;font-weight:700;opacity:.85}
+.wstart .chrome{background:linear-gradient(180deg,#e6ecf5,#9aa6ba);color:#141b2e}
+.wstart .langs{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.wstart .langs button{border:0;border-radius:999px;padding:6px 12px;font:700 13px var(--body);background:rgba(255,255,255,.12);color:#f2f6ff;box-shadow:inset 0 0 0 2px rgba(255,255,255,.25)}
+.wstart .langs button[aria-pressed="true"]{background:#45e0ff;color:#0b1530;box-shadow:var(--gel)}
+.wstart .stk{position:absolute}
+.wstart .stk.a{top:-14px;right:22px}.wstart .stk.b{bottom:-12px;left:18px;transform:rotate(5deg)}
+.wstart .bye{font:400 22px/1.4 var(--system)}
+
+/* In-Game-Menü (Pause): Mandarinen-Schale */
+.wmenu{position:fixed;inset:0;z-index:80;background:rgba(43,35,64,.4);display:grid;place-items:center;padding:16px}
+.wmenu .shell{position:relative;width:min(360px,100%);border-radius:28px;padding:22px;background:var(--gears) 0 0/160px 160px,var(--shell-tangerine);box-shadow:inset 0 2px 0 rgba(255,255,255,.6),inset 0 -4px 0 rgba(0,0,0,.12),var(--drop-lg)}
+.wmenu .panel2{background:var(--paper);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:10px;box-shadow:0 0 0 5px var(--chrome-mid)}
+.wmenu h2{margin:0 0 4px;font:400 26px/1 var(--display);color:var(--ink);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.wmenu .btn{width:100%;justify-content:flex-start;text-align:left;padding:12px 18px;display:flex;gap:10px;align-items:center}
+.wmenu .btn .k{margin-left:auto;font:12px/1 var(--system);background:var(--paper2);color:var(--ink2);border-radius:6px;padding:3px 6px}
+.menubtn{position:absolute;left:12px;bottom:12px}
+
+@media (prefers-reduced-motion:reduce){.cw-sticker,.logo .jp{transform:none}}
+
+/* Sprachwahl */
+.langpick{display:flex;flex-direction:column;gap:8px;align-items:center;width:100%}
+.langpick select{max-width:280px;border-radius:999px;font-weight:700}
+.win .langpick{align-items:stretch}.win .langs{display:flex;gap:6px;flex-wrap:wrap}
+.win .langs button{border:2px solid var(--line);background:#fff;border-radius:999px;padding:5px 12px;font-weight:800;color:var(--ink2)}
+.win .langs button[aria-pressed="true"]{background:var(--leaf);border-color:var(--leaf);color:#fff}
+.wstart .langpick select{background:rgba(255,255,255,.12);color:#f2f6ff;border:2px solid rgba(255,255,255,.25)}
+.wstart .langpick select option{color:#141b2e}
+/* Rechts-nach-links-Sprachen: Texte und Fenster spiegeln, die Spielwelt bleibt */
+:root[data-rtl] .win,:root[data-rtl] .talk,:root[data-rtl] .toast,:root[data-rtl] .wmenu,:root[data-rtl] .bm-card,:root[data-rtl] .chat,:root[data-rtl] .phone{direction:rtl}
+
+/* ---------- Beamer-Ansicht (Wired-Nacht, nur ansehen) ---------- */
+body.beamer-on .hud,body.beamer-on #chat,body.beamer-on .tutcard,body.beamer-on header.top .tabs{display:none!important}
+.beamer{position:absolute;inset:0;pointer-events:none;z-index:20;font-family:var(--body)}
+.beamer>*{pointer-events:auto}
+.bm-top{position:absolute;left:12px;right:12px;top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:8px 12px;border-radius:999px;background:rgba(11,21,48,.82);box-shadow:inset 0 2px 0 rgba(255,255,255,.15),0 10px 30px rgba(0,0,0,.3)}
+.bm-top .grow{flex:1}
+.bm-top .cw-lcd{background:#b6f25c;padding:3px 10px;font-size:15px}
+.bm-live{font:800 13px var(--body);color:#0b1530;background:#a6e85a;border-radius:999px;padding:4px 10px}
+.btn.chrome{background:linear-gradient(180deg,#e6ecf5,#9aa6ba);color:#141b2e}
+.btn.chrome[aria-pressed="true"]{background:#45e0ff;color:#0b1530}
+.bm-arrow{position:absolute;top:50%;width:84px;height:84px;margin-top:-42px;border:0;border-radius:50%;display:grid;place-items:center;cursor:pointer;color:#fff;background:var(--leaf);box-shadow:var(--gel),0 10px 26px rgba(0,0,0,.3);overflow:hidden}
+.bm-arrow::before{content:"";position:absolute;left:14px;right:14px;top:6px;height:36%;border-radius:999px;background:linear-gradient(180deg,rgba(255,255,255,.7),rgba(255,255,255,0))}
+.bm-arrow:active{transform:translateY(2px);box-shadow:var(--well)}
+.bm-arrow.prev{left:16px}.bm-arrow.next{right:min(396px,34vw)}
+.bm-card{position:absolute;right:12px;top:72px;bottom:118px;width:min(360px,32vw);overflow:auto;border-radius:28px;padding:14px;box-sizing:border-box;display:flex;flex-direction:column;gap:10px;
+  background:var(--gears) 0 0/160px 160px,linear-gradient(180deg,rgba(124,77,200,.55),rgba(0,121,159,.55));box-shadow:inset 0 2px 0 rgba(255,255,255,.4),var(--drop-lg)}
+.bm-card>section,.bm-card>.bm-head{background:var(--paper);border-radius:18px;padding:10px 12px;box-shadow:0 0 0 4px var(--chrome-mid)}
+.bm-head{display:flex;gap:12px;align-items:center}.bm-head img,.bm-head canvas{width:110px;height:110px;flex:none;border-radius:16px;background:var(--leafL)}
+.bm-head h2{margin:0;font:400 clamp(20px,2.4vw,30px)/1.05 var(--display);color:var(--ink)}.bm-head .sub{margin:4px 0 0;color:var(--ink2);font-weight:700}
+.bm-card h3{margin:0 0 4px;font:400 11px/1.3 var(--label);letter-spacing:2px;text-transform:uppercase;color:var(--ink2)}
+.bm-card ul{margin:0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:6px}
+.bm-card li{background:var(--paper2);border-radius:999px;padding:3px 10px;font-weight:800;font-size:14px;color:var(--ink)}
+.bm-abs li{background:var(--leafL)}
+.bm-card blockquote{margin:0;font-size:clamp(15px,1.5vw,19px);line-height:1.5;font-weight:700;color:var(--ink)}
+.bm-roster{position:absolute;left:12px;right:12px;bottom:12px;display:flex;gap:8px;overflow-x:auto;padding:8px;border-radius:24px;background:rgba(11,21,48,.82);scrollbar-width:thin}
+.bm-chip{flex:none;display:grid;grid-template-columns:36px auto;grid-template-rows:auto auto;column-gap:8px;align-items:center;text-align:left;border:3px solid transparent;border-radius:18px;padding:6px 12px 6px 6px;background:#1c2f5e;color:#f2f6ff;cursor:pointer;min-width:150px}
+.bm-chip .av{grid-row:1/3;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--shell-bondi);font:800 16px var(--body);color:#fff}
+.bm-chip.live .av{box-shadow:0 0 0 3px #a6e85a}
+.bm-chip .nm{font-weight:800;font-size:14px;white-space:nowrap}.bm-chip .pl{font-size:11.5px;color:#a9b8d8;white-space:nowrap}
+.bm-chip[aria-current="true"]{border-color:#45e0ff;background:#26396b}
+.bm-note{position:absolute;left:50%;bottom:96px;transform:translateX(-50%);margin:0;color:#fff;font-weight:800;text-shadow:0 2px 6px rgba(0,0,0,.6)}
+.bm-note:empty{display:none}
+.bm-empty{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);max-width:420px;text-align:center;font:400 18px/1.5 var(--system);color:#f2f6ff;background:rgba(11,21,48,.85);border-radius:20px;padding:18px 22px}
+@media (max-width:760px){.bm-card{left:12px;right:12px;width:auto;top:auto;bottom:96px;max-height:42%}.bm-arrow{width:60px;height:60px;margin-top:-30px}.bm-arrow.next{right:16px}}
+
+/* ---------- Cy-Phone als Ei-Gerät (Virtual-Pet / Digivice) ---------- */
+.phone.gta{width:280px;height:500px;padding:58px 30px 104px;border-radius:50% 50% 46% 46%/58% 58% 42% 42%;overflow:visible;
+  background:var(--gears) 0 0/120px 120px,radial-gradient(circle at 35% 25%,rgba(255,255,255,.35),transparent 40%),linear-gradient(160deg,#2fb5d9,#00799f 70%);
+  box-shadow:inset 0 6px 0 rgba(255,255,255,.35),inset 0 -10px 0 rgba(0,0,0,.2),0 4px 0 rgba(0,0,0,.2),var(--drop-lg)}
+.phone.gta .ph-loop{position:absolute;top:-14px;left:50%;width:34px;height:34px;margin-left:-17px;border-radius:50%;border:6px solid var(--chrome-mid);box-shadow:inset 0 1px 0 #fff;z-index:-1}
+.phone.gta .ph-scr{border-radius:14px;padding:22px 10px 8px;background:var(--lcd-bg);color:var(--lcd-ink);box-shadow:0 0 0 6px var(--chrome-mid),0 0 0 8px var(--chrome-lo),0 0 0 11px var(--ph-tint,#fff),inset 0 2px 6px rgba(0,0,0,.25)}
+.phone.gta .ph-scr::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(90deg,transparent 0 3px,rgba(0,0,0,.05) 3px 4px),repeating-linear-gradient(180deg,transparent 0 3px,rgba(0,0,0,.05) 3px 4px)}
+.phone.gta .ph-notch{top:6px;color:var(--lcd-ink);opacity:.8}
+.phone.gta .ph-piko{position:absolute;top:5px;right:10px;font:12px/1 var(--system);color:var(--lcd-ink)}
+.phone.gta .ph-bar,.phone.gta .ph-clock{color:var(--lcd-ink);text-shadow:none;font-family:var(--system)}
+.phone.gta .ph-clock b{font-size:34px}
+.phone.gta .app-i{color:var(--lcd-ink);text-shadow:none;font-family:var(--body);font-weight:800}
+.phone.gta .app-i b{width:42px;height:42px;border-radius:12px;box-shadow:var(--gel)}
+.phone.gta .app-i.sel b,.phone.gta .app-i:hover b{box-shadow:0 0 0 3px var(--lcd-ink),var(--gel)}
+.phone.gta .ph-home{background:var(--lcd-ink);opacity:.5}
+.phone.gta .ph-btns{position:absolute;left:0;right:0;bottom:34px;display:flex;justify-content:center;gap:18px}
+.phone.gta .ph-btns button{width:34px;height:34px;border:0;border-radius:50%;cursor:pointer;box-shadow:var(--gel);position:relative;overflow:hidden}
+.phone.gta .ph-btns button::before{content:"";position:absolute;left:6px;right:6px;top:3px;height:40%;border-radius:50%;background:linear-gradient(180deg,rgba(255,255,255,.75),rgba(255,255,255,0))}
+.phone.gta .ph-b1{background:var(--signal)}.phone.gta .ph-b2{background:var(--sun)}.phone.gta .ph-b3{background:var(--pink)}
+.phone.gta .ph-btns button:active{box-shadow:var(--well);transform:translateY(2px)}
+@media (max-height:640px){.phone.gta{height:440px;padding:46px 26px 90px}}
+
+/* ---------- Piko: Begleiter-Ei, lugt am linken Rand hervor ---------- */
+.piko{position:absolute;left:0;top:56%;z-index:8;width:96px;height:122px;padding:0;border:0;background:none;cursor:pointer;
+  transform:translateX(-56%) rotate(24deg);transform-origin:20% 90%;transition:transform .45s cubic-bezier(.34,1.56,.64,1)}
+.piko:hover,.piko:focus-visible,.piko.out,.piko.peekout{transform:translateX(16px) rotate(-6deg)}
+.piko.hop{transform:translateX(30px) translateY(-14px) rotate(-10deg) scale(1.08)}
+.piko:focus-visible{outline:none}.piko:focus-visible .egg{box-shadow:0 0 0 4px var(--focus),inset 0 5px 0 rgba(255,255,255,.4),inset 0 -8px 0 rgba(0,0,0,.2)}
+.piko .egg{position:absolute;inset:0;border-radius:50% 50% 50% 50%/60% 60% 40% 40%;overflow:hidden;
+  background:var(--gears) 0 0/70px 70px,radial-gradient(circle at 32% 24%,rgba(255,255,255,.55),transparent 34%),linear-gradient(160deg,#5fd0ee,#00799f 75%);
+  box-shadow:inset 0 5px 0 rgba(255,255,255,.4),inset 0 -8px 0 rgba(0,0,0,.2),0 6px 14px rgba(43,35,64,.3);animation:pikoBob 3.2s ease-in-out infinite}
+.piko .loop{position:absolute;top:2px;left:50%;width:16px;height:16px;margin-left:-8px;border-radius:50%;border:4px solid var(--chrome-mid)}
+.piko .gear{position:absolute;left:50%;top:58%;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;opacity:.55;
+  background:radial-gradient(circle,#fff 0 22%,transparent 23%),repeating-conic-gradient(#e6ecf5 0 15deg,transparent 15deg 30deg);animation:pikoGear 6s linear infinite}
+.piko .scr{position:absolute;left:18px;right:18px;top:30px;height:38px;border-radius:9px/8px;background:var(--lcd-bg);box-shadow:0 0 0 3px var(--chrome-mid),inset 0 1px 3px rgba(0,0,0,.25);display:grid;place-items:center;overflow:hidden}
+.piko .face{font:15px/1 var(--system);color:var(--lcd-ink);white-space:nowrap}
+.piko .btns{position:absolute;left:0;right:0;bottom:16px;display:flex;justify-content:center;gap:7px}
+.piko .btns i{width:12px;height:12px;border-radius:50%;background:var(--signal);box-shadow:var(--gel)}.piko .btns i:nth-child(2){background:var(--sun)}.piko .btns i:nth-child(3){background:var(--pink)}
+.piko .shine{position:absolute;left:16px;top:12px;width:22px;height:12px;border-radius:50%;background:rgba(255,255,255,.55);transform:rotate(-30deg)}
+.piko.want::after{content:"!";position:absolute;right:-4px;top:-6px;width:26px;height:26px;border-radius:50%;background:var(--pink);color:#fff;font:800 17px/26px var(--body);border:3px solid #fff;box-shadow:var(--gel);animation:pikoPop 1s ease-in-out infinite}
+.piko.rumble .egg{animation:pikoRumble .55s linear 1,pikoBob 3.2s ease-in-out infinite}
+.piko .bub{position:absolute;left:104px;top:18px;width:max-content;max-width:220px;background:#fff;color:var(--ink);font:700 13px/1.35 var(--body);padding:8px 12px;border-radius:14px;box-shadow:var(--gel),var(--shadow);text-align:left;transform:rotate(6deg)}
+.piko .bub::before{content:"";position:absolute;left:-7px;top:16px;border:7px solid transparent;border-left:0;border-right-color:#fff}
+@keyframes pikoBob{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-6px) rotate(-3deg)}}
+@keyframes pikoGear{to{transform:rotate(360deg)}}
+@keyframes pikoRumble{0%,100%{transform:translateX(0) rotate(0)}10%{transform:translateX(-4px) rotate(-7deg)}20%{transform:translateX(4px) rotate(7deg)}30%{transform:translateX(-4px) rotate(-6deg)}40%{transform:translateX(4px) rotate(6deg)}50%{transform:translateX(-3px) rotate(-4deg)}60%{transform:translateX(3px) rotate(4deg)}70%{transform:translateX(-2px)}80%{transform:translateX(2px)}}
+@keyframes pikoPop{0%,100%{transform:scale(1)}50%{transform:scale(1.18) rotate(8deg)}}
+body.beamer-on .piko{display:none}
+@media (prefers-reduced-motion:reduce){.piko .egg,.piko .gear,.piko.want::after{animation:none!important}.piko{transition:none}}
+.phone.gta .ph-note{margin:6px auto 0;max-width:94%;font:12px/1.3 var(--system);background:rgba(29,43,11,.08);border-radius:6px;padding:4px 6px;text-align:left}
+.phone.gta .ph-note b{font-weight:400;background:var(--lcd-ink);color:var(--lcd-bg);padding:0 4px;border-radius:3px;margin-right:2px}
+
+/* ---------- Ei-Gerät: echte Eiform, kleiner Bildschirm in der Schale ---------- */
+.phone.gta{width:300px;height:400px;max-height:none;padding:0;border-radius:50% 50% 50% 50%/62% 62% 38% 38%;bottom:20px}
+.phone.gta .ph-scr{position:absolute;left:56px;right:56px;top:74px;height:210px;border-radius:22px/18px;padding:20px 8px 6px}
+.phone.gta .ph-clock{margin:0 0 6px}.phone.gta .ph-clock b{font-size:24px}.phone.gta .ph-clock span{font-size:11px}
+.phone.gta .apps{gap:6px 2px}.phone.gta .app-i b{width:34px;height:34px;border-radius:10px}.phone.gta .app-i b .ico{width:18px;height:18px}.phone.gta .app-i span{font-size:9px;max-width:56px}
+.phone.gta .ph-home{display:none}
+.phone.gta .ph-btns{bottom:46px;gap:22px}
+.phone.gta .ph-btns button{width:38px;height:38px}
+.phone.gta .ph-bar{font-size:9px;margin-bottom:4px}
+.phone.gta::after{content:"サイフォン";position:absolute;left:0;right:0;bottom:22px;text-align:center;font:400 10px var(--label);letter-spacing:3px;color:rgba(255,255,255,.85)}
+.phone.gta .ph-notch{display:none}
+@media (max-height:640px){.phone.gta{height:340px;width:256px}.phone.gta .ph-scr{left:46px;right:46px;top:62px;height:170px}.phone.gta .ph-btns{bottom:36px}}
+.phone.gta .ph-clock .ph-note b{font-size:11px;display:inline;letter-spacing:1px}
+.phone.gta{bottom:84px}
+@media (max-height:640px){.phone.gta{bottom:70px}}
+
+/* ---------- Riss-Szene: alle Bonbonfarben fliessen ab ---------- */
+.riss-scene{position:fixed;inset:0;z-index:95;display:grid;place-items:center;padding:16px;background:rgba(233,231,228,.82);backdrop-filter:grayscale(1) contrast(1.15);-webkit-backdrop-filter:grayscale(1) contrast(1.15);animation:rissIn .12s steps(2) both}
+.riss-scene.out{animation:rissOut .3s steps(3) both}
+.riss-wires{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}.riss-wires path{fill:none;stroke:#141414;stroke-width:2}
+.riss-scene .tear{position:absolute;left:0;right:0;height:7px;background:#141414;opacity:.85}.riss-scene .t1{top:38%}.riss-scene .t2{top:71%;height:3px;background:#c8102e}
+.riss-box{position:relative;max-width:520px;background:#f7f6f4;border:3px solid #141414;padding:22px 26px;font-family:var(--system);color:#141414;text-align:left;display:flex;flex-direction:column;gap:10px}
+.riss-name{margin:0;font:400 13px var(--label);letter-spacing:3px;text-transform:uppercase;color:#c8102e}
+.riss-mem{margin:0;font:400 22px/1.45 var(--system)}.riss-ask{margin:0;font:400 16px var(--system);color:#55524f}
+.riss-box .btn{align-self:flex-end;border-radius:0;box-shadow:none;background:#141414;color:#f7f6f4}.riss-box .btn::before{display:none}
+@keyframes rissIn{0%{transform:translateX(-6px)}50%{transform:translateX(6px)}100%{transform:none}}
+@keyframes rissOut{to{opacity:0}}
+@media (prefers-reduced-motion:reduce){.riss-scene,.riss-scene.out{animation:none}}
+
+/* Spielhalle: Kapsel-Memory */
+.arkade-mem{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-width:420px;margin:0 auto}
+.arkade-mem .card{padding:4px;aspect-ratio:1;display:flex;align-items:center;justify-content:center}
+.arkade-mem .card img{width:100%;height:100%;object-fit:contain}
+.arkade-mem .card:disabled{opacity:1;cursor:default}
+
+/* ---------- Ei-Gerät 2.0: rundes LCD mit Drehring, Piko in der Mitte ---------- */
+.phone.gta.egg2{width:310px;height:420px;padding:0;display:block;border-radius:50% 50% 50% 50%/60% 60% 40% 40%;animation:egOpen .5s cubic-bezier(.34,1.56,.64,1) both;transform-origin:80% 100%}
+.phone.gta.egg2.down{animation:phDown .26s ease-in both}
+@keyframes egOpen{0%{transform:translateY(60px) scale(.6) rotate(8deg);opacity:0}100%{transform:none;opacity:1}}
+.eg-dial{position:absolute;left:50%;top:58px;width:250px;height:250px;margin-left:-125px;border-radius:50%;overflow:hidden;background:radial-gradient(circle at 50% 42%,#d6f59a,var(--lcd-bg) 62%,#b2dd6a);
+  box-shadow:0 0 0 6px var(--chrome-mid),0 0 0 8px var(--chrome-lo),0 0 0 12px var(--ph-tint,#fff),inset 0 3px 10px rgba(0,0,0,.28);animation:egBoot .6s steps(6) .1s both}
+@keyframes egBoot{0%{filter:brightness(.2) contrast(2);clip-path:circle(2% at 50% 50%)}40%{filter:brightness(1.6);clip-path:circle(20% at 50% 50%)}100%{filter:none;clip-path:circle(75% at 50% 50%)}}
+.eg-scan{position:absolute;inset:0;pointer-events:none;border-radius:50%;background:repeating-linear-gradient(0deg,transparent 0 3px,rgba(0,0,0,.05) 3px 4px),radial-gradient(circle at 30% 22%,rgba(255,255,255,.45),transparent 30%)}
+.eg-ring{position:absolute;inset:0;transform:rotate(var(--rot,0deg));transition:transform .38s cubic-bezier(.34,1.4,.64,1)}
+.eg-ic{position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px;padding:0;border:0;background:none;cursor:pointer;
+  transform:rotate(var(--a)) translateY(-100px) rotate(calc(-1 * var(--a) - var(--rot,0deg))) scale(var(--s,1));transition:transform .38s cubic-bezier(.34,1.4,.64,1),opacity .3s;animation:egFly .45s cubic-bezier(.34,1.56,.64,1) both}
+.eg-ring .eg-ic{transform:rotate(var(--a)) translateY(-100px) rotate(calc(-1 * var(--a))) rotate(calc(-1 * var(--rot,0deg))) scale(var(--s,1))}
+@keyframes egFly{0%{opacity:0;translate:0 0;scale:.2}100%{opacity:1;scale:1}}
+.eg-ic b{display:grid;place-items:center;width:100%;height:100%;border-radius:50%;box-shadow:var(--gel),0 0 0 2px rgba(29,43,11,.35)}
+.eg-ic b .ico{width:18px;height:18px}
+.eg-ic.sel b{box-shadow:0 0 0 3px var(--lcd-ink),0 0 0 6px rgba(255,255,255,.6),var(--gel);animation:egSel 1.4s ease-in-out infinite}
+@keyframes egSel{0%,100%{filter:none}50%{filter:brightness(1.15)}}
+.eg-ic.go b{animation:egGo .26s ease-in both}@keyframes egGo{to{transform:scale(1.6);opacity:0}}
+.eg-ic:focus-visible{outline:none}.eg-ic:focus-visible b{box-shadow:0 0 0 3px var(--focus),var(--gel)}
+.eg-mid{position:absolute;left:50%;top:55%;width:150px;margin-left:-75px;transform:translateY(-50%);text-align:center;color:var(--lcd-ink);font-family:var(--system);pointer-events:none}
+.eg-time{font-size:16px;letter-spacing:1px;opacity:.8}
+.eg-info{font-size:10px;opacity:.65;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.eg-app{font:800 12px/1 var(--body);letter-spacing:1px;text-transform:uppercase;margin-top:4px}
+.eg-say{min-height:2.6em;font-size:11px;line-height:1.25;margin-top:4px;padding:0 4px}
+.phone.egg2.note .eg-say{background:rgba(29,43,11,.1);border-radius:8px}
+/* Piko auf dem LCD (Pixel-Figur) */
+.eg-pk{position:relative;width:58px;height:54px;margin:4px auto 0;animation:pkBob 1.6s ease-in-out infinite}
+@keyframes pkBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+.pk-body{position:absolute;left:4px;right:4px;top:6px;bottom:8px;border-radius:50% 50% 46% 46%/58% 58% 42% 42%;background:var(--lcd-ink);transition:transform .25s}
+.pk-ant{position:absolute;left:50%;top:-9px;width:3px;height:9px;margin-left:-1.5px;background:var(--lcd-ink)}
+.pk-ant::after{content:"";position:absolute;left:-3px;top:-5px;width:9px;height:9px;border-radius:50%;background:var(--lcd-ink);animation:pkAnt 1.2s ease-in-out infinite}
+@keyframes pkAnt{50%{transform:translateX(3px)}}
+.pk-eyes{position:absolute;left:0;right:0;top:12px;display:flex;justify-content:center;gap:10px;transition:transform .2s}
+.pk-eyes i{width:9px;height:11px;border-radius:50%;background:var(--lcd-bg);transition:height .08s}
+.eg-pk.blink .pk-eyes i{height:2px;margin-top:5px}
+.pk-mouth{position:absolute;left:50%;top:29px;width:12px;height:5px;margin-left:-6px;border-radius:0 0 8px 8px;background:var(--lcd-bg)}
+.pk-cheek{position:absolute;top:25px;width:6px;height:3px;border-radius:50%;background:rgba(201,242,122,.55)}.pk-cheek.l{left:7px}.pk-cheek.r{right:7px}
+.pk-feet{position:absolute;left:12px;right:12px;bottom:2px;height:7px;background:radial-gradient(circle at 25% 50%,var(--lcd-ink) 0 4px,transparent 5px),radial-gradient(circle at 75% 50%,var(--lcd-ink) 0 4px,transparent 5px)}
+.eg-pk[data-look=l] .pk-eyes{transform:translateX(-5px)}.eg-pk[data-look=r] .pk-eyes{transform:translateX(5px)}
+.eg-pk[data-look=l] .pk-body{transform:rotate(-8deg)}.eg-pk[data-look=r] .pk-body{transform:rotate(8deg)}
+.eg-pk[data-m=talk] .pk-mouth{animation:pkTalk .18s steps(2) infinite}
+@keyframes pkTalk{50%{height:8px;border-radius:50%}}
+.eg-pk[data-m=happy]{animation:pkHop .4s ease-out}.eg-pk[data-m=happy] .pk-eyes i{height:5px;border-radius:6px 6px 0 0}
+@keyframes pkHop{40%{transform:translateY(-12px) scale(1.06)}}
+.eg-pk[data-m=excited]{animation:pkShake .3s linear 3}.eg-pk[data-m=excited] .pk-eyes i{width:11px;height:13px}
+@keyframes pkShake{25%{transform:rotate(-8deg)}75%{transform:rotate(8deg)}}
+/* Knöpfe unter dem Bildschirm, Wegsteck-Taste an der Seite */
+.eg-btns{position:absolute;left:0;right:0;bottom:40px;display:flex;justify-content:center;align-items:center;gap:16px}
+.eg-btns button{width:38px;height:38px;border:0;border-radius:50%;cursor:pointer;box-shadow:var(--gel);position:relative;overflow:hidden}
+.eg-btns .eg-b2{width:48px;height:48px;background:var(--sun)}.eg-btns .eg-b1{background:var(--signal)}.eg-btns .eg-b3{background:var(--pink)}
+.eg-btns button::before{content:"";position:absolute;left:7px;right:7px;top:3px;height:38%;border-radius:50%;background:linear-gradient(180deg,rgba(255,255,255,.75),rgba(255,255,255,0))}
+.eg-btns .eg-b1::after,.eg-btns .eg-b3::after{content:"";position:absolute;left:50%;top:50%;border:6px solid transparent;margin:-6px 0 0 -4px}
+.eg-btns .eg-b1::after{border-right:9px solid rgba(255,255,255,.9);border-left:0;margin-left:-6px}.eg-btns .eg-b3::after{border-left:9px solid rgba(255,255,255,.9);border-right:0}
+.eg-btns button:active{box-shadow:var(--well);transform:translateY(2px)}
+.eg-btns button:focus-visible,.eg-side:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.eg-side{position:absolute;right:-6px;top:46%;width:14px;height:54px;border:0;border-radius:7px;background:linear-gradient(90deg,var(--chrome-lo),var(--chrome-mid));box-shadow:var(--gel);cursor:pointer}
+.eg-side:hover{transform:translateX(2px)}
+.phone.gta.egg2::after{bottom:18px}
+@media (max-height:640px){.phone.gta.egg2{height:360px;width:270px}.eg-dial{top:46px;width:214px;height:214px;margin-left:-107px}.eg-ic{transform:none}
+  .eg-ring .eg-ic{transform:rotate(var(--a)) translateY(-84px) rotate(calc(-1 * var(--a))) rotate(calc(-1 * var(--rot,0deg))) scale(calc(var(--s,1) * .88))}.eg-btns{bottom:30px}}
+@media (prefers-reduced-motion:reduce){.phone.gta.egg2,.eg-dial,.eg-ic,.eg-pk,.pk-ant::after{animation:none!important}.eg-ring,.eg-ic{transition:none}}
+
+/* ---------- Piko wohnt jetzt am rechten Rand (dort, wo sich das Ei-Gerät öffnet) ---------- */
+.piko{left:auto;right:0;top:40%;transform:translateX(56%) rotate(-24deg);transform-origin:80% 90%}
+.piko:hover,.piko:focus-visible,.piko.out,.piko.peekout{transform:translateX(-16px) rotate(6deg)}
+.piko.hop{transform:translateX(-30px) translateY(-14px) rotate(10deg) scale(1.08)}
+.piko.want::after{right:auto;left:-4px}
+.piko .bub{left:auto;right:104px;transform:rotate(-6deg);text-align:left}
+.piko .bub::before{left:auto;right:-7px;border-right:0;border-left:7px solid #fff;border-left-color:#fff;border-right-color:transparent}
+/* ---------- UI-Prüfung: Überlauf, Klickflächen, schmale Bildschirme ---------- */
+#world{overflow:clip}
+.wstart .shell,.wmenu .shell{box-sizing:border-box}
+.tile .t{overflow-wrap:anywhere;hyphens:auto}
+.seg button{flex:1 1 auto}
+.eg-ic::after{content:"";position:absolute;inset:-5px;border-radius:50%}
+.eg-side::after{content:"";position:absolute;inset:-6px -10px}
+.logo{white-space:nowrap}
+@media (max-width:600px){
+  .wstart .shell{padding:24px 14px 20px}
+  .wstart .big{min-width:0;width:100%;max-width:260px}
+  .wstart .langs button,.win .langs button{min-height:36px;padding:6px 14px}
+  .filters button{min-height:32px;padding:4px 12px}
+  .logo .jp{display:none}
+  .clock span{display:block;max-width:44vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .piko .bub{max-width:min(200px,58vw)}
+  .toast{top:auto;bottom:150px}
+}
