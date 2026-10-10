@@ -531,10 +531,11 @@ const GAME=(()=>{
   const ray=new THREE.Raycaster();
   function tap(e){const r=canvas.getBoundingClientRect();const m=new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height)*2+1);ray.setFromCamera(m,cam);
     if(mode==='interior'){INTERIOR.tap(ray,e);return}if(!me||UI.anyOpen())return;
-    const hits=ray.intersectObjects([...ents.values()].filter(x=>x!==me).map(x=>x.g),true);if(hits.length){let o=hits[0].object;while(o&&!o.userData.wid)o=o.parent;const en=o&&ents.get(o.userData.wid);if(en){if(angle(en.p,me.p)*G_.R<3){promptTarget={kind:'talk',ent:en};doAction()}else tapTarget={p:en.p.clone(),then:()=>{promptTarget={kind:'talk',ent:en};doAction()}};return}}
+    const hits=ray.intersectObjects([...ents.values()].filter(x=>x!==me).map(x=>x.g),true);if(hits.length){let o=hits[0].object;while(o&&!o.userData.wid)o=o.parent;const en=o&&ents.get(o.userData.wid);if(en){if(angle(en.p,me.p)*G_.R<3.5){promptTarget={kind:'talk',ent:en};doAction()}else farHint();return}}
     const bh=ray.intersectObjects(G_.places.filter(p=>p.obj).map(p=>p.obj),true).find(h=>h.object.userData.place);
-    if(bh){const pl=bh.object.userData.place;const it=G_.inter.find(i=>i.place===pl||(pl.doorP&&i.p===pl.doorP));if(it){tapTarget={p:it.p.clone(),then:()=>{promptTarget=it;doAction()}};SND.play('select',{vol:.3});return}}
-    const ph=G_.lod?ray.intersectObjects(G_.planet.children.filter(m=>m.visible),false):ray.intersectObject(G_.planet,false);if(ph.length){const p=ph[0].point.clone().normalize();tapTarget={p};SND.play('select',{vol:.3})}}
+    if(bh){const pl=bh.object.userData.place;const it=G_.inter.find(i=>i.place===pl||(pl.doorP&&i.p===pl.doorP));if(it){if(angle(it.p,me.p)*G_.R<(it.r||1.8)+1.5){promptTarget=it;doAction()}else farHint();return}}
+    /* Klick auf den Boden: kein Hinlaufen mehr. Gelaufen wird nur mit WASD, Pfeiltasten oder Joystick, so kommt sich nichts in die Quere. */}
+  let farT=0;function farHint(){const n=performance.now();if(n-farT<2500)return;farT=n;UI.toast(document.body.classList.contains('coarse')?'Geh mit dem Joystick näher heran.':'Geh mit WASD oder den Pfeiltasten näher heran.',1800)}
   /* Joystick */
   {const joy=$('joy'),knob=joy.firstElementChild;let id=null,c0=null;joy.addEventListener('pointerdown',e=>{id=e.pointerId;joy.setPointerCapture(id);const r=joy.getBoundingClientRect();c0={x:r.left+r.width/2,y:r.top+r.height/2};input.joy={x:0,y:0};mv(e);SND.init()});
    const mv=e=>{if(e.pointerId!==id)return;let dx=e.clientX-c0.x,dy=e.clientY-c0.y;const L=Math.hypot(dx,dy),max=48;if(L>max){dx*=max/L;dy*=max/L}knob.style.transform=`translate(${dx}px,${dy}px)`;input.joy={x:dx/max,y:-dy/max}};

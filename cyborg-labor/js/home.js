@@ -128,9 +128,9 @@ const INTERIOR=(()=>{
     let ix=(keys['d']||keys['arrowright']?1:0)-(keys['a']||keys['arrowleft']?1:0),iy=(keys['w']||keys['arrowup']?1:0)-(keys['s']||keys['arrowdown']?1:0);
     const J=GAME._joy&&GAME._joy();if(J){ix=J.x;iy=J.y}if(busy||deco&&false){ix=0;iy=0}
     if(keys['q'])camYaw=Math.min(.7,camYaw+dt);if(keys['c'])camYaw=Math.max(-.7,camYaw-dt);
-    const mag=Math.min(1,Math.hypot(ix,iy));let sp=0;if(tapTo&&mag<.1){const dx=tapTo.x-me.ix,dz=tapTo.z-me.iz;const L=Math.hypot(dx,dz);if(L<.25){const f=tapTo.then;tapTo=null;f&&f()}else{ix=dx/L;iy=-dz/L}}
+    const mag=Math.min(1,Math.hypot(ix,iy));let sp=0;if(tapTo&&mag>.1)tapTo=null;if(tapTo&&mag<.1){const dx=tapTo.x-me.ix,dz=tapTo.z-me.iz;const L=Math.hypot(dx,dz);if(L<.25){const f=tapTo.then;tapTo=null;f&&f()}else{ix=dx/L;iy=-dz/L}}
     if(Math.hypot(ix,iy)>.1){const c=Math.cos(camYaw),s=Math.sin(camYaw);const mx=ix*c-(-iy)*s,mz=ix*s+(-iy)*c;const L=Math.hypot(mx,mz);const run=keys['shift'];sp=(run?4.6:2.8)*Math.min(1,Math.hypot(ix,iy));
-      const nx=me.ix+mx/L*sp*dt,nz=me.iz+mz/L*sp*dt;if(!blocked(nx,me.iz))me.ix=nx;if(!blocked(me.ix,nz))me.iz=nz;me.iyaw=Math.atan2(mx,mz);tapTo&&(Math.hypot(ix,iy)>.1&&!tapTo)&&0;
+      const nx=me.ix+mx/L*sp*dt,nz=me.iz+mz/L*sp*dt;if(!blocked(nx,me.iz))me.ix=nx;if(!blocked(me.ix,nz))me.iz=nz;me.iyaw=Math.atan2(mx,mz);
       if(!me.move.alt){stepT-=dt*sp*.6;if(stepT<=0){stepT=1;SND.play({station:'step_concrete',tunnel:'step_concrete',glitchkern:'step_concrete',shop:'step_concrete',museum:'step_carpet',boutique:'step_carpet',klinik:'step_carpet',rathaus:'step_carpet',casino:'step_carpet'}[kind]||'step_wood',{vol:.3,jitter:.15})}}}
     me.speed=sp;if(sp>0&&me.emote){me.emote=null;me.emoteT=0;me.dance=0}
     if(me.iz>room.D/2-.45&&iy<-.1&&!deco){/* Nebenräume (Aquarium, Insektenhäuser): zurück in den Raum davor */const bk=kinds[kind]&&kinds[kind].back&&kinds[kind].back();if(bk&&kinds[bk]){me.iz=room.D/2-1.2;enter(bk)}else exit()}
@@ -149,7 +149,8 @@ const INTERIOR=(()=>{
   /* ---------- Tippen ---------- */
   const floorPlane=new THREE.Plane(new V3(0,1,0),0);
   function tap(ray){if(!room)return;const p=new V3();if(!ray.ray.intersectPlane(floorPlane,p))return;if(deco){hoverCell=cellAt(p);if(decoSel)placeAtHover();else pickupAt(p);return}
-    /* Möbel/Aktion antippen */for(const a of actions){if(Math.hypot(a.x-p.x,a.z-p.z)<.9){tapTo={x:a.x,z:a.z+(a.z<0?.9:-.9),then:()=>a.act()};return}}tapTo={x:Math.max(-room.W/2+.5,Math.min(room.W/2-.5,p.x)),z:Math.max(-room.D/2+.5,Math.min(room.D/2-.4,p.z))}}
+    /* Möbel/Aktion antippen: nur in Reichweite, sonst ein Hinweis. Kein Hinlaufen per Klick, gelaufen wird mit WASD/Joystick. */
+    for(const a of actions){if(Math.hypot(a.x-p.x,a.z-p.z)<.9){if(GAME.me&&Math.hypot(a.x-GAME.me.ix,a.z-GAME.me.iz)<(a.r||1.2)+1.2)a.act();else{const n=performance.now();if(n-(tap.t||0)>2500){tap.t=n;UI.toast(document.body.classList.contains('coarse')?'Geh mit dem Joystick näher heran.':'Geh mit WASD oder den Pfeiltasten näher heran.',1800)}}return}}}
   function pointer(e){if(!deco||!room)return;const r=$('worldCanvas').getBoundingClientRect();const m=new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height)*2+1);const ray=new THREE.Raycaster();ray.setFromCamera(m,cam);const p=new V3();if(ray.ray.intersectPlane(floorPlane,p))hoverCell=cellAt(p)}
   $('worldCanvas').addEventListener('pointermove',e=>{if(GAME.mode==='interior'&&deco)pointer(e)});
   function cellAt(p){return{x:Math.round(p.x-.5)+.5,z:Math.round(p.z-.5)+.5,raw:p}}

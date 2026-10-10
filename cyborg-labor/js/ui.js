@@ -67,7 +67,8 @@ UI.win=function(title,o){o=o||{};const veil=el('div','veil');const w=el('div','w
   const api={veil,win:w,body:b,foot:f,title:t,closed:false,close(){if(api.closed)return;api.closed=true;if(typeof MOTION!=='undefined')MOTION.out(veil,'m-out',170);else veil.remove();openWins.splice(openWins.indexOf(api),1);SND.play('close',{vol:.6});o.onClose&&o.onClose()}};
   x.onclick=()=>api.close();veil.addEventListener('pointerdown',e=>{if(e.target===veil&&o.dismiss!==false)api.close()});openWins.push(api);SND.play('open',{vol:.6});
   if(o.foot===false)f.remove();return api};
-UI.anyOpen=()=>openWins.length>0||!$('talk').hidden;
+/* nur Fenster, die wirklich noch auf dem Bildschirm sind, sperren die Steuerung (verwaiste Einträge räumen sich weg) */
+UI.anyOpen=()=>{for(let i=openWins.length-1;i>=0;i--){const v=openWins[i].veil;if(!v||!v.isConnected)openWins.splice(i,1)}const t=$('talk');return openWins.length>0||(!!t&&!t.hidden&&t.isConnected)};
 UI.closeTop=()=>{const w=openWins[openWins.length-1];if(w){w.close();return true}return false};
 
 /* ---------- Dialog im Tierdorf-Stil ---------- */

@@ -27,7 +27,8 @@ const START=(()=>{
     sh.append(s1,s2,lcd,h,tag,row,note,langRow());root.append(sh);document.body.append(root);
     I18N.on(()=>{tag.textContent=t('Gute Nacht. Schlaf gut.');play.firstChild.textContent=t('Spielen');play.lastChild.textContent=t('Für Schüler:innen');beam.firstChild.textContent=t('Beamer-Ansicht');beam.lastChild.textContent=t('Für die Lehrperson');note.textContent=t('Nur ansehen. Keine Figur, kein Einfluss auf das Spiel.')});
     const close=()=>{root.remove();removeEventListener('keydown',kd,true)};
-    play.onclick=()=>{SND.init();SND.play('confirm');close();MAIN.setTab('world')};
+    /* Neue Spieler:innen beginnen im Cyborg-Labor; wer schon einen Cyborg hat, kommt direkt in die Welt */
+    play.onclick=()=>{SND.init();SND.play('confirm');close();if(typeof STORY!=='undefined'&&STORY.needsIntro()&&!(SAVE.story&&SAVE.story.lab)){MAIN.setTab('lab');labWelcome()}else MAIN.setTab('world')};
     beam.onclick=()=>{SND.init();SND.play('confirm');close();beamer()};
     const kd=e=>{if(e.key==='Enter'&&document.activeElement===document.body){e.preventDefault();play.click()}};addEventListener('keydown',kd,true);
     setTimeout(()=>play.focus(),50)}
@@ -55,5 +56,13 @@ const START=(()=>{
   function bye(){const root=el('div','wstart');const sh=el('div','shell');['s1','s2','s3','s4'].forEach(c=>sh.append(el('i','cw-screw '+c)));
     const jp=el('span','cw-sticker pink stk a','またね');jp.setAttribute('data-no-i18n','');
     sh.append(jp,el('p','bye',t('Bis bald!')),el('p','tag',t('Gespeichert')+'. '+t('Du kannst dieses Fenster jetzt schliessen.')),btn(t('Zurück zum Start'),'primary big',()=>location.reload()));root.append(sh);document.body.append(root);SND.music&&SND.music(null)}
+  /* Willkommen im Labor beim allerersten Start */
+  function labWelcome(){const S=SAVE.story=SAVE.story||{};S.lab=true;persist();
+    const fin=document.getElementById('btnPlay');if(fin)fin.textContent=typeof I18N!=='undefined'?I18N.t('Fertig – los geht’s!'):'Fertig – los geht’s!';
+    const w=UI.win('Willkommen im Cyborg-Labor',{size:'narrow'});
+    w.body.append(el('p',null,'Hier baust du deinen Cyborg: Kopf, Augen, Arme, Beine und Extras. Probier alles aus, du kannst es später jederzeit ändern.'),
+      el('p',null,'Wenn dein Cyborg fertig ist, klick unten auf «Fertig». Dann wachst du auf dem Kompost-Planeten auf.'));
+    w.foot.append(btn('Los, bauen!','primary',()=>w.close()))}
+  try{if(typeof I18N!=='undefined'&&I18N.extend)I18N.extend('en',{"Willkommen im Cyborg-Labor": "Welcome to the Cyborg Lab", "Hier baust du deinen Cyborg: Kopf, Augen, Arme, Beine und Extras. Probier alles aus, du kannst es später jederzeit ändern.": "This is where you build your cyborg: head, eyes, arms, legs and extras. Try everything out, you can change it any time later.", "Wenn dein Cyborg fertig ist, klick unten auf «Fertig». Dann wachst du auf dem Kompost-Planeten auf.": "When your cyborg is ready, click “Done” below. Then you wake up on the Compost Planet.", "Los, bauen!": "Let’s build!", "Fertig – los geht’s!": "Done – let’s go!", "Dein neuer Körper steht dir gut! Wenn dir später ein Teil nicht gefällt: Der Spiegel dort drüben bringt dich zurück ins Labor.": "Your new body suits you! If you don’t like a part later on: the mirror over there takes you back to the lab."})}catch(e){}
   return{show,menu,closeMenu,get menuOpen(){return!!menuEl}};
 })();

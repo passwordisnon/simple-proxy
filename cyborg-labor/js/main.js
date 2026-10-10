@@ -6,11 +6,15 @@ const MAIN=(()=>{
   /* Touch oder schmal: Symbole im Ei nicht zu klein werden lassen */
   const TOUCHY=matchMedia('(pointer:coarse),(max-width:600px)').matches;
   let tab='lab';let worldReady=false;
-  if(matchMedia('(pointer:coarse)').matches)document.body.classList.add('coarse');
+  /* Touch-Steuerung (Joystick, A-Knopf): auf jedem Gerät mit Touchscreen, auch iPad mit Tastatur oder Trackpad,
+     und spätestens beim ersten Antippen */
+  const touchy=()=>matchMedia('(pointer:coarse)').matches||matchMedia('(any-pointer:coarse)').matches||(navigator.maxTouchPoints||0)>0;
+  if(touchy())document.body.classList.add('coarse');
+  addEventListener('touchstart',()=>{if(!document.body.classList.contains('coarse')){document.body.classList.add('coarse');try{GAME.resize()}catch(e){}}},{passive:true,capture:true});
   async function setTab(t,opt){opt=opt||{};tab=t;const w=t==='world';document.body.classList.toggle('mode-world',w);$('lab').hidden=w;$('world').hidden=!w;$('tabLab').setAttribute('aria-selected',!w);$('tabWorld').setAttribute('aria-selected',w);SND.init();
     if(w){if(!worldReady){worldReady=true;$('loading').style.opacity='1';$('loading').hidden=false;$('loading').querySelector('span').textContent='Der Planet wird gebaut …';await new Promise(r=>setTimeout(r,60));await GAME.init();SOCIAL.connect();$('loading').style.opacity='0';setTimeout(()=>$('loading').hidden=true,500);if(opt.viewer){/* Beamer: keine Geschichte, kein Tutorial, kein Name */}else if(STORY.needsIntro())STORY.intro().then(()=>{TUT.startWorld();WSTORY.hatch()});else{if(!SAVE.nick)askNick();TUT.startWorld();WSTORY.hatch()}}
       GAME.resize();INTERIOR.resize();SND.music(GAME.mode==='interior'?(INTERIOR.kind==='museum'?'museum':'home'):GAME.G.def.music)}else{LAB.resize();SND.music('lab')}}
-  $('tabLab').onclick=()=>setTab('lab');$('tabWorld').onclick=()=>setTab('world');$('btnPlay').onclick=()=>{SND.play('confirm');setTab('world')};
+  $('tabLab').onclick=()=>setTab('lab');$('tabWorld').onclick=()=>setTab('world');$('btnPlay').onclick=()=>{SND.play('confirm');$('btnPlay').textContent=typeof I18N!=='undefined'?I18N.t('Fertig – zurück zu Dr. Bolzen'):'Fertig – zurück zu Dr. Bolzen';setTab('world')};
   function askNick(){const w=UI.win('Willkommen auf dem Kompost-Planeten!',{size:'narrow',dismiss:false});w.body.append(el('p',null,'Wie sollen dich die anderen nennen? Der Name steht über deinem Cyborg und im Chat.'));
     const i=el('input');i.type='text';i.id='nickIn';i.maxLength=24;i.value=S.name||'';i.placeholder='z. B. Moos-Mo';w.body.append(i);
     const go=()=>{SAVE.nick=i.value.trim().slice(0,24)||'Gast';persist();w.close();GAME.onAvatarChanged();UI.toast('Hallo '+SAVE.nick+'!');SND.jingle('j_success')};i.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter')go()});w.foot.append(btn('Los geht\'s','primary',go));setTimeout(()=>i.focus(),50)}
