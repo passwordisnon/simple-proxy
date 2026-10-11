@@ -70,7 +70,7 @@ const bb=new THREE.Box3().setFromObject(g);const hh=Math.max(.2,bb.max.y-bb.min.
     if(typeof LOOK!=='undefined'&&LOOK.enabled)LOOK.render(R,scene,cam,{fogAmt:0,ao:HIGH?.7:.55,ink:.8,tilt:0,bloom:HIGH,bloomStr:.22,vig:.45,shadowTint:'#C4BCFF',lightTint:'#FFF1DC',sat:1.03});else if(HIGH)comp.render();else R.render(scene,cam)}
   function resize(){sizeView(R,cam,comp,$('labStage'))}
   function quality(){R.shadowMap.enabled=HIGH;resize();rebuild()}
-  return{rebuild,frame,resize,demoReset,renderAbil,quality,R,get act(){return act},set act(v){act=v}};
+  return{rebuild,frame,resize,demoReset,renderAbil,quality,R,scene,get act(){return act},set act(v){act=v}};
 })();
 
 /* ---------- Panel ---------- */

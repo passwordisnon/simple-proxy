@@ -122,7 +122,10 @@ const INTERIOR=(()=>{
       /* Blickrichtung nie ungültig lassen (sonst dreht sich die Figur draussen nicht mehr) */GAME.fixDir&&GAME.fixDir(me);me.lookAt=null;me.stop=0;me.dance=0;GAME.mode='outdoor';kind=null;if(decoUI){decoUI.remove();decoUI=null}deco=false;SND.play('door_close');SND.music(GAME.G.def.music)})}
   function disposeScene(){if(!scene)return;scene.traverse(o=>{if(o.geometry&&!o.userData.keepGeo&&o!==GAME.me.g)o.geometry.dispose()});scene=null}
   /* ---------- Bewegung ---------- */
-  const keys={};addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true});addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false});
+  const keys={};const clearKeys=()=>{for(const k in keys)keys[k]=false};
+  /* gleiche Regeln wie draussen: nicht beim Tippen in Feldern, keine hängenden Tasten nach Fensterwechsel oder Cmd-Kürzeln */
+  addEventListener('keydown',e=>{const t=e.target&&e.target.tagName;if(t==='INPUT'||t==='TEXTAREA'||t==='SELECT')return;if(e.metaKey||e.ctrlKey||e.altKey)return;keys[e.key.toLowerCase()]=true});
+  addEventListener('keyup',e=>{const k=e.key.toLowerCase();keys[k]=false;if(k==='meta'||k==='control'||k==='alt')clearKeys()});addEventListener('blur',clearKeys);document.addEventListener('visibilitychange',()=>{if(document.hidden)clearKeys()});
   function blocked(x,z){if(!room)return false;const r=.35;if(x<-room.W/2+r||x>room.W/2-r||z<-room.D/2+r||z>room.D/2-.3)return true;for(const c of colliders){if(x>c.x0-r&&x<c.x1+r&&z>c.z0-r&&z<c.z1+r)return true}return false}
   function frame(dt,t){const me=GAME.me;if(!me||!room)return;const busy=UI.anyOpen();
     let ix=(keys['d']||keys['arrowright']?1:0)-(keys['a']||keys['arrowleft']?1:0),iy=(keys['w']||keys['arrowup']?1:0)-(keys['s']||keys['arrowdown']?1:0);

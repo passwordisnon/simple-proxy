@@ -71,17 +71,19 @@ void main(){vec3 c=texture2D(tColor,vUv).rgb;
     const a=new THREE.WebGLRenderTarget(w,h,{type:THREE.HalfFloatType}),b=new THREE.WebGLRenderTarget(w,h,{type:THREE.HalfFloatType});
     const bloom=typeof THREE.UnrealBloomPass==='function'?new THREE.UnrealBloomPass(new THREE.Vector2(w/2,h/2),.28,.45,.92):null;
     const ao=new THREE.WebGLRenderTarget(Math.max(2,w>>1),Math.max(2,h>>1),{type:THREE.HalfFloatType});T=P[R.id]={w,h,scene,a,b,bloom,ao};return T}
-  let enabled=!(typeof PERF!=='undefined'&&PERF.spar);const t0=performance.now();
+  let enabled=true;let white=null;const t0=performance.now();
   /* opts: {fog:Color, near, far, tilt, bloom} – je Szene anpassbar */
   function render(R,scene,cam,o){o=o||{};const sz=R.getDrawingBufferSize(new THREE.Vector2());const w=Math.max(4,sz.x|0),h=Math.max(4,sz.y|0);const T=targets(R,w,h);const t=(performance.now()-t0)/1000;
     R.setRenderTarget(T.scene);R.clear();R.render(scene,cam);
     const U=gradeMat.uniforms;U.tColor.value=T.scene.texture;U.tDepth.value=T.scene.depthTexture;U.res.value.set(w,h);U.near.value=cam.near;U.far.value=cam.far;U.time.value=t%10;
     if(o.fog)U.fogCol.value.copy(o.fog);U.fogNear.value=o.fogNear??60;U.fogFar.value=o.fogFar??220;U.fogAmt.value=o.fogAmt??.5;U.aoStr.value=o.ao??.6;U.inkStr.value=o.ink??.85;U.inkPx.value=Math.max(1,1.3*(w/Math.max(1,R.domElement.clientWidth||w)));
     if(o.shadowTint){U.shadowTint.value.set(o.shadowTint);U.lightTint.value.set(o.lightTint||'#FFF1DC');U.sat.value=o.sat??1.04}else if(o.night!=null){const n=o.night;U.shadowTint.value.set('#C8C0FF').lerp(new THREE.Color('#8FA0FF'),n);U.lightTint.value.set('#FFF1DC').lerp(new THREE.Color('#FFE2B8'),n);U.sat.value=1.02-n*.12}
-    const A=aoMat.uniforms;A.tDepth.value=T.scene.depthTexture;A.res.value.set(w>>1,h>>1);A.near.value=cam.near;A.far.value=cam.far;quad.material=aoMat;R.setRenderTarget(T.ao);R.render(qScene,qCam);U.tAO.value=T.ao.texture;
+    /* Sparsam (alte Computer): ohne Umgebungsverdeckung und Leuchten, nur Farbstimmung und Konturen */const lite=o.lite||(typeof PERF!=='undefined'&&PERF.spar);
+    if(lite){if(!white){white=new THREE.DataTexture(new Uint8Array([255,255,255,255]),1,1);white.needsUpdate=true}U.tAO.value=white;U.aoStr.value=0}
+    else{const A=aoMat.uniforms;A.tDepth.value=T.scene.depthTexture;A.res.value.set(w>>1,h>>1);A.near.value=cam.near;A.far.value=cam.far;quad.material=aoMat;R.setRenderTarget(T.ao);R.render(qScene,qCam);U.tAO.value=T.ao.texture}
     quad.material=gradeMat;R.setRenderTarget(T.a);R.render(qScene,qCam);
-    if(T.bloom&&o.bloom!==false){T.bloom.strength=o.bloomStr??.28;T.bloom.renderToScreen=false;T.bloom.render(R,null,T.a,0,false)}
-    const F=finalMat.uniforms;F.tColor.value=T.a.texture;F.res.value.set(w,h);F.tilt.value=o.tilt??1;F.vig.value=o.vig??.55;F.time.value=t;
+    if(T.bloom&&o.bloom!==false&&!lite){T.bloom.strength=o.bloomStr??.28;T.bloom.renderToScreen=false;T.bloom.render(R,null,T.a,0,false)}
+    const F=finalMat.uniforms;F.tColor.value=T.a.texture;F.res.value.set(w,h);F.tilt.value=lite?0:(o.tilt??1);F.vig.value=o.vig??.55;F.time.value=t;
     quad.material=finalMat;R.setRenderTarget(null);R.render(qScene,qCam)}
   return{render,get enabled(){return enabled},set enabled(v){enabled=!!v},gradeMat,finalMat}
 })();

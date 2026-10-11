@@ -77,7 +77,18 @@ const pick=a=>a[Math.floor(Math.random()*a.length)];
 
 /* ---------- Canvas-Texturen ---------- */
 const TEXC={};
-function ctex(key,w,h,draw){if(TEXC[key])return TEXC[key];const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.anisotropy=4;TEXC[key]=t;CTEXREG.push({c,w,h,draw,t});return t}
+/* Zeichen-Funktionen bleiben gemerkt (Neuzeichnen bei Sprachwechsel). Wichtig gegen Speicherlecks: eine solche Funktion hält
+   alles fest, was sie umgibt (oft eine ganze Planeten-Szene). Darum ersetzt jeder neue Aufruf die alte Funktion, und beim
+   Planetenwechsel fliegen Texturen raus, die nur der alte Planet brauchte (ctexPurge). */
+let CTEXGEN=0;const CTEXBY={};
+function ctex(key,w,h,draw){if(TEXC[key]){const r=CTEXBY[key];if(r){r.draw=draw;r.gen=CTEXGEN}return TEXC[key]}const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.anisotropy=4;TEXC[key]=t;const r={c,w,h,draw,t,key,gen:CTEXGEN};CTEXREG.push(r);CTEXBY[key]=r;return t}
+function ctexNewGen(){CTEXGEN++}
+/* nach dem Aufbau eines neuen Planeten: Einträge älterer Planeten entfernen; Texturen freigeben, die keine lebende Szene mehr nutzt */
+function ctexPurge(liveScenes){const old=CTEXREG.filter(r=>r.gen>0&&r.gen<CTEXGEN);if(!old.length)return 0;const used=new Set();
+  for(const sc of liveScenes||[])if(sc)sc.traverse(o=>{const ms=o.material?(Array.isArray(o.material)?o.material:[o.material]):[];for(const m of ms)for(const k in m){const v=m[k];if(v&&v.isTexture)used.add(v)}if(m_u(o))for(const u of Object.values(o.material.uniforms||{}))if(u&&u.value&&u.value.isTexture)used.add(u.value)});
+  for(const r of old){const i=CTEXREG.indexOf(r);if(i>=0)CTEXREG.splice(i,1);if(CTEXBY[r.key]===r)delete CTEXBY[r.key];if(TEXC[r.key]===r.t)delete TEXC[r.key];if(!used.has(r.t))try{r.t.dispose()}catch(e){}r.draw=null}
+  return old.length}
+const m_u=o=>o.material&&!Array.isArray(o.material)&&o.material.uniforms;
 /* Schilder und Etiketten nach einem Sprachwechsel neu zeichnen (der Text geht dabei durch I18N.t) */
 const CTEXREG=[];function ctexRedraw(){for(const r of CTEXREG){const x=r.c.getContext('2d');x.save();x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,r.w,r.h);x.restore();try{r.draw(x,r.w,r.h)}catch(e){}r.t.needsUpdate=true}}
 addEventListener('DOMContentLoaded',()=>{if(typeof I18N!=='undefined')I18N.on(()=>ctexRedraw())});
@@ -386,7 +397,7 @@ function outlineColorOf(mat){let c;if(mat.userData&&mat.userData.metal){c=new TH
   else if(mat.color){c=mat.map?new THREE.Color('#6a5a6a'):mat.color.clone()}else c=new THREE.Color('#5a4a6a');
   const hsl={};c.getHSL(hsl);const chroma=hsl.s*(1-Math.abs(2*hsl.l-1));/* fast weisse Farben: graue statt knallbunte Linie */
   return new THREE.Color().setHSL(hsl.h,Math.min(1,chroma*.9+.1),Math.max(.1,hsl.l*.38))}
-function addOutlines(root,opt){opt=opt||{};const list=[];root.traverse(o=>{if(!o.isMesh||o.userData.noOutline||o.userData.hull||o.userData.furShell||o.children.some(c=>c.userData.hull))return;const m=o.material;if(!m||Array.isArray(m))return;
+function addOutlines(root,opt){opt=opt||{};/* Sparsam: keine Umriss-Hüllen (halbiert die Zeichenaufrufe); die Konturen zeichnet dann die leichte Nachbearbeitung */if(typeof PERF!=='undefined'&&PERF.spar&&!opt.force)return 0;const list=[];root.traverse(o=>{if(!o.isMesh||o.userData.noOutline||o.userData.hull||o.userData.furShell||o.children.some(c=>c.userData.hull))return;const m=o.material;if(!m||Array.isArray(m))return;
     if(m.transparent||m.side===THREE.DoubleSide||m.userData.ghost||m.userData.glow||m.userData.flat||m.userData.glass||m.userData.outline)return;
     const t=o.geometry.type;if(t==='PlaneGeometry'||t==='ShapeGeometry'||t==='CircleGeometry'||t==='RingGeometry'||o.geometry.userData.openTube&&false)return;
     o.geometry.computeBoundingSphere();const rad=o.geometry.boundingSphere.radius*Math.max(o.scale.x,o.scale.y,o.scale.z);if(rad<(opt.min||.012))return;list.push(o)});

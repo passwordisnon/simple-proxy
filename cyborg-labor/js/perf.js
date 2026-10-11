@@ -10,8 +10,8 @@
    2. Während des Spiels: Bildrate messen. Zu langsam → eine Stufe
       runter bzw. Auflösung schrittweise senken; bei Luft wieder hoch.
    Hat jemand die Grafik selbst gewählt, gilt immer diese Wahl.
-   Stufe «sparsam»: keine Nachbearbeitung (Konturen, Schattierung,
-   Leuchten), keine Kantenglättung, geringere Auflösung, kein Gras,
+   Stufe «sparsam»: nur leichte Nachbearbeitung (Farbstimmung und
+   Konturen, ohne Umgebungsverdeckung und Leuchten), keine Kantenglättung, geringere Auflösung, kein Gras,
    weniger Streuobjekte und kürzere Sichtweite, keine Lampenlichter.
    ===================================================================== */
 const PERF=(()=>{
@@ -64,7 +64,7 @@ const PERF=(()=>{
   const LABEL={hoch:' Grafik hoch',schnell:' Grafik schnell',spar:' Grafik sparsam'};
   /* Stufe setzen: by='user' (Knopf) oder 'auto' (Messung/Bildrate) */
   function setTier(t,by){if(!TIERS.includes(t))return;tier=t;HIGH=t==='hoch';lsSet(KQ,t);try{localStorage.setItem('cyborg-labor-grafik-auto',by==='user'?'0':'1')}catch(e){}
-    if(typeof LOOK!=='undefined')LOOK.enabled=t!=='spar';if(t==='spar'&&scale>.75){scale=.75;save()}if(t==='hoch'&&scale<1){scale=1;save()}
+    if(t==='spar'&&scale>.75){scale=.75;save()}if(t==='hoch'&&scale<1){scale=1;save()}
     updBtn();try{LAB.quality()}catch(e){}try{if(typeof MAIN==='undefined'||MAIN.worldReady!==false)GAME.quality()}catch(e){}relayout()}
   function updBtn(){const qb=document.getElementById('btnQual');if(!qb)return;qb.setAttribute('aria-pressed',tier==='hoch');const lb=qb.querySelector('.lb');if(lb)lb.textContent=LABEL[tier]}
   function auto(){try{localStorage.removeItem(KB);localStorage.setItem('cyborg-labor-grafik-auto','1')}catch(e){}B=bench();B.tier=tierFor(B);lsSet(KB,B);setTier(B.tier,'auto');return B}
