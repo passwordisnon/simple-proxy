@@ -369,7 +369,7 @@ function buildTerrainMesh(fns,detail){const def=fns.def;const R=fns.R,sea=fns.se
     const t=Math.max(0,Math.min(1,(h-sea)/4));tmp.set(B.g[0]).lerp(tmp2.set(B.g[1]),t);
     if(h<sea-.2)tmp.set(def.bed||'#E6D2A0').lerp(tmp2.set(B.g[0]),.25);else tmp.offsetHSL(0,-.1,-.035);
     col[i*3]=tmp.r;col[i*3+1]=tmp.g;col[i*3+2]=tmp.b;const pi=h<sea+.05?1:PATI[B.pat];pat[i*4+pi]=1;
-    const rd=fns.roadDist(v)*fns.R;mat[i*4+1]=h>sea+.2?sstep(1.7,1.1,rd):0;for(const pl of fns.places)if(pl.build&&pl.build!=='residence'){const d=angle(v,pl.dir);mat[i*4+1]=Math.max(mat[i*4+1],pl.build==='plaza'?sstep(pl.r*.5,pl.r*.4,d):sstep(pl.r*.95,pl.r*.7,d)*.8)}
+    const rd=fns.roadDist(v)*fns.R;mat[i*4+1]=h>sea+.2?sstep(1.7,1.1,rd):0;for(const pl of fns.places)if(pl.build&&pl.build!=='residence'){const d=angle(v,pl.dir);mat[i*4+1]=Math.max(mat[i*4+1],pl.build==='plaza'?sstep(Math.max(pl.r*.68,13.5/fns.R),Math.max(pl.r*.68,13.5/fns.R)*.84,d):sstep(pl.r*.95,pl.r*.7,d)*.8)}
     mat[i*4+2]=h>sea-.1&&h<sea+.18?sstep(sea+.18,sea+.02,h):0;
     v.multiplyScalar(R+h);pos.setXYZ(i,v.x,v.y,v.z)}
   g.computeVertexNormals();const nr=g.attributes.normal;
@@ -388,7 +388,7 @@ function terrainVattr(fns){const def=fns.def,sea=fns.sea;const tmp=new THREE.Col
   return(d,h,n,k,col,pat,mat,cl)=>{const b=fns.biomeAt(d,h);const B=BIOMES[b];const t=Math.max(0,Math.min(1,(h-sea)/4));tmp.set(B.g[0]).lerp(tmp2.set(B.g[1]),t);
     if(h<sea-.2)tmp.set(def.bed||'#E6D2A0').lerp(tmp2.set(B.g[0]),.25);else tmp.offsetHSL(0,-.1,-.035);
     col[k*3]=tmp.r;col[k*3+1]=tmp.g;col[k*3+2]=tmp.b;const pi=h<sea+.05?1:PATI[B.pat];pat[k*4]=pat[k*4+1]=pat[k*4+2]=pat[k*4+3]=0;pat[k*4+pi]=1;
-    let path=0;if(h>sea+.2){const rd=fns.roadDist(d)*fns.R;const wob=.25*Math.sin(d.x*97+d.z*53);path=sstep(1.7+wob,1.1+wob,rd)}for(const pl of builds){const dd=angle(d,pl.dir);if(dd<pl.r){if(pl.build==='plaza'){const wob=1+.12*Math.sin(d.x*61+d.z*37)+.08*Math.sin(d.y*83-d.x*29);path=Math.max(path,sstep(pl.r*.5*wob,pl.r*.4*wob,dd))}else path=Math.max(path,sstep(pl.r*.95,pl.r*.7,dd)*.8)}}
+    let path=0;if(h>sea+.2){const rd=fns.roadDist(d)*fns.R;const wob=.25*Math.sin(d.x*97+d.z*53);path=sstep(1.7+wob,1.1+wob,rd)}for(const pl of builds){const dd=angle(d,pl.dir);const pr=pl.build==='plaza'?Math.max(pl.r*.68,13.5/fns.R):0;if(dd<Math.max(pl.r,pr*1.2)){if(pl.build==='plaza'){const wob=1+.06*Math.sin(d.x*61+d.z*37)+.04*Math.sin(d.y*83-d.x*29);/* gepflasterter Dorfplatz mindestens 13 Einheiten weit: Bäume, Beete und Bänke stehen auf Pflaster, die Rasenkeile zwischen den Wegen beginnen erst dahinter */path=Math.max(path,sstep(pr*wob,pr*.84*wob,dd))}else path=Math.max(path,sstep(pl.r*.95,pl.r*.7,dd)*.8)}}
     const slope=1-n.dot(d);const c=sstep(.12,.3,slope)*(h>sea-.3?1:.4);mat[k*4]=c;mat[k*4+1]=path*(1-c);mat[k*4+2]=h>sea-.1&&h<sea+.18?sstep(sea+.18,sea+.02,h):0;mat[k*4+3]=0;
     tmp.set(B.cliff);cl[k*3]=tmp.r;cl[k*3+1]=tmp.g;cl[k*3+2]=tmp.b}}
 function buildWaterMesh(fns,detail){const def=fns.def;let wg=new THREE.IcosahedronGeometry(fns.R+fns.sea,detail);const wp=wg.attributes.position;const dep=new Float32Array(wp.count);const v=new THREE.Vector3();

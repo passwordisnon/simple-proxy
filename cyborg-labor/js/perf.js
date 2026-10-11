@@ -88,7 +88,7 @@ const PERF=(()=>{
     'Dein Computer hat viel zu tun. Die Grafik läuft jetzt sparsam, damit das Spiel flüssig bleibt.':'Your computer is very busy. Graphics are now set to “economy” so the game stays smooth.',
     'Grafik an deinen Computer angepasst: hoch.':'Graphics adjusted to your computer: high.','Grafik an deinen Computer angepasst: schnell.':'Graphics adjusted to your computer: fast.',
     'Grafik an deinen Computer angepasst: sparsam. So läuft das Spiel auch auf älteren Computern.':'Graphics adjusted to your computer: economy. This way the game runs on older computers too.',
-    ' Grafik sparsam':' Graphics economy','Grafik sparsam':'Graphics economy','Grafik automatisch einstellen':'Set graphics automatically','Grafik neu gemessen:':'Graphics measured again:','hoch':'high','schnell':'fast','sparsam':'economy'})}catch(e){}
+    ' Grafik sparsam':' Graphics economy','Grafik sparsam':'Graphics economy','Grafik automatisch einstellen':'Set graphics automatically','Grafik neu gemessen:':'Graphics measured again:','hoch':'high','schnell':'fast','sparsam':'economy','Grafik':'Graphics'})}catch(e){}
   return{frame,setTier,auto,updBtn,get tier(){return tier},get bench(){return B},get spar(){return tier==='spar'},TIERS,LABEL,
     debug:()=>({frames,acc:Math.round(acc),warm:+warm.toFixed(1),cool,tier,B}),get scale(){return scale},set scale(v){scale=Math.max(.5,Math.min(1,v));save();relayout()}};
 })();

@@ -155,3 +155,6 @@ Status: ✔ erledigt · ◐ teilweise · ☐ offen. Wird bei jedem Schritt aktua
 - ✔ Absturz nach vielen Planetenwechseln behoben: jeder besuchte Planet blieb im Speicher (bis über 2 GB); jetzt bleibt der Speicher gleich
 - ✔ Steuerung: keine hängenden Tasten mehr nach Fensterwechsel oder Cmd-Kürzeln, Tippen im Chat bewegt drinnen nicht mehr die Figur, gedrücktes E löst nicht mehr dauernd aus
 - ✔ Dorfplätze: Dschungel mit Urwaldpalmen, Wüste mit Saguaros, Urzeit mit Palmfarnen
+- ✔ Schatten nur noch auf «hoch» (waren versehentlich auch auf «schnell» an und kosteten viel Leistung)
+- ✔ Dunkle Streifen vor dem Dorfplatz weg: der Platz ist jetzt rundum gepflastert, die Rasenkeile zwischen den Wegen beginnen erst hinter den Bäumen
+- ✔ Rathaus: Globus steht seitlich, der Blick von der Tür geht frei zur Bürgermeisterin

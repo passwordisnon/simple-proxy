@@ -4,7 +4,7 @@
    ===================================================================== */
 let HIGH=!matchMedia('(pointer:coarse)').matches;{const q=LS.get('cyborg-labor-grafik',null);if(q)HIGH=q==='hoch'}if(typeof PERF!=='undefined')HIGH=PERF.tier==='hoch';
 function makeRenderer(canvas){const r=new THREE.WebGLRenderer({canvas,antialias:!(typeof PERF!=='undefined'&&PERF.spar),powerPreference:'high-performance'});r.outputEncoding=THREE.sRGBEncoding;r.toneMapping=THREE.NoToneMapping;
-  r.shadowMap.enabled=true;r.shadowMap.type=THREE.PCFSoftShadowMap;return r}
+  /* Schatten nur auf «hoch» (vorher immer an, auch auf schnell und sparsam) */r.shadowMap.enabled=HIGH;r.shadowMap.type=THREE.PCFSoftShadowMap;return r}
 function makeComposer(r,scene,cam){const rt=new THREE.WebGLRenderTarget(4,4,{type:THREE.HalfFloatType,samples:4});const c=new THREE.EffectComposer(r,rt);c.addPass(new THREE.RenderPass(scene,cam));
   /* Schutz vor Flackern: einzelne NaN/Inf-Pixel (additive Partikel, Glühen) würde der Bloom über den ganzen Bildschirm verschmieren – vorher säubern und begrenzen */
   c.addPass(new THREE.ShaderPass({uniforms:{tDiffuse:{value:null}},vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
