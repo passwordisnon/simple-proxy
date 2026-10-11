@@ -2,8 +2,8 @@
    CYBORG-LABOR · lab.js
    Das Labor: Körper, Teile, Funktions-Karten, Entlassen in die Welt.
    ===================================================================== */
-let HIGH=!matchMedia('(pointer:coarse)').matches;{const q=LS.get('cyborg-labor-grafik',null);if(q)HIGH=q==='hoch'}
-function makeRenderer(canvas){const r=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});r.outputEncoding=THREE.sRGBEncoding;r.toneMapping=THREE.NoToneMapping;
+let HIGH=!matchMedia('(pointer:coarse)').matches;{const q=LS.get('cyborg-labor-grafik',null);if(q)HIGH=q==='hoch'}if(typeof PERF!=='undefined')HIGH=PERF.tier==='hoch';
+function makeRenderer(canvas){const r=new THREE.WebGLRenderer({canvas,antialias:!(typeof PERF!=='undefined'&&PERF.spar),powerPreference:'high-performance'});r.outputEncoding=THREE.sRGBEncoding;r.toneMapping=THREE.NoToneMapping;
   r.shadowMap.enabled=true;r.shadowMap.type=THREE.PCFSoftShadowMap;return r}
 function makeComposer(r,scene,cam){const rt=new THREE.WebGLRenderTarget(4,4,{type:THREE.HalfFloatType,samples:4});const c=new THREE.EffectComposer(r,rt);c.addPass(new THREE.RenderPass(scene,cam));
   /* Schutz vor Flackern: einzelne NaN/Inf-Pixel (additive Partikel, Glühen) würde der Bloom über den ganzen Bildschirm verschmieren – vorher säubern und begrenzen */
@@ -11,7 +11,7 @@ function makeComposer(r,scene,cam){const rt=new THREE.WebGLRenderTarget(4,4,{typ
     fragmentShader:'uniform sampler2D tDiffuse;varying vec2 vUv;void main(){vec4 c=texture2D(tDiffuse,vUv);\n#if __VERSION__>=300\nif(any(isnan(c))||any(isinf(c)))c=vec4(0.,0.,0.,1.);\n#endif\nc.rgb=clamp(c.rgb,0.,6.);c.a=clamp(c.a,0.,1.);gl_FragColor=c;}'}));
   const bloom=new THREE.UnrealBloomPass(new THREE.Vector2(256,256),.5,.5,1.0);c.addPass(bloom);c.addPass(new THREE.ShaderPass(THREE.CopyShader));c.bloom=bloom;return c}
 function skyTex(a,b,key){return ctex('sky'+a+b+(key||''),64,512,(x,w,h)=>{const g=x.createLinearGradient(0,0,0,h);g.addColorStop(0,a);g.addColorStop(.62,b);g.addColorStop(1,b);x.fillStyle=g;x.fillRect(0,0,w,h)})}
-function sizeView(R,cam,comp,elx){const w=elx.clientWidth,h=elx.clientHeight;if(!w||!h)return;const pr=Math.min(HIGH?2:1.25,devicePixelRatio)*(typeof PERF!=='undefined'?PERF.scale:1);R.setPixelRatio(pr);R.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();if(comp){comp.setPixelRatio(pr);comp.setSize(w,h)}}
+function sizeView(R,cam,comp,elx){const w=elx.clientWidth,h=elx.clientHeight;if(!w||!h)return;const pr=Math.min(HIGH?2:(typeof PERF!=='undefined'&&PERF.spar)?1:1.25,devicePixelRatio)*(typeof PERF!=='undefined'?PERF.scale:1);R.setPixelRatio(pr);R.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();if(comp){comp.setPixelRatio(pr);comp.setSize(w,h)}}
 
 /* ---------- Zustand ---------- */
 let S=DEFAULT();{const d=LS.get('cyborg-labor-entwurf-v2',null);if(d&&d.parts)S=sanitize(d)}
@@ -56,7 +56,7 @@ const LAB=(()=>{
   const demo={i:0,t:1.5,props:[]};const abilEl=$('labAbil');
   function demoReset(){demo.i=0;demo.t=1.2;demo.props.forEach(x=>{scene.remove(x.g);disposeTree(x.g)});demo.props=[];renderAbil(null)}
   function renderAbil(cur){const mv=moveFor(S);const abs=abilitiesFor(S);abilEl.replaceChildren();
-    if(cur){const n=el('div','now');n.append(el('b',null,cur.n+'. '),document.createTextNode(cur.d));abilEl.append(n)}
+    if(cur){const n=el('div','now');n.append(el('b',null,cur.n),document.createTextNode('. '),document.createTextNode(cur.d));abilEl.append(n)}
     const ch=el('div','chips');ch.append(el('span','mv','Bewegung: '+MOVE[mv.m].n+(mv.swim&&!MOVE[mv.m].water?', schwimmt':'')));abs.forEach(a=>{if(ABIL[a])ch.append(el('span',null,ABIL[a].n))});abilEl.append(ch)}
   function demoStep(dt){demo.t-=dt;for(let i=demo.props.length-1;i>=0;i--){const x=demo.props[i];x.age+=dt;const s=Math.min(1,x.age/1.1)*(x.age>5.5?Math.max(0,1-(x.age-5.5)*2):1);const bounce=1+Math.sin(Math.min(1,x.age/1.1)*PI)*.18;x.g.scale.setScalar(Math.max(.001,s*bounce*(x.fit||1)));if(x.age>6){scene.remove(x.g);disposeTree(x.g);demo.props.splice(i,1)}}
     if(demo.t>0)return;const abs=abilitiesFor(S).filter(a=>ABIL[a].act||ABIL[a].passive);demo.t=3.8;if(!abs.length){renderAbil(null);return}const a=abs[demo.i%abs.length];demo.i++;const A=ABIL[a];renderAbil(A);act=1;
@@ -101,22 +101,51 @@ function renderParts(){
     b.onclick=()=>{if(activeSlot==='extras'){const ex=S.parts.extras;if(ex.includes(p.id))S.parts.extras=ex.filter(x=>x!==p.id);else if(ex.length<MAXX)ex.push(p.id);else{UI.toast(`Maximal ${MAXX} Extras`);SND.play('error',{vol:.5});return}}else S.parts[activeSlot]=p.id;SND.play('pickup',{vol:.5,jitter:.2});changed(true,true)};
     t.append(b)});
 }
+/* Ideen zum Antippen: Vorschläge füllen das Feld, alles bleibt veränderbar. Teile ohne Idee lassen sich überspringen. */
+const TT=x=>typeof I18N!=='undefined'?I18N.t(x):x;
+function ideaRow(list,on,cls){const r=el('div','ideas'+(cls?' '+cls:''));for(const t of list){const b=el('button','idea',t);b.type='button';b.onclick=e=>{e.preventDefault();SND.play('pep',{vol:.3});on(t,b)};r.append(b)}return r}
+function setField(inp,val){inp.value=val;inp.dispatchEvent(new Event('input'));inp.classList.add('flash');setTimeout(()=>inp.classList.remove('flash'),400)}
 function renderCards(){
-  const box=$('cards');box.replaceChildren();
+  const box=$('cards');box.replaceChildren();const hasIdeas=typeof IDEEN!=='undefined';
   for(const a of activeKeys(S)){const inf=S.info[a.key]||(S.info[a.key]={name:'',func:'',forWhom:'',boundary:'',maker:'',other:false});
-    const c=el('div','pcard');c.dataset.key=a.key;const h=el('div','head');h.append(el('b',null,a.label),chip(a.kind));c.append(h);const abId=abOfKey(S,a.key);if(abId)c.append(el('p','abl','In der Welt: '+ABIL[abId].n+'. '+ABIL[abId].d));if(a.key==='beine'){const mv=moveFor(S);c.append(el('p','abl','Bewegung: '+MOVE[mv.m].n+(mv.src!=='Beine'?` (wegen ${mv.src})`:'')))}
+    const c=el('div','pcard');c.dataset.key=a.key;const h=el('div','head');const hl=el('div','hl');hl.append(el('b',null,a.label),chip(a.kind));h.append(hl);c.append(h);
+    const skip=btn(inf.skip?'Doch ausfüllen':'Überspringen','ghost small',()=>{inf.skip=!inf.skip;SND.play('soft',{vol:.4});renderCards();afterInfo()});skip.title='Wenn dir gerade nichts einfällt, mach mit dem nächsten Teil weiter.';h.append(skip);
+    if(inf.skip){c.classList.add('skipped');c.append(el('p','sub','Übersprungen. Kein Problem, du kannst später zurückkommen.'));box.append(c);continue}
+    const abId=abOfKey(S,a.key);if(abId)c.append(el('p','abl','In der Welt: '+ABIL[abId].n+'. '+ABIL[abId].d));if(a.key==='beine'){const mv=moveFor(S);c.append(el('p','abl','Bewegung: '+MOVE[mv.m].n+(mv.src!=='Beine'?` (wegen ${mv.src})`:'')))}
     const mk=(field,label,ph,ta)=>{const l=el('label','f',label);const i=el(ta?'textarea':'input');if(!ta)i.type='text';i.id='f-'+a.key+'-'+field;i.maxLength=field==='func'?200:120;i.placeholder=ph;i.value=inf[field]||'';if(ta)i.rows=2;
-      i.addEventListener('input',()=>{inf[field]=i.value;afterInfo()});l.append(i);return l};
-    c.append(mk('name','Name des Teils','z. B. Kiemen-Filter'));c.append(mk('func','Funktion (frei erfunden)','Was kann es? z. B. atmet Abgase und macht daraus Blumenduft',true));
-    const r2=el('div','row');r2.append(mk('forWhom','Für wen gebaut?','z. B. für Bienen'),mk('maker','Wer baut es, woraus?','z. B. Fabrik in Shenzhen, Kobalt'));c.append(r2);
-    const bl=el('label','f','Welche Grenze verwischt es?');const sel=el('select');sel.id='f-'+a.key+'-boundary';sel.append(new Option('– wählen –',''));BOUNDARIES.forEach(b=>sel.append(new Option(b,b)));sel.value=inf.boundary||'';sel.onchange=()=>{inf.boundary=sel.value;afterInfo()};bl.append(sel);c.append(bl);
-    const ck=el('label','check');const cb=el('input');cb.type='checkbox';cb.id='f-'+a.key+'-other';cb.checked=!!inf.other;cb.onchange=()=>{inf.other=cb.checked;afterInfo()};ck.append(cb,document.createTextNode('Dient einer anderen Art'));c.append(ck);
+      i.addEventListener('input',()=>{inf[field]=i.value;afterInfo()});l.append(i);return{l,i}};
+    /* Funktion zuerst: das ist die eigentliche Aufgabe */
+    const fu=mk('func','Funktion: tippe eine Idee an oder schreib selbst','Was kann es? z. B. atmet Abgase und macht daraus Blumenduft',true);
+    if(hasIdeas){fu.l.insertBefore(ideaRow(IDEEN.funcs(S,a.key),t=>setField(fu.i,TT(t))),fu.i);
+      const more=el('details','more');more.append(el('summary',null,'Satzende anhängen'),ideaRow(IDEEN.ends(),t=>{const cur=fu.i.value.trim().replace(/[.!]$/,'');setField(fu.i,(cur?cur+' ':'')+TT(t))},'small'));fu.l.append(more)}
+    c.append(fu.l);
+    const nm=mk('name','Name des Teils','z. B. Kiemen-Filter');if(hasIdeas)nm.l.append(ideaRow(IDEEN.names(S,a.key),t=>setField(nm.i,TT(t)),'small'));c.append(nm.l);
+    const fw=mk('forWhom','Für wen gebaut?','z. B. für Bienen'),ma=mk('maker','Wer baut es, woraus?','z. B. Fabrik in Shenzhen, Kobalt');
+    let cb;
+    if(hasIdeas){const ws=IDEEN.who(S,a.key);const wr=ideaRow(ws.slice(0,5).map(w=>w.t),(t)=>{setField(fw.i,TT(t));const w=ws.find(x=>x.t===t);if(w&&w.other&&cb&&!cb.checked){cb.checked=true;inf.other=true;afterInfo()}},'small');fw.l.append(wr);
+      const wm=el('details','more');wm.append(el('summary',null,'mehr'),ideaRow(ws.slice(5).map(w=>w.t),t=>{setField(fw.i,TT(t));const w=ws.find(x=>x.t===t);if(w&&w.other&&cb&&!cb.checked){cb.checked=true;inf.other=true;afterInfo()}},'small'));fw.l.append(wm);
+      ma.l.append(ideaRow(IDEEN.maker(S,a.key),t=>setField(ma.i,TT(t)),'small'))}
+    const r2=el('div','row');r2.append(fw.l,ma.l);c.append(r2);
+    const bl=el('label','f','Welche Grenze verwischt es?');const sel=el('select');sel.id='f-'+a.key+'-boundary';sel.append(new Option('– wählen –',''));BOUNDARIES.forEach(b=>sel.append(new Option(b,b)));sel.value=inf.boundary||'';sel.onchange=()=>{inf.boundary=sel.value;afterInfo()};bl.append(sel);
+    if(hasIdeas){const sug=IDEEN.boundary(S,a.key);if(sug&&BOUNDARIES.includes(sug)){const r=ideaRow([sug],()=>{sel.value=sug;inf.boundary=sug;afterInfo()},'small');r.prepend(el('span','sub','Vorschlag:'));bl.append(r)}}
+    c.append(bl);
+    const ck=el('label','check');cb=el('input');cb.type='checkbox';cb.id='f-'+a.key+'-other';cb.checked=!!inf.other;cb.onchange=()=>{inf.other=cb.checked;afterInfo()};ck.append(cb,document.createTextNode('Dient einer anderen Art'));c.append(ck);
     if((inf.func||'').trim().length>=3)c.classList.add('done');box.append(c)}
+  renderStatementIdeas();
 }
-function afterInfo(){document.querySelectorAll('.pcard').forEach(c=>{const i=S.info[c.dataset.key];c.classList.toggle('done',!!i&&(i.func||'').trim().length>=3)});renderChecklist();saveDraft()}
-function checks(){const keys=activeKeys(S).map(a=>a.key);const filled=keys.filter(k=>(S.info[k]?.func||'').trim().length>=3);
+/* Verantwortungssatz: Grenze und Grund antippen, Zitate zum Nachdenken */
+let stB='',stW='';
+function renderStatementIdeas(){const host=$('stIdeas');if(!host||typeof IDEEN==='undefined')return;host.replaceChildren();const ta=$('inStatement');
+  const used=[...new Set(activeKeys(S).map(a=>S.info[a.key]?.boundary).filter(Boolean))];const bs=[...used,...BOUNDARIES.filter(b=>!used.includes(b))];
+  const low=x=>(typeof I18N!=='undefined'&&/^en/.test(I18N.lang))?x.charAt(0).toLowerCase()+x.slice(1):x;const compose=()=>{const v=TT('Unsere Grenze war')+' '+low(TT(stB||'…'))+'. '+TT('Wir sind für sie verantwortlich, weil')+' '+(stW?TT(stW):'');ta.value=v.slice(0,400);S.statement=ta.value;renderChecklist();saveDraft();ta.classList.add('flash');setTimeout(()=>ta.classList.remove('flash'),400)};
+  const r1=el('div','f');r1.append(el('span','sub','1. Unsere Grenze war …'),ideaRow(bs,t=>{stB=t;compose()},'small'));
+  const r2=el('div','f');r2.append(el('span','sub','2. Wir sind für sie verantwortlich, weil …'),ideaRow(IDEEN.weil(),t=>{stW=t;compose()},'small'));
+  const q=el('details','more');q.append(el('summary',null,'Haraway-Zitate zum Nachdenken'),ideaRow(IDEEN.quotes(),t=>{const add=' '+TT(t);if((ta.value+add).length<=400){ta.value=(ta.value.trim()+add).trim();S.statement=ta.value;renderChecklist();saveDraft()}},'small quotes'));
+  host.append(r1,r2,q)}
+function afterInfo(){document.querySelectorAll('.pcard').forEach(c=>{const i=S.info[c.dataset.key];c.classList.toggle('done',!!i&&!i.skip&&(i.func||'').trim().length>=3)});renderChecklist();saveDraft()}
+function checks(){const keys=activeKeys(S).map(a=>a.key);const filled=keys.filter(k=>!S.info[k]?.skip&&(S.info[k]?.func||'').trim().length>=3);
   return[{ok:S.name.trim().length>0,t:'Der Cyborg hat einen Namen'},{ok:filled.length>=4,t:`Mindestens vier Teile mit Funktion (${Math.min(filled.length,4)}/4)`},
-   {ok:keys.some(k=>S.info[k]?.other&&(S.info[k]?.func||'').trim().length>=3),t:'Ein Teil mit Funktion dient einer anderen Art'},{ok:S.statement.trim().length>=10,t:'Der Verantwortungssatz ist geschrieben'}]}
+   {ok:keys.some(k=>!S.info[k]?.skip&&S.info[k]?.other&&(S.info[k]?.func||'').trim().length>=3),t:'Ein Teil mit Funktion dient einer anderen Art'},{ok:S.statement.trim().length>=10,t:'Der Verantwortungssatz ist geschrieben'}]}
 function renderChecklist(){const ul=$('checklist');ul.replaceChildren();const c=checks();c.forEach(x=>ul.append(el('li',x.ok?'ok':'',x.t)));$('btnRelease').disabled=!c.every(x=>x.ok);
   $('plateName').textContent=S.name.trim()||'Namenloser Cyborg';$('plateGroup').textContent=S.group.trim()}
 function changed(rebuild,keepScroll){LAB.demoReset();const sc=$('panel').scrollTop;renderBody();renderParts();renderCards();renderChecklist();if(rebuild)LAB.rebuild();saveDraft();if(keepScroll)$('panel').scrollTop=sc;if(window.GAME&&GAME.onAvatarChanged)GAME.onAvatarChanged()}

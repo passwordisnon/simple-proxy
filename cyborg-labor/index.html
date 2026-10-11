@@ -97,6 +97,20 @@ input[type=range]{width:100%;accent-color:var(--leaf)}
 .pcard .head{display:flex;align-items:center;gap:8px;justify-content:space-between}
 .pcard .head b{font-size:15px;font-family:var(--display);font-weight:600}
 .pcard.done{border-color:var(--leaf);background:#FBFFF7}
+.pcard .head .hl{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pcard.skipped{opacity:.7;background:var(--paper2,#f6f3ee);border-style:dashed}
+.pcard.skipped .sub{margin:0}
+.ideas{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 4px}
+.ideas .idea{border:2px solid var(--line);background:#fff;border-radius:12px;padding:6px 10px;font-size:13px;font-weight:700;color:var(--ink);text-align:left;line-height:1.25;cursor:pointer;min-height:34px}
+.ideas .idea:hover,.ideas .idea:focus-visible{border-color:var(--ink2);background:#FFF8E8}
+.ideas.small .idea{font-size:12px;padding:4px 9px;border-radius:999px;min-height:30px}
+.ideas.quotes .idea{border-radius:12px;font-style:italic}
+.ideas .sub{align-self:center;font-size:12px}
+details.more{font-size:12.5px}
+details.more summary{cursor:pointer;font-weight:800;color:var(--ink2);padding:2px 0}
+.flash{box-shadow:0 0 0 3px var(--leaf)!important;transition:box-shadow .3s}
+.stideas{display:flex;flex-direction:column;gap:6px}
+
 .pcard .abl{margin:0;font-size:12.5px;color:#2F86A8;font-weight:700;background:var(--seaL);border-radius:10px;padding:5px 9px}
 .check{display:flex;gap:8px;align-items:center;font-size:13px;font-weight:700}
 .check input{accent-color:var(--leaf);width:18px;height:18px}
@@ -437,12 +451,13 @@ body:not(.coarse) #hbA{display:none}
         </div>
         <div class="step">
           <h2><span class="num">3</span>Funktionen erfinden</h2>
-          <p class="sub">Was ein Teil in der Welt tut, steht im blauen Feld. Gebt jedem Teil trotzdem eure eigene Deutung: Was bedeutet diese Fähigkeit, wem nützt sie? Mindestens vier Teile, eines davon dient einer anderen Art.</p>
+          <p class="sub">Was ein Teil in der Welt tut, steht im blauen Feld. Gebt jedem Teil eure eigene Deutung: Was kann es, wem nützt es? Tippt eine Idee an und verändert sie, oder schreibt selbst. Fällt euch zu einem Teil nichts ein, überspringt es. Mindestens vier Teile, eines davon dient einer anderen Art.</p>
           <div class="cards" id="cards"></div>
         </div>
         <div class="step">
           <h2><span class="num">4</span>In die Welt entlassen</h2>
           <label class="f">Unsere Grenze war …, wir sind für sie verantwortlich, weil …<textarea id="inStatement" maxlength="400" placeholder="Unsere Grenze war Mensch / Tier. Wir sind für sie verantwortlich, weil …"></textarea></label>
+          <div class="stideas" id="stIdeas"></div>
           <ul class="checklist" id="checklist"></ul>
           <button class="btn primary" id="btnRelease" disabled>In die Welt entlassen</button>
         </div>
@@ -520,6 +535,8 @@ body:not(.coarse) #hbA{display:none}
 <script src="js/i18n.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/perf.js"></script>
+<script src="js/nightlights.js"></script>
+<script src="js/ideen.js"></script>
 <script src="js/lab.js"></script>
 <script src="js/look.js"></script>
 <script src="js/world.js"></script>

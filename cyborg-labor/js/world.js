@@ -7,6 +7,7 @@ const REDUCE=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const CS=.4;              /* Kreatur-Massstab in der Welt (s=1 → ~1.7 hoch) */
 const UPV=new V3(0,1,0);
 
+const SPAR=()=>typeof PERF!=='undefined'&&PERF.spar;
 const GAME=(()=>{
   const canvas=$('worldCanvas');const R=makeRenderer(canvas);R.shadowMap.type=THREE.PCFSoftShadowMap;
   const cam=new THREE.PerspectiveCamera(45,1,.1,900);
@@ -26,7 +27,7 @@ const GAME=(()=>{
     const detail=Math.round(Rr*(HIGH?3.4:2.3));
     /* Gelände: LOD-Kacheln (feine Kacheln am Spieler, grobe in der Ferne); beim Aufbau zählt die exakte Höhenfunktion */
     if(typeof PLANETLOD!=='undefined'){const gm=groundMaterial(fns);const W0=buildWaterMesh(fns,1);W0.mesh.geometry.dispose();G_.water=null;G_.waterU=W0.U;
-      PLANETLOD.create(fns,gm,sc,{vattr:terrainVattr(fns),fine:HIGH?.32:.55,water:W0.mesh.material,grass:def.mine&&!HIGH?null:{per:HIGH?3:1}});const pz=(fns.places.find(p=>p.build==='plaza')||{dir:UPV}).dir;PLANETLOD.update(pz.clone().multiplyScalar(Rr+12),0,true);
+      PLANETLOD.create(fns,gm,sc,{vattr:terrainVattr(fns),fine:HIGH?.32:.55,water:W0.mesh.material,grass:(SPAR()||def.mine&&!HIGH)?null:{per:HIGH?3:1}});const pz=(fns.places.find(p=>p.build==='plaza')||{dir:UPV}).dir;PLANETLOD.update(pz.clone().multiplyScalar(Rr+12),0,true);
       G_.planet=PLANETLOD.S.group;G_.groundU=gm.userData.U;G_.hAt=fns.hAt;G_.lod=true}
     else{const planet=buildTerrainMesh(fns,detail);sc.add(planet);G_.planet=planet;G_.hAt=makeSurface(planet,fns);G_.groundU=planet.material.userData.U;G_.lod=false}
     G_.hExact=G_.hAt;
@@ -572,7 +573,7 @@ const GAME=(()=>{
     if(me&&!overview){OCC.a.value.copy(cam.position);OCC.b.value.copy(me.g.position).addScaledVector(me.p,.9);OCC.on.value=1}else OCC.on.value=0;ACT.frame(dt,t);REPAIR.frame(dt,t);if((typeof FAUNA!=='undefined'))try{FAUNA.step(dt,t)}catch(e){console.warn('Fauna',e)}SOCIAL.frame(dt,t);grassU.value=t;G_.waterU.uT.value=t;if(G_.waterU.uSun&&G_.sun){G_.waterU.uSun.value.copy(G_.sun.position).sub(G_.sun.target.position).normalize();G_.waterU.uRain.value=(typeof WEATHER!=='undefined'&&['regen','gewitter','sturm'].includes(WEATHER.cur))?1:0;if(G_.scene.fog)G_.waterU.uSky.value.copy(G_.scene.fog.color)}
     ecoT-=dt;if(ecoT<=0){ecoT=1;ecoTick()}grassU.value=t;
     /* Tageszeit (echte Uhr) */
-    dayT-=dt;if(dayT<=0){dayT=1;dayLight()}
+    dayT-=dt;if(dayT<=0){dayT=1;dayLight()}if(typeof NIGHTL!=='undefined')try{NIGHTL.tick(G_,me,dt)}catch(e){}
     /* Kamera */
     if(overview){overview.az+=dt*.06;const d=G_.R*3.1;const want=new V3(Math.cos(overview.az)*Math.cos(.5),Math.sin(.5),Math.sin(overview.az)*Math.cos(.5)).multiplyScalar(d);cam.position.lerp(want,Math.min(1,dt*2));cam.up.set(0,1,0);cam.lookAt(0,0,0)}
     else if(me){const cf=camF.clone().applyAxisAngle(me.p,camYaw);const up=me.p;const target=me.g.position.clone().addScaledVector(up,1.1);
@@ -582,7 +583,7 @@ const GAME=(()=>{
       /* Ambiente */;const nearSea=G_.hAt(me.p)<G_.sea+.9?1:0;SND.ambience('meer',nearSea*.6);SND.ambience('wind',.25)}
     /* Prompt */
     promptTarget=busy||viewer||document.querySelector('.bubmenu')?null:findTarget();const pr=$('prompt');if(promptTarget&&!UI.anyOpen()){pr.hidden=false;pr.innerHTML='';const k=el('kbd',null,'E');pr.append(k,document.createTextNode(promptTarget.label));$('hbA').textContent=shortLabel(promptTarget)}else{pr.hidden=true;$('hbA').textContent='Hüpfen'}
-    if(G_.lod)PLANETLOD.update(cam.position,HIGH?4:2.5);if(G_.stream)SCATTER.stream(overview?cam.position.clone().normalize():(me?me.p:UPV),HIGH?5:3);
+    if(G_.lod)PLANETLOD.update(cam.position,HIGH?4:SPAR()?1.7:2.5);if(G_.stream)SCATTER.stream(overview?cam.position.clone().normalize():(me?me.p:UPV),HIGH?5:SPAR()?2:3);
     if(typeof LOOK!=='undefined'&&LOOK.enabled){const fg=scene.fog;LOOK.render(R,scene,cam,{fog:fg&&fg.color,fogNear:fg?Math.max(40,fg.near*1.2):60,fogFar:fg?fg.far*1.1:220,fogAmt:overview?0:.45,night:G_.night||0,tilt:overview?.3:(HIGH?.8:0),bloom:HIGH,ao:HIGH?.65:.5,ink:.7})}
     else if(HIGH)comp.render();else R.render(scene,cam);labels();hideGhost()}
   /* Kamera-Kollision: Strahl vom Kopf zur Wunschposition gegen nahe Gebäude; Kamera rückt vor die Wand (schnell rein, langsam wieder raus) und bleibt über dem Boden */
@@ -603,11 +604,11 @@ const GAME=(()=>{
     for(const o of oils)for(const x of live){if(x.p.dot(o.p)<Math.cos(.06))continue;if(['blume','pilz'].includes(x.type)&&Math.random()<.08)W.remove(x);if(x.type==='moos'&&Math.random()<.05){W.remove(o);note('Moos hat einen Ölfleck abgebaut');break}}}
   /* ---------- Tageslauf: fliessende Übergänge (Dämmerung, Morgenrot, Mittag, goldene Stunde, Abendrot, Nacht) ---------- */
   const DAYKEYS=[/* Stunde, Himmel oben, Horizont, Sonnenfarbe, Sonne, Umgebungslicht, Himmelslicht, Nebel */
-    [0,'#141A44','#2E3470','#8FA0FF',.22,'#7A88E8',.32,'#2E3266'],[4.6,'#1B2150','#3A3A78','#8FA0FF',.22,'#7A88E8',.32,'#343872'],
+    [0,'#1A2150','#363C7C','#9AA8FF',.28,'#8C94EC',.44,'#343A70'],[4.6,'#1F2658','#3E4080','#9AA8FF',.28,'#8C94EC',.44,'#3A3E78'],
     [5.6,'#3B3E86','#C98AA8','#FFA88A',.3,'#B8A0E0',.36,'#8A7AAE'],[6.4,'#6E86D8','#FFB892','#FFB58A',.55,'#F0C8D8',.42,'#E8B8A8'],
     [7.6,null,'#FFE3C2','#FFE2B8',.82,'#D6DCFF',.66,null],[12,null,null,'#FFF4DE',.92,'#CDD6FF',.72,null],[16.8,null,null,'#FFECCE',.9,'#D2D8FF',.7,null],
     [18.4,'#7C8EE0','#FFC08A','#FFB070',.7,'#F2D0C8',.46,'#F0C8A8'],[19.4,'#5A5AB0','#FF9A7A','#FF9070',.45,'#D8A8D0',.4,'#B890B8'],
-    [20.4,'#2E3278','#9A6AA8','#A08AE0',.28,'#9A90E0',.34,'#4E4A88'],[21.3,'#171D4A','#343A78','#8FA0FF',.22,'#7A88E8',.32,'#2E3266'],[24,'#141A44','#2E3470','#8FA0FF',.22,'#7A88E8',.32,'#2E3266']];
+    [20.4,'#2E3278','#9A6AA8','#A08AE0',.3,'#9A90E0',.42,'#4E4A88'],[21.3,'#1C2252','#3A3F7E','#9AA8FF',.28,'#8C94EC',.44,'#343A70'],[24,'#1A2150','#363C7C','#9AA8FF',.28,'#8C94EC',.44,'#343A70']];
   const _ca=new THREE.Color(),_cb=new THREE.Color();
   function dayLight(){const h=GAMETIME.hour();const hh=GAMETIME.str();$('clock').querySelector('b').textContent=hh;const def=G_.def;
     let i=0;while(i<DAYKEYS.length-2&&DAYKEYS[i+1][0]<=h)i++;const A=DAYKEYS[i],B=DAYKEYS[i+1];const t=Math.max(0,Math.min(1,(h-A[0])/(B[0]-A[0])));const s=t*t*(3-2*t);

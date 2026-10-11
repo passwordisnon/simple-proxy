@@ -99,7 +99,10 @@ const MAIN=(()=>{
   function exportWorld(){const w=UI.win('Welt sichern',{size:'narrow'});w.body.append(el('p',null,'Alle Cyborgs dieser Welt als Codes. Speichert den Text irgendwo, dann könnt ihr die Welt später wieder einschleusen.'));const ta=el('textarea');ta.rows=8;ta.readOnly=true;ta.id='exportText';ta.value=WORLD.map(encode).join('\n\n');w.body.append(ta);
     const clr=btn('Welt leeren','danger');UI.armed(clr,'Wirklich alle entfernen?',()=>{WORLD=[];saveWorld();GAME.syncVillagers();w.close();UI.toast('Welt geleert')});w.foot.append(btn('Alles kopieren','primary',()=>{ta.select();UI.copy(ta.value,'Alle Codes kopiert',ta)}),clr)}
   function settingsApp(){const w=UI.win('Einstellungen',{size:'narrow'});{const l=el('div','f');l.append(el('span',null,'Sprache'),I18N.picker());w.body.append(l)}const st=SND.st;const sl=(label,k)=>{const l=el('label','f',label);const i=el('input');i.type='range';i.min=0;i.max=1;i.step=.05;i.value=st[k];i.id='vol-'+k;i.oninput=()=>SND.set(k,+i.value);l.append(i);w.body.append(l)};
-    sl('Musik','music');sl('Geräusche','sfx');sl('Stimmen','voice');const n=el('label','f','Dein Name');const ni=el('input');ni.type='text';ni.id='setNick';ni.maxLength=24;ni.value=SAVE.nick||'';ni.addEventListener('keydown',e=>e.stopPropagation());ni.onchange=()=>{SAVE.nick=ni.value.trim().slice(0,24)||'Gast';persist();GAME.onAvatarChanged()};n.append(ni);w.body.append(n);
+    sl('Musik','music');sl('Geräusche','sfx');sl('Stimmen','voice');
+    /* Grafik: drei Stufen oder automatisch (kurzer Test, was dieser Computer schafft) */if(typeof PERF!=='undefined'){const g=el('div','f');g.append(el('span',null,'Grafik'));const seg=el('div','seg');const NM={hoch:'hoch',schnell:'schnell',spar:'sparsam'};
+      const draw=()=>{seg.replaceChildren(...PERF.TIERS.map(t=>{const b=btn(NM[t],'',()=>{PERF.setTier(t,'user');draw()});b.setAttribute('aria-pressed',PERF.tier===t);return b}))};draw();g.append(seg);
+      g.append(btn('Grafik automatisch einstellen','small',()=>{const r=PERF.auto();draw();UI.toast(I18N.t('Grafik neu gemessen:')+' '+I18N.t(NM[r.tier]),2800)}));w.body.append(g)}const n=el('label','f','Dein Name');const ni=el('input');ni.type='text';ni.id='setNick';ni.maxLength=24;ni.value=SAVE.nick||'';ni.addEventListener('keydown',e=>e.stopPropagation());ni.onchange=()=>{SAVE.nick=ni.value.trim().slice(0,24)||'Gast';persist();GAME.onAvatarChanged()};n.append(ni);w.body.append(n);
     /* Mehrspieler-Code (nur ausserhalb von claude.ai): gleicher Code = gleiche Welt */if(typeof NET!=='undefined'&&!NET.inClaude()){const l=el('label','f','Mehrspieler-Code');const ci=el('input');ci.type='text';ci.id='setMpCode';ci.maxLength=40;ci.value=NET.code();ci.autocomplete='off';ci.addEventListener('keydown',e=>e.stopPropagation());
       ci.onchange=()=>{const v=ci.value.trim()||NET.DEFAULT;ci.value=v.toLowerCase();NET.reconnect(v);UI.toast((typeof I18N!=='undefined'?I18N.t('Neuer Mehrspieler-Code'):'Neuer Mehrspieler-Code')+': '+ci.value,2600)};l.append(ci);w.body.append(l);
       if(typeof PWA!=='undefined'&&PWA.canInstall&&!PWA.installed){w.body.append(btn('Als App auf diesem PC installieren','',async()=>{const ok=await PWA.install();UI.toast(ok?'Installiert. Du findest Cyborg-Labor jetzt bei deinen Apps.':'Nicht installiert.',2800)}))}
@@ -109,16 +112,18 @@ const MAIN=(()=>{
     const rs=btn('Spielstand zurücksetzen','danger');UI.armed(rs,'Wirklich alles löschen?',()=>{LS.set(SAVE_KEY,null);SAVE=newSave();persist();location.reload()});w.foot.append(rs)}
   /* ---------- Kopfzeile ---------- */
   const sb=$('btnSound');const updSound=()=>{sb.setAttribute('aria-pressed',SND.st.on);sb.querySelector('.lb').textContent=SND.st.on?' Ton':' stumm';sb.firstChild.textContent=SND.st.on?'♪':'✕'};updSound();sb.onclick=()=>{SND.init();SND.set('on',!SND.st.on);updSound()};
-  const qb=$('btnQual');const updQ=()=>{qb.setAttribute('aria-pressed',HIGH);qb.querySelector('.lb').textContent=HIGH?' Grafik hoch':' Grafik schnell'};updQ();qb.onclick=()=>{HIGH=!HIGH;LS.set('cyborg-labor-grafik',HIGH?'hoch':'schnell');updQ();LAB.quality();if(worldReady)GAME.quality()};
+  const qb=$('btnQual');const updQ=()=>{if(typeof PERF!=='undefined'){PERF.updBtn();return}qb.setAttribute('aria-pressed',HIGH);qb.querySelector('.lb').textContent=HIGH?' Grafik hoch':' Grafik schnell'};updQ();
+  /* Grafik-Knopf: hoch → schnell → sparsam → hoch (eigene Wahl gilt dann immer) */
+  qb.onclick=()=>{if(typeof PERF!=='undefined'){const T_=PERF.TIERS;PERF.setTier(T_[(T_.indexOf(PERF.tier)+1)%T_.length],'user');return}HIGH=!HIGH;LS.set('cyborg-labor-grafik',HIGH?'hoch':'schnell');updQ();LAB.quality();if(worldReady)GAME.quality()};
   new ResizeObserver(()=>LAB.resize()).observe($('labStage'));new ResizeObserver(()=>{if(tab==='world'){GAME.resize();INTERIOR.resize()}}).observe($('world'));
   document.addEventListener('pointerdown',()=>SND.init(),{once:true});document.addEventListener('keydown',()=>SND.init(),{once:true});
   /* ---------- Schleife ---------- */
   const clock=new THREE.Clock();let fpsT=0,frames=0;
   function loop(){requestAnimationFrame(loop);const dt=Math.min(.05,clock.getDelta());const t=clock.elapsedTime;UI.pumpThumbs();
     try{if(typeof PERF!=='undefined')PERF.frame(tab==='world'&&worldReady&&GAME.mode==='outdoor');if(tab==='lab')LAB.frame(dt,t);else if(worldReady){GAME.frame(dt,t);if(typeof PIKO!=='undefined')PIKO.frame(dt,t);if(typeof WSTORY!=='undefined')WSTORY.frame(dt);if(typeof WSTORY2!=='undefined')WSTORY2.frame(dt)}}catch(e){console.error(e)}
-    /* automatische Qualitätsanpassung bei sehr langsamen Geräten */fpsT+=dt;frames++;if(fpsT>6){const fps=frames/fpsT;fpsT=0;frames=0;if(fps<22&&HIGH&&tab==='world'){HIGH=false;updQ();LAB.quality();GAME.quality();UI.toast('Grafik auf «schnell» gestellt, damit es flüssig läuft.')}}}
+    /* automatische Qualitätsanpassung: perf.js */}
   function boot(){renderBody();renderParts();renderCards();renderChecklist();LAB.rebuild();LAB.resize();UI.hud();loop();setTimeout(()=>{$('loading').style.opacity='0';setTimeout(()=>$('loading').hidden=true,500)},250);
     /* Startbildschirm: Spielen (Schüler:innen) oder Beamer-Ansicht (Lehrperson) */START.show()}
-  return{setTab,phone,map:()=>mapApp(),settings:settingsApp,importCodes,exportWorld,boot,get tab(){return tab}};
+  return{setTab,phone,map:()=>mapApp(),settings:settingsApp,importCodes,exportWorld,boot,get tab(){return tab},get worldReady(){return worldReady}};
 })();
 MAIN.boot();

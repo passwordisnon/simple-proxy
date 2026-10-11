@@ -71,7 +71,7 @@ void main(){vec3 c=texture2D(tColor,vUv).rgb;
     const a=new THREE.WebGLRenderTarget(w,h,{type:THREE.HalfFloatType}),b=new THREE.WebGLRenderTarget(w,h,{type:THREE.HalfFloatType});
     const bloom=typeof THREE.UnrealBloomPass==='function'?new THREE.UnrealBloomPass(new THREE.Vector2(w/2,h/2),.28,.45,.92):null;
     const ao=new THREE.WebGLRenderTarget(Math.max(2,w>>1),Math.max(2,h>>1),{type:THREE.HalfFloatType});T=P[R.id]={w,h,scene,a,b,bloom,ao};return T}
-  let enabled=true;const t0=performance.now();
+  let enabled=!(typeof PERF!=='undefined'&&PERF.spar);const t0=performance.now();
   /* opts: {fog:Color, near, far, tilt, bloom} – je Szene anpassbar */
   function render(R,scene,cam,o){o=o||{};const sz=R.getDrawingBufferSize(new THREE.Vector2());const w=Math.max(4,sz.x|0),h=Math.max(4,sz.y|0);const T=targets(R,w,h);const t=(performance.now()-t0)/1000;
     R.setRenderTarget(T.scene);R.clear();R.render(scene,cam);
