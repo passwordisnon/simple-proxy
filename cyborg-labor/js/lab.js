@@ -126,7 +126,7 @@ function renderCards(){
       const wm=el('details','more');wm.append(el('summary',null,'mehr'),ideaRow(ws.slice(5).map(w=>w.t),t=>{setField(fw.i,TT(t));const w=ws.find(x=>x.t===t);if(w&&w.other&&cb&&!cb.checked){cb.checked=true;inf.other=true;afterInfo()}},'small'));fw.l.append(wm);
       ma.l.append(ideaRow(IDEEN.maker(S,a.key),t=>setField(ma.i,TT(t)),'small'))}
     const r2=el('div','row');r2.append(fw.l,ma.l);c.append(r2);
-    const bl=el('label','f','Welche Grenze verwischt es?');const sel=el('select');sel.id='f-'+a.key+'-boundary';sel.append(new Option('– wählen –',''));BOUNDARIES.forEach(b=>sel.append(new Option(b,b)));sel.value=inf.boundary||'';sel.onchange=()=>{inf.boundary=sel.value;afterInfo()};bl.append(sel);
+    const bl=el('label','f','Welche Grenze verwischt es?');const sel=el('select');sel.id='f-'+a.key+'-boundary';/* Auswahllisten übersetzt die Seite nicht von selbst */sel.append(new Option(TT('– wählen –'),''));BOUNDARIES.forEach(b=>sel.append(new Option(TT(b),b)));sel.value=inf.boundary||'';sel.onchange=()=>{inf.boundary=sel.value;afterInfo()};bl.append(sel);
     if(hasIdeas){const sug=IDEEN.boundary(S,a.key);if(sug&&BOUNDARIES.includes(sug)){const r=ideaRow([sug],()=>{sel.value=sug;inf.boundary=sug;afterInfo()},'small');r.prepend(el('span','sub','Vorschlag:'));bl.append(r)}}
     c.append(bl);
     const ck=el('label','check');cb=el('input');cb.type='checkbox';cb.id='f-'+a.key+'-other';cb.checked=!!inf.other;cb.onchange=()=>{inf.other=cb.checked;afterInfo()};ck.append(cb,document.createTextNode('Dient einer anderen Art'));c.append(ck);
@@ -142,6 +142,7 @@ function renderStatementIdeas(){const host=$('stIdeas');if(!host||typeof IDEEN==
   const r2=el('div','f');r2.append(el('span','sub','2. Wir sind für sie verantwortlich, weil …'),ideaRow(IDEEN.weil(),t=>{stW=t;compose()},'small'));
   const q=el('details','more');q.append(el('summary',null,'Haraway-Zitate zum Nachdenken'),ideaRow(IDEEN.quotes(),t=>{const add=' '+TT(t);if((ta.value+add).length<=400){ta.value=(ta.value.trim()+add).trim();S.statement=ta.value;renderChecklist();saveDraft()}},'small quotes'));
   host.append(r1,r2,q)}
+/* Sprachwechsel: Karten neu zeichnen (Auswahllisten und eingefügte Vorschläge) */if(typeof I18N!=='undefined'&&I18N.on)I18N.on(()=>{try{renderCards()}catch(e){}});
 function afterInfo(){document.querySelectorAll('.pcard').forEach(c=>{const i=S.info[c.dataset.key];c.classList.toggle('done',!!i&&!i.skip&&(i.func||'').trim().length>=3)});renderChecklist();saveDraft()}
 function checks(){const keys=activeKeys(S).map(a=>a.key);const filled=keys.filter(k=>!S.info[k]?.skip&&(S.info[k]?.func||'').trim().length>=3);
   return[{ok:S.name.trim().length>0,t:'Der Cyborg hat einen Namen'},{ok:filled.length>=4,t:`Mindestens vier Teile mit Funktion (${Math.min(filled.length,4)}/4)`},

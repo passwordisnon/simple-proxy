@@ -587,7 +587,7 @@ const GAME=(()=>{
     promptTarget=busy||viewer||document.querySelector('.bubmenu')?null:findTarget();const pr=$('prompt');if(promptTarget&&!UI.anyOpen()){pr.hidden=false;pr.innerHTML='';const k=el('kbd',null,'E');pr.append(k,document.createTextNode(promptTarget.label));$('hbA').textContent=shortLabel(promptTarget)}else{pr.hidden=true;$('hbA').textContent='Hüpfen'}
     if(G_.lod)PLANETLOD.update(cam.position,HIGH?4:SPAR()?1.7:2.5);if(G_.stream)SCATTER.stream(overview?cam.position.clone().normalize():(me?me.p:UPV),HIGH?5:SPAR()?2:3);
     if(typeof LOOK!=='undefined'&&LOOK.enabled){const fg=scene.fog;LOOK.render(R,scene,cam,{fog:fg&&fg.color,fogNear:fg?Math.max(40,fg.near*1.2):60,fogFar:fg?fg.far*1.1:220,fogAmt:overview?0:.45,night:G_.night||0,tilt:overview?.3:(HIGH?.8:0),bloom:HIGH,ao:HIGH?.65:.5,ink:.7})}
-    else if(HIGH)comp.render();else R.render(scene,cam);labels();hideGhost()}
+    else if(HIGH)comp.render();else R.render(scene,cam);labels();hideGhost();farCull(dt)}
   /* Kamera-Kollision: Strahl vom Kopf zur Wunschposition gegen nahe Gebäude; Kamera rückt vor die Wand (schnell rein, langsam wieder raus) und bleibt über dem Boden */
   const _rc=new THREE.Raycaster();let camClip=99;
   function camCollide(target,want,dt){const dir=want.clone().sub(target);const L=dir.length();if(L<.01)return want;dir.divideScalar(L);const objs=[];
@@ -625,6 +625,11 @@ const GAME=(()=>{
     G_.scene.background=G_.skyT;
     G_.sunBase=num(4);G_.sun.color.copy(col(3,'#fff3de'));G_.hemiBase=num(6);G_.hemi.color.copy(col(5,'#dff1ff'));G_.stars.material.opacity=G_.night;G_.fogBase=col(7,def.fog);
     if(typeof WEATHER==='undefined'){G_.sun.intensity=G_.sunBase;G_.hemi.intensity=G_.hemiBase;G_.scene.fog.color.copy(G_.fogBase)}}
+  /* ---------- Ferne Figuren ausblenden (schwache Rechner): jede Figur hat ~30 000 Dreiecke ---------- */
+  let cullT=0;function farCull(dt){cullT-=dt;if(cullT>0||!me)return;cullT=.5;const lim=HIGH?0:SPAR()?35:60;
+    for(const e of ents.values()){if(e===me)continue;const far=lim>0&&!overview&&angle(e.p,me.p)*G_.R>lim;
+      if(far&&e.g.visible){e.g.visible=false;if(e.shadow)e.shadow.visible=false;e._farHid=true}
+      else if(!far&&e._farHid){e._farHid=false;e.g.visible=true;if(e.shadow)e.shadow.visible=true}}}
   /* ---------- Namensschilder & Sprechblasen ---------- */
   const tV=new V3();
   function labels(){const w=canvas.clientWidth,h=canvas.clientHeight;const camN=cam.position.clone().normalize();for(const e of ents.values()){const near=overview?e.p.dot(camN)>.3:me&&(e===me||angle(e.p,me.p)*G_.R<16);const show=e.g.visible&&near;
