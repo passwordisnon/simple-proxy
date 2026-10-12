@@ -1,0 +1,11 @@
+<!doctype html><meta charset="utf-8"><title>p2p</title><pre id="o"></pre>
+<script src="../js/vendor/trystero-nostr.js"></script>
+<script>
+const q=new URLSearchParams(location.search);const log=[];const L=s=>{log.push(((performance.now()/1000)|0)+'s '+s);document.getElementById('o').textContent=log.join('\n')};
+const room=TRYSTERO.joinRoom({appId:'cyborg-labor-test',password:'x',relayConfig:{urls:['wss://nos.lol','wss://relay.damus.io','wss://relay.primal.net','wss://nostr.mom','wss://nostr.oxtr.dev','wss://cdn.satellite.earth','wss://offchain.pub','wss://relay.nostr.net'],redundancy:8}},q.get('r')||'mini');
+const a=room.makeAction('hi');a.onMessage=(d,c)=>L('msg '+d+' von '+c.peerId.slice(0,6));
+room.onPeerJoin=id=>{L('join '+id.slice(0,6));a.send('hallo '+TRYSTERO.selfId.slice(0,6)).catch(e=>L('send err '+e.message))};
+room.onPeerLeave=id=>L('leave '+id.slice(0,6));
+setInterval(()=>{try{const s=TRYSTERO.getRelaySockets();const st={};for(const[k,w]of Object.entries(s))st[w.readyState]=(st[w.readyState]||0)+1;window.__relays=st}catch(e){window.__relays=e.message}},1000);
+window.__log=log;
+</script>

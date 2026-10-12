@@ -1,0 +1,24 @@
+<!doctype html><html><head><meta charset="utf8"><title>fauna</title>
+<style>body{margin:0;background:#f4ecff;font:12px sans-serif}#out{display:grid;grid-template-columns:repeat(6,220px);gap:6px;padding:6px}figure{margin:0;background:linear-gradient(#e8f6ff,#fff3e2);border-radius:10px;text-align:center}figure img{width:220px;height:220px;display:block}figcaption{padding:2px 0 5px;font-weight:bold;color:#3b3450}</style>
+</head><body><div id="out"></div>
+<script src="vendor/three.min.js"></script>
+<script src="vendor/ex/RoundedBoxGeometry.js"></script>
+<script src="vendor/ex/BufferGeometryUtils.js"></script>
+<script src="../js/core.js"></script>
+<script src="../js/nature.js"></script>
+<script src="../js/nature2.js"></script>
+<script>const UI={objThumb(){}};function el(){return document.createElement('div')}</script>
+<script>function hashStr(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return(h>>>0).toString(36)}</script><script src="../js/furniture.js"></script><script src="../js/town.js"></script><script src="../js/arch.js"></script>
+<script>
+const qs=new URLSearchParams(location.search);const errors=[];window.addEventListener('error',e=>errors.push(String(e.message)));
+const W=380;const c=document.createElement('canvas');const r=new THREE.WebGLRenderer({canvas:c,antialias:true,alpha:true,preserveDrawingBuffer:true});r.setSize(W,W,false);r.outputEncoding=THREE.sRGBEncoding;
+const sc=new THREE.Scene();cozyLights(sc);const cam=new THREE.PerspectiveCamera(30,1,.01,100);const M=makeMats({skin:'haut',color:0});
+const HIGH=true;const pids=(qs.get('p')||'kompost,schrott,korallen,frost,wueste,pilz').split(',');let n=0;
+for(const pid of pids)for(const k of (qs.get('k')?qs.get('k').split(','):ARCH.recipes(pid))){let url='';n++;try{QF=.7;const res=ARCH.make(pid,k,+(qs.get('seed')||7),{});const g=res.g;QF=1;addOutlines(g);if(g.userData.tick)g.userData.tick(1);g.updateMatrixWorld(true);sc.add(g);
+  const box=new THREE.Box3().setFromObject(g);const ctr=box.getCenter(new THREE.Vector3()),sz=box.getSize(new THREE.Vector3());const rad=Math.max(sz.x,sz.y,sz.z)*.6+.05;
+  const dir=new THREE.Vector3(.7,.45,1).normalize();cam.position.copy(ctr).addScaledVector(dir,rad/Math.tan(15*Math.PI/180));cam.lookAt(ctr);cam.near=rad*.05;cam.far=rad*30;cam.updateProjectionMatrix();
+  r.render(sc,cam);url=c.toDataURL('image/png');sc.remove(g)}catch(e){errors.push(pid+'/'+k+': '+e.message)}
+  const f=document.createElement('figure');const im=new Image();im.src=url;const cap=document.createElement('figcaption');cap.textContent=pid+' '+k;f.append(im,cap);document.getElementById('out').append(f)}
+const keys=[];
+window.__done={errors,count:n,total:n};
+</script></body></html>

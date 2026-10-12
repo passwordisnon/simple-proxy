@@ -1,0 +1,29 @@
+<!doctype html><html><head><meta charset="utf8"><title>arten</title>
+<style>body{margin:0;background:#f4ecff;font:12px sans-serif}#out{display:grid;grid-template-columns:repeat(8,160px);gap:6px;padding:6px}figure{margin:0;background:linear-gradient(#e8f6ff,#fff3e2);border-radius:10px;text-align:center}figure img{width:160px;height:160px;display:block}figcaption{padding:2px 0 5px;font-weight:bold;color:#3b3450}</style>
+</head><body><div id="out"></div>
+<script src="vendor/three.min.js"></script>
+<script src="vendor/ex/RoundedBoxGeometry.js"></script>
+<script src="vendor/ex/BufferGeometryUtils.js"></script>
+<script src="../js/core.js"></script>
+<script src="../js/nature.js"></script>
+<script src="../js/nature2.js"></script>
+<script src="../js/arten2.js"></script>
+<script src="../js/arten3.js"></script>
+<script src="../js/arten4.js"></script>
+<script src="../js/arten5.js"></script>
+<script src="../js/arten6.js"></script>
+<script src="../js/arten7.js"></script>
+<script>
+const qs=new URLSearchParams(location.search);const errors=[];window.addEventListener('error',e=>errors.push(String(e.message)));
+const W=380;const c=document.createElement('canvas');const r=new THREE.WebGLRenderer({canvas:c,antialias:true,alpha:true,preserveDrawingBuffer:true});r.setSize(W,W,false);r.outputEncoding=THREE.sRGBEncoding;
+const sc=new THREE.Scene();cozyLights(sc);const cam=new THREE.PerspectiveCamera(30,1,.01,100);const M=makeMats({skin:'haut',color:0});
+/* Arten aus FISH und BUGS: ?pl=planet oder ?ids=a,b oder ?from=&n= */
+const ALL=FISH.concat(BUGS);const pl=qs.get('pl');const ids=qs.get('ids');
+let list=qs.get('neu')?ALL.filter(x=>ARTEN3.IDS.includes(x.id)&&(!pl||pl.split(',').includes(x.planet))):ids?ids.split(',').map(i=>ALL.find(x=>x.id===i)).filter(Boolean):pl?ALL.filter(x=>pl.split(',').includes(x.planet)):ALL;const from=+(qs.get('from')||0),n=+(qs.get('n')||70);list=list.slice(from,from+n);
+for(const x of list){let url='';try{QF=+(qs.get('q')||.6);const g=new THREE.Group();x.b(g,M,{},srand(1));QF=1;addOutlines(g);g.updateMatrixWorld(true);sc.add(g);
+  const box=new THREE.Box3().setFromObject(g);const ctr=box.getCenter(new THREE.Vector3()),sz=box.getSize(new THREE.Vector3());const rad=Math.max(sz.x,sz.y,sz.z)*.62+.05;
+  const dir=new THREE.Vector3(1,.45,.55).normalize();cam.position.copy(ctr).addScaledVector(dir,rad/Math.tan(15*Math.PI/180));cam.lookAt(ctr);cam.near=rad*.05;cam.far=rad*30;cam.updateProjectionMatrix();
+  r.render(sc,cam);url=c.toDataURL('image/png');sc.remove(g)}catch(e){errors.push(x.id+': '+e.message)}
+  const f=document.createElement('figure');const im=new Image();im.src=url;const cap=document.createElement('figcaption');cap.textContent=x.n+' ('+x.planet+')';f.append(im,cap);document.getElementById('out').append(f)}
+window.__done={errors,count:list.length,total:ALL.length};
+</script></body></html>
