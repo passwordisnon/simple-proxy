@@ -15,13 +15,15 @@
    weniger Streuobjekte und kürzere Sichtweite, keine Lampenlichter.
    ===================================================================== */
 const PERF=(()=>{
-  const KS='cyborg-labor-scale',KQ='cyborg-labor-grafik',KB='cyborg-labor-bench',BV=2;
+  const KS='cyborg-labor-scale',KQ='cyborg-labor-grafik',KB='cyborg-labor-bench',BV=3;
   const TIERS=['hoch','schnell','spar'];
   const lsGet=k=>{try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}};
   const lsSet=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
   let scale=1;try{const v=parseFloat(localStorage.getItem(KS));if(v>=.5&&v<=1)scale=v}catch(e){}
-  let frames=0,acc=0,warm=6,lastT=performance.now(),cool=0,slow=0;
-  const userChose=()=>{try{return localStorage.getItem(KQ)!==null&&localStorage.getItem('cyborg-labor-grafik-auto')!=='1'}catch(e){return true}};
+  let frames=0,acc=0,warm=6,lastT=performance.now(),cool=0,slow=0,vslow=0;
+  /* Nur eine Wahl mit den neuen Knöpfen zählt als eigene Wahl (Merker '0'). Ältere gespeicherte Werte (frühere Versionen) gelten nicht,
+     sonst blieb z. B. ein alter Laptop auf «hoch» hängen. */
+  const userChose=()=>{try{return localStorage.getItem('cyborg-labor-grafik-auto')==='0'}catch(e){return false}};
   const save=()=>{try{localStorage.setItem(KS,String(scale))}catch(e){}};
   /* ---------- 1. Grafik-Test ---------- */
   function bench(){const t0=performance.now();const out={v:BV,ok:true,gpu:'',ms:0,soft:false,cores:navigator.hardwareConcurrency||0,mem:navigator.deviceMemory||0,touch:matchMedia('(pointer:coarse)').matches};
@@ -52,6 +54,8 @@ const PERF=(()=>{
     let t=b.ms<=4.5?'hoch':b.ms<=14?'schnell':'spar';
     /* wenige Kerne oder wenig Speicher: höchstens «schnell»; Telefone und Tablets ebenso */
     if(t==='hoch'&&((b.cores&&b.cores<=4)||(b.mem&&b.mem<=4)||b.touch))t='schnell';
+    /* eingebaute Intel-Grafik (ältere MacBooks und Laptops): höchstens «schnell» */
+    if(t==='hoch'&&/intel/i.test(b.gpu)&&!/arc/i.test(b.gpu))t='schnell';
     if(t==='schnell'&&b.cores&&b.cores<=2&&b.ms>8)t='spar';return t}
   /* Messung: einmal je Rechner/Grafikchip, dann gespeichert */
   let B=lsGet(KB);
@@ -59,6 +63,8 @@ const PERF=(()=>{
   let fresh=false;if(!B||B.v!==BV||B.gpu!==gpuNow){B=bench();B.tier=tierFor(B);lsSet(KB,B);fresh=true}
   /* gewählte Stufe: eigene Wahl vor Messung */
   let tier=B.tier||'schnell';{const q=lsGet(KQ);if(q&&TIERS.includes(q)&&userChose())tier=q}
+  /* gespeicherte Stufe passt nicht zur Messung (alte Version): einmal angleichen und kurz Bescheid sagen */
+  if(!fresh&&!userChose()&&lsGet(KQ)!==tier)fresh=true;
   if(fresh&&!userChose()){lsSet(KQ,tier);try{localStorage.setItem('cyborg-labor-grafik-auto','1')}catch(e){}if(tier==='spar'&&scale>.75){scale=.75;save()}}
   function relayout(){try{if(typeof GAME!=='undefined'&&GAME.resize)GAME.resize();if(typeof INTERIOR!=='undefined'&&INTERIOR.resize)INTERIOR.resize();if(typeof LAB!=='undefined'&&LAB.resize)LAB.resize()}catch(e){}}
   const LABEL={hoch:' Grafik hoch',schnell:' Grafik schnell',spar:' Grafik sparsam'};
@@ -78,6 +84,8 @@ const PERF=(()=>{
     const fps=frames*1000/acc;frames=0;acc=0;
     if(cool>0){cool--;return}
     const auto_=!userChose();
+    /* viel zu langsam (unter 18 Bildern, dreimal hintereinander): auch nach eigener Wahl eine Stufe runter */
+    if(fps<18&&tier!=='spar'){vslow++;if(vslow>=3){vslow=0;setTier(tier==='hoch'?'schnell':'spar','auto');toast('Das Spiel war zu langsam. Die Grafik ist jetzt eine Stufe tiefer. Oben rechts kannst du es ändern.');warm=8;cool=1;return}}else vslow=0;
     if(tier==='hoch'&&fps<40&&auto_){setTier('schnell','auto');toast('Die Grafik läuft jetzt auf «schnell», damit das Spiel flüssig bleibt. Oben rechts kannst du es ändern.');warm=8;cool=1;return}
     if(tier!=='hoch'&&fps<28&&scale>.6){scale=Math.max(.6,+(scale-.15).toFixed(2));save();relayout();cool=1;return}
     if(tier==='schnell'&&fps<20&&auto_){slow++;if(slow>=2){slow=0;setTier('spar','auto');toast('Dein Computer hat viel zu tun. Die Grafik läuft jetzt sparsam, damit das Spiel flüssig bleibt.');warm=8;cool=1}return}
@@ -88,7 +96,7 @@ const PERF=(()=>{
     'Dein Computer hat viel zu tun. Die Grafik läuft jetzt sparsam, damit das Spiel flüssig bleibt.':'Your computer is very busy. Graphics are now set to “economy” so the game stays smooth.',
     'Grafik an deinen Computer angepasst: hoch.':'Graphics adjusted to your computer: high.','Grafik an deinen Computer angepasst: schnell.':'Graphics adjusted to your computer: fast.',
     'Grafik an deinen Computer angepasst: sparsam. So läuft das Spiel auch auf älteren Computern.':'Graphics adjusted to your computer: economy. This way the game runs on older computers too.',
-    ' Grafik sparsam':' Graphics economy','Grafik sparsam':'Graphics economy','Grafik automatisch einstellen':'Set graphics automatically','Grafik neu gemessen:':'Graphics measured again:','hoch':'high','schnell':'fast','sparsam':'economy','Grafik':'Graphics'})}catch(e){}
+    ' Grafik sparsam':' Graphics economy','Grafik sparsam':'Graphics economy','Grafik automatisch einstellen':'Set graphics automatically','Grafik neu gemessen:':'Graphics measured again:','hoch':'high','schnell':'fast','sparsam':'economy','Grafik':'Graphics','Das Spiel war zu langsam. Die Grafik ist jetzt eine Stufe tiefer. Oben rechts kannst du es ändern.':'The game was too slow. Graphics are now one level lower. You can change this at the top right.'})}catch(e){}
   return{frame,setTier,auto,updBtn,get tier(){return tier},get bench(){return B},get spar(){return tier==='spar'},TIERS,LABEL,
     debug:()=>({frames,acc:Math.round(acc),warm:+warm.toFixed(1),cool,tier,B}),get scale(){return scale},set scale(v){scale=Math.max(.5,Math.min(1,v));save();relayout()}};
 })();
