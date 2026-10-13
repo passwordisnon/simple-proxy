@@ -118,14 +118,15 @@ You need Unreal Engine 5.5+ (Epic Games Launcher) and Xcode.
 1. Create a new **C++** project (Blank template), e.g. `Spore2`.
 2. Copy `spore2/Plugins/Spore2Interop` into `<YourProject>/Plugins/`.
 3. Regenerate project files, then build from Xcode or the editor.
-4. Optionally set the scan paths in `Config/DefaultGame.ini`:
+4. By default the plugin reads `~/SporeData/Base`, `~/SporeData/CreepyCute` and
+   `~/SporeData/GalacticAdventures` (the Data folders copied out of the disc images; missing ones
+   are skipped) and the name lists in `~/SporeData/names`. To use other folders, set them in
+   `Config/DefaultGame.ini`:
    ```ini
    [/Script/Spore2Interop.SporeInteropSubsystem]
-   +InstallRoots=/Volumes/Macintosh SD/Spore.2008.EA
-   +InstallRoots=/Volumes/Macintosh SD/Spore.Creepy.&.Cute.Parts.Pack.2008.EA
-   +InstallRoots=/Volumes/Macintosh SD/Spore.Galactic.Adventures.Expansion.Pack.2009.EA
+   +InstallRoots=/Users/<you>/SporeData/Base
    ModsFolder=/Users/<you>/Documents/My Spore Creations/Mods
-   NameRegistryFolder=/Applications/SporeModder FX
+   NameRegistryFolder=/Users/<you>/SporeData/names
    ```
 5. In the Level Blueprint's BeginPlay: *Get Game Instance Subsystem (SporeInteropSubsystem)* →
    *Open Package Browser* (Player Controller 0). Press Play. The browser mounts everything and lists it.

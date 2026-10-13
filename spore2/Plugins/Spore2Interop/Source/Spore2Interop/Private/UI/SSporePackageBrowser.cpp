@@ -289,7 +289,7 @@ TSharedRef<SWidget> SSporePackageBrowser::MakeCategoryTab(ESporeBrowserCategory 
 		.Padding(FMargin(0.0f, 0.0f, 4.0f, 0.0f))
 		[
 			SNew(SCheckBox)
-			.Style(FAppStyle::Get(), "ToggleButtonCheckbox")
+			.Style(&FAppStyle::Get(), "ToggleButtonCheckbox")
 			.IsChecked_Lambda([this, Category]() { return ActiveCategory == Category ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; })
 			.OnCheckStateChanged_Lambda([this, Category](ECheckBoxState)
 			{

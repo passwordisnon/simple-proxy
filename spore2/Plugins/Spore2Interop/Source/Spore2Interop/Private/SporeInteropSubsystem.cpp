@@ -86,11 +86,22 @@ void USporeInteropSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 	if (InstallRoots.IsEmpty())
 	{
+		// The game Data folders copied out of the disc images (the disc folders hold only .iso files).
+		const FString SporeData = FPaths::Combine(FPlatformProcess::UserHomeDir(), TEXT("SporeData"));
 		InstallRoots = {
-			TEXT("/Volumes/Macintosh SD/Spore.2008.EA"),
-			TEXT("/Volumes/Macintosh SD/Spore.Creepy.&.Cute.Parts.Pack.2008.EA"),
-			TEXT("/Volumes/Macintosh SD/Spore.Galactic.Adventures.Expansion.Pack.2009.EA"),
+			FPaths::Combine(SporeData, TEXT("Base")),
+			FPaths::Combine(SporeData, TEXT("CreepyCute")),
+			FPaths::Combine(SporeData, TEXT("GalacticAdventures")),
 		};
+	}
+	if (NameRegistryFolder.IsEmpty())
+	{
+		// Where check-my-install.sh downloads SporeModder-FX's reg_*.txt name lists.
+		const FString Names = FPaths::Combine(FPlatformProcess::UserHomeDir(), TEXT("SporeData"), TEXT("names"));
+		if (FPaths::FileExists(FPaths::Combine(Names, TEXT("reg_file.txt"))))
+		{
+			NameRegistryFolder = Names;
+		}
 	}
 	if (ModsFolder.IsEmpty())
 	{
@@ -392,17 +403,17 @@ FString USporeInteropSubsystem::DescribeRw4(const FSporeResourceKey& Key) const
 		Triangles += Mesh.Indices.size() / 3;
 		Vertices += Mesh.VertexCount();
 	}
-	FString Summary = FString::Printf(TEXT("RenderWare 4: %d mesh(es), %llu vertices, %llu triangles"), static_cast<int32>(Info.Meshes.size()),
+	FString Description = FString::Printf(TEXT("RenderWare 4: %d mesh(es), %llu vertices, %llu triangles"), static_cast<int32>(Info.Meshes.size()),
 		static_cast<unsigned long long>(Vertices), static_cast<unsigned long long>(Triangles));
 	if (Info.SkippedMeshes > 0)
 	{
-		Summary += FString::Printf(TEXT(" (%u skipped)"), Info.SkippedMeshes);
+		Description += FString::Printf(TEXT(" (%u skipped)"), Info.SkippedMeshes);
 	}
 	for (const sporecore::TextureImage& Image : Info.Textures)
 	{
-		Summary += FString::Printf(TEXT("\nTexture: %s %ux%u"), UTF8_TO_TCHAR(sporecore::TextureFormatName(Image.Format).c_str()), Image.Width, Image.Height);
+		Description += FString::Printf(TEXT("\nTexture: %s %ux%u"), UTF8_TO_TCHAR(sporecore::TextureFormatName(Image.Format).c_str()), Image.Width, Image.Height);
 	}
-	return Summary;
+	return Description;
 }
 
 FString USporeInteropSubsystem::DescribeSporeTexture(const FSporeResourceKey& Key) const

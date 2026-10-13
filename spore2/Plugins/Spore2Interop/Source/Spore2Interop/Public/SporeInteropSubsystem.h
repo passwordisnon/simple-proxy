@@ -210,7 +210,8 @@ public:
 	virtual void Deinitialize() override;
 
 	// Install roots scanned recursively for *.package, in mount order.
-	// Defaults to the three folders of the original setup; override in DefaultGame.ini.
+	// Defaults to ~/SporeData/{Base,CreepyCute,GalacticAdventures} (missing ones are skipped);
+	// override in DefaultGame.ini.
 	UPROPERTY(Config, EditAnywhere, BlueprintReadWrite, Category = "Spore|Mount")
 	TArray<FString> InstallRoots;
 
@@ -218,7 +219,7 @@ public:
 	UPROPERTY(Config, EditAnywhere, BlueprintReadWrite, Category = "Spore|Mount")
 	FString ModsFolder;
 
-	// Optional SporeModder-FX folder; its reg_property.txt / reg_type.txt give hashes readable names.
+	// Folder with SporeModder-FX's reg_*.txt name lists; defaults to ~/SporeData/names when present.
 	UPROPERTY(Config, EditAnywhere, BlueprintReadWrite, Category = "Spore|Mount")
 	FString NameRegistryFolder;
 
