@@ -113,6 +113,33 @@ struct SkeletonData
 	bool bHasBindPose = false;
 };
 
+// rw4 keyframe animation (SporeModder-FX RWKeyframeAnim 0x70001 / RWKeyframe). Each channel
+// animates one bone; keyframes carry whichever components the channel stores.
+struct AnimKeyframe
+{
+	float Time = 0.0f;
+	float Rotation[4] = {0, 0, 0, 1}; // quaternion as stored (x, y, z, w order assumed)
+	float Location[3] = {0, 0, 0};
+	float Scale[3] = {1, 1, 1};
+	float Factor = 0.0f;             // blend-factor channels only
+};
+
+struct AnimChannel
+{
+	uint32_t Id = 0;         // bone name hash
+	uint32_t Components = 0; // 0x601 rotation+location+scale, 0x101 rotation+location, 0x100 blend factor
+	std::vector<AnimKeyframe> Keys;
+};
+
+struct KeyframeAnimation
+{
+	uint32_t Id = 0;         // name hash from the file's animation list (0xFF0001), 0 if unlisted
+	uint32_t SkeletonId = 0;
+	float Length = 0.0f;     // seconds
+	uint32_t Flags = 0;      // meaning not documented; kept raw
+	std::vector<AnimChannel> Channels;
+};
+
 struct Rw4Info
 {
 	Rw4Kind Kind = Rw4Kind::Unknown;
@@ -124,6 +151,8 @@ struct Rw4Info
 	std::vector<std::string> MeshIssues;
 	uint32_t UnreadableMaterials = 0; // compiled states that could not be decoded
 	std::vector<SkeletonData> Skeletons;
+	std::vector<KeyframeAnimation> Animations;
+	uint32_t SkippedAnimations = 0; // keyframe animations with an unknown channel layout
 };
 
 // Wavefront OBJ text for one mesh (positions, UVs with V flipped, normals). When

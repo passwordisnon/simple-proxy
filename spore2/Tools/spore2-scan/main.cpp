@@ -283,6 +283,10 @@ struct ScanTotals
 	size_t SkeletonBones = 0;
 	size_t SkeletonsWithoutPose = 0;
 	size_t WeightedMeshes = 0;
+	size_t Animations = 0;
+	size_t AnimationChannels = 0;
+	size_t AnimationKeys = 0;
+	size_t AnimationsSkipped = 0;
 	uint64_t MeshVertices = 0;
 	uint64_t MeshTriangles = 0;
 	double NormalLengthSum = 0.0;
@@ -474,6 +478,13 @@ void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts
 				{
 					Totals.WeightedMeshes += Mesh.BoneIndices.empty() ? 0 : 1;
 					if (!Mesh.SkinIssue.empty()) ++Totals.MeshIssues[Mesh.SkinIssue + " (mesh kept without weights)"];
+				}
+				Totals.AnimationsSkipped += Info.SkippedAnimations;
+				for (const KeyframeAnimation& Animation : Info.Animations)
+				{
+					++Totals.Animations;
+					Totals.AnimationChannels += Animation.Channels.size();
+					for (const AnimChannel& Channel : Animation.Channels) Totals.AnimationKeys += Channel.Keys.size();
 				}
 				// Only skeletons with a bind pose are the meshes' skeletons; others are just counted.
 				for (SkeletonData& Skeleton : Info.Skeletons)
@@ -1053,6 +1064,7 @@ int main(int Argc, char** Argv)
 	if (Opts.bModels)
 	{
 		std::printf("  meshes:           %zu decoded (%zu skinned, %zu blend shape), %zu skipped\n", Totals.MeshesDecoded, Totals.SkinnedMeshes, Totals.BlendShapeMeshes, Totals.MeshesSkipped);
+		std::printf("  animations:       %zu keyframe animations (%zu channels, %zu keyframes), %zu skipped\n", Totals.Animations, Totals.AnimationChannels, Totals.AnimationKeys, Totals.AnimationsSkipped);
 		std::printf("  skeletons:        %zu with bind pose (%zu bones), %zu other skeleton sections; %zu meshes carry bone weights\n", Totals.Skeletons, Totals.SkeletonBones, Totals.SkeletonsWithoutPose, Totals.WeightedMeshes);
 		std::printf("  mesh geometry:    %llu vertices, %llu triangles\n", static_cast<unsigned long long>(Totals.MeshVertices), static_cast<unsigned long long>(Totals.MeshTriangles));
 		if (Totals.NormalCount > 0)

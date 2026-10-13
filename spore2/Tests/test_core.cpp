@@ -747,6 +747,56 @@ static void TestMeshes()
 		CHECK(Info.Skeletons.empty());
 	}
 
+	// Keyframe animation: list (0xFF0001) names section 6; two channels, LocRot (2 keys) then
+	// blend factor (2 keys followed by a lower time that ends the last channel).
+	{
+		std::vector<uint8_t> An = BuildMeshRw4(4, {0, 1, 2, 2, 1, 3}, 2);
+		An.resize(0x900, 0);
+		PutLE32(An, 0x24, 8);
+		PutLE32(An, 0x600, 0x640);       // channel names
+		PutLE32(An, 0x604, 2);
+		PutLE32(An, 0x608, FnvHash("test_skeleton"));
+		PutLE32(An, 0x614, 0x6E0);       // data end
+		PutLEFloat(An, 0x620, 1.5f);     // length
+		PutLE32(An, 0x62C, 0x650);       // channel info
+		PutLE32(An, 0x640, FnvHash("root"));
+		PutLE32(An, 0x644, FnvHash("blend"));
+		PutLE32(An, 0x650, 0x80); PutLE32(An, 0x654, 32); PutLE32(An, 0x658, 0x101);
+		PutLE32(An, 0x65C, 0xC0); PutLE32(An, 0x660, 8);  PutLE32(An, 0x664, 0x100);
+		for (int K = 0; K < 2; ++K)      // LocRot keys at 0x680
+		{
+			PutLEFloat(An, 0x680 + 32 * K + 12, 1.0f);              // w
+			PutLEFloat(An, 0x680 + 32 * K + 16, static_cast<float>(K)); // x location
+			PutLEFloat(An, 0x680 + 32 * K + 28, 0.5f * static_cast<float>(K));
+		}
+		PutLEFloat(An, 0x6C0, 0.25f); PutLEFloat(An, 0x6C4, 0.0f);
+		PutLEFloat(An, 0x6C8, 0.75f); PutLEFloat(An, 0x6CC, 1.5f);
+		PutLEFloat(An, 0x6D0, 9.0f);  PutLEFloat(An, 0x6D4, 0.1f); // time goes back -> not a key
+		PutLE32(An, 0x700, 0);           // 7: animation list
+		PutLE32(An, 0x704, 1);
+		PutLE32(An, 0x708, FnvHash("walk"));
+		PutLE32(An, 0x70C, 6);
+		PutSection(An, 0x300, 6, 0x600, 0xE0, 0x70001);
+		PutSection(An, 0x300, 7, 0x700, 16, 0xFF0001);
+		CHECK(ParseRw4(An.data(), An.size(), Info, Error));
+		CHECK(Info.Animations.size() == 1 && Info.SkippedAnimations == 0);
+		if (Info.Animations.size() == 1)
+		{
+			const KeyframeAnimation& A = Info.Animations[0];
+			CHECK(A.Id == FnvHash("walk") && A.SkeletonId == FnvHash("test_skeleton") && A.Length == 1.5f);
+			CHECK(A.Channels.size() == 2);
+			if (A.Channels.size() == 2)
+			{
+				CHECK(A.Channels[0].Id == FnvHash("root") && A.Channels[0].Keys.size() == 2);
+				CHECK(A.Channels[0].Keys.size() == 2 && A.Channels[0].Keys[1].Location[0] == 1.0f && A.Channels[0].Keys[1].Time == 0.5f && A.Channels[0].Keys[1].Rotation[3] == 1.0f);
+				CHECK(A.Channels[1].Keys.size() == 2 && A.Channels[1].Keys[1].Factor == 0.75f && A.Channels[1].Keys[1].Time == 1.5f);
+			}
+		}
+		PutLE32(An, 0x654, 30); // keyframe size not matching the components -> skipped
+		CHECK(ParseRw4(An.data(), An.size(), Info, Error));
+		CHECK(Info.Animations.empty() && Info.SkippedAnimations == 1);
+	}
+
 	// Strip 0,1,2,3 -> triangles (0,1,2) and (2,1,3).
 	std::vector<uint8_t> Strip = BuildMeshRw4(5, {0, 1, 2, 3}, 2);
 	CHECK(ParseRw4(Strip.data(), Strip.size(), Info, Error));

@@ -253,6 +253,8 @@ constexpr uint32_t Rw4TypeBlendShapeBuffer = 0x200AF;
 constexpr uint32_t Rw4TypeSkeleton = 0x70002;
 constexpr uint32_t Rw4TypeAnimationSkin = 0x70003;
 constexpr uint32_t Rw4TypeSkinsInK = 0x7000C;
+constexpr uint32_t Rw4TypeKeyframeAnim = 0x70001;
+constexpr uint32_t Rw4TypeAnimations = 0xFF0001;
 
 // Bounds-checked little-endian cursor over one section.
 struct Rw4Cursor
@@ -740,6 +742,84 @@ bool DecodeSkeleton(const uint8_t* Data, size_t Size, const std::vector<Rw4Secti
 	return true;
 }
 
+// Keyframe animation 0x70001 (SporeModder-FX RWKeyframeAnim.read): +0 file offset of channel
+// names, +4 channel count, +8 skeleton id, +20 file offset where channel data ends, +32 length,
+// +40 flags, +44 file offset of channel info (per channel: data offset relative to the section,
+// keyframe size, components). Channels are stored back to back; the last one runs until time
+// stops increasing (or the data end).
+bool DecodeKeyframeAnim(const uint8_t* Data, size_t Size, const Rw4Section& Section, KeyframeAnimation& Out)
+{
+	if (Section.Offset + 48 > Size) return false;
+	const uint8_t* A = Data + Section.Offset;
+	const uint32_t NamesAt = TexLE32(A), Count = TexLE32(A + 4), DataEnd = TexLE32(A + 20), InfoAt = TexLE32(A + 44);
+	if (Count == 0 || Count > 4096 || static_cast<uint64_t>(NamesAt) + 4ull * Count > Size || static_cast<uint64_t>(InfoAt) + 12ull * Count > Size) return false;
+	Out.SkeletonId = TexLE32(A + 8);
+	Out.Length = TexLEFloat(A + 32);
+	Out.Flags = TexLE32(A + 40);
+
+	auto KeySize = [](uint32_t Components) -> uint32_t
+	{
+		switch (Components)
+		{
+		case 0x601: return 48;
+		case 0x101: return 32;
+		case 0x100: return 8;
+		default: return 0;
+		}
+	};
+	auto ReadKey = [](const uint8_t* K, uint32_t Components, AnimKeyframe& Key)
+	{
+		if (Components == 0x100)
+		{
+			Key.Factor = TexLEFloat(K);
+			Key.Time = TexLEFloat(K + 4);
+			return;
+		}
+		for (int C = 0; C < 4; ++C) Key.Rotation[C] = TexLEFloat(K + 4 * C);
+		for (int C = 0; C < 3; ++C) Key.Location[C] = TexLEFloat(K + 16 + 4 * C);
+		if (Components == 0x601)
+		{
+			for (int C = 0; C < 3; ++C) Key.Scale[C] = TexLEFloat(K + 28 + 4 * C);
+			Key.Time = TexLEFloat(K + 44);
+		}
+		else
+		{
+			Key.Time = TexLEFloat(K + 28);
+		}
+	};
+
+	std::vector<uint64_t> Starts(Count);
+	Out.Channels.resize(Count);
+	for (uint32_t I = 0; I < Count; ++I)
+	{
+		const uint8_t* Info = Data + InfoAt + 12 * I;
+		AnimChannel& Channel = Out.Channels[I];
+		Channel.Id = TexLE32(Data + NamesAt + 4 * I);
+		Channel.Components = TexLE32(Info + 8);
+		Starts[I] = Section.Offset + TexLE32(Info);
+		if (KeySize(Channel.Components) == 0 || TexLE32(Info + 4) != KeySize(Channel.Components)) return false;
+	}
+	const uint64_t End = std::min<uint64_t>(DataEnd > Section.Offset ? DataEnd : Size, Size);
+	for (uint32_t I = 0; I < Count; ++I)
+	{
+		AnimChannel& Channel = Out.Channels[I];
+		const uint32_t Bytes = KeySize(Channel.Components);
+		const bool bLast = I + 1 == Count;
+		const uint64_t Limit = bLast ? End : Starts[I + 1];
+		if (Starts[I] > Limit) return false;
+		float LastTime = -1.0f;
+		for (uint64_t At = Starts[I]; At + Bytes <= Limit; At += Bytes)
+		{
+			AnimKeyframe Key;
+			ReadKey(Data + At, Channel.Components, Key);
+			if (bLast && Key.Time < LastTime) break; // past the last channel's keyframes
+			LastTime = Key.Time;
+			Channel.Keys.push_back(Key);
+		}
+	}
+	return true;
+}
+
 bool DecodeMesh(const uint8_t* Data, size_t Size, const std::vector<Rw4Section>& Sections, const Rw4Section& MeshSection, MeshData& Out, std::string& Issue)
 {
 	const uint8_t* M = Data + MeshSection.Offset;
@@ -989,6 +1069,34 @@ bool ParseRw4(const uint8_t* Data, size_t Size, Rw4Info& Out, std::string& Error
 			Out.Skeletons.push_back(std::move(Skeleton));
 		}
 	}
+	// Keyframe animations, named through the animation list (0xFF0001: u32, count, (id, index)...).
+	std::vector<uint32_t> AnimIdOfSection(Sections.size(), 0);
+	for (const Rw4Section& Section : Sections)
+	{
+		if (Section.TypeCode != Rw4TypeAnimations || Section.Offset + 8 > Size) continue;
+		const uint32_t Count = TexLE32(Data + Section.Offset + 4);
+		if (Count > 4096 || Section.Offset + 8 + 8ull * Count > Size) continue;
+		for (uint32_t I = 0; I < Count; ++I)
+		{
+			const uint32_t Index = TexLE32(Data + Section.Offset + 12 + 8 * I);
+			if (Index < Sections.size()) AnimIdOfSection[Index] = TexLE32(Data + Section.Offset + 8 + 8 * I);
+		}
+	}
+	for (size_t SectionIndex = 0; SectionIndex < Sections.size(); ++SectionIndex)
+	{
+		if (Sections[SectionIndex].TypeCode != Rw4TypeKeyframeAnim) continue;
+		KeyframeAnimation Animation;
+		if (DecodeKeyframeAnim(Data, Size, Sections[SectionIndex], Animation))
+		{
+			Animation.Id = AnimIdOfSection[SectionIndex];
+			Out.Animations.push_back(std::move(Animation));
+		}
+		else
+		{
+			++Out.SkippedAnimations;
+		}
+	}
+
 	for (size_t SectionIndex = 0; SectionIndex < Sections.size(); ++SectionIndex)
 	{
 		if (Sections[SectionIndex].TypeCode != Rw4TypeSkeleton || SkeletonDone[SectionIndex]) continue;

@@ -50,6 +50,11 @@ resources, creation PNGs) to this repository.
   joint1.. resolve via reg_file.txt, plausible positions); 4,472 meshes carry weights. 6,289 other
   skeleton sections have no bind pose (role unknown). One mesh uses SHORT2 indices + FLOAT1 weight
   (decl 6/0), not decoded - layout unconfirmed, so its weights are dropped rather than guessed.
+- rw4 keyframe animations (SporeModder-FX RWKeyframeAnim 0x70001, RWKeyframe, RWAnimations 0xFF0001):
+  channel names/info at file offsets, channel data relative to the section; keyframes LocRotScale
+  0x601 (48 bytes: quat, loc, scale, pad, time), LocRot 0x101 (32), BlendFactor 0x100 (8). The last
+  channel ends where time decreases. Creature animations are a different format (.animation,
+  type 0xEE17C6AD, SporeModder-FX file/anim) - not read yet. Not yet checked on the user's files.
   UE conversion mirrors Y and flips winding; the 100x unit scale is an assumption to verify.
 - rw4 materials: mesh/state link 0x2001A -> compiled states 0x2000B; texture slots sit at the end of
   the compiled state (walk per MaterialStateCompiler.decompile); a slot's raster index points at a
