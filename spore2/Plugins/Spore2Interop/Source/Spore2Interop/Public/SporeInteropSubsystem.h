@@ -273,7 +273,7 @@ public:
 	// Summary of a .raster/.rw4: texture formats and sizes, mesh and triangle counts.
 	FString DescribeRw4(const FSporeResourceKey& Key) const;
 
-	// Rebuilds a creation card as one procedural mesh: each part's property file is looked up
+	// Rebuilds a creation card (or a saved .crt/.bld/... XML file) as one procedural mesh: each part's property file is looked up
 	// in the mounted packages, its modelMeshLOD model loaded, placed at the part's transform and
 	// added as sections (with materials when BaseMaterial is set). Returns parts built.
 	// bFlipRotation tries the other orientation convention if parts come out misrotated.

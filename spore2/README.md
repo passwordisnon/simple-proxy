@@ -113,7 +113,8 @@ see what a resource type contains before you write a decoder for it.
 
 ### Step 3 – Create the Unreal project (once Step 1 is clean)
 
-You need Unreal Engine 5.5+ (Epic Games Launcher) and Xcode.
+You need Unreal Engine 5.5+ (Epic Games Launcher) and full Xcode with its Metal Toolchain
+(`xcrun metal --version` must work; Xcode 27's toolchain download is currently broken, so use Xcode 26).
 
 1. Create a new **C++** project (Blank template), e.g. `Spore2`.
 2. Copy `spore2/Plugins/Spore2Interop` into `<YourProject>/Plugins/`.
@@ -128,8 +129,13 @@ You need Unreal Engine 5.5+ (Epic Games Launcher) and Xcode.
    ModsFolder=/Users/<you>/Documents/My Spore Creations/Mods
    NameRegistryFolder=/Users/<you>/SporeData/names
    ```
-5. In the Level Blueprint's BeginPlay: *Get Game Instance Subsystem (SporeInteropSubsystem)* →
-   *Open Package Browser* (Player Controller 0). Press Play. The browser mounts everything and lists it.
+5. Press **Play**, open the console with the backtick/`~` key and type:
+   - `spore.Browser`: opens the package browser (mounts everything on first use).
+   - `spore.Mount`, then `spore.Model editor_rigblocks~/ce_grasper_bird_01`: shows one model in front of you.
+   - `spore.Assemble ~/SporeData/pollination/Pollination/creature_editorModel~/0x251F774F.crt`
+     (or a card `.png`; add `flip` after the scale to try the other rotation convention).
+   The Output Log (category LogSporeInterop) shows what was read or why something failed.
+   For Blueprints: *Get Game Instance Subsystem (SporeInteropSubsystem)* → *Open Package Browser*.
 
 If the build reports errors, paste them into Claude Code in this repo and it will fix them.
 

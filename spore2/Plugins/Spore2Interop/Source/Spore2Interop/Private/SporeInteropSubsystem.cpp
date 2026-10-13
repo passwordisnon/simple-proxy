@@ -5,10 +5,13 @@
 #include "Async/Async.h"
 #include "Async/ParallelFor.h"
 #include "Engine/Engine.h"
+#include "Engine/GameInstance.h"
 #include "Engine/GameViewportClient.h"
 #include "Engine/Texture2D.h"
+#include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
 #include "HAL/FileManager.h"
+#include "HAL/IConsoleManager.h"
 #include "HAL/PlatformFileManager.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Misc/CommandLine.h"
@@ -334,7 +337,13 @@ int32 USporeInteropSubsystem::AssembleCreationPng(const FString& PngFile, UProce
 	}
 	sporecore::SporeCreation Creation;
 	std::string Error;
-	if (!sporecore::DecodeSporeCreation(Data.GetData(), Data.Num(), &SporeInterop::ZlibInflate, Creation, Error))
+	// Saved creation files (.crt, .bld, ... from EditorSaves/Pollination packages) are the
+	// <sporemodel> XML itself; anything else is treated as a creation card PNG.
+	const bool bIsXml = Data.Num() > 0 && Data[0] == '<';
+	const bool bDecoded = bIsXml
+		? sporecore::ParseSporeModelXml(std::string(reinterpret_cast<const char*>(Data.GetData()), Data.Num()), Creation, Error)
+		: sporecore::DecodeSporeCreation(Data.GetData(), Data.Num(), &SporeInterop::ZlibInflate, Creation, Error);
+	if (!bDecoded)
 	{
 		UE_LOG(LogSporeInterop, Warning, TEXT("%s: %s"), *PngFile, UTF8_TO_TCHAR(Error.c_str()));
 		return 0;
@@ -890,3 +899,119 @@ void USporeInteropSubsystem::ClosePackageBrowser()
 	}
 	BrowserOwner.Reset();
 }
+
+// Console commands for testing without Blueprints (type them in the ~ console during Play).
+namespace SporeInterop
+{
+
+USporeInteropSubsystem* SubsystemFor(UWorld* World)
+{
+	UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
+	return GameInstance ? GameInstance->GetSubsystem<USporeInteropSubsystem>() : nullptr;
+}
+
+// Spawns an actor with an empty procedural mesh a few metres in front of the player's view.
+UProceduralMeshComponent* SpawnMeshActor(UWorld* World)
+{
+	FVector Location = FVector::ZeroVector;
+	FRotator Rotation = FRotator::ZeroRotator;
+	if (APlayerController* Player = World->GetFirstPlayerController())
+	{
+		FVector ViewLocation;
+		FRotator ViewRotation;
+		Player->GetPlayerViewPoint(ViewLocation, ViewRotation);
+		Location = ViewLocation + ViewRotation.Vector() * 400.0f;
+		Rotation = FRotator(0.0f, ViewRotation.Yaw + 180.0f, 0.0f); // face the viewer
+	}
+	AActor* Actor = World->SpawnActor<AActor>(AActor::StaticClass(), Location, Rotation);
+	if (!Actor)
+	{
+		return nullptr;
+	}
+	UProceduralMeshComponent* Mesh = NewObject<UProceduralMeshComponent>(Actor, TEXT("SporeMesh"));
+	Actor->SetRootComponent(Mesh);
+	Mesh->RegisterComponent();
+	Mesh->SetWorldLocationAndRotation(Location, Rotation);
+	return Mesh;
+}
+
+FAutoConsoleCommandWithWorld BrowserCommand(
+	TEXT("spore.Browser"),
+	TEXT("Opens the Spore package browser (mounts the packages on first use)."),
+	FConsoleCommandWithWorldDelegate::CreateLambda([](UWorld* World)
+	{
+		if (USporeInteropSubsystem* Subsystem = SubsystemFor(World))
+		{
+			Subsystem->OpenPackageBrowser(World->GetFirstPlayerController());
+		}
+	}));
+
+FAutoConsoleCommandWithWorld MountCommand(
+	TEXT("spore.Mount"),
+	TEXT("Reads every package index under InstallRoots and ModsFolder."),
+	FConsoleCommandWithWorldDelegate::CreateLambda([](UWorld* World)
+	{
+		if (USporeInteropSubsystem* Subsystem = SubsystemFor(World))
+		{
+			Subsystem->MountAll();
+		}
+	}));
+
+FAutoConsoleCommandWithWorldAndArgs ModelCommand(
+	TEXT("spore.Model"),
+	TEXT("spore.Model <group>/<name> [scale] - shows an .rw4 model, e.g. spore.Model editor_rigblocks~/ce_grasper_bird_01 (run spore.Mount first)."),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+	{
+		USporeInteropSubsystem* Subsystem = SubsystemFor(World);
+		FString Group, Name;
+		if (!Subsystem || Args.Num() < 1 || !Args[0].Split(TEXT("/"), &Group, &Name))
+		{
+			UE_LOG(LogSporeInterop, Warning, TEXT("Usage: spore.Model <group>/<name> [scale]"));
+			return;
+		}
+		FSporeResourceKey Key;
+		Key.Group = sporecore::FnvHash(TCHAR_TO_UTF8(*Group));
+		Key.Instance = sporecore::FnvHash(TCHAR_TO_UTF8(*Name));
+		Key.Type = 0x2F4E681B; // rw4
+		const float Scale = Args.Num() > 1 ? FCString::Atof(*Args[1]) : 100.0f;
+		if (UProceduralMeshComponent* Mesh = SpawnMeshActor(World))
+		{
+			Subsystem->BuildSporeMesh(Key, Mesh, Scale);
+		}
+	}));
+
+FAutoConsoleCommandWithWorldAndArgs AssembleCommand(
+	TEXT("spore.Assemble"),
+	TEXT("spore.Assemble <card.png | creation.crt> [scale] [flip] - rebuilds a creation from its parts (run spore.Mount first)."),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+	{
+		USporeInteropSubsystem* Subsystem = SubsystemFor(World);
+		if (!Subsystem || Args.Num() < 1)
+		{
+			UE_LOG(LogSporeInterop, Warning, TEXT("Usage: spore.Assemble <card.png | creation.crt> [scale] [flip]"));
+			return;
+		}
+		// Console arguments are split on spaces, so a quoted path with spaces arrives in pieces.
+		FString Path = Args[0];
+		int32 Next = 1;
+		if (Path.StartsWith(TEXT("\"")))
+		{
+			while (!(Path.Len() > 1 && Path.EndsWith(TEXT("\""))) && Next < Args.Num())
+			{
+				Path += TEXT(" ") + Args[Next++];
+			}
+			Path.TrimQuotesInline();
+		}
+		if (Path.StartsWith(TEXT("~/")))
+		{
+			Path = FPaths::Combine(FPlatformProcess::UserHomeDir(), Path.Mid(2));
+		}
+		const float Scale = Args.IsValidIndex(Next) ? FCString::Atof(*Args[Next]) : 100.0f;
+		const bool bFlip = Args.IsValidIndex(Next + 1) && Args[Next + 1].Equals(TEXT("flip"), ESearchCase::IgnoreCase);
+		if (UProceduralMeshComponent* Mesh = SpawnMeshActor(World))
+		{
+			Subsystem->AssembleCreationPng(Path, Mesh, Scale, nullptr, bFlip);
+		}
+	}));
+
+} // namespace SporeInterop
