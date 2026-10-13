@@ -81,6 +81,8 @@ Useful extras:
 
 # rebuild a whole creation from its parts as one textured OBJ (open in Blender)
 ./build/spore2-scan --assemble "/path/to/card.png" --names ~/SporeData/names --extract ~/SporeData/assembled ~/SporeData/Base
+# --render also writes <name>_preview.png: the creation drawn from the front, side and top
+./build/spore2-scan --assemble "/path/to/creation.crt" --render --names ~/SporeData/names --extract ~/SporeData/assembled ~/SporeData/Base
 # if parts look rotated wrong, try the other orientation convention:
 ./build/spore2-scan --assemble "/path/to/card.png" --flip-rotation --extract ~/SporeData/assembled ~/SporeData/Base
 

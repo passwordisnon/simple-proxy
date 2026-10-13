@@ -60,7 +60,7 @@ for CARD in "${CARDS[@]}"; do
 	section "creation card: $CARD"
 	"$SCAN" --png --names "$NAMES" "$CARD" | grep -E "png |metadata"
 	if [ -d "$DATA_DIR" ]; then
-		"$SCAN" --assemble "$CARD" --names "$NAMES" --extract "$OUT/assembled" "$DATA_DIR" | tail -15
+		"$SCAN" --assemble "$CARD" --render --names "$NAMES" --extract "$OUT/assembled" "$DATA_DIR" | tail -15
 	fi
 done
 

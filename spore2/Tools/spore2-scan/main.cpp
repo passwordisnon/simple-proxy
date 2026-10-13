@@ -13,6 +13,7 @@
 // --assemble CARD rebuilds a creation (a card .png or a saved .crt/.bld/... XML) from its parts into one textured OBJ in the
 //        --extract directory (default ./assembled), using the packages under ROOT...
 //        --flip-rotation tries the other orientation convention if parts look misrotated.
+//        --render also draws the result from the front, side and top into <name>_preview.png.
 // --names points at a SporeModder-FX folder; its reg_*.txt files turn hashes into names.
 // --find reports which packages hold a resource whose instance or group is the hash of NAME
 //        (e.g. --find CakeEditor,CellEditor to check claims about hidden editors).
@@ -24,6 +25,8 @@
 #include "SporeCore/SporeTexture.h"
 
 #include <zlib.h>
+
+#include "Preview.h"
 
 #include <algorithm>
 #include <cmath>
@@ -58,6 +61,7 @@ struct Options
 	bool bModels = false;
 	std::string AssemblePng;
 	bool bFlipRotation = false;
+	bool bRender = false;
 	std::string NamesDir;
 	std::vector<std::string> FindNames;
 	std::string ExtractDir;
@@ -833,6 +837,7 @@ int RunAssemble(const Options& Opts)
 	size_t PartsBuilt = 0;
 	std::map<std::string, size_t> Problems;
 	char Line[160];
+	std::vector<preview::PreviewMesh> PreviewMeshes;
 
 	for (size_t B = 0; B < Creation.Blocks.size(); ++B)
 	{
@@ -864,12 +869,28 @@ int RunAssemble(const Options& Opts)
 			const MeshTextureSlot* Slot = DiffuseSlot(Mesh);
 			std::vector<uint8_t> Rgba, Png;
 			std::string TexError;
-			if (Slot && Slot->TextureIndex >= 0 && DecodeToRgba(Info.Textures[Slot->TextureIndex], Rgba, TexError) &&
-				EncodePng(Rgba, Info.Textures[Slot->TextureIndex].Width, Info.Textures[Slot->TextureIndex].Height, Png))
+			const bool bHasTexture = Slot && Slot->TextureIndex >= 0 && DecodeToRgba(Info.Textures[Slot->TextureIndex], Rgba, TexError);
+			if (bHasTexture && EncodePng(Rgba, Info.Textures[Slot->TextureIndex].Width, Info.Textures[Slot->TextureIndex].Height, Png))
 			{
 				const std::string TexName = MatName + ".png";
 				WriteBytes(OutDir / TexName, Png);
 				Mtl += "map_Kd " + TexName + "\n";
+			}
+			if (Opts.bRender)
+			{
+				preview::PreviewMesh& View = PreviewMeshes.emplace_back();
+				View.Mesh = Mesh;
+				if (bHasTexture)
+				{
+					View.Rgba = std::move(Rgba);
+					View.TextureWidth = Info.Textures[Slot->TextureIndex].Width;
+					View.TextureHeight = Info.Textures[Slot->TextureIndex].Height;
+				}
+				// Parts without their own texture (e.g. skinpaint) get a colour per part.
+				const uint32_t Hash = FnvHash(std::to_string(B));
+				View.Tint[0] = static_cast<uint8_t>(110 + (Hash & 0x7F));
+				View.Tint[1] = static_cast<uint8_t>(110 + ((Hash >> 8) & 0x7F));
+				View.Tint[2] = static_cast<uint8_t>(110 + ((Hash >> 16) & 0x7F));
 			}
 
 			Obj += "g " + MatName + "\nusemtl " + MatName + "\n";
@@ -896,6 +917,17 @@ int RunAssemble(const Options& Opts)
 	std::ofstream(OutDir / (Stem + ".obj")) << Obj;
 	std::ofstream(OutDir / (Stem + ".mtl")) << Mtl;
 	std::printf("\nassembled %zu of %zu parts -> %s\n", PartsBuilt, Creation.Blocks.size(), (OutDir / (Stem + ".obj")).string().c_str());
+	if (Opts.bRender)
+	{
+		std::vector<uint8_t> Image, Png;
+		uint32_t Width = 0, Height = 0;
+		if (preview::RenderViews(PreviewMeshes, 512, Image, Width, Height) && EncodePng(Image, Width, Height, Png))
+		{
+			const fs::path PreviewFile = OutDir / (Stem + "_preview.png");
+			WriteBytes(PreviewFile, Png);
+			std::printf("preview (front | side | top) -> %s\n", PreviewFile.string().c_str());
+		}
+	}
 	for (const auto& [Problem, Count] : Problems) std::printf("  ! %zu x %s\n", Count, Problem.c_str());
 	return PartsBuilt > 0 ? 0 : 1;
 }
@@ -903,7 +935,7 @@ int RunAssemble(const Options& Opts)
 void PrintUsage()
 {
 	std::printf("usage: spore2-scan [--verify] [--props] [--textures] [--models] [--png] [--extract DIR] [--type HEX|png|prop|rw4|raster]\n"
-	            "                   [--names SMFX_DIR] [--find NAME[,NAME...]] [--assemble CARD.png|FILE.crt [--flip-rotation]] [ROOT...]\n");
+	            "                   [--names SMFX_DIR] [--find NAME[,NAME...]] [--assemble CARD.png|FILE.crt [--flip-rotation] [--render]] [ROOT...]\n");
 }
 
 } // namespace
@@ -921,6 +953,7 @@ int main(int Argc, char** Argv)
 		else if (Arg == "--models") Opts.bModels = true;
 		else if (Arg == "--assemble" && I + 1 < Argc) Opts.AssemblePng = Argv[++I];
 		else if (Arg == "--flip-rotation") Opts.bFlipRotation = true;
+		else if (Arg == "--render") Opts.bRender = true;
 		else if (Arg == "--names" && I + 1 < Argc) Opts.NamesDir = Argv[++I];
 		else if (Arg == "--find" && I + 1 < Argc)
 		{

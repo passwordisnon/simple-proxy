@@ -5,6 +5,7 @@
 #include "SporeCore/SporePng.h"
 #include "SporeCore/SporeProp.h"
 #include "SporeCore/SporeTexture.h"
+#include "Preview.h"
 #include "SporeCore/SporeTextureGen.h"
 
 #include <cstdio>
@@ -1042,6 +1043,37 @@ static void TestPollenMetadata()
 	CHECK(IsCreationXmlType(TypeCreature) && !IsCreationXmlType(TypePollenMetadata));
 }
 
+static void TestPreview()
+{
+	// A unit cube centred at the origin, red, drawn into three 64-pixel panels.
+	preview::PreviewMesh Cube;
+	for (int V = 0; V < 8; ++V)
+	{
+		Cube.Mesh.Positions.push_back((V & 1) ? 0.5f : -0.5f);
+		Cube.Mesh.Positions.push_back((V & 2) ? 0.5f : -0.5f);
+		Cube.Mesh.Positions.push_back((V & 4) ? 0.5f : -0.5f);
+	}
+	const uint32_t Faces[12][3] = {{0, 1, 3}, {0, 3, 2}, {4, 6, 7}, {4, 7, 5}, {0, 4, 5}, {0, 5, 1},
+		{2, 3, 7}, {2, 7, 6}, {0, 2, 6}, {0, 6, 4}, {1, 5, 7}, {1, 7, 3}};
+	for (const auto& F : Faces) Cube.Mesh.Indices.insert(Cube.Mesh.Indices.end(), {F[0], F[1], F[2]});
+	Cube.Tint[0] = 250; Cube.Tint[1] = 0; Cube.Tint[2] = 0;
+
+	std::vector<uint8_t> Image;
+	uint32_t Width = 0, Height = 0;
+	CHECK(preview::RenderViews({Cube}, 64, Image, Width, Height));
+	CHECK(Width == 192 && Height == 64 && Image.size() == 192u * 64u * 4u);
+	if (Image.size() != 192u * 64u * 4u) return;
+	for (int Panel = 0; Panel < 3; ++Panel)
+	{
+		const uint8_t* Centre = &Image[(32u * 192u + 32u + 64u * static_cast<uint32_t>(Panel)) * 4u];
+		CHECK(Centre[0] > 80 && Centre[1] == 0 && Centre[2] == 0); // cube covers each panel's centre
+		const uint8_t* Corner = &Image[(1u * 192u + 2u + 64u * static_cast<uint32_t>(Panel)) * 4u];
+		CHECK(Corner[0] < 80);                                       // background in the corner
+	}
+	std::vector<preview::PreviewMesh> Empty;
+	CHECK(!preview::RenderViews(Empty, 64, Image, Width, Height));
+}
+
 int main()
 {
 	TestRefPack();
@@ -1059,6 +1091,7 @@ int main()
 	TestMeshes();
 	TestCreation();
 	TestPollenMetadata();
+	TestPreview();
 	if (Failures == 0)
 	{
 		std::printf("all tests passed\n");
