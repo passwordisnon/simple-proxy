@@ -1118,16 +1118,17 @@ void RenderUnused(const std::vector<ResourceKey>& UnusedKeys, const Options& Opt
 	std::unordered_set<uint64_t> Done;
 	size_t Rendered = 0, Failed = 0;
 	std::map<std::string, size_t> Problems;
+	std::map<std::string, std::string> Samples; // problem -> one example, to identify odd formats
 	std::error_code Ec;
 	for (const ResourceKey& Key : Keys)
 	{
 		if (!IsWanted(Key.Group)) continue;
 		ResourceKey ModelKey = Key;
 		std::string Label = FileName(Key.Group) + "/" + FileName(Key.Instance);
+		PropertyList Props;
 		if (Key.Type == 0x00B1B104)
 		{
 			std::vector<uint8_t> Bytes;
-			PropertyList Props;
 			if (!Library.Read(Key, Bytes)) continue;
 			ParsePropertyList(Bytes.data(), Bytes.size(), Props);
 			if (!FindPartModelKey(Props, ModelKey)) continue; // not a part (no model key)
@@ -1142,7 +1143,38 @@ void RenderUnused(const std::vector<ResourceKey>& UnusedKeys, const Options& Opt
 		if (!RenderModelPreview(Library, ModelKey, Dir / File, Error))
 		{
 			++Failed;
-			++Problems[Error];
+			if (++Problems[Error] == 1)
+			{
+				// First 32 bytes, plus the properties of the .prop that names it or shares its name.
+				std::string Sample = "      e.g. " + Label + "\n      first bytes:";
+				std::vector<uint8_t> Bytes;
+				if (Library.Read(ModelKey, Bytes))
+				{
+					char Hex[4];
+					for (size_t I = 0; I < 32 && I < Bytes.size(); ++I)
+					{
+						std::snprintf(Hex, sizeof(Hex), " %02X", Bytes[I]);
+						Sample += Hex;
+					}
+					Sample += "  (" + std::to_string(Bytes.size()) + " bytes)";
+				}
+				Sample += "\n";
+				if (Props.Properties.empty())
+				{
+					ResourceKey PropKey = Key;
+					PropKey.Type = 0x00B1B104;
+					if (Library.Read(PropKey, Bytes)) ParsePropertyList(Bytes.data(), Bytes.size(), Props);
+				}
+				for (size_t I = 0; I < Props.Properties.size() && I < 25; ++I)
+				{
+					const Property& Prop = Props.Properties[I];
+					Sample += "      prop: " + FormatProperty(Prop, NameTables::Lookup(Names.Properties, Prop.Id), [](uint32_t Id, bool bType)
+					{
+						return NameTables::Lookup(bType ? Names.Types : Names.Files, Id);
+					}).substr(0, 160) + "\n";
+				}
+				Samples[Error] = Sample;
+			}
 			continue;
 		}
 		++Rendered;
@@ -1152,7 +1184,11 @@ void RenderUnused(const std::vector<ResourceKey>& UnusedKeys, const Options& Opt
 	std::printf("\nPreviews: %zu unused models drawn, %zu could not be (open %s)\n", Rendered, Failed, (OutDir / "index.html").string().c_str());
 	std::vector<std::pair<std::string, size_t>> Sorted(Problems.begin(), Problems.end());
 	std::sort(Sorted.begin(), Sorted.end(), [](const auto& A, const auto& B) { return A.second > B.second; });
-	for (size_t I = 0; I < Sorted.size() && I < 12; ++I) std::printf("  ! %zu x %s\n", Sorted[I].second, Sorted[I].first.c_str());
+	for (size_t I = 0; I < Sorted.size() && I < 12; ++I)
+	{
+		std::printf("  ! %zu x %s\n", Sorted[I].second, Sorted[I].first.c_str());
+		if (I < 2) std::printf("%s", Samples[Sorted[I].first].c_str());
+	}
 	if (Sorted.size() > 12) std::printf("  ... %zu more kinds of problem\n", Sorted.size() - 12);
 }
 
