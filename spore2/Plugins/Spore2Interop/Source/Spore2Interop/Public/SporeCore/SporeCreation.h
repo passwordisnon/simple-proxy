@@ -53,6 +53,12 @@ struct CreationBlock
 	float Rotation[9] = {1, 0, 0, 0, 1, 0, 0, 0, 1}; // row-major orientation
 	bool bSnapped = false;
 	bool bAsymmetric = false;
+	// Limb blocks carry <limbtype>/<musclescale>/<basemusclescale> in their transform. Meaning of
+	// the values is inferred (thickness of the limb), not documented.
+	bool bIsLimb = false;
+	int32_t LimbType = 0;
+	float MuscleScale = 1.0f;
+	float BaseMuscleScale = 1.0f;
 	std::vector<int32_t> Children; // indices into SporeCreation::Blocks
 	std::vector<CreationPaint> Paints;
 };
@@ -63,6 +69,7 @@ struct SporeCreation
 	std::string ModelXml;  // the <sporemodel> document
 	uint32_t ModelType = 0;
 	uint32_t FormatVersion = 0;
+	float SkinColor[3][3] = {{0.5f, 0.5f, 0.5f}, {0.5f, 0.5f, 0.5f}, {0.5f, 0.5f, 0.5f}}; // <skincolor1..3>
 	std::vector<CreationBlock> Blocks;
 	bool bUsedExtraChunk = false; // payload came from the spOr chunk (large creations)
 };

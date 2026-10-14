@@ -25,6 +25,7 @@
 //        editor_rigblocks~) are drawn into unused_previews/ with an index.html to browse them.
 
 #include "SporeCore/SporeCreation.h"
+#include "SporeCore/SporeSkin.h"
 #include "SporeCore/SporeDbpf.h"
 #include "SporeCore/SporePng.h"
 #include "SporeCore/SporeProp.h"
@@ -959,6 +960,36 @@ int RunAssemble(const Options& Opts)
 				Obj += Line;
 			}
 			VertexBase += Count;
+		}
+	}
+
+	// Approximate body skin (the game builds it at run time; it is not stored in the file).
+	{
+		MeshData Skin;
+		if (BuildCreatureSkin(Creation, Skin))
+		{
+			Mtl += "newmtl skin\nKd " + std::to_string(Creation.SkinColor[0][0]) + " " + std::to_string(Creation.SkinColor[0][1]) + " " + std::to_string(Creation.SkinColor[0][2]) + "\n";
+			Obj += "g skin\nusemtl skin\n";
+			const size_t Count = Skin.VertexCount();
+			for (size_t V = 0; V < Count; ++V)
+			{
+				std::snprintf(Line, sizeof(Line), "v %g %g %g\nvn %g %g %g\n", Skin.Positions[3 * V], Skin.Positions[3 * V + 1], Skin.Positions[3 * V + 2], Skin.Normals[3 * V], Skin.Normals[3 * V + 1], Skin.Normals[3 * V + 2]);
+				Obj += Line;
+			}
+			for (size_t T = 0; T + 2 < Skin.Indices.size(); T += 3)
+			{
+				const size_t A = VertexBase + Skin.Indices[T] + 1, Bv = VertexBase + Skin.Indices[T + 1] + 1, C = VertexBase + Skin.Indices[T + 2] + 1;
+				std::snprintf(Line, sizeof(Line), "f %zu//%zu %zu//%zu %zu//%zu\n", A, A, Bv, Bv, C, C);
+				Obj += Line;
+			}
+			VertexBase += Count;
+			if (Opts.bRender)
+			{
+				preview::PreviewMesh& View = PreviewMeshes.emplace_back();
+				View.Mesh = std::move(Skin);
+				for (int K = 0; K < 3; ++K) View.Tint[K] = static_cast<uint8_t>(std::clamp(Creation.SkinColor[0][K], 0.0f, 1.0f) * 255.0f);
+			}
+			std::printf("  body skin: approximate tubes along the spine and limbs\n");
 		}
 	}
 

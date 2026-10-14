@@ -21,6 +21,7 @@
 #include "Modules/ModuleManager.h"
 #include "ProceduralMeshComponent.h"
 #include "SporeCore/SporeCreation.h"
+#include "SporeCore/SporeSkin.h"
 #include "SporeCore/SporePng.h"
 #include "SporeCore/SporeProp.h"
 #include "SporeCore/SporeTexture.h"
@@ -398,6 +399,13 @@ int32 USporeInteropSubsystem::AssembleCreationPng(const FString& PngFile, UProce
 			sporecore::PlaceMesh(Mesh, Block, bFlipRotation); // into creation space, still Spore axes
 			AddSporeMeshSection(Target, Section++, Mesh, UnitScale, BaseMaterial, ModelResource);
 		}
+	}
+	// Spore builds the body skin at run time, so the file has none: add an approximate one.
+	sporecore::MeshData Skin;
+	if (sporecore::BuildCreatureSkin(Creation, Skin))
+	{
+		AddSporeMeshSection(Target, Section++, Skin, UnitScale, nullptr, FSporeResourceKey());
+		UE_LOG(LogSporeInterop, Log, TEXT("Added approximate body skin (%d vertices); it is not Spore's own skinning"), static_cast<int32>(Skin.VertexCount()));
 	}
 	UE_LOG(LogSporeInterop, Log, TEXT("%s: assembled %d of %d parts into %d sections"), *PngFile, PartsBuilt, static_cast<int32>(Creation.Blocks.size()), Section);
 	return PartsBuilt;

@@ -4,10 +4,12 @@
 #include "SporeCore/SporeDbpf.h"
 #include "SporeCore/SporePng.h"
 #include "SporeCore/SporeProp.h"
+#include "SporeCore/SporeSkin.h"
 #include "SporeCore/SporeTexture.h"
 #include "Preview.h"
 #include "SporeCore/SporeTextureGen.h"
 
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -1076,6 +1078,50 @@ static void TestPreview()
 	CHECK(!preview::RenderViews(Empty, 64, Image, Width, Height));
 }
 
+static void TestSkin()
+{
+	// Two vertebrae in a chain plus one limb with an end part, written as a <sporemodel>.
+	const std::string Xml =
+		"<sporemodel><formatversion>16</formatversion><properties><modeltype>0x65672ade</modeltype>"
+		"<skincolor1>0.25,0.5,0.75</skincolor1></properties><blocks count=\"4\">"
+		"<blockref><blockid>0x40626000, 0xd05c53a3</blockid><transform><scale>1</scale><position>0,0,1</position></transform>"
+		"<childlist count=\"2\"><childid>1</childid><childid>2</childid></childlist></blockref>"
+		"<blockref><blockid>0x40626000, 0xd05c53a3</blockid><transform><scale>1</scale><position>0,0.5,1</position></transform></blockref>"
+		"<blockref><blockid>0x40626000, 0x2051ae2d</blockid><transform><limbtype>0</limbtype><musclescale>0.5</musclescale>"
+		"<basemusclescale>0.5</basemusclescale><scale>1</scale><position>0.2,0,0.8</position></transform>"
+		"<childlist count=\"1\"><childid>3</childid></childlist></blockref>"
+		"<blockref><blockid>0x40626000, 0x15d2288f</blockid><transform><scale>1</scale><position>0.2,0,0.1</position></transform></blockref>"
+		"</blocks></sporemodel>";
+	SporeCreation Creation;
+	std::string Error;
+	CHECK(ParseSporeModelXml(Xml, Creation, Error));
+	CHECK(Creation.Blocks.size() == 4);
+	CHECK(Creation.Blocks[2].bIsLimb && Creation.Blocks[2].MuscleScale == 0.5f);
+	CHECK(!Creation.Blocks[0].bIsLimb);
+	CHECK(Creation.SkinColor[0][1] == 0.5f);
+
+	MeshData Skin;
+	CHECK(BuildCreatureSkin(Creation, Skin));
+	CHECK(Skin.VertexCount() > 0 && Skin.Normals.size() == Skin.Positions.size());
+	CHECK(Skin.Indices.size() % 3 == 0);
+	for (uint32_t Index : Skin.Indices) CHECK(Index < Skin.VertexCount());
+	// The limb reaches down to its end part at z = 0.1 (minus a little radius).
+	float MinZ = 1e9f;
+	for (size_t I = 2; I < Skin.Positions.size(); I += 3) MinZ = std::min(MinZ, Skin.Positions[I]);
+	CHECK(MinZ < 0.15f);
+
+	// A creation without vertebrae (a building) gets no skin.
+	SporeCreation Building;
+	CHECK(ParseSporeModelXml("<sporemodel><blocks count=\"1\"><blockref><blockid>0x1, 0x2</blockid></blockref></blocks></sporemodel>", Building, Error));
+	MeshData None;
+	CHECK(!BuildCreatureSkin(Building, None));
+
+	// A tube needs two points.
+	MeshData Tube;
+	AppendTube({TubePoint()}, 8, 2, Tube);
+	CHECK(Tube.Positions.empty());
+}
+
 int main()
 {
 	TestRefPack();
@@ -1093,6 +1139,7 @@ int main()
 	TestMeshes();
 	TestCreation();
 	TestPollenMetadata();
+	TestSkin();
 	TestPreview();
 	if (Failures == 0)
 	{

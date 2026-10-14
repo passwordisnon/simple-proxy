@@ -217,6 +217,12 @@ bool ParseSporeModelXml(const std::string& Xml, SporeCreation& Out, std::string&
 	Out.FormatVersion = static_cast<uint32_t>(std::strtoul(TagText(Xml, "formatversion", ModelStart, Xml.size()).c_str(), nullptr, 10));
 	Out.ModelType = ParseHex(TagText(Xml, "modeltype", ModelStart, Xml.size()));
 
+	for (int C = 0; C < 3; ++C)
+	{
+		const std::string Text = TagText(Xml, C == 0 ? "skincolor1" : C == 1 ? "skincolor2" : "skincolor3", ModelStart, Xml.size());
+		if (!Text.empty()) ParseFloats(Text, Out.SkinColor[C], 3);
+	}
+
 	size_t Pos = ModelStart;
 	while (true)
 	{
@@ -246,6 +252,16 @@ bool ParseSporeModelXml(const std::string& Xml, SporeCreation& Out, std::string&
 		ParseFloats(TagText(Xml, "row0", BlockStart, BlockEnd), Block.Rotation, 3);
 		ParseFloats(TagText(Xml, "row1", BlockStart, BlockEnd), Block.Rotation + 3, 3);
 		ParseFloats(TagText(Xml, "row2", BlockStart, BlockEnd), Block.Rotation + 6, 3);
+		const std::string LimbText = TagText(Xml, "limbtype", BlockStart, BlockEnd);
+		if (!LimbText.empty())
+		{
+			Block.bIsLimb = true;
+			Block.LimbType = static_cast<int32_t>(std::strtol(LimbText.c_str(), nullptr, 10));
+			const std::string Muscle = TagText(Xml, "musclescale", BlockStart, BlockEnd);
+			if (!Muscle.empty()) Block.MuscleScale = std::strtof(Muscle.c_str(), nullptr);
+			const std::string BaseMuscle = TagText(Xml, "basemusclescale", BlockStart, BlockEnd);
+			if (!BaseMuscle.empty()) Block.BaseMuscleScale = std::strtof(BaseMuscle.c_str(), nullptr);
+		}
 		Block.bSnapped = TagText(Xml, "snapped", BlockStart, BlockEnd) == "true";
 		Block.bAsymmetric = TagText(Xml, "isasymmetric", BlockStart, BlockEnd) == "true";
 

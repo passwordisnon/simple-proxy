@@ -72,6 +72,10 @@ resources, creation PNGs) to this repository.
   as row vectors (v * R) by default; --flip-rotation / bFlipRotation uses columns. Unconfirmed which
   is right, and whether positions are absolute or parent-relative (treated as absolute).
 
+- Creature bodies: a .crt holds only rig blocks (ce_vertebra = instance 0xD05C53A3, limb blocks with
+  <limbtype>/<musclescale>/<basemusclescale>); the game wraps the skin at run time. SporeSkin.cpp
+  approximates it with tubes (radii are tuned by eye, not from the game). Do not present it as exact.
+
 ## Roadmap
 
 1. ~~`.prop` decoder~~  2. ~~textures~~, ~~rw4 meshes~~, ~~materials~~, skeletons; animations  3. ~~creation PNG decoder~~
