@@ -160,6 +160,22 @@ FString USporeInteropSubsystem::LookupTypeName(uint32 TypeId) const
 	return Found ? *Found : FString();
 }
 
+uint32 USporeInteropSubsystem::ResolveFileName(const FString& Name) const
+{
+	if (Name.StartsWith(TEXT("0x"), ESearchCase::IgnoreCase))
+	{
+		return static_cast<uint32>(FCString::Strtoui64(*Name.Mid(2), nullptr, 16));
+	}
+	for (const TPair<uint32, FString>& Pair : FileNames)
+	{
+		if (Pair.Value.Equals(Name, ESearchCase::IgnoreCase))
+		{
+			return Pair.Key;
+		}
+	}
+	return sporecore::FnvHash(TCHAR_TO_UTF8(*Name));
+}
+
 bool USporeInteropSubsystem::ReadProperties(const FSporeResourceKey& Key, TArray<FSporeProperty>& OutProperties, FString* OutError) const
 {
 	OutProperties.Reset();
@@ -1029,8 +1045,8 @@ FAutoConsoleCommandWithWorldAndArgs ModelCommand(
 		const FString& Name = Parts[1];
 		const FString Label = Group + TEXT("/") + Name;
 		FSporeResourceKey Key;
-		Key.Group = sporecore::FnvHash(TCHAR_TO_UTF8(*Group));
-		Key.Instance = sporecore::FnvHash(TCHAR_TO_UTF8(*Name));
+		Key.Group = Subsystem->ResolveFileName(Group);
+		Key.Instance = Subsystem->ResolveFileName(Name);
 		Key.Type = 0x2F4E681B; // rw4
 		if (Subsystem->IsMounting() || Subsystem->GetRegistry().IsEmpty())
 		{

@@ -290,6 +290,11 @@ public:
 	// Registry name for a type id, or empty.
 	FString LookupTypeName(uint32 TypeId) const;
 
+	// Id for a file/group name as Spore stores it: "0x..." is taken as hex, names listed in
+	// reg_file.txt (e.g. "editor_rigblocks~" = 0x40606000) use their registered id, anything
+	// else is hashed with FNV-1.
+	uint32 ResolveFileName(const FString& Name) const;
+
 	// Decodes the data Spore hides in a creation card PNG (creature, building, vehicle, UFO...).
 	// UnitScale converts Spore units to cm. The orientation convention (rows as basis vectors)
 	// still needs checking against real creations in-engine.
