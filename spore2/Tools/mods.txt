@@ -55,3 +55,23 @@ the-vainglory-consensus/Flora-Fix
 
 # Colours and paints
 MADPSI/CamBensColourPack
+
+# Cut / unused content restored from the game's own files (from SporeModder-FX's
+# "List of open-source mods" wiki page)
+0KepOnline/SPOREMod_CakeEditor
+0KepOnline/SPOREMod_UnusedPlanetThemes
+0KepOnline/SPOREMod_SkinningObjectsPack
+0KepOnline/SPOREMod_AdventureCastThumbnails
+0KepOnline/SPOREMod_SaveAsPlanetTemplate
+
+# Animations, music and adventure content (same list; code-only results are dropped by fetch-mods.sh)
+Liskomato/Spore-NewCaptainIdleAnimations
+Liskomato/Spore-NeutralWinAnimations
+Liskomato/Spore-CaptainVoiceDiversity
+Liskomato/Spore-ShareSafeMusic
+VanillaCold/Spore-ChocAdventurePack
+VanillaCold/Spore-ChocHutEditor
+VanillaCold/Spore-SolarSpore
+Mx3brainpower/ImprovedAnthemsMod
+I-am-thedragon/EditorBG
+emd4600/advanced-creature-paint

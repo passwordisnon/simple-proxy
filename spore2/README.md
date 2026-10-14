@@ -103,6 +103,11 @@ bash ~/spore2-work/spore2/Tools/fetch-links.sh
 # check whether a resource with that name really exists in your files (for "hidden content" claims)
 ./build/spore2-scan --names "/Applications/SporeModder FX" --find CakeEditor,CellEditor,PlannerThumbnailGen
 
+# list leftover files no other file points at (cut or prototype parts, test models) into
+# unused.tsv in the current folder (open it in Numbers); pass all three installs so expansion
+# files count as references
+./build/spore2-scan --unused --names ~/SporeData/names ~/SporeData/Base ~/SporeData/CreepyCute ~/SporeData/GalacticAdventures
+
 # export every texture as .dds (original) and .png (for viewing / AI upscalers like Real-ESRGAN)
 ./build/spore2-scan --textures --names ~/SporeData/names --extract ~/SporeData/textures --type raster ~/SporeData/Base
 ./build/spore2-scan --textures --names ~/SporeData/names --extract ~/SporeData/textures --type rw4 ~/SporeData/Base

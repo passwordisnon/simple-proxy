@@ -17,6 +17,10 @@
 // --names points at a SporeModder-FX folder; its reg_*.txt files turn hashes into names.
 // --find reports which packages hold a resource whose instance or group is the hash of NAME
 //        (e.g. --find CakeEditor,CellEditor to check claims about hidden editors).
+// --unused lists .prop and .rw4 files that no .prop references (by key, or by a string naming
+//        the file) into unused.tsv (in the --extract directory if given, else the current
+//        one) - candidates for cut or prototype content. Code and other
+//        formats can also load files, so this is a list to look through, not proof of anything.
 
 #include "SporeCore/SporeCreation.h"
 #include "SporeCore/SporeDbpf.h"
@@ -38,6 +42,7 @@
 #include <map>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace fs = std::filesystem;
@@ -62,6 +67,7 @@ struct Options
 	std::string AssemblePng;
 	bool bFlipRotation = false;
 	bool bRender = false;
+	bool bUnused = false;
 	std::string NamesDir;
 	std::vector<std::string> FindNames;
 	std::string ExtractDir;
@@ -305,7 +311,41 @@ struct ScanTotals
 	std::map<std::string, size_t> TypeCounts;
 	// key -> packages that provide it, in scan order (later = higher override priority)
 	std::unordered_map<ResourceKey, std::vector<std::string>, ResourceKeyHash> Providers;
+	// --unused: which .prop files (as group << 32 | instance) point at a file, by its group and
+	// instance, or by instance alone (key group 0, or a string value naming it).
+	std::unordered_map<uint64_t, std::vector<uint64_t>> PairReferrers;
+	std::unordered_map<uint32_t, std::vector<uint64_t>> InstanceReferrers;
 };
+
+uint64_t PairId(uint32_t Group, uint32_t Instance)
+{
+	return (static_cast<uint64_t>(Group) << 32) | Instance;
+}
+
+void CollectReferences(const PropertyList& Props, const ResourceKey& Source, ScanTotals& Totals)
+{
+	const uint64_t SourceId = PairId(Source.Group, Source.Instance);
+	for (const Property& Prop : Props.Properties)
+	{
+		for (const ResourceKey& Key : Prop.Keys)
+		{
+			if (Key.Group == 0) Totals.InstanceReferrers[Key.Instance].push_back(SourceId);
+			else Totals.PairReferrers[PairId(Key.Group, Key.Instance)].push_back(SourceId);
+		}
+		for (const std::string& Value : Prop.Strings)
+		{
+			// A string may name a file, possibly as "group/name" or "name.type".
+			std::string Name = Value;
+			const size_t Slash = Name.find_last_of("/!\\");
+			if (Slash != std::string::npos) Name = Name.substr(Slash + 1);
+			const size_t Dot = Name.find('.');
+			if (Dot != std::string::npos) Name = Name.substr(0, Dot);
+			if (Name.empty()) continue;
+			std::transform(Name.begin(), Name.end(), Name.begin(), [](unsigned char C) { return static_cast<char>(std::tolower(C)); });
+			Totals.InstanceReferrers[FnvHash(Name)].push_back(SourceId);
+		}
+	}
+}
 
 void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts, ScanTotals& Totals)
 {
@@ -377,7 +417,7 @@ void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts
 		const bool bIsProp = Entry.Key.Type == 0x00B1B104;
 		const bool bWanted = !Opts.bHasTypeFilter || Entry.Key.Type == Opts.TypeFilter;
 		const bool bExtract = !Opts.ExtractDir.empty() && bWanted;
-		const bool bDecodeProp = Opts.bProps && bIsProp;
+		const bool bDecodeProp = (Opts.bProps || Opts.bUnused) && bIsProp;
 		const bool bIsTexture = Entry.Key.Type == 0x2F4E681C || Entry.Key.Type == 0x2F4E681B; // raster, rw4
 		const bool bDecodeTexture = Opts.bTextures && bIsTexture && bWanted;
 		const bool bDecodeModel = Opts.bModels && Entry.Key.Type == 0x2F4E681B && bWanted;
@@ -401,6 +441,11 @@ void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts
 
 		PropertyList Props;
 		const bool bPropOk = (bDecodeProp || (bExtract && bIsProp)) && ParsePropertyList(Decoded.data(), Decoded.size(), Props);
+		if (Opts.bUnused && bIsProp)
+		{
+			// A partly parsed list still holds the references read before the error.
+			CollectReferences(Props, Entry.Key, Totals);
+		}
 		if (bDecodeProp)
 		{
 			if (bPropOk)
@@ -932,10 +977,108 @@ int RunAssemble(const Options& Opts)
 	return PartsBuilt > 0 ? 0 : 1;
 }
 
+std::string FileName(uint32_t Id)
+{
+	const std::string Name = NameTables::Lookup(Names.Files, Id);
+	if (!Name.empty()) return Name;
+	char Hex[16];
+	std::snprintf(Hex, sizeof(Hex), "0x%08X", Id);
+	return Hex;
+}
+
+void ReportUnused(const ScanTotals& Totals, const Options& Opts)
+{
+	struct GroupStats
+	{
+		size_t Props = 0;
+		size_t Models = 0;
+		std::vector<std::string> Samples;
+	};
+	std::vector<const ResourceKey*> Candidates;
+	for (const auto& [Key, Owners] : Totals.Providers)
+	{
+		if (Key.Type == 0x00B1B104 || Key.Type == 0x2F4E681B) Candidates.push_back(&Key);
+	}
+
+	// Pass 1: files no other .prop points at. Pass 2: meshes that only pass-1 .prop files point
+	// at, so a cut part brings its models along. Going further would need to know which files
+	// the game loads directly (palettes, configs are unreferenced too), so it stops there.
+	// Referrers are tracked by group/instance, so a .prop and a .rw4 sharing a name share an id.
+	std::unordered_map<uint64_t, size_t> UnusedPass;
+	auto IsLive = [&](uint64_t Self, const std::vector<uint64_t>* Referrers)
+	{
+		if (!Referrers) return false;
+		for (const uint64_t Source : *Referrers)
+		{
+			if (Source != Self && !UnusedPass.count(Source)) return true;
+		}
+		return false;
+	};
+	for (size_t Pass = 1; Pass <= 2; ++Pass)
+	{
+		std::vector<uint64_t> Found;
+		for (const ResourceKey* Key : Candidates)
+		{
+			const uint64_t Id = PairId(Key->Group, Key->Instance);
+			if (UnusedPass.count(Id) || (Pass == 2 && Key->Type != 0x2F4E681B)) continue;
+			const auto Pair = Totals.PairReferrers.find(Id);
+			const auto Inst = Totals.InstanceReferrers.find(Key->Instance);
+			if (IsLive(Id, Pair == Totals.PairReferrers.end() ? nullptr : &Pair->second)) continue;
+			if (IsLive(Id, Inst == Totals.InstanceReferrers.end() ? nullptr : &Inst->second)) continue;
+			Found.push_back(Id);
+		}
+		for (const uint64_t Id : Found) UnusedPass.emplace(Id, Pass);
+	}
+
+	std::map<std::string, GroupStats> Groups;
+	std::vector<std::string> Rows;
+	size_t OnlyViaUnused = 0;
+	for (const ResourceKey* KeyPtr : Candidates)
+	{
+		const ResourceKey& Key = *KeyPtr;
+		const auto Found = UnusedPass.find(PairId(Key.Group, Key.Instance));
+		if (Found == UnusedPass.end()) continue;
+		const bool bProp = Key.Type == 0x00B1B104;
+		if (Found->second > 1) ++OnlyViaUnused;
+		const std::string Group = FileName(Key.Group);
+		const std::string Instance = FileName(Key.Instance);
+		GroupStats& Stats = Groups[Group];
+		(bProp ? Stats.Props : Stats.Models)++;
+		if (Stats.Samples.size() < 4) Stats.Samples.push_back(Instance);
+		const std::string How = Found->second == 1 ? "unreferenced" : "only from unreferenced .prop files";
+		Rows.push_back(Group + "\t" + Instance + "\t" + (bProp ? "prop" : "rw4") + "\t" + How + "\t" + Totals.Providers.at(Key).back());
+	}
+	std::sort(Rows.begin(), Rows.end());
+
+	const fs::path OutPath = fs::path(Opts.ExtractDir.empty() ? "." : Opts.ExtractDir) / "unused.tsv";
+	std::error_code Ec;
+	fs::create_directories(OutPath.parent_path(), Ec);
+	std::ofstream Out(OutPath);
+	Out << "group\tname\ttype\thow\tpackage\n";
+	for (const std::string& Row : Rows) Out << Row << "\n";
+
+	std::printf("\nUnreferenced files (%zu of %zu .prop/.rw4 files, %zu of them meshes only unreferenced .prop files use; full list in %s)\n",
+		Rows.size(), Candidates.size(), OnlyViaUnused, OutPath.string().c_str());
+	std::printf("  No other .prop points at these. Code can still load some by name, so treat them as\n"
+	            "  candidates for cut content, not proof. Part groups (editor_rigblocks~ etc.) are the interesting ones.\n");
+	if (Names.Files.empty()) std::printf("  (add --names SMFX_DIR to see names instead of hashes)\n");
+	std::vector<std::pair<std::string, GroupStats>> Sorted(Groups.begin(), Groups.end());
+	std::sort(Sorted.begin(), Sorted.end(), [](const auto& A, const auto& B) { return A.second.Props + A.second.Models > B.second.Props + B.second.Models; });
+	for (size_t I = 0; I < Sorted.size() && I < 30; ++I)
+	{
+		const auto& [Group, Stats] = Sorted[I];
+		std::string Samples;
+		for (const std::string& Sample : Stats.Samples) Samples += (Samples.empty() ? "" : ", ") + Sample;
+		std::printf("  %-28s %5zu prop %5zu rw4   e.g. %s\n", Group.c_str(), Stats.Props, Stats.Models, Samples.c_str());
+	}
+	if (Sorted.size() > 30) std::printf("  ... %zu more groups\n", Sorted.size() - 30);
+}
+
 void PrintUsage()
 {
 	std::printf("usage: spore2-scan [--verify] [--props] [--textures] [--models] [--png] [--extract DIR] [--type HEX|png|prop|rw4|raster]\n"
-	            "                   [--names SMFX_DIR] [--find NAME[,NAME...]] [--assemble CARD.png|FILE.crt [--flip-rotation] [--render]] [ROOT...]\n");
+	            "                   [--names SMFX_DIR] [--find NAME[,NAME...]] [--assemble CARD.png|FILE.crt [--flip-rotation] [--render]]\n"
+	            "                   [--unused] [ROOT...]\n");
 }
 
 } // namespace
@@ -954,6 +1097,7 @@ int main(int Argc, char** Argv)
 		else if (Arg == "--assemble" && I + 1 < Argc) Opts.AssemblePng = Argv[++I];
 		else if (Arg == "--flip-rotation") Opts.bFlipRotation = true;
 		else if (Arg == "--render") Opts.bRender = true;
+		else if (Arg == "--unused") Opts.bUnused = true;
 		else if (Arg == "--names" && I + 1 < Argc) Opts.NamesDir = Argv[++I];
 		else if (Arg == "--find" && I + 1 < Argc)
 		{
@@ -1153,6 +1297,11 @@ int main(int Argc, char** Argv)
 	for (size_t I = 0; I < Types.size() && I < 15; ++I)
 	{
 		std::printf("    %-12s %zu\n", Types[I].first.c_str(), Types[I].second);
+	}
+
+	if (Opts.bUnused)
+	{
+		ReportUnused(Totals, Opts);
 	}
 
 	if (!FindTargets.empty())
