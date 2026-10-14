@@ -1026,7 +1026,20 @@ bool RenderModelPreview(const ResourceLibrary& Library, const ResourceKey& Model
 	std::vector<uint8_t> Bytes;
 	if (!Library.Read(ModelKey, Bytes)) { Error = "model not found"; return false; }
 	Rw4Info Info;
-	if (!ParseRw4(Bytes.data(), Bytes.size(), Info, Error)) return false;
+	if (!ParseRw4(Bytes.data(), Bytes.size(), Info, Error))
+	{
+		// Show how the file starts, to tell which format it really is.
+		char Head[64];
+		std::snprintf(Head, sizeof(Head), " (starts with");
+		for (size_t I = 0; I < 8 && I < Bytes.size(); ++I)
+		{
+			const size_t Used = std::strlen(Head);
+			std::snprintf(Head + Used, sizeof(Head) - Used, " %02X", Bytes[I]);
+		}
+		Error += Head;
+		Error += ")";
+		return false;
+	}
 	if (Info.Meshes.empty()) { Error = "no mesh in the model"; return false; }
 	std::vector<preview::PreviewMesh> Views;
 	for (size_t M = 0; M < Info.Meshes.size(); ++M)
@@ -1137,7 +1150,10 @@ void RenderUnused(const std::vector<ResourceKey>& UnusedKeys, const Options& Opt
 	}
 	std::ofstream(OutDir / "index.html") << Html;
 	std::printf("\nPreviews: %zu unused models drawn, %zu could not be (open %s)\n", Rendered, Failed, (OutDir / "index.html").string().c_str());
-	for (const auto& [Problem, Count] : Problems) std::printf("  ! %zu x %s\n", Count, Problem.c_str());
+	std::vector<std::pair<std::string, size_t>> Sorted(Problems.begin(), Problems.end());
+	std::sort(Sorted.begin(), Sorted.end(), [](const auto& A, const auto& B) { return A.second > B.second; });
+	for (size_t I = 0; I < Sorted.size() && I < 12; ++I) std::printf("  ! %zu x %s\n", Sorted[I].second, Sorted[I].first.c_str());
+	if (Sorted.size() > 12) std::printf("  ... %zu more kinds of problem\n", Sorted.size() - 12);
 }
 
 void ReportUnused(const ScanTotals& Totals, const Options& Opts)
