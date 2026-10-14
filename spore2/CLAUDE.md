@@ -82,6 +82,13 @@ Start with `HANDOVER.md`: project history, the user's machine and paths, open ta
   buffer - SMFX reads that order, its writer the reverse), material ids. Materials follow and are
   not read (they need SMFX ShaderData's size table). Maxis-made vehicles/buildings/UFOs
   (vehiclesModelsVCL~ etc.) point modelMeshLOD0..3 at .gmdl files, not rw4. Unit-tested only.
+- Base-game rw4 files without a mesh section (6,154): 5,019 plain textures (raster 0x20003 + buffer), 591 rig/animation
+  files (groups editor+animation_runtimeRigblock~ etc.: skeleton 0x70002, skin, keyframes), 540 holding only a
+  section of type 0x80003 (meaning not identified) and 4 with a single 0x2000B. The 540 are exactly the same-named
+  files of vehiclesModelsVCL~ (285), buildingModelsBLD~ (164) and ufoModelsUFO~ (91): the geometry of those lives in
+  the .gmdl files their .prop names, so "no mesh in the model" for them is not a decoding gap.
+- rw4 files from mods can declare a base resource larger than the file (CamBensColourPack and others); the size is
+  clamped to the end of the file (ParseRw4). 56 mod meshes remain truncated and are rejected.
 - First creature in UE (user's screenshot): Pollination 0x251F774F.crt, 47 of 47 parts plus the
   approximate skin, stands upright on its feet with the default row-vector orientation; untextured.
 - Creature bodies: a .crt holds only rig blocks (ce_vertebra = instance 0xD05C53A3, limb blocks with
