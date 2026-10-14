@@ -17,7 +17,7 @@
 // --names points at a SporeModder-FX folder; its reg_*.txt files turn hashes into names.
 // --find reports which packages hold a resource whose instance or group is the hash of NAME
 //        (e.g. --find CakeEditor,CellEditor to check claims about hidden editors).
-// --unused lists .prop and .rw4 files that no .prop references (by key, or by a string naming
+// --unused lists .prop, .rw4 and .gmdl files that no .prop references (by key, or by a string naming
 //        the file) into unused.tsv (in the --extract directory if given, else the current
 //        one) - candidates for cut or prototype content. Code and other
 //        formats can also load files, so this is a list to look through, not proof of anything.
@@ -43,6 +43,7 @@
 #include <filesystem>
 #include <fstream>
 #include <map>
+#include <set>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -301,6 +302,9 @@ struct ScanTotals
 	size_t AnimationChannels = 0;
 	size_t AnimationKeys = 0;
 	size_t AnimationsSkipped = 0;
+	size_t GmdlDecoded = 0;  // baked game models (.gmdl)
+	size_t GmdlFailed = 0;
+	size_t GmdlMeshes = 0;
 	uint64_t MeshVertices = 0;
 	uint64_t MeshTriangles = 0;
 	double NormalLengthSum = 0.0;
@@ -425,9 +429,10 @@ void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts
 		const bool bIsTexture = Entry.Key.Type == 0x2F4E681C || Entry.Key.Type == 0x2F4E681B; // raster, rw4
 		const bool bDecodeTexture = Opts.bTextures && bIsTexture && bWanted;
 		const bool bDecodeModel = Opts.bModels && Entry.Key.Type == 0x2F4E681B && bWanted;
+		const bool bDecodeGmdl = Opts.bModels && Entry.Key.Type == TypeGmdl && bWanted;
 		const bool bDecodeMetadata = Entry.Key.Type == TypePollenMetadata && (Opts.bProps || bExtract);
 		if (IsCreationXmlType(Entry.Key.Type)) ++Totals.CreationFiles;
-		if (!Opts.bVerify && !bExtract && !bDecodeProp && !bDecodeTexture && !bDecodeModel && !bDecodeMetadata)
+		if (!Opts.bVerify && !bExtract && !bDecodeProp && !bDecodeTexture && !bDecodeModel && !bDecodeGmdl && !bDecodeMetadata)
 		{
 			continue;
 		}
@@ -493,6 +498,28 @@ void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts
 		std::vector<MeshData> Meshes;
 		std::vector<SkeletonData> Skeletons;
 		size_t ModelTextureCount = 0; // textures inside the same rw4, for .mtl references
+		if (bDecodeGmdl)
+		{
+			GmdlInfo Gmdl;
+			std::string GmdlError;
+			if (ParseGmdl(Decoded.data(), Decoded.size(), Gmdl, GmdlError))
+			{
+				++Totals.GmdlDecoded;
+				Totals.GmdlMeshes += Gmdl.Meshes.size();
+				for (const std::string& Issue : Gmdl.MeshIssues) ++Totals.MeshIssues["gmdl " + Issue.substr(Issue.find(": ") + 2)];
+				for (const MeshData& Mesh : Gmdl.Meshes)
+				{
+					Totals.MeshVertices += Mesh.VertexCount();
+					Totals.MeshTriangles += Mesh.Indices.size() / 3;
+				}
+				Meshes = std::move(Gmdl.Meshes);
+			}
+			else
+			{
+				++Totals.GmdlFailed;
+				++Totals.MeshIssues["unreadable gmdl: " + GmdlError];
+			}
+		}
 		if (bDecodeModel)
 		{
 			Rw4Info Info;
@@ -1026,7 +1053,15 @@ bool RenderModelPreview(const ResourceLibrary& Library, const ResourceKey& Model
 	std::vector<uint8_t> Bytes;
 	if (!Library.Read(ModelKey, Bytes)) { Error = "model not found"; return false; }
 	Rw4Info Info;
-	if (!ParseRw4(Bytes.data(), Bytes.size(), Info, Error))
+	if (ModelKey.Type == TypeGmdl)
+	{
+		// Baked game model: geometry only (its materials are not decoded yet), so tints.
+		GmdlInfo Gmdl;
+		if (!ParseGmdl(Bytes.data(), Bytes.size(), Gmdl, Error)) { Error = "unreadable gmdl: " + Error; return false; }
+		if (Gmdl.Meshes.empty()) { Error = Gmdl.MeshIssues.empty() ? "no mesh in the gmdl" : "gmdl " + Gmdl.MeshIssues.front(); return false; }
+		Info.Meshes = std::move(Gmdl.Meshes);
+	}
+	else if (!ParseRw4(Bytes.data(), Bytes.size(), Info, Error))
 	{
 		// Show how the file starts, to tell which format it really is.
 		char Head[64];
@@ -1115,7 +1150,7 @@ void RenderUnused(const std::vector<ResourceKey>& UnusedKeys, const Options& Opt
 	// Part .prop files first, so a model they name is captioned with the part's name.
 	std::vector<ResourceKey> Keys = UnusedKeys;
 	std::stable_sort(Keys.begin(), Keys.end(), [](const ResourceKey& A, const ResourceKey& B) { return A.Type == 0x00B1B104 && B.Type != 0x00B1B104; });
-	std::unordered_set<uint64_t> Done;
+	std::set<std::pair<uint64_t, uint32_t>> Done; // models drawn, by group/instance and type
 	size_t Rendered = 0, Failed = 0;
 	std::map<std::string, size_t> Problems;
 	std::map<std::string, std::string> Samples; // problem -> one example, to identify odd formats
@@ -1134,11 +1169,11 @@ void RenderUnused(const std::vector<ResourceKey>& UnusedKeys, const Options& Opt
 			if (!FindPartModelKey(Props, ModelKey)) continue; // not a part (no model key)
 			Label += ".prop -> " + FileName(ModelKey.Group) + "/" + FileName(ModelKey.Instance);
 		}
-		if (!Done.insert(PairId(ModelKey.Group, ModelKey.Instance)).second) continue;
+		if (!Done.insert({PairId(ModelKey.Group, ModelKey.Instance), ModelKey.Type}).second) continue;
 		const std::string GroupName = FileName(Key.Group);
 		const fs::path Dir = OutDir / GroupName;
 		fs::create_directories(Dir, Ec);
-		const std::string File = FileName(Key.Instance) + (Key.Type == 0x00B1B104 ? "_prop" : "") + ".png";
+		const std::string File = FileName(Key.Instance) + (Key.Type == 0x00B1B104 ? "_prop" : "") + (ModelKey.Type == TypeGmdl ? "_gmdl" : "") + ".png";
 		std::string Error;
 		if (!RenderModelPreview(Library, ModelKey, Dir / File, Error))
 		{
@@ -1203,37 +1238,41 @@ void ReportUnused(const ScanTotals& Totals, const Options& Opts)
 	std::vector<const ResourceKey*> Candidates;
 	for (const auto& [Key, Owners] : Totals.Providers)
 	{
-		if (Key.Type == 0x00B1B104 || Key.Type == 0x2F4E681B) Candidates.push_back(&Key);
+		if (Key.Type == 0x00B1B104 || Key.Type == 0x2F4E681B || Key.Type == TypeGmdl) Candidates.push_back(&Key);
 	}
 
-	// Pass 1: files no other .prop points at. Pass 2: meshes that only pass-1 .prop files point
+	// Pass 1: files no other .prop points at. Pass 2: models that only pass-1 .prop files point
 	// at, so a cut part brings its models along. Going further would need to know which files
 	// the game loads directly (palettes, configs are unreferenced too), so it stops there.
-	// Referrers are tracked by group/instance, so a .prop and a .rw4 sharing a name share an id.
-	std::unordered_map<uint64_t, size_t> UnusedPass;
-	auto IsLive = [&](uint64_t Self, const std::vector<uint64_t>* Referrers)
+	// Referrers are always .prop files, tracked by group/instance; a part's model often shares
+	// the part's name, so files are told apart by type as well. A .prop pointing at itself
+	// does not count.
+	std::map<std::pair<uint64_t, uint32_t>, size_t> UnusedPass; // (group/instance, type) -> pass
+	auto IsUnusedProp = [&](uint64_t Id) { return UnusedPass.count({Id, 0x00B1B104u}) != 0; };
+	auto IsLive = [&](const ResourceKey& Key, const std::vector<uint64_t>* Referrers)
 	{
 		if (!Referrers) return false;
+		const uint64_t Self = PairId(Key.Group, Key.Instance);
 		for (const uint64_t Source : *Referrers)
 		{
-			if (Source != Self && !UnusedPass.count(Source)) return true;
+			if ((Key.Type != 0x00B1B104 || Source != Self) && !IsUnusedProp(Source)) return true;
 		}
 		return false;
 	};
 	for (size_t Pass = 1; Pass <= 2; ++Pass)
 	{
-		std::vector<uint64_t> Found;
+		std::vector<std::pair<uint64_t, uint32_t>> Found;
 		for (const ResourceKey* Key : Candidates)
 		{
 			const uint64_t Id = PairId(Key->Group, Key->Instance);
-			if (UnusedPass.count(Id) || (Pass == 2 && Key->Type != 0x2F4E681B)) continue;
+			if (UnusedPass.count({Id, Key->Type}) || (Pass == 2 && Key->Type == 0x00B1B104)) continue;
 			const auto Pair = Totals.PairReferrers.find(Id);
 			const auto Inst = Totals.InstanceReferrers.find(Key->Instance);
-			if (IsLive(Id, Pair == Totals.PairReferrers.end() ? nullptr : &Pair->second)) continue;
-			if (IsLive(Id, Inst == Totals.InstanceReferrers.end() ? nullptr : &Inst->second)) continue;
-			Found.push_back(Id);
+			if (IsLive(*Key, Pair == Totals.PairReferrers.end() ? nullptr : &Pair->second)) continue;
+			if (IsLive(*Key, Inst == Totals.InstanceReferrers.end() ? nullptr : &Inst->second)) continue;
+			Found.push_back({Id, Key->Type});
 		}
-		for (const uint64_t Id : Found) UnusedPass.emplace(Id, Pass);
+		for (const auto& Id : Found) UnusedPass.emplace(Id, Pass);
 	}
 
 	std::map<std::string, GroupStats> Groups;
@@ -1243,7 +1282,7 @@ void ReportUnused(const ScanTotals& Totals, const Options& Opts)
 	for (const ResourceKey* KeyPtr : Candidates)
 	{
 		const ResourceKey& Key = *KeyPtr;
-		const auto Found = UnusedPass.find(PairId(Key.Group, Key.Instance));
+		const auto Found = UnusedPass.find({PairId(Key.Group, Key.Instance), Key.Type});
 		if (Found == UnusedPass.end()) continue;
 		const bool bProp = Key.Type == 0x00B1B104;
 		UnusedKeys.push_back(Key);
@@ -1254,7 +1293,7 @@ void ReportUnused(const ScanTotals& Totals, const Options& Opts)
 		(bProp ? Stats.Props : Stats.Models)++;
 		if (Stats.Samples.size() < 4) Stats.Samples.push_back(Instance);
 		const std::string How = Found->second == 1 ? "unreferenced" : "only from unreferenced .prop files";
-		Rows.push_back(Group + "\t" + Instance + "\t" + (bProp ? "prop" : "rw4") + "\t" + How + "\t" + Totals.Providers.at(Key).back());
+		Rows.push_back(Group + "\t" + Instance + "\t" + TypeLabel(Key.Type) + "\t" + How + "\t" + Totals.Providers.at(Key).back());
 	}
 	std::sort(Rows.begin(), Rows.end());
 
@@ -1265,7 +1304,7 @@ void ReportUnused(const ScanTotals& Totals, const Options& Opts)
 	Out << "group\tname\ttype\thow\tpackage\n";
 	for (const std::string& Row : Rows) Out << Row << "\n";
 
-	std::printf("\nUnreferenced files (%zu of %zu .prop/.rw4 files, %zu of them meshes only unreferenced .prop files use; full list in %s)\n",
+	std::printf("\nUnreferenced files (%zu of %zu .prop/.rw4/.gmdl files, %zu of them models only unreferenced .prop files use; full list in %s)\n",
 		Rows.size(), Candidates.size(), OnlyViaUnused, OutPath.string().c_str());
 	std::printf("  No other .prop points at these. Code can still load some by name, so treat them as\n"
 	            "  candidates for cut content, not proof. Part groups (editor_rigblocks~ etc.) are the interesting ones.\n");
@@ -1277,7 +1316,7 @@ void ReportUnused(const ScanTotals& Totals, const Options& Opts)
 		const auto& [Group, Stats] = Sorted[I];
 		std::string Samples;
 		for (const std::string& Sample : Stats.Samples) Samples += (Samples.empty() ? "" : ", ") + Sample;
-		std::printf("  %-28s %5zu prop %5zu rw4   e.g. %s\n", Group.c_str(), Stats.Props, Stats.Models, Samples.c_str());
+		std::printf("  %-28s %5zu prop %5zu model   e.g. %s\n", Group.c_str(), Stats.Props, Stats.Models, Samples.c_str());
 	}
 	if (Sorted.size() > 30) std::printf("  ... %zu more groups\n", Sorted.size() - 30);
 
@@ -1455,6 +1494,7 @@ int main(int Argc, char** Argv)
 	if (Opts.bModels)
 	{
 		std::printf("  meshes:           %zu decoded (%zu skinned, %zu blend shape), %zu skipped\n", Totals.MeshesDecoded, Totals.SkinnedMeshes, Totals.BlendShapeMeshes, Totals.MeshesSkipped);
+		std::printf("  baked models:     %zu .gmdl decoded (%zu meshes), %zu failed\n", Totals.GmdlDecoded, Totals.GmdlMeshes, Totals.GmdlFailed);
 		std::printf("  animations:       %zu keyframe animations (%zu channels, %zu keyframes), %zu skipped\n", Totals.Animations, Totals.AnimationChannels, Totals.AnimationKeys, Totals.AnimationsSkipped);
 		std::printf("  skeletons:        %zu with bind pose (%zu bones), %zu other skeleton sections; %zu meshes carry bone weights\n", Totals.Skeletons, Totals.SkeletonBones, Totals.SkeletonsWithoutPose, Totals.WeightedMeshes);
 		std::printf("  mesh geometry:    %llu vertices, %llu triangles\n", static_cast<unsigned long long>(Totals.MeshVertices), static_cast<unsigned long long>(Totals.MeshTriangles));

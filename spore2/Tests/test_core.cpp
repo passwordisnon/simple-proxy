@@ -1122,6 +1122,73 @@ static void TestSkin()
 	CHECK(Tube.Positions.empty());
 }
 
+// Minimal .gmdl (SporeModder-FX GameModelResource layout): one referenced key, one quad as a
+// triangle list with position FLOAT3 + texcoord FLOAT2 (stride 20).
+static std::vector<uint8_t> BuildGmdl(uint32_t Version, uint16_t LastIndex)
+{
+	std::vector<uint8_t> G;
+	AppendLE32(G, Version);
+	AppendBE32(G, 1); // referenced files (big-endian keys)
+	AppendBE32(G, 0x11223344);
+	AppendBE32(G, 0x00616041);
+	AppendBE32(G, 0x2F4E681B);
+	AppendLE32(G, 1); // mesh count
+	for (float F : {-1.0f, -2.0f, 0.0f, 1.0f, 2.0f, 3.0f}) AppendLEFloat(G, F);
+	AppendLEFloat(G, 4.0f); // bounding radius
+	AppendLE32(G, 1);     // index buffers
+	AppendLE32(G, 4);     // triangle list
+	AppendLE32(G, 6);
+	AppendLE32(G, 16);
+	AppendLE32(G, 12);
+	for (uint16_t I : {uint16_t(0), uint16_t(1), uint16_t(2), uint16_t(2), uint16_t(1), LastIndex}) { G.push_back(static_cast<uint8_t>(I)); G.push_back(static_cast<uint8_t>(I >> 8)); }
+	AppendLE32(G, 1); // vertex descriptions
+	AppendLE32(G, 2);
+	const uint8_t Elements[2][12] = {{0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 12, 0, 1, 0, 5, 0, 6, 0, 0, 0}};
+	for (const auto& El : Elements) G.insert(G.end(), El, El + 12);
+	AppendLE32(G, 1); // vertex buffers
+	AppendLE32(G, 0);
+	AppendLE32(G, 4);
+	AppendLE32(G, 80);
+	const float Verts[4][5] = {{0, 0, 0, 0, 0}, {1, 0, 0, 1, 0}, {0, 1, 0, 0, 1}, {1, 1, 0.5f, 1, 1}};
+	for (const auto& V : Verts) for (float F : V) AppendLEFloat(G, F);
+	AppendLE32(G, 0); // mesh 0: index buffer 0
+	AppendLE32(G, 0); //         vertex buffer 0
+	AppendLE32(G, 7); // material id
+	AppendLE32(G, 0); // (materials etc. follow; not read)
+	return G;
+}
+
+static void TestGmdl()
+{
+	const std::vector<uint8_t> G = BuildGmdl(8, 3);
+	GmdlInfo Info;
+	std::string Error;
+	CHECK(ParseGmdl(G.data(), G.size(), Info, Error));
+	CHECK(Info.Version == 8);
+	CHECK(Info.ReferencedFiles.size() == 1 && Info.ReferencedFiles[0].Instance == 0x11223344 && Info.ReferencedFiles[0].Group == 0x00616041 && Info.ReferencedFiles[0].Type == 0x2F4E681B);
+	CHECK(Info.BoundsMin[1] == -2.0f && Info.BoundsMax[2] == 3.0f && Info.BoundingRadius == 4.0f);
+	CHECK(Info.Meshes.size() == 1 && Info.MeshIssues.empty());
+	CHECK(Info.MaterialIds.size() == 1 && Info.MaterialIds[0] == 7);
+	if (Info.Meshes.size() == 1)
+	{
+		const MeshData& Mesh = Info.Meshes[0];
+		CHECK(Mesh.VertexCount() == 4);
+		CHECK(Mesh.Indices.size() == 6 && Mesh.Indices[5] == 3);
+		CHECK(Mesh.Positions[9] == 1.0f && Mesh.Positions[11] == 0.5f);
+		CHECK(Mesh.UVs.size() == 8 && Mesh.UVs[7] == 1.0f);
+		CHECK(Mesh.Normals.empty());
+	}
+
+	// An index past the vertex count drops the mesh but not the file.
+	const std::vector<uint8_t> BadIndex = BuildGmdl(8, 9);
+	CHECK(ParseGmdl(BadIndex.data(), BadIndex.size(), Info, Error));
+	CHECK(Info.Meshes.empty() && Info.MeshIssues.size() == 1);
+
+	const std::vector<uint8_t> Newer = BuildGmdl(10, 3);
+	CHECK(!ParseGmdl(Newer.data(), Newer.size(), Info, Error));
+	CHECK(!ParseGmdl(G.data(), 40, Info, Error));
+}
+
 int main()
 {
 	TestRefPack();
@@ -1137,6 +1204,7 @@ int main()
 	TestRegistry();
 	TestTextures();
 	TestMeshes();
+	TestGmdl();
 	TestCreation();
 	TestPollenMetadata();
 	TestSkin();

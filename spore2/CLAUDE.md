@@ -72,6 +72,16 @@ resources, creation PNGs) to this repository.
   as row vectors (v * R) by default; --flip-rotation / bFlipRotation uses columns. Unconfirmed which
   is right, and whether positions are absolute or parent-relative (treated as absolute).
 
+- Baked game models (.gmdl, type 0xE6BCE5; SporeModder-FX file/gmdl/GameModelResource): version
+  LE u32 (<= 9; the user's vehicles have 8), referenced-file count and keys BIG-endian (instance,
+  group, type), then LE: mesh count, bbox, radius, index buffers (primitive, count, bits, size,
+  data), vertex descriptions (rw4 12-byte elements), vertex buffers (description, vertex count,
+  size, data; stride = size / count as SMFX's viewer does), mesh table (index buffer, then vertex
+  buffer - SMFX reads that order, its writer the reverse), material ids. Materials follow and are
+  not read (they need SMFX ShaderData's size table). Maxis-made vehicles/buildings/UFOs
+  (vehiclesModelsVCL~ etc.) point modelMeshLOD0..3 at .gmdl files, not rw4. Unit-tested only.
+- First creature in UE (user's screenshot): Pollination 0x251F774F.crt, 47 of 47 parts plus the
+  approximate skin, stands upright on its feet with the default row-vector orientation; untextured.
 - Creature bodies: a .crt holds only rig blocks (ce_vertebra = instance 0xD05C53A3, limb blocks with
   <limbtype>/<musclescale>/<basemusclescale>); the game wraps the skin at run time. SporeSkin.cpp
   approximates it with tubes (radii are tuned by eye, not from the game). Do not present it as exact.

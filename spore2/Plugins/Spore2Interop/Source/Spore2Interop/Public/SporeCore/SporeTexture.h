@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include "SporeCore/SporeDbpf.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -164,6 +166,29 @@ const MeshTextureSlot* DiffuseSlot(const MeshData& Mesh);
 
 // Reads the RenderWare 4 header and section table and extracts every raster and mesh section.
 bool ParseRw4(const uint8_t* Data, size_t Size, Rw4Info& Out, std::string& Error);
+
+// Baked game model (.gmdl, type 0xE6BCE5), used e.g. for Maxis-made vehicles, buildings and UFOs.
+// Layout per SporeModder-FX file/gmdl/GameModelResource.java (versions up to 9). Only geometry is
+// decoded; materials (texture sets and shader data) follow the mesh table and are not read yet.
+constexpr uint32_t TypeGmdl = 0x00E6BCE5;
+
+struct GmdlInfo
+{
+	uint32_t Version = 0;
+	// Big-endian keys at the start of the file; SporeModder-FX calls them referenced files
+	// without saying what they are used for.
+	std::vector<ResourceKey> ReferencedFiles;
+	float BoundsMin[3] = {0, 0, 0};
+	float BoundsMax[3] = {0, 0, 0};
+	float BoundingRadius = 0.0f;
+	std::vector<MeshData> Meshes;      // meshes that decoded, in file order
+	std::vector<uint32_t> MaterialIds; // raw material index per mesh in the file (all meshes)
+	std::vector<std::string> MeshIssues;
+};
+
+// Returns false when the header or buffer tables cannot be read; single meshes that fail are
+// listed in MeshIssues instead.
+bool ParseGmdl(const uint8_t* Data, size_t Size, GmdlInfo& Out, std::string& Error);
 
 // Standard DirectDraw Surface file, readable by macOS Preview, GIMP, Photoshop and texture tools.
 void WriteDds(const TextureImage& Image, std::vector<uint8_t>& Out);

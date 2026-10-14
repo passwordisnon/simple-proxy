@@ -482,39 +482,25 @@ struct VertexElementInfo
 	uint32_t Usage = 0; // Spore RW usage: 0 position, 2 normal, 6 texcoord0, 14/15 blend data
 };
 
-bool DecodeVertexBuffer(const uint8_t* Data, size_t Size, const std::vector<Rw4Section>& Sections, const Rw4Section& VB, uint32_t FirstVertex, uint32_t VertexCount, MeshData& Out, std::string& Issue)
+// One 12-byte vertex element (SporeModder-FX RWVertexElement): stream u16, offset u16, D3D decl
+// type u8, method u8, D3D usage u8, usage index u8, Spore usage u32. rw4 and gmdl share it.
+VertexElementInfo ReadVertexElement(const uint8_t* El)
 {
-	const uint8_t* V = Data + VB.Offset;
-	const uint32_t VertexSize = TexLE32(V + 20);
-	const Rw4Section* Desc = Rw4Get(Sections, TexLE32(V), Rw4TypeVertexDescription, Size, 24);
-	const Rw4Section* VData = Rw4Get(Sections, TexLE32(V + 24), Rw4TypeBaseResource, Size, 0);
-	if (!Desc || !VData || VertexSize == 0)
-	{
-		Issue = "missing vertex description or buffer data";
-		return false;
-	}
+	VertexElementInfo Info;
+	Info.Offset = TexLE16(El + 2);
+	Info.DeclType = El[4];
+	Info.Usage = TexLE32(El + 8);
+	return Info;
+}
 
-	// Vertex layout.
-	const uint8_t* D = Data + Desc->Offset;
-	const uint16_t ElementCount = TexLE16(D + 12);
-	if (Desc->Offset + 24 + 12ull * ElementCount > Size)
-	{
-		Issue = "truncated vertex description";
-		return false;
-	}
+// Decodes vertices FirstVertex .. FirstVertex + VertexCount of a buffer with the given layout.
+bool DecodeVertices(const uint8_t* VBytes, uint64_t VBytesSize, const std::vector<VertexElementInfo>& Elements, uint32_t VertexSize, uint32_t FirstVertex, uint32_t VertexCount, MeshData& Out, std::string& Issue)
+{
 	const VertexElementInfo* Position = nullptr;
 	const VertexElementInfo* Normal = nullptr;
 	const VertexElementInfo* TexCoord = nullptr;
 	const VertexElementInfo* BlendIndices = nullptr;
 	const VertexElementInfo* BlendWeights = nullptr;
-	std::vector<VertexElementInfo> Elements(ElementCount);
-	for (uint16_t E = 0; E < ElementCount; ++E)
-	{
-		const uint8_t* El = D + 24 + 12 * E;
-		Elements[E].Offset = TexLE16(El + 2);
-		Elements[E].DeclType = El[4];
-		Elements[E].Usage = TexLE32(El + 8);
-	}
 	for (const VertexElementInfo& E : Elements)
 	{
 		if (E.Usage == 0 && !Position) Position = &E;
@@ -539,12 +525,11 @@ bool DecodeVertexBuffer(const uint8_t* Data, size_t Size, const std::vector<Rw4S
 	}
 
 	// Vertices FirstVertex .. FirstVertex + VertexCount (as SporeModder-FX reads them).
-	if ((static_cast<uint64_t>(FirstVertex) + VertexCount) * VertexSize > VData->Size)
+	if ((static_cast<uint64_t>(FirstVertex) + VertexCount) * VertexSize > VBytesSize)
 	{
 		Issue = "vertex range outside vertex data";
 		return false;
 	}
-	const uint8_t* VBytes = Data + VData->Offset;
 	Out.Positions.resize(3ull * VertexCount);
 	if (Normal) Out.Normals.resize(3ull * VertexCount);
 	if (TexCoord) Out.UVs.resize(2ull * VertexCount);
@@ -589,6 +574,31 @@ bool DecodeVertexBuffer(const uint8_t* Data, size_t Size, const std::vector<Rw4S
 	}
 
 	return true;
+}
+
+bool DecodeVertexBuffer(const uint8_t* Data, size_t Size, const std::vector<Rw4Section>& Sections, const Rw4Section& VB, uint32_t FirstVertex, uint32_t VertexCount, MeshData& Out, std::string& Issue)
+{
+	const uint8_t* V = Data + VB.Offset;
+	const uint32_t VertexSize = TexLE32(V + 20);
+	const Rw4Section* Desc = Rw4Get(Sections, TexLE32(V), Rw4TypeVertexDescription, Size, 24);
+	const Rw4Section* VData = Rw4Get(Sections, TexLE32(V + 24), Rw4TypeBaseResource, Size, 0);
+	if (!Desc || !VData || VertexSize == 0)
+	{
+		Issue = "missing vertex description or buffer data";
+		return false;
+	}
+
+	// Vertex layout.
+	const uint8_t* D = Data + Desc->Offset;
+	const uint16_t ElementCount = TexLE16(D + 12);
+	if (Desc->Offset + 24 + 12ull * ElementCount > Size)
+	{
+		Issue = "truncated vertex description";
+		return false;
+	}
+	std::vector<VertexElementInfo> Elements(ElementCount);
+	for (uint16_t E = 0; E < ElementCount; ++E) Elements[E] = ReadVertexElement(D + 24 + 12 * E);
+	return DecodeVertices(Data + VData->Offset, VData->Size, Elements, VertexSize, FirstVertex, VertexCount, Out, Issue);
 }
 
 // Blend shape buffer 0x200AF (SporeModder-FX RWBlendShapeBuffer): u32 1, eleven u32 data offsets
@@ -820,6 +830,25 @@ bool DecodeKeyframeAnim(const uint8_t* Data, size_t Size, const Rw4Section& Sect
 	return true;
 }
 
+// D3D primitive type 4 = triangle list, 5 = triangle strip (converted to a list, alternating
+// winding and dropping degenerate triangles).
+void SetTriangles(uint32_t PrimitiveType, std::vector<uint32_t> Raw, MeshData& Out)
+{
+	if (PrimitiveType == 4)
+	{
+		Out.Indices = std::move(Raw);
+		return;
+	}
+	Out.Indices.clear();
+	for (size_t T = 0; T + 2 < Raw.size(); ++T)
+	{
+		const uint32_t A = Raw[T], B = Raw[T + 1], C = Raw[T + 2];
+		if (A == B || B == C || A == C) continue;
+		if (T % 2 == 0) Out.Indices.insert(Out.Indices.end(), {A, B, C});
+		else Out.Indices.insert(Out.Indices.end(), {B, A, C});
+	}
+}
+
 bool DecodeMesh(const uint8_t* Data, size_t Size, const std::vector<Rw4Section>& Sections, const Rw4Section& MeshSection, MeshData& Out, std::string& Issue)
 {
 	const uint8_t* M = Data + MeshSection.Offset;
@@ -890,25 +919,217 @@ bool DecodeMesh(const uint8_t* Data, size_t Size, const std::vector<Rw4Section>&
 		}
 		Raw[Idx] = static_cast<uint32_t>(Value);
 	}
-	if (PrimitiveType == 4)
-	{
-		Out.Indices = std::move(Raw);
-	}
-	else
-	{
-		// Triangle strip -> list, alternating winding and dropping degenerate triangles.
-		for (size_t T = 0; T + 2 < Raw.size(); ++T)
-		{
-			const uint32_t A = Raw[T], B = Raw[T + 1], C = Raw[T + 2];
-			if (A == B || B == C || A == C) continue;
-			if (T % 2 == 0) Out.Indices.insert(Out.Indices.end(), {A, B, C});
-			else Out.Indices.insert(Out.Indices.end(), {B, A, C});
-		}
-	}
+	SetTriangles(PrimitiveType, std::move(Raw), Out);
 	return true;
 }
 
 } // namespace
+
+bool ParseGmdl(const uint8_t* Data, size_t Size, GmdlInfo& Out, std::string& Error)
+{
+	Out = GmdlInfo();
+	size_t Pos = 0;
+	auto ReadLE = [&](uint32_t& Value)
+	{
+		if (Pos + 4 > Size) return false;
+		Value = TexLE32(Data + Pos);
+		Pos += 4;
+		return true;
+	};
+	auto ReadBE = [&](uint32_t& Value)
+	{
+		if (Pos + 4 > Size) return false;
+		Value = (static_cast<uint32_t>(Data[Pos]) << 24) | (static_cast<uint32_t>(Data[Pos + 1]) << 16) | (static_cast<uint32_t>(Data[Pos + 2]) << 8) | Data[Pos + 3];
+		Pos += 4;
+		return true;
+	};
+	auto ReadFloat = [&](float& Value)
+	{
+		if (Pos + 4 > Size) return false;
+		Value = TexLEFloat(Data + Pos);
+		Pos += 4;
+		return true;
+	};
+	// A count can never exceed the bytes left divided by its smallest item size.
+	auto Plausible = [&](uint32_t Count, size_t ItemSize) { return Count <= (Size - Pos) / ItemSize; };
+
+	if (!ReadLE(Out.Version))
+	{
+		Error = "file too small for a gmdl header";
+		return false;
+	}
+	if (Out.Version > 9)
+	{
+		Error = "unsupported gmdl version " + std::to_string(Out.Version);
+		return false;
+	}
+	uint32_t RefCount = 0;
+	if (!ReadBE(RefCount) || !Plausible(RefCount, 12))
+	{
+		Error = "bad referenced-file count";
+		return false;
+	}
+	for (uint32_t R = 0; R < RefCount; ++R)
+	{
+		ResourceKey Key;
+		ReadBE(Key.Instance);
+		ReadBE(Key.Group);
+		ReadBE(Key.Type);
+		Out.ReferencedFiles.push_back(Key);
+	}
+
+	uint32_t MeshCount = 0;
+	bool bOk = ReadLE(MeshCount);
+	for (int I = 0; I < 3; ++I) bOk = bOk && ReadFloat(Out.BoundsMin[I]);
+	for (int I = 0; I < 3; ++I) bOk = bOk && ReadFloat(Out.BoundsMax[I]);
+	bOk = bOk && ReadFloat(Out.BoundingRadius);
+	if (!bOk || !Plausible(MeshCount, 8))
+	{
+		Error = "truncated gmdl header";
+		return false;
+	}
+
+	// Index buffers: primitive type, index count, bits per index (16 or 32), byte size, indices.
+	struct IndexBuffer
+	{
+		uint32_t PrimitiveType = 0;
+		std::vector<uint32_t> Indices;
+	};
+	uint32_t IndexBufferCount = 0;
+	if (!ReadLE(IndexBufferCount) || !Plausible(IndexBufferCount, 16))
+	{
+		Error = "bad index buffer count";
+		return false;
+	}
+	std::vector<IndexBuffer> IndexBuffers(IndexBufferCount);
+	for (IndexBuffer& Buffer : IndexBuffers)
+	{
+		uint32_t Count = 0, Bits = 0, ByteSize = 0;
+		if (!ReadLE(Buffer.PrimitiveType) || !ReadLE(Count) || !ReadLE(Bits) || !ReadLE(ByteSize))
+		{
+			Error = "truncated index buffer";
+			return false;
+		}
+		if (Bits != 16 && Bits != 32)
+		{
+			Error = "unsupported index size " + std::to_string(Bits) + " bits";
+			return false;
+		}
+		// SporeModder-FX reads count * bits / 8 bytes and ignores the stored byte size.
+		const size_t Bytes = static_cast<size_t>(Count) * (Bits / 8);
+		if (Pos + Bytes > Size)
+		{
+			Error = "index data outside the file";
+			return false;
+		}
+		Buffer.Indices.resize(Count);
+		for (uint32_t I = 0; I < Count; ++I) Buffer.Indices[I] = Bits == 32 ? TexLE32(Data + Pos + 4ull * I) : TexLE16(Data + Pos + 2ull * I);
+		Pos += Bytes;
+	}
+
+	// Vertex descriptions: element count, then 12-byte elements as in rw4.
+	uint32_t DescriptionCount = 0;
+	if (!ReadLE(DescriptionCount) || !Plausible(DescriptionCount, 4))
+	{
+		Error = "bad vertex description count";
+		return false;
+	}
+	std::vector<std::vector<VertexElementInfo>> Descriptions(DescriptionCount);
+	for (std::vector<VertexElementInfo>& Elements : Descriptions)
+	{
+		uint32_t ElementCount = 0;
+		if (!ReadLE(ElementCount) || !Plausible(ElementCount, 12))
+		{
+			Error = "truncated vertex description";
+			return false;
+		}
+		for (uint32_t E = 0; E < ElementCount; ++E, Pos += 12) Elements.push_back(ReadVertexElement(Data + Pos));
+	}
+
+	// Vertex buffers: description index, vertex count, byte size, data.
+	struct VertexBuffer
+	{
+		uint32_t Description = 0;
+		uint32_t VertexCount = 0;
+		size_t Offset = 0;
+		uint32_t ByteSize = 0;
+	};
+	uint32_t VertexBufferCount = 0;
+	if (!ReadLE(VertexBufferCount) || !Plausible(VertexBufferCount, 12))
+	{
+		Error = "bad vertex buffer count";
+		return false;
+	}
+	std::vector<VertexBuffer> VertexBuffers(VertexBufferCount);
+	for (VertexBuffer& Buffer : VertexBuffers)
+	{
+		if (!ReadLE(Buffer.Description) || !ReadLE(Buffer.VertexCount) || !ReadLE(Buffer.ByteSize) || Pos + Buffer.ByteSize > Size)
+		{
+			Error = "truncated vertex buffer";
+			return false;
+		}
+		Buffer.Offset = Pos;
+		Pos += Buffer.ByteSize;
+	}
+
+	// Meshes: index buffer number, then vertex buffer number (the order SporeModder-FX reads;
+	// its writer writes them the other way round), then one material id per mesh.
+	std::vector<std::pair<uint32_t, uint32_t>> MeshBuffers(MeshCount);
+	for (auto& [IndexNumber, VertexNumber] : MeshBuffers)
+	{
+		if (!ReadLE(IndexNumber) || !ReadLE(VertexNumber))
+		{
+			Error = "truncated mesh table";
+			return false;
+		}
+	}
+	Out.MaterialIds.resize(MeshCount);
+	for (uint32_t& Id : Out.MaterialIds)
+	{
+		if (!ReadLE(Id))
+		{
+			Error = "truncated material table";
+			return false;
+		}
+	}
+
+	for (uint32_t M = 0; M < MeshCount; ++M)
+	{
+		const auto [IndexNumber, VertexNumber] = MeshBuffers[M];
+		const std::string Prefix = "mesh " + std::to_string(M) + ": ";
+		if (IndexNumber >= IndexBuffers.size() || VertexNumber >= VertexBuffers.size() || VertexBuffers[VertexNumber].Description >= Descriptions.size())
+		{
+			Out.MeshIssues.push_back(Prefix + "buffer number out of range");
+			continue;
+		}
+		const VertexBuffer& VB = VertexBuffers[VertexNumber];
+		const IndexBuffer& IB = IndexBuffers[IndexNumber];
+		if (VB.VertexCount == 0 || (IB.PrimitiveType != 4 && IB.PrimitiveType != 5))
+		{
+			Out.MeshIssues.push_back(Prefix + "empty or unsupported primitive type " + std::to_string(IB.PrimitiveType));
+			continue;
+		}
+		// The file stores no stride; SporeModder-FX's viewer uses byte size / vertex count.
+		const uint32_t Stride = VB.ByteSize / VB.VertexCount;
+		MeshData Mesh;
+		std::string Issue;
+		if (!DecodeVertices(Data + VB.Offset, VB.ByteSize, Descriptions[VB.Description], Stride, 0, VB.VertexCount, Mesh, Issue))
+		{
+			Out.MeshIssues.push_back(Prefix + Issue);
+			continue;
+		}
+		bool bIndicesOk = true;
+		for (const uint32_t Index : IB.Indices) bIndicesOk = bIndicesOk && Index < VB.VertexCount;
+		if (!bIndicesOk)
+		{
+			Out.MeshIssues.push_back(Prefix + "index out of vertex range");
+			continue;
+		}
+		SetTriangles(IB.PrimitiveType, IB.Indices, Mesh);
+		Out.Meshes.push_back(std::move(Mesh));
+	}
+	return true;
+}
 
 bool ParseRw4(const uint8_t* Data, size_t Size, Rw4Info& Out, std::string& Error)
 {

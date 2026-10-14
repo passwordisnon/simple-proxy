@@ -27,6 +27,7 @@ available inside Unreal Engine 5. No game files are included in or committed to 
 | Keyframe animations inside `.rw4` (bone channels: rotation, location, scale, blend factors) | done, unit-tested; not yet checked on real files |
 | Creature `.animation` files, blend shape morphing, UE skeletal meshes | not started |
 | Saved creations in packages (`EditorSaves.package`, `Pollination.package`): `.crt`/`.bld`/... XML assembles directly; `.pollen_metadata` → name, author, tags (`.txt` + `creations.tsv` on extract) | done, unit-tested |
+| Baked game models (`.gmdl`, e.g. Maxis-made vehicles, buildings, UFOs): geometry; counted by `--models`, drawn by `--unused --render`. Materials not read yet | done, unit-tested; not yet checked on real files |
 | Creature body skin: approximate tubes along the spine and limb chains (`SporeSkin`), added to `--assemble` and `spore.Assemble`. Spore builds the real skin at run time and it is not stored in the file, so this is a guess, not the game's skinning | approximation, unit-tested; shape only checked by eye on one creature |
 | Creation PNGs: hidden payload → metadata + `<sporemodel>` XML → parts (ID, transform, paints, children) → UE `DecodeCreationPng` | done, checked on real Spore PNGs |
 | Gameplay stages, editors, procedural animation | not started |
