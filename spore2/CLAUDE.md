@@ -20,7 +20,7 @@ resources, creation PNGs) to this repository.
 
 ## Known facts
 
-- Spore `.package` = DBPF 2.0. Header is 96 bytes. Index count is at 36, size at 44, offset at 64.
+- Spore `.package` = DBPF 2.0 (SporeModder-FX-made mods: 3.0, same layout). Header is 96 bytes. Index count is at 36, size at 44, offset at 64.
   Index flags bits 0/1/2 mean type/group/unknown are shared by all entries.
   "DBBF" packages (SporeModder-FX isDBBF, used by some mods) have a 120-byte header (count @36,
   u64 index size @40, u64 index offset @56) and 8-byte entry offsets; both variants are read.

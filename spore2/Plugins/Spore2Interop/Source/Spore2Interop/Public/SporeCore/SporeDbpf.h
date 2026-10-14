@@ -3,7 +3,7 @@
 // Spore2Interop UE plugin and by the standalone spore2-scan tool.
 //
 // Format notes follow the layout used by SporeModder-FX (DatabasePackedFile):
-// Spore ships DBPF 2.0 containers with a 96-byte header, an index of
+// Spore ships DBPF 2.0 containers (SporeModder-FX writes 3.0 with the same layout) with a 96-byte header, an index of
 // (type, group, instance) keyed entries and RefPack (QFS) compressed payloads.
 // Some mods are saved as "DBBF", the same container with 64-bit index and entry offsets
 // (SporeModder-FX's isDBBF option); both are read.

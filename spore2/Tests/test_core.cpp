@@ -160,7 +160,9 @@ static void TestDbpf(bool bSharedType, bool bBigFile = false)
 	Broken[0] = 'X';
 	CHECK(ParseHeader(Broken.data(), Broken.size(), Broken.size(), Header) == DbpfError::BadMagic);
 	Broken = File;
-	PutLE32(Broken, 4, 3);
+	PutLE32(Broken, 4, 3); // SporeModder-FX writes 3.0: same layout, accepted
+	CHECK(ParseHeader(Broken.data(), Broken.size(), Broken.size(), Header) == DbpfError::None);
+	PutLE32(Broken, 4, 4);
 	CHECK(ParseHeader(Broken.data(), Broken.size(), Broken.size(), Header) == DbpfError::UnsupportedVersion);
 	Broken = File;
 	PutLE32(Broken, bBigFile ? 56 : 64, static_cast<uint32_t>(File.size()));

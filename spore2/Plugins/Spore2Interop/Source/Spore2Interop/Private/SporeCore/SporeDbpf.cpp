@@ -56,7 +56,7 @@ const char* ToString(DbpfError Error)
 	case DbpfError::None: return "ok";
 	case DbpfError::TooSmall: return "file too small for a DBPF header";
 	case DbpfError::BadMagic: return "missing DBPF/DBBF magic";
-	case DbpfError::UnsupportedVersion: return "unsupported DBPF version (expected 2.0)";
+	case DbpfError::UnsupportedVersion: return "unsupported DBPF version (expected 2.x or 3.x)";
 	case DbpfError::IndexOutOfRange: return "index lies outside the file";
 	case DbpfError::TruncatedIndex: return "index is shorter than its entry count requires";
 	case DbpfError::EntryOutOfRange: return "entry payload lies outside the file";
@@ -80,7 +80,9 @@ DbpfError ParseHeader(const uint8_t* Data, size_t Size, uint64_t FileSize, DbpfH
 
 	Out.MajorVersion = ReadLE32(Data + 4);
 	Out.MinorVersion = ReadLE32(Data + 8);
-	if (Out.MajorVersion != 2)
+	// The game ships 2.0; SporeModder-FX writes 3.0 with the same layout (and does not check the
+	// version when reading), so mods saved by it use 3.0.
+	if (Out.MajorVersion != 2 && Out.MajorVersion != 3)
 	{
 		return DbpfError::UnsupportedVersion;
 	}
