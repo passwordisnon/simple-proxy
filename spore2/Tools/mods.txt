@@ -1,0 +1,11 @@
+# GitHub-hosted Spore mods for fetch-mods.sh: one owner/repo per line, # for comments.
+# Only links are kept here; the mods themselves stay with their authors and are downloaded
+# to your own Mac. Add more repos as you find them.
+
+# Planet mods by Gemini-HUN (data only: planet scripts and terrain)
+Gemini-HUN/Spore_hidden_planets
+Gemini-HUN/2008_feb_Gemini_beta_planets
+Gemini-HUN/Gemini_proto_solar_planets
+Gemini-HUN/Spore_T3_Earth
+Gemini-HUN/Spore_Spiralplanet_crashedship
+Gemini-HUN/2008_feb_Art_planets
