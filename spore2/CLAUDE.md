@@ -76,3 +76,5 @@ resources, creation PNGs) to this repository.
 
 1. ~~`.prop` decoder~~  2. ~~textures~~, ~~rw4 meshes~~, ~~materials~~, skeletons; animations  3. ~~creation PNG decoder~~
 4. skeleton → Control Rig  5. gameplay stages
+Ideas from the user to keep in mind: Dark Injection (Darkspore parts) re-integrated so its war
+parts fit the game's style and tie into Galactic Adventures (e.g. adventure equipment/epics).

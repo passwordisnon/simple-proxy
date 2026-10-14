@@ -91,8 +91,9 @@ Useful extras:
 ./build/spore2-scan --assemble ~/SporeData/pollination/Pollination/creature_editorModel~/0x251F774F.crt --names ~/SporeData/names --extract ~/SporeData/assembled ~/SporeData/Base
 
 # download the GitHub-hosted mods listed in Tools/mods.txt into ~/Documents/My Spore Creations/Mods
-# (data mods load in Unreal; mods with .dll files are ModAPI code and are reported)
-bash ~/spore2-work/spore2/Tools/fetch-mods.sh
+# (data mods load in Unreal; code-only ModAPI mods are reported and removed); --discover also
+# takes every repo tagged spore-mod/sporemod, as the Spore Community ModBrowser does
+bash ~/spore2-work/spore2/Tools/fetch-mods.sh --discover
 
 # check whether a resource with that name really exists in your files (for "hidden content" claims)
 ./build/spore2-scan --names "/Applications/SporeModder FX" --find CakeEditor,CellEditor,PlannerThumbnailGen
