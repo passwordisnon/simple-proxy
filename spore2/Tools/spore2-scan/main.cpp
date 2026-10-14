@@ -1151,7 +1151,7 @@ void RenderUnused(const std::vector<ResourceKey>& UnusedKeys, const Options& Opt
 	std::vector<ResourceKey> Keys = UnusedKeys;
 	std::stable_sort(Keys.begin(), Keys.end(), [](const ResourceKey& A, const ResourceKey& B) { return A.Type == 0x00B1B104 && B.Type != 0x00B1B104; });
 	std::set<std::pair<uint64_t, uint32_t>> Done; // models drawn, by group/instance and type
-	size_t Rendered = 0, Failed = 0;
+	size_t Rendered = 0, Failed = 0, NoGeometry = 0;
 	std::map<std::string, size_t> Problems;
 	std::map<std::string, std::string> Samples; // problem -> one example, to identify odd formats
 	std::error_code Ec;
@@ -1177,6 +1177,14 @@ void RenderUnused(const std::vector<ResourceKey>& UnusedKeys, const Options& Opt
 		std::string Error;
 		if (!RenderModelPreview(Library, ModelKey, Dir / File, Error))
 		{
+			// A .rw4 with no mesh section is a companion file (textures, rigs, and for vehicles,
+			// buildings and UFOs a file whose geometry sits in the .gmdl its .prop names), not a
+			// broken model; those .gmdl files are drawn through their .prop above.
+			if (ModelKey.Type == 0x2F4E681B && Error == "no mesh in the model")
+			{
+				++NoGeometry;
+				continue;
+			}
 			++Failed;
 			if (++Problems[Error] == 1)
 			{
@@ -1216,7 +1224,7 @@ void RenderUnused(const std::vector<ResourceKey>& UnusedKeys, const Options& Opt
 		Html += "<figure><img loading=lazy src=\"" + HtmlEscape(GroupName + "/" + File) + "\"><figcaption>" + HtmlEscape(Label) + "</figcaption></figure>\n";
 	}
 	std::ofstream(OutDir / "index.html") << Html;
-	std::printf("\nPreviews: %zu unused models drawn, %zu could not be (open %s)\n", Rendered, Failed, (OutDir / "index.html").string().c_str());
+	std::printf("\nPreviews: %zu unused models drawn, %zu could not be, %zu .rw4 files hold no geometry (open %s)\n", Rendered, Failed, NoGeometry, (OutDir / "index.html").string().c_str());
 	std::vector<std::pair<std::string, size_t>> Sorted(Problems.begin(), Problems.end());
 	std::sort(Sorted.begin(), Sorted.end(), [](const auto& A, const auto& B) { return A.second > B.second; });
 	for (size_t I = 0; I < Sorted.size() && I < 12; ++I)
