@@ -4,6 +4,7 @@
 #
 #   bash ~/spore2-work/spore2/Tools/fetch-mods.sh            # the curated list in mods.txt
 #   bash ~/spore2-work/spore2/Tools/fetch-mods.sh --discover # plus every repo tagged as a Spore mod
+#   bash ~/spore2-work/spore2/Tools/fetch-mods.sh --list FILE # owner/repo lines from another file
 #
 # --discover runs the same GitHub search the Spore Community ModBrowser uses (topics spore-mod
 # and sporemod). For each repo the latest release's assets are downloaded ("all" after a repo in
@@ -14,6 +15,14 @@
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 LIST="$HERE/mods.txt"
+DISCOVER=0
+while [ $# -gt 0 ]; do
+	case "$1" in
+		--discover) DISCOVER=1 ;;
+		--list) LIST="$2"; shift ;;
+	esac
+	shift
+done
 DOWNLOADS="$HOME/Downloads/spore-mods"
 MODS="$HOME/Documents/My Spore Creations/Mods"
 SCAN="$HERE/build/spore2-scan"
@@ -24,7 +33,7 @@ mkdir -p "$DOWNLOADS" "$MODS"
 
 # Curated list first (keeps its "all" markers), then discovered repos not already listed.
 grep -v '^\s*#' "$LIST" | grep -v '^\s*$' > "$WORKLIST"
-if [ "$1" = "--discover" ]; then
+if [ "$DISCOVER" = 1 ]; then
 	echo "== searching GitHub for Spore mods"
 	for TOPIC in spore-mod sporemod; do
 		for PAGE in 1 2 3; do

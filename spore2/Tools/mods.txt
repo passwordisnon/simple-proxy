@@ -31,5 +31,27 @@ Gemini-HUN/DavosBP2_Data
 RAYTRAC3R/RAYTRAC3R-s-Custom-Spore-Parts
 Valla-Chan/Spore-Mods all
 
+Liskomato/Spore-CreatureOutfitter
+TaylorHyura/Hyura-Cell-Parts-In-Creature-Editor
+MADPSI/ProjectMadMannequins
+MADPSI/ProjectReplicant
+MADPSI/ProjectUnshackled
+MADPSI/ProjectPandorasToolbox
+MADPSI/ArmouredAndDangerous
+MADPSI/MiscSporeMods all
+
+# Buildings, vehicles, worlds and planet textures
+MADPSI/ProjectWorldcrafter
+MADPSI/ProjectSkynkraft
+MADPSI/Vehicle-Editor-Absurdifier
+A-xesey/Scenario_ShareSafe_TexturesEffects
+A-xesey/Extended-PaintBrush-Stuff
+A-xesey/TerraformTools-SPORE-
+A-xesey/Spore-Mods- all
+
+# Flora (cut Flora Editor content)
+A-xesey/Flora-Editor-Reconstruction
+the-vainglory-consensus/Flora-Fix
+
 # Colours and paints
 MADPSI/CamBensColourPack

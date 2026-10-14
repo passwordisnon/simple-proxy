@@ -95,6 +95,11 @@ Useful extras:
 # takes every repo tagged spore-mod/sporemod, as the Spore Community ModBrowser does
 bash ~/spore2-work/spore2/Tools/fetch-mods.sh --discover
 
+# download mods from links you collected while browsing (DavoOnline topics, ModDB, Nexus...):
+# one link per line in ~/Downloads/davo-links.txt; GitHub, Google Drive, MediaFire and direct
+# file links are fetched, the rest is listed to open by hand
+bash ~/spore2-work/spore2/Tools/fetch-links.sh
+
 # check whether a resource with that name really exists in your files (for "hidden content" claims)
 ./build/spore2-scan --names "/Applications/SporeModder FX" --find CakeEditor,CellEditor,PlannerThumbnailGen
 
