@@ -551,8 +551,8 @@ void USporeInteropSubsystem::MountAll()
 	{
 		if (!FPaths::DirectoryExists(Root))
 		{
-			UE_LOG(LogSporeInterop, Warning, TEXT("Spore folder not found: %s"), *Root);
-			if (GEngine && !bIsMod)
+			UE_LOG(LogSporeInterop, Log, TEXT("Spore folder not found (skipped): %s"), *Root);
+			if (GEngine && !bIsMod && &Root == &InstallRoots[0])
 			{
 				GEngine->AddOnScreenDebugMessage(-1, 12.0f, FColor::Orange, FString::Printf(TEXT("Spore folder not found: %s"), *Root));
 			}
@@ -995,12 +995,39 @@ FAutoConsoleCommandWithWorldAndArgs ModelCommand(
 	FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
 	{
 		USporeInteropSubsystem* Subsystem = SubsystemFor(World);
-		FString Group, Name;
-		if (!Subsystem || Args.Num() < 1 || !Args[0].Split(TEXT("/"), &Group, &Name))
+		if (!Subsystem)
 		{
-			UE_LOG(LogSporeInterop, Warning, TEXT("Usage: spore.Model <group>/<name> [scale]"));
+			ShowStatus(TEXT("Spore: interop subsystem not available - press Play first"), true);
 			return;
 		}
+		// Accept "group/name", "group name" or "group!name" (the console may split arguments on
+		// any of these), plus an optional trailing number as the scale.
+		TArray<FString> Parts;
+		for (const FString& Arg : Args)
+		{
+			TArray<FString> Pieces;
+			Arg.ParseIntoArray(Pieces, TEXT("/"), true);
+			for (FString& Piece : Pieces)
+			{
+				TArray<FString> Sub;
+				Piece.ParseIntoArray(Sub, TEXT("!"), true);
+				Parts.Append(Sub);
+			}
+		}
+		float Scale = 100.0f;
+		if (Parts.Num() == 3 && Parts[2].IsNumeric())
+		{
+			Scale = FCString::Atof(*Parts[2]);
+			Parts.SetNum(2);
+		}
+		if (Parts.Num() != 2)
+		{
+			ShowStatus(FString::Printf(TEXT("Usage: spore.Model <group>/<name> [scale] - received %d argument(s): '%s'"), Args.Num(), *FString::Join(Args, TEXT("' '"))), true);
+			return;
+		}
+		const FString& Group = Parts[0];
+		const FString& Name = Parts[1];
+		const FString Label = Group + TEXT("/") + Name;
 		FSporeResourceKey Key;
 		Key.Group = sporecore::FnvHash(TCHAR_TO_UTF8(*Group));
 		Key.Instance = sporecore::FnvHash(TCHAR_TO_UTF8(*Name));
@@ -1010,14 +1037,13 @@ FAutoConsoleCommandWithWorldAndArgs ModelCommand(
 			ShowStatus(Subsystem->IsMounting() ? TEXT("Spore: still mounting - try again in a few seconds") : TEXT("Spore: nothing mounted - run spore.Mount first"), true);
 			return;
 		}
-		const float Scale = Args.Num() > 1 ? FCString::Atof(*Args[1]) : 100.0f;
 		if (UProceduralMeshComponent* Mesh = SpawnMeshActor(World))
 		{
 			const int32 Sections = Subsystem->BuildSporeMesh(Key, Mesh, Scale);
 			const FBoxSphereBounds Bounds = Mesh->CalcBounds(Mesh->GetComponentTransform());
 			ShowStatus(Sections > 0
-				? FString::Printf(TEXT("Spore: %s - %d mesh section(s), %.0f cm across, 4 m in front of you"), *Args[0], Sections, Bounds.SphereRadius * 2.0f)
-				: FString::Printf(TEXT("Spore: %s - no mesh built (%s); see Output Log, LogSporeInterop"), *Args[0], *Key.ToString()), Sections == 0);
+				? FString::Printf(TEXT("Spore: %s - %d mesh section(s), %.0f cm across, 4 m in front of you"), *Label, Sections, Bounds.SphereRadius * 2.0f)
+				: FString::Printf(TEXT("Spore: %s - no mesh built (%s); see Output Log, LogSporeInterop"), *Label, *Key.ToString()), Sections == 0);
 		}
 	}));
 
@@ -1029,7 +1055,7 @@ FAutoConsoleCommandWithWorldAndArgs AssembleCommand(
 		USporeInteropSubsystem* Subsystem = SubsystemFor(World);
 		if (!Subsystem || Args.Num() < 1)
 		{
-			UE_LOG(LogSporeInterop, Warning, TEXT("Usage: spore.Assemble <card.png | creation.crt> [scale] [flip]"));
+			ShowStatus(Subsystem ? TEXT("Usage: spore.Assemble <card.png | creation.crt> [scale] [flip]") : TEXT("Spore: interop subsystem not available - press Play first"), true);
 			return;
 		}
 		// Console arguments are split on spaces, so a quoted path with spaces arrives in pieces.
