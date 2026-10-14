@@ -155,6 +155,9 @@ You need Unreal Engine 5.5+ (Epic Games Launcher) and full Xcode with its Metal 
    - `spore.Mount`, then `spore.Model editor_rigblocks~/ce_grasper_bird_01`: shows one model in front of you.
    - `spore.Assemble ~/SporeData/pollination/Pollination/creature_editorModel~/0x251F774F.crt`
      (or a card `.png`; add `flip` after the scale to try the other rotation convention).
+     For textures, make a material in the editor with texture parameters `Diffuse` (and optionally
+     `Normal`), then add its asset path: `spore.Assemble <file> /Game/M_SporeLegacy`. Without a
+     material the parts are untextured. Colour/paint data from the creation is not applied yet.
    The Output Log (category LogSporeInterop) shows what was read or why something failed.
    For Blueprints: *Get Game Instance Subsystem (SporeInteropSubsystem)* → *Open Package Browser*.
 

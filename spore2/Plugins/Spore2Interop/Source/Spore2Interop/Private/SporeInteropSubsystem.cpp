@@ -1073,13 +1073,13 @@ FAutoConsoleCommandWithWorldAndArgs ModelCommand(
 
 FAutoConsoleCommandWithWorldAndArgs AssembleCommand(
 	TEXT("spore.Assemble"),
-	TEXT("spore.Assemble <card.png | creation.crt> [scale] [flip] - rebuilds a creation from its parts (run spore.Mount first)."),
+	TEXT("spore.Assemble <card.png | creation.crt> [scale] [flip] [/Game/MaterialPath] - rebuilds a creation from its parts (run spore.Mount first). The material needs texture parameters Diffuse and Normal."),
 	FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
 	{
 		USporeInteropSubsystem* Subsystem = SubsystemFor(World);
 		if (!Subsystem || Args.Num() < 1)
 		{
-			ShowStatus(Subsystem ? TEXT("Usage: spore.Assemble <card.png | creation.crt> [scale] [flip]") : TEXT("Spore: interop subsystem not available - press Play first"), true);
+			ShowStatus(Subsystem ? TEXT("Usage: spore.Assemble <card.png | creation.crt> [scale] [flip] [/Game/MaterialPath]") : TEXT("Spore: interop subsystem not available - press Play first"), true);
 			return;
 		}
 		// Console arguments are split on spaces, so a quoted path with spaces arrives in pieces.
@@ -1097,8 +1097,31 @@ FAutoConsoleCommandWithWorldAndArgs AssembleCommand(
 		{
 			Path = FPaths::Combine(FPlatformProcess::UserHomeDir(), Path.Mid(2));
 		}
-		const float Scale = Args.IsValidIndex(Next) ? FCString::Atof(*Args[Next]) : 100.0f;
-		const bool bFlip = Args.IsValidIndex(Next + 1) && Args[Next + 1].Equals(TEXT("flip"), ESearchCase::IgnoreCase);
+		// Remaining arguments in any order: a number is the scale, "flip" flips the orientation
+		// rows, and an asset path (/Game/...) names the base material that gets Diffuse/Normal
+		// texture parameters.
+		float Scale = 100.0f;
+		bool bFlip = false;
+		UMaterialInterface* BaseMaterial = nullptr;
+		for (int32 A = Next; A < Args.Num(); ++A)
+		{
+			if (Args[A].Equals(TEXT("flip"), ESearchCase::IgnoreCase))
+			{
+				bFlip = true;
+			}
+			else if (Args[A].StartsWith(TEXT("/")))
+			{
+				BaseMaterial = LoadObject<UMaterialInterface>(nullptr, *Args[A]);
+				if (!BaseMaterial)
+				{
+					ShowStatus(FString::Printf(TEXT("Spore: material %s not found - assembling untextured"), *Args[A]), true);
+				}
+			}
+			else if (Args[A].IsNumeric())
+			{
+				Scale = FCString::Atof(*Args[A]);
+			}
+		}
 		if (Subsystem->IsMounting() || Subsystem->GetRegistry().IsEmpty())
 		{
 			ShowStatus(Subsystem->IsMounting() ? TEXT("Spore: still mounting - try again in a few seconds") : TEXT("Spore: nothing mounted - run spore.Mount first"), true);
@@ -1106,7 +1129,7 @@ FAutoConsoleCommandWithWorldAndArgs AssembleCommand(
 		}
 		if (UProceduralMeshComponent* Mesh = SpawnMeshActor(World))
 		{
-			const int32 Parts = Subsystem->AssembleCreationPng(Path, Mesh, Scale, nullptr, bFlip);
+			const int32 Parts = Subsystem->AssembleCreationPng(Path, Mesh, Scale, BaseMaterial, bFlip);
 			ShowStatus(Parts > 0
 				? FString::Printf(TEXT("Spore: assembled %d part(s) from %s, 4 m in front of you"), Parts, *FPaths::GetCleanFilename(Path))
 				: FString::Printf(TEXT("Spore: nothing assembled from %s; see Output Log, LogSporeInterop"), *Path), Parts == 0);
