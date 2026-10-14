@@ -1170,6 +1170,12 @@ bool ParseRw4(const uint8_t* Data, size_t Size, Rw4Info& Out, std::string& Error
 		if (Sections[I].TypeCode == Rw4TypeBaseResource)
 		{
 			Sections[I].Offset += BufferData;
+			// Some mod-built files declare a size that runs past the end of the file; keep the
+			// part that exists and let the readers' own range checks reject geometry that needs more.
+			if (Sections[I].Offset < Size && Sections[I].Offset + Sections[I].Size > Size)
+			{
+				Sections[I].Size = static_cast<uint32_t>(Size - Sections[I].Offset);
+			}
 		}
 	}
 

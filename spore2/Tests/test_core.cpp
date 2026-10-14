@@ -505,6 +505,19 @@ static void TestTextures()
 		CHECK(Info.Textures[0].Width == 4 && Info.Textures[0].MipCount == 1);
 		CHECK(Info.Textures[0].Data == Dxt1Block);
 	}
+	// Mod-built files can declare a base resource larger than what is left of the file; the part
+	// that exists is still used.
+	{
+		std::vector<uint8_t> Overrun = Rw;
+		PutLE32(Overrun, 0x220, 0x1000);
+		Rw4Info OverrunInfo;
+		CHECK(ParseRw4(Overrun.data(), Overrun.size(), OverrunInfo, Error));
+		CHECK(OverrunInfo.SkippedTextures == 0 && OverrunInfo.Textures.size() == 1);
+		if (OverrunInfo.Textures.size() == 1)
+		{
+			CHECK(OverrunInfo.Textures[0].Data.size() == 0x20 - 0x10 && std::equal(Dxt1Block.begin(), Dxt1Block.end(), OverrunInfo.Textures[0].Data.begin()));
+		}
+	}
 	Rw[1] = 'X';
 	CHECK(!ParseRw4(Rw.data(), Rw.size(), Info, Error));
 }
