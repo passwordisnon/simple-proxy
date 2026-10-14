@@ -1,0 +1,10 @@
+# Never commit game data or build output
+*.package
+*.rw4
+*.raster
+*.prop
+/Tools/build/
+Binaries/
+Intermediate/
+Saved/
+DerivedDataCache/
