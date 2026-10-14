@@ -552,6 +552,10 @@ void USporeInteropSubsystem::MountAll()
 		if (!FPaths::DirectoryExists(Root))
 		{
 			UE_LOG(LogSporeInterop, Warning, TEXT("Spore folder not found: %s"), *Root);
+			if (GEngine && !bIsMod)
+			{
+				GEngine->AddOnScreenDebugMessage(-1, 12.0f, FColor::Orange, FString::Printf(TEXT("Spore folder not found: %s"), *Root));
+			}
 			return;
 		}
 		TArray<FString> Found;
@@ -672,8 +676,14 @@ void USporeInteropSubsystem::FinishMount(uint32 Generation, TArray<TSharedPtr<FS
 		Summary.OverriddenResources += Pair.Value.ProviderCount > 1 ? 1 : 0;
 	}
 
-	UE_LOG(LogSporeInterop, Log, TEXT("Mounted %d packages (%d failed), %d resources, %d overridden, %d integrity issues"),
+	const FString Message = FString::Printf(TEXT("Spore: mounted %d packages (%d failed), %d resources, %d overridden, %d integrity issues"),
 		Summary.PackagesMounted, Summary.PackagesFailed, Summary.UniqueResources, Summary.OverriddenResources, Summary.IntegrityIssues);
+	UE_LOG(LogSporeInterop, Log, TEXT("%s"), *Message);
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 12.0f, Summary.PackagesMounted > 0 ? FColor::Green : FColor::Orange,
+			Summary.PackagesMounted > 0 ? Message : Message + TEXT(" - no packages found, check InstallRoots (default ~/SporeData/Base)"));
+	}
 
 	if (Browser.IsValid())
 	{
@@ -904,6 +914,23 @@ void USporeInteropSubsystem::ClosePackageBrowser()
 namespace SporeInterop
 {
 
+// Shows a status line in the viewport (and the log), so console commands give visible feedback.
+void ShowStatus(const FString& Message, bool bProblem = false)
+{
+	if (bProblem)
+	{
+		UE_LOG(LogSporeInterop, Warning, TEXT("%s"), *Message);
+	}
+	else
+	{
+		UE_LOG(LogSporeInterop, Log, TEXT("%s"), *Message);
+	}
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 12.0f, bProblem ? FColor::Orange : FColor::Green, Message);
+	}
+}
+
 USporeInteropSubsystem* SubsystemFor(UWorld* World)
 {
 	UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
@@ -953,7 +980,12 @@ FAutoConsoleCommandWithWorld MountCommand(
 	{
 		if (USporeInteropSubsystem* Subsystem = SubsystemFor(World))
 		{
+			ShowStatus(TEXT("Spore: reading package indexes..."));
 			Subsystem->MountAll();
+		}
+		else
+		{
+			ShowStatus(TEXT("Spore: interop subsystem not available"), true);
 		}
 	}));
 
@@ -973,10 +1005,19 @@ FAutoConsoleCommandWithWorldAndArgs ModelCommand(
 		Key.Group = sporecore::FnvHash(TCHAR_TO_UTF8(*Group));
 		Key.Instance = sporecore::FnvHash(TCHAR_TO_UTF8(*Name));
 		Key.Type = 0x2F4E681B; // rw4
+		if (Subsystem->IsMounting() || Subsystem->GetRegistry().IsEmpty())
+		{
+			ShowStatus(Subsystem->IsMounting() ? TEXT("Spore: still mounting - try again in a few seconds") : TEXT("Spore: nothing mounted - run spore.Mount first"), true);
+			return;
+		}
 		const float Scale = Args.Num() > 1 ? FCString::Atof(*Args[1]) : 100.0f;
 		if (UProceduralMeshComponent* Mesh = SpawnMeshActor(World))
 		{
-			Subsystem->BuildSporeMesh(Key, Mesh, Scale);
+			const int32 Sections = Subsystem->BuildSporeMesh(Key, Mesh, Scale);
+			const FBoxSphereBounds Bounds = Mesh->CalcBounds(Mesh->GetComponentTransform());
+			ShowStatus(Sections > 0
+				? FString::Printf(TEXT("Spore: %s - %d mesh section(s), %.0f cm across, 4 m in front of you"), *Args[0], Sections, Bounds.SphereRadius * 2.0f)
+				: FString::Printf(TEXT("Spore: %s - no mesh built (%s); see Output Log, LogSporeInterop"), *Args[0], *Key.ToString()), Sections == 0);
 		}
 	}));
 
@@ -1008,9 +1049,17 @@ FAutoConsoleCommandWithWorldAndArgs AssembleCommand(
 		}
 		const float Scale = Args.IsValidIndex(Next) ? FCString::Atof(*Args[Next]) : 100.0f;
 		const bool bFlip = Args.IsValidIndex(Next + 1) && Args[Next + 1].Equals(TEXT("flip"), ESearchCase::IgnoreCase);
+		if (Subsystem->IsMounting() || Subsystem->GetRegistry().IsEmpty())
+		{
+			ShowStatus(Subsystem->IsMounting() ? TEXT("Spore: still mounting - try again in a few seconds") : TEXT("Spore: nothing mounted - run spore.Mount first"), true);
+			return;
+		}
 		if (UProceduralMeshComponent* Mesh = SpawnMeshActor(World))
 		{
-			Subsystem->AssembleCreationPng(Path, Mesh, Scale, nullptr, bFlip);
+			const int32 Parts = Subsystem->AssembleCreationPng(Path, Mesh, Scale, nullptr, bFlip);
+			ShowStatus(Parts > 0
+				? FString::Printf(TEXT("Spore: assembled %d part(s) from %s, 4 m in front of you"), Parts, *FPaths::GetCleanFilename(Path))
+				: FString::Printf(TEXT("Spore: nothing assembled from %s; see Output Log, LogSporeInterop"), *Path), Parts == 0);
 		}
 	}));
 
