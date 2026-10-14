@@ -107,6 +107,8 @@ bash ~/spore2-work/spore2/Tools/fetch-links.sh
 # unused.tsv in the current folder (open it in Numbers); pass all three installs so expansion
 # files count as references
 ./build/spore2-scan --unused --names ~/SporeData/names ~/SporeData/Base ~/SporeData/CreepyCute ~/SporeData/GalacticAdventures
+# ... and draw the unused models of chosen groups into unused_previews/index.html (open in Safari)
+./build/spore2-scan --unused --render --groups editor_rigblocks~,vehiclesModelsVCL~,buildingModelsBLD~,ufoModelsUFO~ --names ~/SporeData/names ~/SporeData/Base
 
 # export every texture as .dds (original) and .png (for viewing / AI upscalers like Real-ESRGAN)
 ./build/spore2-scan --textures --names ~/SporeData/names --extract ~/SporeData/textures --type raster ~/SporeData/Base

@@ -21,6 +21,8 @@
 //        the file) into unused.tsv (in the --extract directory if given, else the current
 //        one) - candidates for cut or prototype content. Code and other
 //        formats can also load files, so this is a list to look through, not proof of anything.
+//        With --render, the unused models of the groups given by --groups (default
+//        editor_rigblocks~) are drawn into unused_previews/ with an index.html to browse them.
 
 #include "SporeCore/SporeCreation.h"
 #include "SporeCore/SporeDbpf.h"
@@ -70,6 +72,7 @@ struct Options
 	bool bUnused = false;
 	std::string NamesDir;
 	std::vector<std::string> FindNames;
+	std::vector<std::string> UnusedGroups;
 	std::string ExtractDir;
 	bool bHasTypeFilter = false;
 	uint32_t TypeFilter = 0;
@@ -986,6 +989,126 @@ std::string FileName(uint32_t Id)
 	return Hex;
 }
 
+// Draws every mesh of one model (front | side | top), each mesh in its own texture or a tint.
+bool RenderModelPreview(const ResourceLibrary& Library, const ResourceKey& ModelKey, const fs::path& OutFile, std::string& Error)
+{
+	std::vector<uint8_t> Bytes;
+	if (!Library.Read(ModelKey, Bytes)) { Error = "model not found"; return false; }
+	Rw4Info Info;
+	if (!ParseRw4(Bytes.data(), Bytes.size(), Info, Error)) return false;
+	if (Info.Meshes.empty()) { Error = "no mesh in the model"; return false; }
+	std::vector<preview::PreviewMesh> Views;
+	for (size_t M = 0; M < Info.Meshes.size(); ++M)
+	{
+		preview::PreviewMesh& View = Views.emplace_back();
+		View.Mesh = Info.Meshes[M];
+		const MeshTextureSlot* Slot = DiffuseSlot(View.Mesh);
+		std::string TexError;
+		if (Slot && Slot->TextureIndex >= 0 && DecodeToRgba(Info.Textures[Slot->TextureIndex], View.Rgba, TexError))
+		{
+			View.TextureWidth = Info.Textures[Slot->TextureIndex].Width;
+			View.TextureHeight = Info.Textures[Slot->TextureIndex].Height;
+		}
+		else
+		{
+			View.Rgba.clear();
+			const uint32_t Hash = FnvHash(std::to_string(M));
+			View.Tint[0] = static_cast<uint8_t>(110 + (Hash & 0x7F));
+			View.Tint[1] = static_cast<uint8_t>(110 + ((Hash >> 8) & 0x7F));
+			View.Tint[2] = static_cast<uint8_t>(110 + ((Hash >> 16) & 0x7F));
+		}
+	}
+	std::vector<uint8_t> Image, Png;
+	uint32_t Width = 0, Height = 0;
+	if (!preview::RenderViews(Views, 256, Image, Width, Height) || !EncodePng(Image, Width, Height, Png))
+	{
+		Error = "nothing to draw";
+		return false;
+	}
+	WriteBytes(OutFile, Png);
+	return true;
+}
+
+std::string HtmlEscape(const std::string& Text)
+{
+	std::string Out;
+	for (const char C : Text)
+	{
+		if (C == '<') Out += "&lt;";
+		else if (C == '>') Out += "&gt;";
+		else if (C == '&') Out += "&amp;";
+		else if (C == '"') Out += "&quot;";
+		else Out += C;
+	}
+	return Out;
+}
+
+// Renders the unused models of the chosen groups: unused .rw4 files directly, unused part .prop
+// files through the model their modelMeshLOD* key names.
+void RenderUnused(const std::vector<ResourceKey>& UnusedKeys, const Options& Opts, const fs::path& OutDir)
+{
+	std::vector<std::string> Wanted = Opts.UnusedGroups;
+	if (Wanted.empty()) Wanted.push_back("editor_rigblocks~");
+	auto IsWanted = [&](uint32_t Group)
+	{
+		const std::string Name = FileName(Group);
+		for (const std::string& W : Wanted)
+		{
+			if (W.size() == Name.size() && std::equal(W.begin(), W.end(), Name.begin(), [](char A, char B) { return std::tolower(static_cast<unsigned char>(A)) == std::tolower(static_cast<unsigned char>(B)); })) return true;
+		}
+		return false;
+	};
+
+	ResourceLibrary Library;
+	for (const std::string& Root : Opts.Roots) Library.AddRoot(Root);
+
+	std::string Html = "<!doctype html><meta charset=utf-8><title>Unused Spore models</title>"
+		"<style>body{font:14px -apple-system,sans-serif;background:#1d1f21;color:#ddd;margin:16px}"
+		"figure{display:inline-block;margin:8px;vertical-align:top}img{width:384px;background:#333}"
+		"figcaption{max-width:384px;word-break:break-all}</style>"
+		"<h1>Unused Spore models</h1><p>Files no other .prop points at (front | side | top). "
+		"Candidates for cut content, not proof.</p>\n";
+	// Part .prop files first, so a model they name is captioned with the part's name.
+	std::vector<ResourceKey> Keys = UnusedKeys;
+	std::stable_sort(Keys.begin(), Keys.end(), [](const ResourceKey& A, const ResourceKey& B) { return A.Type == 0x00B1B104 && B.Type != 0x00B1B104; });
+	std::unordered_set<uint64_t> Done;
+	size_t Rendered = 0, Failed = 0;
+	std::map<std::string, size_t> Problems;
+	std::error_code Ec;
+	for (const ResourceKey& Key : Keys)
+	{
+		if (!IsWanted(Key.Group)) continue;
+		ResourceKey ModelKey = Key;
+		std::string Label = FileName(Key.Group) + "/" + FileName(Key.Instance);
+		if (Key.Type == 0x00B1B104)
+		{
+			std::vector<uint8_t> Bytes;
+			PropertyList Props;
+			if (!Library.Read(Key, Bytes)) continue;
+			ParsePropertyList(Bytes.data(), Bytes.size(), Props);
+			if (!FindPartModelKey(Props, ModelKey)) continue; // not a part (no model key)
+			Label += ".prop -> " + FileName(ModelKey.Group) + "/" + FileName(ModelKey.Instance);
+		}
+		if (!Done.insert(PairId(ModelKey.Group, ModelKey.Instance)).second) continue;
+		const std::string GroupName = FileName(Key.Group);
+		const fs::path Dir = OutDir / GroupName;
+		fs::create_directories(Dir, Ec);
+		const std::string File = FileName(Key.Instance) + (Key.Type == 0x00B1B104 ? "_prop" : "") + ".png";
+		std::string Error;
+		if (!RenderModelPreview(Library, ModelKey, Dir / File, Error))
+		{
+			++Failed;
+			++Problems[Error];
+			continue;
+		}
+		++Rendered;
+		Html += "<figure><img loading=lazy src=\"" + HtmlEscape(GroupName + "/" + File) + "\"><figcaption>" + HtmlEscape(Label) + "</figcaption></figure>\n";
+	}
+	std::ofstream(OutDir / "index.html") << Html;
+	std::printf("\nPreviews: %zu unused models drawn, %zu could not be (open %s)\n", Rendered, Failed, (OutDir / "index.html").string().c_str());
+	for (const auto& [Problem, Count] : Problems) std::printf("  ! %zu x %s\n", Count, Problem.c_str());
+}
+
 void ReportUnused(const ScanTotals& Totals, const Options& Opts)
 {
 	struct GroupStats
@@ -1032,6 +1155,7 @@ void ReportUnused(const ScanTotals& Totals, const Options& Opts)
 
 	std::map<std::string, GroupStats> Groups;
 	std::vector<std::string> Rows;
+	std::vector<ResourceKey> UnusedKeys;
 	size_t OnlyViaUnused = 0;
 	for (const ResourceKey* KeyPtr : Candidates)
 	{
@@ -1039,6 +1163,7 @@ void ReportUnused(const ScanTotals& Totals, const Options& Opts)
 		const auto Found = UnusedPass.find(PairId(Key.Group, Key.Instance));
 		if (Found == UnusedPass.end()) continue;
 		const bool bProp = Key.Type == 0x00B1B104;
+		UnusedKeys.push_back(Key);
 		if (Found->second > 1) ++OnlyViaUnused;
 		const std::string Group = FileName(Key.Group);
 		const std::string Instance = FileName(Key.Instance);
@@ -1072,13 +1197,18 @@ void ReportUnused(const ScanTotals& Totals, const Options& Opts)
 		std::printf("  %-28s %5zu prop %5zu rw4   e.g. %s\n", Group.c_str(), Stats.Props, Stats.Models, Samples.c_str());
 	}
 	if (Sorted.size() > 30) std::printf("  ... %zu more groups\n", Sorted.size() - 30);
+
+	if (Opts.bRender)
+	{
+		RenderUnused(UnusedKeys, Opts, OutPath.parent_path() / "unused_previews");
+	}
 }
 
 void PrintUsage()
 {
 	std::printf("usage: spore2-scan [--verify] [--props] [--textures] [--models] [--png] [--extract DIR] [--type HEX|png|prop|rw4|raster]\n"
 	            "                   [--names SMFX_DIR] [--find NAME[,NAME...]] [--assemble CARD.png|FILE.crt [--flip-rotation] [--render]]\n"
-	            "                   [--unused] [ROOT...]\n");
+	            "                   [--unused [--render] [--groups G1,G2]] [ROOT...]\n");
 }
 
 } // namespace
@@ -1099,15 +1229,16 @@ int main(int Argc, char** Argv)
 		else if (Arg == "--render") Opts.bRender = true;
 		else if (Arg == "--unused") Opts.bUnused = true;
 		else if (Arg == "--names" && I + 1 < Argc) Opts.NamesDir = Argv[++I];
-		else if (Arg == "--find" && I + 1 < Argc)
+		else if ((Arg == "--find" || Arg == "--groups") && I + 1 < Argc)
 		{
+			std::vector<std::string>& Target = Arg == "--find" ? Opts.FindNames : Opts.UnusedGroups;
 			std::string List = Argv[++I];
 			size_t Start = 0;
 			while (Start <= List.size())
 			{
 				const size_t Comma = List.find(',', Start);
 				const std::string Item = List.substr(Start, Comma == std::string::npos ? std::string::npos : Comma - Start);
-				if (!Item.empty()) Opts.FindNames.push_back(Item);
+				if (!Item.empty()) Target.push_back(Item);
 				if (Comma == std::string::npos) break;
 				Start = Comma + 1;
 			}
