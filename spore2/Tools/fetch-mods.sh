@@ -14,12 +14,14 @@ MODS="$HOME/Documents/My Spore Creations/Mods"
 SCAN="$(cd "$(dirname "$0")" && pwd)/build/spore2-scan"
 mkdir -p "$DOWNLOADS" "$MODS"
 
-grep -v '^\s*#' "$LIST" | grep -v '^\s*$' | while read -r REPO; do
+grep -v '^\s*#' "$LIST" | grep -v '^\s*$' | while read -r REPO MODE; do
 	NAME="${REPO#*/}"
 	TARGET="$MODS/$NAME"
 	echo "== $REPO"
-	URLS=$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" 2>/dev/null \
-		| grep -o '"browser_download_url": *"[^"]*"' | sed 's/.*"\(https[^"]*\)"$/\1/')
+	API="https://api.github.com/repos/$REPO/releases/latest"
+	[ "$MODE" = "all" ] && API="https://api.github.com/repos/$REPO/releases?per_page=100"
+	URLS=$(curl -fsSL "$API" 2>/dev/null \
+		| grep -o '"browser_download_url": *"[^"]*"' | sed 's/.*"\(https[^"]*\)"$/\1/' | sort -u)
 	if [ -z "$URLS" ]; then
 		echo "   no release - taking the repository files"
 		URLS="https://codeload.github.com/$REPO/zip/HEAD"

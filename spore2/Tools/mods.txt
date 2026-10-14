@@ -1,11 +1,35 @@
 # GitHub-hosted Spore mods for fetch-mods.sh: one owner/repo per line, # for comments.
-# Only links are kept here; the mods themselves stay with their authors and are downloaded
-# to your own Mac. Add more repos as you find them.
+# Add " all" after a repo to take the assets of every release instead of only the latest
+# (for repos that publish a different mod per release).
+# Only links are kept here; the mods stay with their authors and are downloaded to your Mac.
+# Chosen for the plan: content (parts, planets, creatures, colours, plants), not gameplay
+# tweaks or translation fixes.
 
-# Planet mods by Gemini-HUN (data only: planet scripts and terrain)
+# Planets (Gemini-HUN)
 Gemini-HUN/Spore_hidden_planets
 Gemini-HUN/2008_feb_Gemini_beta_planets
+Gemini-HUN/2008_feb_starter_worlds
+Gemini-HUN/2008_feb_special_planets
+Gemini-HUN/2008_feb_Art_planets
 Gemini-HUN/Gemini_proto_solar_planets
+Gemini-HUN/Gemini_DarkSpore_VanillaPlus_Planets
 Gemini-HUN/Spore_T3_Earth
 Gemini-HUN/Spore_Spiralplanet_crashedship
-Gemini-HUN/2008_feb_Art_planets
+Gemini-HUN/Gemini_rebalanced_planet_spawning
+Gemini-HUN/Exclude_Vanilla_starter_planets
+
+# Plants and fruit (Gemini-HUN)
+Gemini-HUN/Fruit_container_Gemini_mods
+Gemini-HUN/Sporemod-Fruits-in-civ-and-space
+
+# Creature parts and creature data
+Gemini-HUN/Spor-o-mega
+Gemini-HUN/PlesiomawMouth_Archive
+Gemini-HUN/Vertebra_Graphics_archive
+Gemini-HUN/2008_feb_creature_types
+Gemini-HUN/DavosBP2_Data
+RAYTRAC3R/RAYTRAC3R-s-Custom-Spore-Parts
+Valla-Chan/Spore-Mods all
+
+# Colours and paints
+MADPSI/CamBensColourPack
