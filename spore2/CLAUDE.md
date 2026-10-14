@@ -4,6 +4,8 @@ Private, non-commercial project. The user owns Spore, Creepy & Cute and Galactic
 The code reads their locally installed files. Never commit game data (`*.package`, extracted
 resources, creation PNGs) to this repository.
 
+Start with `HANDOVER.md`: project history, the user's machine and paths, open tasks.
+
 ## Rules
 
 - `Plugins/Spore2Interop/Source/Spore2Interop/{Public,Private}/SporeCore/` is engine-independent
