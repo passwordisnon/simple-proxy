@@ -111,6 +111,10 @@ files that look unused in the base game.
 
 ## Open tasks, roughly in order
 
+0. Run the automated pipeline (`bash spore2/Tools/pipeline.sh`, editor closed) and check
+   `~/SporeData/pipeline/report.txt` and `/Game/Spore` in the editor. The Blender step was tested
+   with Blender 5.2 on synthetic files only; the Unreal import step has never run against the real
+   project - fix whatever it reports (e.g. options UE 5.8's Interchange ignores).
 1. Copy the expansion packages (see machine section), re-run `--unused --render` with all three
    roots, and look at the vehicle/building/UFO previews now that `.gmdl` is read.
 2. Run `spore2-scan --models` on the base game to confirm `.gmdl` decoding on real files

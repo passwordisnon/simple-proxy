@@ -41,6 +41,29 @@ in the card, and Darkspore assets, are not supported; adventures decode to binar
 state names that exist in the original executable. Here they only choose which UI workspace
 opens. The content of those unfinished editors has not been recovered.
 
+## Automated pipeline: Spore files → Blender → Unreal
+
+```
+bash ~/spore2-work/spore2/Tools/pipeline.sh            # everything; close the Unreal editor first
+bash ~/spore2-work/spore2/Tools/pipeline.sh --skip unreal
+bash ~/spore2-work/spore2/Tools/pipeline.sh --only blender,unreal --groups editor_rigblocks~
+```
+
+1. **build** – compiles `spore2-scan`.
+2. **export** – every `.rw4`/`.gmdl` model of the game, expansions and mods → `.obj` + textures.
+3. **assemble** – every saved/downloaded creation (`.crt .bld .vcl .ufo`) → one `.obj` each.
+4. **blender** – Blender without its window (`Tools/blender/spore_to_unreal.py`, several processes
+   in parallel) cleans each model and writes an `.fbx` with embedded textures. Installs Blender with
+   Homebrew if it is missing.
+5. **unreal** – Unreal without its window (`Tools/unreal/import_spore_fbx.py`) imports every new
+   `.fbx` into `/Game/Spore` as static meshes with materials, collision and lightmap UVs. Turns on
+   the Python Editor Script Plugin in `Spore2.uproject` first (backup `Spore2.uproject.bak`).
+
+Every step skips what is already done (`--force` redoes it); output goes to `~/SporeData/pipeline`,
+with a summary in `report.txt` and logs in `logs/`. Blender step tested with Blender 5.2 on
+synthetic files; the Unreal import itself has not run on a real project yet (UE 5.8 may route FBX
+through Interchange and ignore some of the requested options).
+
 ## Step by step: what you need, when, and where
 
 ### Quickest check: one command, one report

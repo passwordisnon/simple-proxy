@@ -15,6 +15,9 @@
 //        --flip-rotation tries the other orientation convention if parts look misrotated.
 //        --render also draws the result from the front, side and top into <name>_preview.png.
 // --names points at a SporeModder-FX folder; its reg_*.txt files turn hashes into names.
+// --type takes one type or a list (--type rw4,gmdl); --groups G1,G2 limits exports and decoding
+//        to those groups (names or 0x-hex); --derived-only skips the raw file copies on --extract
+//        and keeps only what was made from them (.obj/.mtl/.png/.dds/.txt).
 // --find reports which packages hold a resource whose instance or group is the hash of NAME
 //        (e.g. --find CakeEditor,CellEditor to check claims about hidden editors).
 // --unused lists .prop, .rw4 and .gmdl files that no .prop references (by key, or by a string naming
@@ -76,8 +79,8 @@ struct Options
 	std::vector<std::string> FindNames;
 	std::vector<std::string> UnusedGroups;
 	std::string ExtractDir;
-	bool bHasTypeFilter = false;
-	uint32_t TypeFilter = 0;
+	std::vector<uint32_t> TypeFilters; // --type: only these types (empty = all)
+	bool bDerivedOnly = false;         // --derived-only: skip raw copies, keep .obj/.png/.txt/...
 	std::vector<std::string> Roots;
 };
 
@@ -96,6 +99,24 @@ struct NameTables
 };
 
 NameTables Names;
+
+// True when Groups is empty or names Group, by registry name (case-insensitive) or as 0x-hex.
+bool GroupSelected(const std::vector<std::string>& Groups, uint32_t Group)
+{
+	if (Groups.empty()) return true;
+	const std::string Name = NameTables::Lookup(Names.Files, Group);
+	char Hex[16];
+	std::snprintf(Hex, sizeof(Hex), "0x%08X", Group);
+	auto Same = [](const std::string& A, const std::string& B)
+	{
+		return A.size() == B.size() && std::equal(A.begin(), A.end(), B.begin(), [](char X, char Y) { return std::tolower(static_cast<unsigned char>(X)) == std::tolower(static_cast<unsigned char>(Y)); });
+	};
+	for (const std::string& Wanted : Groups)
+	{
+		if ((!Name.empty() && Same(Wanted, Name)) || Same(Wanted, Hex)) return true;
+	}
+	return false;
+}
 
 size_t LoadRegistry(const fs::path& File, std::unordered_map<uint32_t, std::string>& Out)
 {
@@ -262,6 +283,11 @@ bool ParseType(const std::string& Text, uint32_t& Out)
 			return true;
 		}
 	}
+	if (Text == "gmdl")
+	{
+		Out = TypeGmdl;
+		return true;
+	}
 	char* End = nullptr;
 	const unsigned long Value = std::strtoul(Text.c_str(), &End, 16);
 	if (End == Text.c_str() || *End != '\0')
@@ -423,7 +449,10 @@ void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts
 		}
 
 		const bool bIsProp = Entry.Key.Type == 0x00B1B104;
-		const bool bWanted = !Opts.bHasTypeFilter || Entry.Key.Type == Opts.TypeFilter;
+		// --groups narrows exports and decoding, except for --unused, which needs every file's
+		// references and uses the list only for drawing.
+		const bool bWanted = (Opts.TypeFilters.empty() || std::find(Opts.TypeFilters.begin(), Opts.TypeFilters.end(), Entry.Key.Type) != Opts.TypeFilters.end()) &&
+			(Opts.bUnused || GroupSelected(Opts.UnusedGroups, Entry.Key.Group));
 		const bool bExtract = !Opts.ExtractDir.empty() && bWanted;
 		const bool bDecodeProp = (Opts.bProps || Opts.bUnused) && bIsProp;
 		const bool bIsTexture = Entry.Key.Type == 0x2F4E681C || Entry.Key.Type == 0x2F4E681B; // raster, rw4
@@ -649,8 +678,11 @@ void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts
 			const std::string Name = NameOrHex(NameTables::Lookup(Names.Files, Entry.Key.Instance), Entry.Key.Instance) + "." + TypeLabel(Entry.Key.Type);
 			const fs::path OutDir = fs::path(Opts.ExtractDir) / Path.stem() / GroupPart;
 			fs::create_directories(OutDir, Ec);
-			std::ofstream Out(OutDir / Name, std::ios::binary);
-			Out.write(reinterpret_cast<const char*>(Decoded.data()), static_cast<std::streamsize>(Decoded.size()));
+			if (!Opts.bDerivedOnly)
+			{
+				std::ofstream Out(OutDir / Name, std::ios::binary);
+				Out.write(reinterpret_cast<const char*>(Decoded.data()), static_cast<std::streamsize>(Decoded.size()));
+			}
 			++Totals.Extracted;
 
 			for (size_t M = 0; M < Meshes.size(); ++M)
@@ -1128,15 +1160,7 @@ void RenderUnused(const std::vector<ResourceKey>& UnusedKeys, const Options& Opt
 {
 	std::vector<std::string> Wanted = Opts.UnusedGroups;
 	if (Wanted.empty()) Wanted.push_back("editor_rigblocks~");
-	auto IsWanted = [&](uint32_t Group)
-	{
-		const std::string Name = FileName(Group);
-		for (const std::string& W : Wanted)
-		{
-			if (W.size() == Name.size() && std::equal(W.begin(), W.end(), Name.begin(), [](char A, char B) { return std::tolower(static_cast<unsigned char>(A)) == std::tolower(static_cast<unsigned char>(B)); })) return true;
-		}
-		return false;
-	};
+	auto IsWanted = [&](uint32_t Group) { return GroupSelected(Wanted, Group); };
 
 	ResourceLibrary Library;
 	for (const std::string& Root : Opts.Roots) Library.AddRoot(Root);
@@ -1336,7 +1360,8 @@ void ReportUnused(const ScanTotals& Totals, const Options& Opts)
 
 void PrintUsage()
 {
-	std::printf("usage: spore2-scan [--verify] [--props] [--textures] [--models] [--png] [--extract DIR] [--type HEX|png|prop|rw4|raster]\n"
+	std::printf("usage: spore2-scan [--verify] [--props] [--textures] [--models] [--png] [--extract DIR [--derived-only]]\n"
+	            "                   [--type T[,T...]] (T = HEX|png|prop|rw4|raster|gmdl) [--groups G1,G2]\n"
 	            "                   [--names SMFX_DIR] [--find NAME[,NAME...]] [--assemble CARD.png|FILE.crt [--flip-rotation] [--render]]\n"
 	            "                   [--unused [--render] [--groups G1,G2]] [ROOT...]\n");
 }
@@ -1376,13 +1401,25 @@ int main(int Argc, char** Argv)
 		else if (Arg == "--extract" && I + 1 < Argc) Opts.ExtractDir = Argv[++I];
 		else if (Arg == "--type" && I + 1 < Argc)
 		{
-			if (!ParseType(Argv[++I], Opts.TypeFilter))
+			// One type or a comma-separated list, e.g. --type rw4,gmdl.
+			std::string List = Argv[++I];
+			size_t Start = 0;
+			while (Start <= List.size())
 			{
-				std::fprintf(stderr, "unknown type '%s'\n", Argv[I]);
-				return 2;
+				const size_t Comma = List.find(',', Start);
+				const std::string Item = List.substr(Start, Comma == std::string::npos ? std::string::npos : Comma - Start);
+				uint32_t Type = 0;
+				if (!ParseType(Item, Type))
+				{
+					std::fprintf(stderr, "unknown type '%s'\n", Item.c_str());
+					return 2;
+				}
+				Opts.TypeFilters.push_back(Type);
+				if (Comma == std::string::npos) break;
+				Start = Comma + 1;
 			}
-			Opts.bHasTypeFilter = true;
 		}
+		else if (Arg == "--derived-only") Opts.bDerivedOnly = true;
 		else if (Arg == "-h" || Arg == "--help") { PrintUsage(); return 0; }
 		else if (!Arg.empty() && Arg[0] == '-') { PrintUsage(); return 2; }
 		else Opts.Roots.push_back(Arg);
