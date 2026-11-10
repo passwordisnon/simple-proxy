@@ -2,6 +2,7 @@
 
 #include "SporeCore/SporeCreation.h"
 #include "SporeCore/SporeDbpf.h"
+#include "SporeCore/SporeGltf.h"
 #include "SporeCore/SporePng.h"
 #include "SporeCore/SporeProp.h"
 #include "SporeCore/SporeSkin.h"
@@ -1202,6 +1203,147 @@ static void TestGmdl()
 	CHECK(!ParseGmdl(G.data(), 40, Info, Error));
 }
 
+static uint32_t GlbLE32(const std::vector<uint8_t>& B, size_t At)
+{
+	return B[At] | (B[At + 1] << 8) | (B[At + 2] << 16) | (static_cast<uint32_t>(B[At + 3]) << 24);
+}
+
+static float GlbFloat(const std::vector<uint8_t>& B, size_t At)
+{
+	const uint32_t Bits = GlbLE32(B, At);
+	float F;
+	std::memcpy(&F, &Bits, sizeof(F));
+	return F;
+}
+
+// Brackets and braces outside strings must pair up; catches a broken hand-written JSON.
+static bool JsonBalanced(const std::string& Json)
+{
+	std::string Stack;
+	bool bInString = false;
+	for (size_t I = 0; I < Json.size(); ++I)
+	{
+		const char C = Json[I];
+		if (bInString)
+		{
+			if (C == '\\') ++I;
+			else if (C == '"') bInString = false;
+		}
+		else if (C == '"') bInString = true;
+		else if (C == '{' || C == '[') Stack += C;
+		else if (C == '}' || C == ']')
+		{
+			if (Stack.empty() || Stack.back() != (C == '}' ? '{' : '[')) return false;
+			Stack.pop_back();
+		}
+	}
+	return Stack.empty() && !bInString;
+}
+
+static void TestGltf()
+{
+	// Four bones: 0 root, 1 its child starting a chain, 2 the chain's end, 3 a second child of 0.
+	SkeletonData Skeleton;
+	Skeleton.Id = 0x1234;
+	Skeleton.bHasBindPose = true;
+	Skeleton.Bones.resize(4);
+	const uint32_t Flags[4] = {BoneFlagRoot, BoneFlagBranch, BoneFlagLeaf, BoneFlagBranchLeaf};
+	const int32_t Parents[4] = {-1, 0, 1, 0};
+	const float Heads[4][3] = {{0, 0, 0}, {0, 0, 1}, {0, 0, 2}, {1, 0, 0}};
+	for (int B = 0; B < 4; ++B)
+	{
+		SkeletonBone& Bone = Skeleton.Bones[B];
+		Bone.Name = 0x100 + B;
+		Bone.Flags = Flags[B];
+		Bone.Parent = Parents[B];
+		// Identity rotation, so the stored translation is minus the bone's position.
+		for (int C = 0; C < 3; ++C)
+		{
+			Bone.Head[C] = Heads[B][C];
+			Bone.InverseTranslation[C] = -Heads[B][C];
+		}
+	}
+	const std::vector<int32_t> FromFlags = SkeletonParentsFromFlags(Skeleton);
+	CHECK(FromFlags.size() == 4 && FromFlags[0] == -1 && FromFlags[1] == 0 && FromFlags[2] == 1 && FromFlags[3] == 0);
+
+	// A quad in the XY plane with +Z normals, its triangles listed facing -Z (to be reversed).
+	MeshData Mesh;
+	Mesh.Positions = {0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0};
+	Mesh.Normals = {0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1};
+	Mesh.UVs = {0, 0, 1, 0, 0, 1, 1, 1};
+	Mesh.Indices = {0, 2, 1, 2, 3, 1};
+	Mesh.BoneIndices = {0, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, 0, 2, 0, 0, 0};
+	Mesh.BoneWeights = {1, 0, 0, 0, 0.5f, 0, 0, 0, 1, 3, 0, 0, 0, 0, 0, 0};
+
+	KeyframeAnimation Wave;
+	Wave.Id = 0x200;
+	Wave.SkeletonId = Skeleton.Id;
+	Wave.Channels.resize(2);
+	Wave.Channels[0].Id = 0x101;
+	Wave.Channels[0].Components = 0x601;
+	Wave.Channels[1].Id = 0x102;
+	Wave.Channels[1].Components = 0x101;
+	for (int K = 0; K < 3; ++K)
+	{
+		AnimKeyframe Key;
+		Key.Time = 0.5f * static_cast<float>(K == 2 ? 1 : K); // the third repeats a time: dropped
+		Key.Location[2] = 1.0f + static_cast<float>(K);
+		Key.Scale[0] = Key.Scale[1] = Key.Scale[2] = 2.0f;
+		Wave.Channels[0].Keys.push_back(Key);
+		Wave.Channels[1].Keys.push_back(Key);
+	}
+	KeyframeAnimation Foreign;
+	Foreign.Channels.resize(1);
+	Foreign.Channels[0].Id = 0x999; // names no bone
+	Foreign.Channels[0].Components = 0x101;
+	Foreign.Channels[0].Keys.resize(1);
+
+	GltfScene Scene;
+	Scene.Meshes.push_back({&Mesh, "quad \"a\"", 0});
+	Scene.Images.push_back({0x89, 'P', 'N', 'G', 1, 2, 3});
+	Scene.Skeleton = &Skeleton;
+	Scene.Animations = {&Wave, &Foreign};
+	Scene.NameOf = [](uint32_t Id) { return Id == 0x101 ? std::string("spine") : std::string(); };
+
+	std::vector<uint8_t> Glb;
+	GltfReport Report;
+	CHECK(WriteGlb(Scene, Glb, Report));
+	CHECK(Report.Meshes == 1 && Report.SkinnedMeshes == 1 && Report.Bones == 4 && Report.Animations == 1);
+	CHECK(Report.Notes.size() == 2); // reversed triangles, animation left out
+	CHECK(Glb.size() > 28 && GlbLE32(Glb, 0) == 0x46546C67 && GlbLE32(Glb, 4) == 2 && GlbLE32(Glb, 8) == Glb.size());
+	if (Glb.size() > 28)
+	{
+		const uint32_t JsonSize = GlbLE32(Glb, 12);
+		CHECK(GlbLE32(Glb, 16) == 0x4E4F534A && JsonSize % 4 == 0 && 20 + JsonSize + 8 <= Glb.size());
+		const std::string Json(Glb.begin() + 20, Glb.begin() + 20 + JsonSize);
+		CHECK(JsonBalanced(Json));
+		const size_t Bin = 20 + JsonSize;
+		CHECK(GlbLE32(Glb, Bin + 4) == 0x004E4942 && GlbLE32(Glb, Bin) % 4 == 0 && Bin + 8 + GlbLE32(Glb, Bin) == Glb.size());
+		for (const char* Wanted : {"\"skins\"", "\"JOINTS_0\"", "\"WEIGHTS_0\"", "\"TEXCOORD_0\"", "\"image/png\"", "\"animations\"",
+			"\"name\":\"spine\"", "\"name\":\"0x00000102\"", "\"name\":\"quad \\\"a\\\"\"", "\"path\":\"scale\"",
+			// Bone 1 sits at Spore (0, 0, 1) = glTF (0, 1, 0); bone 3 hangs below bone 0.
+			"\"name\":\"spine\",\"translation\":[0,1,0]", "\"children\":[1,3]"})
+		{
+			CHECK(Json.find(Wanted) != std::string::npos);
+		}
+		// The binary chunk starts with the inverse bind matrices; bone 1's translation column is
+		// its stored translation (0, 0, -1) in glTF axes: (0, -1, 0).
+		const size_t Bone1 = Bin + 8 + 64;
+		CHECK(GlbFloat(Glb, Bone1) == 1.0f && GlbFloat(Glb, Bone1 + 48) == 0.0f && GlbFloat(Glb, Bone1 + 52) == -1.0f && GlbFloat(Glb, Bone1 + 56) == 0.0f && GlbFloat(Glb, Bone1 + 60) == 1.0f);
+	}
+
+	// A static scene has no skin; a scene without usable meshes writes nothing.
+	GltfScene Static;
+	MeshData Plain = Mesh;
+	Plain.BoneIndices.clear();
+	Plain.BoneWeights.clear();
+	Static.Meshes.push_back({&Plain, "plain", -1});
+	CHECK(WriteGlb(Static, Glb, Report) && Report.SkinnedMeshes == 0 && Report.Bones == 0);
+	CHECK(std::string(Glb.begin(), Glb.end()).find("\"skins\"") == std::string::npos);
+	Plain.Indices = {0, 1, 9};
+	CHECK(!WriteGlb(Static, Glb, Report) && Glb.empty() && Report.Notes.size() == 1);
+}
+
 int main()
 {
 	TestRefPack();
@@ -1218,6 +1360,7 @@ int main()
 	TestTextures();
 	TestMeshes();
 	TestGmdl();
+	TestGltf();
 	TestCreation();
 	TestPollenMetadata();
 	TestSkin();

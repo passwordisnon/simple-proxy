@@ -5,15 +5,16 @@
 #
 # Steps (all on by default, each skips work that is already done):
 #   build     compile spore2-scan
-#   export    every model (.rw4 and .gmdl) in the game, the expansions and your mods -> .obj
-#             with textures (~/SporeData/pipeline/obj)
+#   export    every model (.rw4 and .gmdl) in the game, the expansions and your mods -> .glb
+#             with textures, skeleton, bone weights and animations (~/SporeData/pipeline/obj)
 #   assemble  every saved/downloaded creation (.crt .bld .vcl .ufo) -> one .obj each
 #             (~/SporeData/pipeline/creations)
-#   blender   Blender, without its window, cleans each .obj and writes an Unreal-ready .fbx with
-#             embedded textures (~/SporeData/pipeline/fbx); several Blender processes in parallel.
+#   blender   Blender, without its window, cleans each model and writes an Unreal-ready .fbx with
+#             embedded textures (~/SporeData/pipeline/fbx; rigged models as <name>_rig.fbx);
+#             several Blender processes in parallel.
 #             Installs Blender with Homebrew if it is missing.
 #   unreal    Unreal, without its window, imports every new .fbx into /Game/Spore of the Spore2
-#             project (enables the Python Editor Script Plugin in the .uproject first; a backup
+#             project (static meshes; skeletal meshes with animations for rigged models) (enables the Python Editor Script Plugin in the .uproject first; a backup
 #             of the .uproject is kept). Close the Unreal editor before this step.
 #
 # Options:
@@ -49,7 +50,7 @@ while [ $# -gt 0 ]; do
 		--creations) CREATIONS="$2"; shift ;;
 		--jobs) JOBS="$2"; shift ;;
 		--force) FORCE=1 ;;
-		-h|--help) sed -n '2,32p' "$0"; exit 0 ;;
+		-h|--help) sed -n '2,31p' "$0"; exit 0 ;;
 		*) echo "unknown option $1 (see --help)"; exit 2 ;;
 	esac
 	shift
@@ -85,11 +86,18 @@ fi
 if wants export; then
 	note "== export models"
 	[ "$FORCE" = 1 ] && rm -rf "$WORK/obj"
+	# Exports made before models were written as .glb: start clean, or every model would be
+	# converted twice (once from its old .obj files).
+	if [ -n "$(find "$WORK/obj" -name '*.obj' 2>/dev/null | head -1)" ]; then
+		note "  older .obj exports found - clearing them and the .fbx files made from them"
+		rm -rf "$WORK/obj" "$WORK/fbx"
+	fi
 	GROUP_ARGS=()
 	[ -n "$GROUP_LIST" ] && GROUP_ARGS=(--groups "$GROUP_LIST")
-	"$SCAN" --models --textures "${NAME_ARGS[@]}" --extract "$WORK/obj" --derived-only --type rw4,gmdl "${GROUP_ARGS[@]}" "${ROOTS[@]}" > "$LOGS/export.log" 2>&1
-	grep -E "meshes:|baked models:" "$LOGS/export.log" | tee -a "$REPORT"
-	note "  $(find "$WORK/obj" -name '*.obj' 2>/dev/null | wc -l | tr -d ' ') .obj files in $WORK/obj"
+	# --gltf: one .glb per model with its textures, skeleton, bone weights and animations inside.
+	"$SCAN" --models --gltf "${NAME_ARGS[@]}" --extract "$WORK/obj" --derived-only --type rw4,gmdl "${GROUP_ARGS[@]}" "${ROOTS[@]}" > "$LOGS/export.log" 2>&1
+	grep -E "meshes:|baked models:|skeletons:|bone hierarchy:|glTF files:|^    ! " "$LOGS/export.log" | tee -a "$REPORT"
+	note "  $(find "$WORK/obj" -name '*.glb' 2>/dev/null | wc -l | tr -d ' ') .glb files in $WORK/obj"
 fi
 
 if wants assemble && [ "$CREATIONS" != "none" ] && [ -d "$CREATIONS" ]; then

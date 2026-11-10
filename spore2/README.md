@@ -28,6 +28,7 @@ available inside Unreal Engine 5. No game files are included in or committed to 
 | Creature `.animation` files, blend shape morphing, UE skeletal meshes | not started |
 | Saved creations in packages (`EditorSaves.package`, `Pollination.package`): `.crt`/`.bld`/... XML assembles directly; `.pollen_metadata` → name, author, tags (`.txt` + `creations.tsv` on extract) | done, unit-tested |
 | Baked game models (`.gmdl`, e.g. Maxis-made vehicles, buildings, UFOs): geometry; counted by `--models`, drawn by `--unused --render`. Materials not read yet | done, unit-tested; not yet checked on real files |
+| glTF export (`SporeGltf`, `spore2-scan --models --gltf --extract`): one `.glb` per model with meshes, embedded textures, skeleton, bone weights and rw4 keyframe animations | done, unit-tested and cross-checked in Blender on synthetic data; not yet run on real files |
 | Creature body skin: approximate tubes along the spine and limb chains (`SporeSkin`), added to `--assemble` and `spore.Assemble`. Spore builds the real skin at run time and it is not stored in the file, so this is a guess, not the game's skinning | approximation, unit-tested; shape only checked by eye on one creature |
 | Creation PNGs: hidden payload → metadata + `<sporemodel>` XML → parts (ID, transform, paints, children) → UE `DecodeCreationPng` | done, checked on real Spore PNGs |
 | Gameplay stages, editors, procedural animation | not started |
@@ -50,18 +51,22 @@ bash ~/spore2-work/spore2/Tools/pipeline.sh --only blender,unreal --groups edito
 ```
 
 1. **build** – compiles `spore2-scan`.
-2. **export** – every `.rw4`/`.gmdl` model of the game, expansions and mods → `.obj` + textures.
+2. **export** – every `.rw4`/`.gmdl` model of the game, expansions and mods → one `.glb` each, with
+   textures, skeleton, bone weights and keyframe animations inside.
 3. **assemble** – every saved/downloaded creation (`.crt .bld .vcl .ufo`) → one `.obj` each.
 4. **blender** – Blender without its window (`Tools/blender/spore_to_unreal.py`, several processes
-   in parallel) cleans each model and writes an `.fbx` with embedded textures. Installs Blender with
+   in parallel) cleans each model and writes an `.fbx` with embedded textures; a model with a
+   skeleton keeps it and its animations and is named `<name>_rig.fbx`. Installs Blender with
    Homebrew if it is missing.
 5. **unreal** – Unreal without its window (`Tools/unreal/import_spore_fbx.py`) imports every new
-   `.fbx` into `/Game/Spore` as static meshes with materials, collision and lightmap UVs. Turns on
+   `.fbx` into `/Game/Spore`: static meshes with materials, collision and lightmap UVs, and
+   skeletal meshes with their skeleton and animation sequences for `*_rig.fbx`. Turns on
    the Python Editor Script Plugin in `Spore2.uproject` first (backup `Spore2.uproject.bak`).
 
 Every step skips what is already done (`--force` redoes it); output goes to `~/SporeData/pipeline`,
 with a summary in `report.txt` and logs in `logs/`. Blender step tested with Blender 5.2 on
-synthetic files; the Unreal import itself has not run on a real project yet (UE 5.8 may route FBX
+synthetic files (a rigged, animated test model deforms in Blender and in the exported FBX exactly
+as SporeModder's Blender add-on computes it); the Unreal import itself has not run on a real project yet (UE 5.8 may route FBX
 through Interchange and ignore some of the requested options).
 
 ## Step by step: what you need, when, and where

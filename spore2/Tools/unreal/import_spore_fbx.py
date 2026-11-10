@@ -1,4 +1,7 @@
-"""Imports every .fbx under a folder into the open Unreal project as static meshes.
+"""Imports every .fbx under a folder into the open Unreal project.
+
+Files named *_rig.fbx (models with a skeleton, see spore_to_unreal.py) become skeletal meshes
+with their own skeleton and animation sequences; all others become static meshes.
 
 Runs inside Unreal's Python (Python Editor Script Plugin), usually without the editor window:
 
@@ -11,8 +14,8 @@ Settings come from environment variables (the pipeline script sets them):
     SPORE_UE_FORCE   "1" re-imports files that already have an asset
 
 The folder layout below SPORE_FBX_DIR is kept (made safe for Unreal paths). Materials and the
-textures embedded by spore_to_unreal.py are imported with each mesh; collision and lightmap
-UVs are generated. Existing assets are skipped unless SPORE_UE_FORCE is set, so a re-run only
+textures embedded by spore_to_unreal.py are imported with each mesh; static meshes also get
+collision and lightmap UVs. Existing assets are skipped unless SPORE_UE_FORCE is set, so a re-run only
 imports what is new. Imports run in batches and every batch is saved, so a crash halfway keeps
 what was already done. A summary goes to the log and to <SPORE_FBX_DIR>/unreal-import.json.
 """
@@ -40,15 +43,24 @@ def make_task(fbx_path, destination):
 
     options = unreal.FbxImportUI()
     options.import_mesh = True
-    options.import_as_skeletal = False
     options.import_materials = True
     options.import_textures = True
-    options.import_animations = False
-    options.mesh_type_to_import = unreal.FBXImportType.FBXIT_STATIC_MESH
-    data = options.static_mesh_import_data
-    data.combine_meshes = True
-    data.auto_generate_collision = True
-    data.generate_lightmap_u_vs = True
+    if fbx_path.lower().endswith("_rig.fbx"):
+        # A new skeleton per model: Spore's parts each have their own bones.
+        options.import_as_skeletal = True
+        options.mesh_type_to_import = unreal.FBXImportType.FBXIT_SKELETAL_MESH
+        options.skeleton = None
+        options.create_physics_asset = False
+        options.import_animations = True
+        options.skeletal_mesh_import_data.import_morph_targets = False
+    else:
+        options.import_as_skeletal = False
+        options.import_animations = False
+        options.mesh_type_to_import = unreal.FBXImportType.FBXIT_STATIC_MESH
+        data = options.static_mesh_import_data
+        data.combine_meshes = True
+        data.auto_generate_collision = True
+        data.generate_lightmap_u_vs = True
     task.options = options
     return task
 

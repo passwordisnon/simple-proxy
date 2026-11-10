@@ -18,6 +18,8 @@
 // --type takes one type or a list (--type rw4,gmdl); --groups G1,G2 limits exports and decoding
 //        to those groups (names or 0x-hex); --derived-only skips the raw file copies on --extract
 //        and keeps only what was made from them (.obj/.mtl/.png/.dds/.txt).
+// --gltf with --models --extract writes one .glb per model instead of .obj files: all its meshes
+//        with their textures embedded, plus skeleton, bone weights and keyframe animations.
 // --find reports which packages hold a resource whose instance or group is the hash of NAME
 //        (e.g. --find CakeEditor,CellEditor to check claims about hidden editors).
 // --unused lists .prop, .rw4 and .gmdl files that no .prop references (by key, or by a string naming
@@ -30,6 +32,7 @@
 #include "SporeCore/SporeCreation.h"
 #include "SporeCore/SporeSkin.h"
 #include "SporeCore/SporeDbpf.h"
+#include "SporeCore/SporeGltf.h"
 #include "SporeCore/SporePng.h"
 #include "SporeCore/SporeProp.h"
 #include "SporeCore/SporeTexture.h"
@@ -39,6 +42,7 @@
 #include "Preview.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -81,6 +85,7 @@ struct Options
 	std::string ExtractDir;
 	std::vector<uint32_t> TypeFilters; // --type: only these types (empty = all)
 	bool bDerivedOnly = false;         // --derived-only: skip raw copies, keep .obj/.png/.txt/...
+	bool bGltf = false;                // --gltf: models as .glb (meshes, textures, skeleton, animations)
 	std::vector<std::string> Roots;
 };
 
@@ -328,6 +333,10 @@ struct ScanTotals
 	size_t AnimationChannels = 0;
 	size_t AnimationKeys = 0;
 	size_t AnimationsSkipped = 0;
+	size_t SkeletonFlagsAgree = 0; // skeletons whose bone flags give the same parents as the parent list
+	size_t GltfFiles = 0;
+	size_t GltfSkinned = 0;    // .glb files with a skeleton and weights
+	size_t GltfAnimations = 0;
 	size_t GmdlDecoded = 0;  // baked game models (.gmdl)
 	size_t GmdlFailed = 0;
 	size_t GmdlMeshes = 0;
@@ -526,6 +535,8 @@ void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts
 
 		std::vector<MeshData> Meshes;
 		std::vector<SkeletonData> Skeletons;
+		std::vector<TextureImage> ModelTextures;        // the model's own textures, for --gltf
+		std::vector<KeyframeAnimation> ModelAnimations; // and its keyframe animations
 		size_t ModelTextureCount = 0; // textures inside the same rw4, for .mtl references
 		if (bDecodeGmdl)
 		{
@@ -605,7 +616,18 @@ void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts
 					}
 					++Totals.Skeletons;
 					Totals.SkeletonBones += Skeleton.Bones.size();
+					// Two readings of the hierarchy that should agree: the parent list and the
+					// bone flags the game's animation code walks.
+					const std::vector<int32_t> FromFlags = SkeletonParentsFromFlags(Skeleton);
+					bool bAgree = true;
+					for (size_t B = 0; B < Skeleton.Bones.size(); ++B) bAgree = bAgree && FromFlags[B] == Skeleton.Bones[B].Parent;
+					if (bAgree) ++Totals.SkeletonFlagsAgree;
 					Skeletons.push_back(std::move(Skeleton));
+				}
+				if (Opts.bGltf)
+				{
+					ModelTextures = std::move(Info.Textures);
+					ModelAnimations = std::move(Info.Animations);
 				}
 			}
 			else
@@ -685,7 +707,61 @@ void ScanPackage(const fs::path& Path, const fs::path& Root, const Options& Opts
 			}
 			++Totals.Extracted;
 
-			for (size_t M = 0; M < Meshes.size(); ++M)
+			if (Opts.bGltf && !Meshes.empty())
+			{
+				// One .glb for the whole model. Each texture is embedded once as PNG.
+				GltfScene Scene;
+				std::map<int32_t, int32_t> ImageOf; // texture index in the rw4 -> image in the .glb
+				for (size_t M = 0; M < Meshes.size(); ++M)
+				{
+					GltfMesh Item;
+					Item.Mesh = &Meshes[M];
+					Item.Name = Name + (Meshes.size() > 1 ? "." + std::to_string(M) : std::string());
+					const MeshTextureSlot* Slot = DiffuseSlot(Meshes[M]);
+					if (Slot && Slot->TextureIndex >= 0 && static_cast<size_t>(Slot->TextureIndex) < ModelTextures.size())
+					{
+						auto Known = ImageOf.find(Slot->TextureIndex);
+						if (Known == ImageOf.end())
+						{
+							const TextureImage& Texture = ModelTextures[static_cast<size_t>(Slot->TextureIndex)];
+							std::vector<uint8_t> Rgba, Png;
+							std::string TexError;
+							int32_t Image = -1;
+							if (DecodeToRgba(Texture, Rgba, TexError) && EncodePng(Rgba, Texture.Width, Texture.Height, Png))
+							{
+								Image = static_cast<int32_t>(Scene.Images.size());
+								Scene.Images.push_back(std::move(Png));
+							}
+							Known = ImageOf.emplace(Slot->TextureIndex, Image).first;
+						}
+						Item.Image = Known->second;
+					}
+					Scene.Meshes.push_back(Item);
+				}
+				if (!Skeletons.empty()) Scene.Skeleton = &Skeletons.front();
+				for (const KeyframeAnimation& Animation : ModelAnimations) Scene.Animations.push_back(&Animation);
+				Scene.NameOf = [](uint32_t Id) { return NameTables::Lookup(Names.Files, Id); };
+				std::vector<uint8_t> Glb;
+				GltfReport Report;
+				if (WriteGlb(Scene, Glb, Report))
+				{
+					WriteBytes(OutDir / (Name + ".glb"), Glb);
+					++Totals.GltfFiles;
+					Totals.GltfSkinned += Report.SkinnedMeshes > 0 ? 1 : 0;
+					Totals.GltfAnimations += Report.Animations;
+				}
+				for (const std::string& Note : Report.Notes)
+				{
+					// Group by kind: drop the quoted name and leading count that differ per file.
+					std::string Kind = Note;
+					const size_t Quote = Kind.find('\'');
+					const size_t End = Quote == std::string::npos ? Quote : Kind.find('\'', Quote + 1);
+					if (End != std::string::npos) Kind.erase(Quote, End - Quote + 2);
+					while (!Kind.empty() && (std::isdigit(static_cast<unsigned char>(Kind[0])) || Kind[0] == ' ')) Kind.erase(0, 1);
+					++Totals.MeshIssues["glTF: " + Kind];
+				}
+			}
+			for (size_t M = 0; !Opts.bGltf && M < Meshes.size(); ++M)
 			{
 				const std::string Base = Name + (Meshes.size() > 1 ? "." + std::to_string(M) : std::string());
 				// A .mtl pointing at the mesh's own texture PNG (written when --textures is on).
@@ -1360,7 +1436,7 @@ void ReportUnused(const ScanTotals& Totals, const Options& Opts)
 
 void PrintUsage()
 {
-	std::printf("usage: spore2-scan [--verify] [--props] [--textures] [--models] [--png] [--extract DIR [--derived-only]]\n"
+	std::printf("usage: spore2-scan [--verify] [--props] [--textures] [--models] [--png] [--extract DIR [--derived-only] [--gltf]]\n"
 	            "                   [--type T[,T...]] (T = HEX|png|prop|rw4|raster|gmdl) [--groups G1,G2]\n"
 	            "                   [--names SMFX_DIR] [--find NAME[,NAME...]] [--assemble CARD.png|FILE.crt [--flip-rotation] [--render]]\n"
 	            "                   [--unused [--render] [--groups G1,G2]] [ROOT...]\n");
@@ -1420,6 +1496,7 @@ int main(int Argc, char** Argv)
 			}
 		}
 		else if (Arg == "--derived-only") Opts.bDerivedOnly = true;
+		else if (Arg == "--gltf") Opts.bGltf = true;
 		else if (Arg == "-h" || Arg == "--help") { PrintUsage(); return 0; }
 		else if (!Arg.empty() && Arg[0] == '-') { PrintUsage(); return 2; }
 		else Opts.Roots.push_back(Arg);
@@ -1542,6 +1619,8 @@ int main(int Argc, char** Argv)
 		std::printf("  baked models:     %zu .gmdl decoded (%zu meshes), %zu failed\n", Totals.GmdlDecoded, Totals.GmdlMeshes, Totals.GmdlFailed);
 		std::printf("  animations:       %zu keyframe animations (%zu channels, %zu keyframes), %zu skipped\n", Totals.Animations, Totals.AnimationChannels, Totals.AnimationKeys, Totals.AnimationsSkipped);
 		std::printf("  skeletons:        %zu with bind pose (%zu bones), %zu other skeleton sections; %zu meshes carry bone weights\n", Totals.Skeletons, Totals.SkeletonBones, Totals.SkeletonsWithoutPose, Totals.WeightedMeshes);
+		std::printf("  bone hierarchy:   bone flags and parent list agree in %zu of %zu skeletons\n", Totals.SkeletonFlagsAgree, Totals.Skeletons);
+		if (Opts.bGltf) std::printf("  glTF files:       %zu written (%zu with skeleton and weights, %zu animations)\n", Totals.GltfFiles, Totals.GltfSkinned, Totals.GltfAnimations);
 		std::printf("  mesh geometry:    %llu vertices, %llu triangles\n", static_cast<unsigned long long>(Totals.MeshVertices), static_cast<unsigned long long>(Totals.MeshTriangles));
 		if (Totals.NormalCount > 0)
 		{

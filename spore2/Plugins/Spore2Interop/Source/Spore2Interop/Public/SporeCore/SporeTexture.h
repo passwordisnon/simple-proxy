@@ -98,7 +98,7 @@ struct MeshData
 struct SkeletonBone
 {
 	uint32_t Name = 0;  // hash; resolve with reg_file.txt
-	uint32_t Flags = 0; // meaning not documented; kept raw
+	uint32_t Flags = 0; // 0 root, 1 leaf, 2 branch, 3 branch-leaf (see SporeGltf.h); kept raw
 	int32_t Parent = -1;
 	// Bind pose as stored: a 3x3 rotation (row-major) and the inverse bind translation.
 	float BindRotation[9] = {1, 0, 0, 0, 1, 0, 0, 0, 1};

@@ -1,4 +1,4 @@
-"""Batch-converts spore2-scan OBJ exports into Unreal-ready FBX files.
+"""Batch-converts spore2-scan model exports (.glb and .obj) into Unreal-ready FBX files.
 
 Runs inside Blender, without its window:
 
@@ -11,21 +11,27 @@ Options:
                        run side by side (the pipeline script does this)
     --origin keep      keep the model's own origin (default; parts are placed by their origin)
     --origin bottom    move the origin to the bottom centre (whole creations, buildings, ...)
-    --force            convert again even when the .fbx is newer than its .obj
+    --force            convert again even when the .fbx is newer than its source
 
-For every .obj: import (Spore axes, Z up), drop degenerate faces and loose vertices, join the
-pieces into one mesh named after the file, apply transforms, and export FBX with its textures
-embedded, so Unreal creates the materials and textures on import. Scene units are metres;
-Unreal's FBX import turns 1 m into 100 cm, the same 100x scale the plugin assumes.
+For every model: import, drop degenerate faces and loose vertices, join the pieces into one mesh
+named after the file, apply transforms, and export FBX with its textures embedded, so Unreal
+creates the materials and textures on import. Scene units are metres; Unreal's FBX import turns
+1 m into 100 cm, the same 100x scale the plugin assumes.
+
+A .glb with a skeleton (spore2-scan --gltf writes bones, weights and keyframe animations) keeps
+them: the armature and its actions go into the FBX, which is then named <name>_rig.fbx so the
+Unreal import step knows to make a skeletal mesh. A model that exists as both .glb and .obj is
+converted from the .glb.
 
 Each shard writes manifest-<I>-of-<N>.json into OUT_DIR: converted files (vertex, triangle,
-material and texture counts) and failures with their reason. One broken file never stops the
+material, texture, bone and animation counts) and failures with their reason. One broken file never stops the
 batch.
 """
 
 import json
 import os
 import re
+import struct
 import sys
 import time
 import traceback
@@ -64,30 +70,44 @@ def safe(name):
     return re.sub(r"[^A-Za-z0-9_\-]", "_", name)
 
 
-def output_path(in_root, obj_path, out_root):
-    """<in_root>/pkg/group~/name.rw4.obj -> <out_root>/<in_root name>/pkg/group_/name.fbx"""
-    rel = os.path.relpath(obj_path, in_root).split(os.sep)
+def glb_has_skin(path):
+    """True when the .glb's JSON chunk lists a skin (read without importing the file)."""
+    try:
+        with open(path, "rb") as f:
+            header = f.read(20)
+            if len(header) < 20 or header[:4] != b"glTF":
+                return False
+            return bool(json.loads(f.read(struct.unpack("<I", header[12:16])[0])).get("skins"))
+    except (OSError, ValueError):
+        return False
+
+
+def output_path(in_root, source, out_root):
+    """<in_root>/pkg/group~/name.rw4.glb -> <out_root>/<in_root name>/pkg/group_/name[_rig].fbx"""
+    rel = os.path.relpath(source, in_root).split(os.sep)
     folders = [safe(os.path.basename(os.path.normpath(in_root)))] + [safe(p) for p in rel[:-1]]
-    stem = rel[-1][:-len(".obj")].replace(".rw4", "").replace(".gmdl", "_gmdl")
-    return os.path.join(out_root, *folders, safe(stem) + ".fbx")
+    stem = os.path.splitext(rel[-1])[0].replace(".rw4", "").replace(".gmdl", "_gmdl")
+    rig = "_rig" if source.lower().endswith(".glb") and glb_has_skin(source) else ""
+    return os.path.join(out_root, *folders, safe(stem) + rig + ".fbx")
 
 
-def find_objs(inputs):
-    found = []
+def find_models(inputs):
+    found = {}
     for root in inputs:
         for dirpath, _, files in os.walk(root):
             for name in files:
-                if name.lower().endswith(".obj"):
-                    found.append((root, os.path.join(dirpath, name)))
-    found.sort(key=lambda item: item[1])
-    return found
+                stem, ext = os.path.splitext(name)
+                # .glb wins over an .obj of the same model: it carries more.
+                if ext.lower() == ".glb" or (ext.lower() == ".obj" and (dirpath, stem) not in found):
+                    found[(dirpath, stem)] = (root, os.path.join(dirpath, name))
+    return sorted(found.values(), key=lambda item: item[1])
 
 
-def up_to_date(obj_path, fbx_path):
+def up_to_date(source, fbx_path):
     if not os.path.exists(fbx_path):
         return False
-    newest = os.path.getmtime(obj_path)
-    mtl = obj_path[:-len(".obj")] + ".mtl"
+    newest = os.path.getmtime(source)
+    mtl = os.path.splitext(source)[0] + ".mtl"
     if os.path.exists(mtl):
         newest = max(newest, os.path.getmtime(mtl))
     return os.path.getmtime(fbx_path) >= newest
@@ -117,15 +137,20 @@ def move_origin_to_bottom(obj):
         v.co.z -= min_z
 
 
-def convert(obj_path, fbx_path, origin):
+def convert(source, fbx_path, origin):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.context.scene.unit_settings.system = "METRIC"
     bpy.context.scene.unit_settings.scale_length = 1.0
-    # spore2-scan writes Spore's own axes (Z up), so import without rotating.
-    bpy.ops.wm.obj_import(filepath=obj_path, forward_axis="Y", up_axis="Z")
+    if source.lower().endswith(".glb"):
+        # glTF is Y up; Blender's importer turns it back into Z up, Spore's own axes.
+        bpy.ops.import_scene.gltf(filepath=source)
+    else:
+        # spore2-scan writes Spore's own axes (Z up), so import without rotating.
+        bpy.ops.wm.obj_import(filepath=source, forward_axis="Y", up_axis="Z")
     meshes = [o for o in bpy.context.scene.objects if o.type == "MESH"]
     if not meshes:
-        return None, "no mesh in the OBJ"
+        return None, "no mesh in the file"
+    armature = next((o for o in bpy.context.scene.objects if o.type == "ARMATURE"), None)
     for obj in meshes:
         clean_mesh(obj)
 
@@ -139,9 +164,15 @@ def convert(obj_path, fbx_path, origin):
     name = os.path.splitext(os.path.basename(fbx_path))[0]
     obj.name = name
     obj.data.name = name
-    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-    if origin == "bottom":
-        move_origin_to_bottom(obj)
+    actions = 0
+    if armature:
+        # Unreal drops a root object called "Armature" instead of turning it into an extra bone.
+        armature.name = "Armature"
+        actions = len(bpy.data.actions)
+    else:
+        bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+        if origin == "bottom":
+            move_origin_to_bottom(obj)
 
     triangles = sum(len(p.vertices) - 2 for p in obj.data.polygons)
     if triangles == 0:
@@ -153,7 +184,12 @@ def convert(obj_path, fbx_path, origin):
     bpy.ops.export_scene.fbx(
         filepath=fbx_path,
         use_selection=False,
-        object_types={"MESH"},
+        object_types={"ARMATURE", "MESH"} if armature else {"MESH"},
+        add_leaf_bones=False,
+        bake_anim=actions > 0,
+        bake_anim_use_all_actions=True,
+        bake_anim_use_nla_strips=False,
+        bake_anim_simplify_factor=0.0,
         apply_unit_scale=True,
         apply_scale_options="FBX_SCALE_UNITS",
         axis_forward="-Z",
@@ -168,30 +204,32 @@ def convert(obj_path, fbx_path, origin):
         "triangles": triangles,
         "materials": len([m for m in obj.data.materials if m]),
         "textures": textures,
+        "bones": len(armature.data.bones) if armature else 0,
+        "animations": actions,
     }, None
 
 
 def main():
     opts = parse_args(sys.argv)
     index, count = opts["shard"]
-    work = [item for n, item in enumerate(find_objs(opts["inputs"])) if n % count == index]
+    work = [item for n, item in enumerate(find_models(opts["inputs"])) if n % count == index]
     manifest = {"converted": [], "skipped_up_to_date": 0, "failed": []}
     started = time.time()
-    for n, (root, obj_path) in enumerate(work, 1):
-        fbx_path = output_path(root, obj_path, opts["out"])
-        if not opts["force"] and up_to_date(obj_path, fbx_path):
+    for n, (root, source) in enumerate(work, 1):
+        fbx_path = output_path(root, source, opts["out"])
+        if not opts["force"] and up_to_date(source, fbx_path):
             manifest["skipped_up_to_date"] += 1
             continue
         t0 = time.time()
         try:
-            info, error = convert(obj_path, fbx_path, opts["origin"])
+            info, error = convert(source, fbx_path, opts["origin"])
         except Exception:  # keep going; record why this one failed
             info, error = None, traceback.format_exc(limit=1).strip().splitlines()[-1]
         if info:
-            info.update({"source": obj_path, "fbx": fbx_path, "seconds": round(time.time() - t0, 2)})
+            info.update({"source": source, "fbx": fbx_path, "seconds": round(time.time() - t0, 2)})
             manifest["converted"].append(info)
         else:
-            manifest["failed"].append({"source": obj_path, "error": error})
+            manifest["failed"].append({"source": source, "error": error})
         if n % 100 == 0:
             print(f"[shard {index}/{count}] {n}/{len(work)} files", flush=True)
 

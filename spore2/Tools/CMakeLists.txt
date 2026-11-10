@@ -12,6 +12,7 @@ set(CORE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../Plugins/Spore2Interop/Source/Spore2I
 add_library(sporecore STATIC
   ${CORE_DIR}/Private/SporeCore/SporeCreation.cpp
   ${CORE_DIR}/Private/SporeCore/SporeDbpf.cpp
+  ${CORE_DIR}/Private/SporeCore/SporeGltf.cpp
   ${CORE_DIR}/Private/SporeCore/SporePng.cpp
   ${CORE_DIR}/Private/SporeCore/SporeProp.cpp
   ${CORE_DIR}/Private/SporeCore/SporeSkin.cpp

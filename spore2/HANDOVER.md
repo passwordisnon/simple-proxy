@@ -111,6 +111,12 @@ files that look unused in the base game.
 
 ## Open tasks, roughly in order
 
+00. Since Nov 2026 the pipeline exports `.glb` (meshes, textures, skeleton, weights, rw4 keyframe
+   animations) and rigged models arrive in Unreal as skeletal meshes (`*_rig.fbx`). Verified only
+   on synthetic data. On the first real run read these lines of `report.txt`: "bone hierarchy"
+   (flags vs parent list should agree for all skeletons), "glTF files", and any
+   "glTF: ... triangle order reversed" / "left out" notes; then open a rigged part in Unreal and
+   play one of its animations.
 0. Run the automated pipeline (`bash spore2/Tools/pipeline.sh`, editor closed) and check
    `~/SporeData/pipeline/report.txt` and `/Game/Spore` in the editor. The Blender step was tested
    with Blender 5.2 on synthetic files only; the Unreal import step has never run against the real

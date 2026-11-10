@@ -89,6 +89,16 @@ Start with `HANDOVER.md`: project history, the user's machine and paths, open ta
   the .gmdl files their .prop names, so "no mesh in the model" for them is not a decoding gap.
 - rw4 files from mods can declare a base resource larger than the file (CamBensColourPack and others); the size is
   clamped to the end of the file (ParseRw4). 56 mod meshes remain truncated and are rejected.
+- Bone poses and animation keys (SporeModder Blender add-on, rw4_importer.py): bind pose of a bone =
+  rotation m (the stored 3x3), position -m * t; inverse bind = inverse(m) * x + t. Bone flags: 0 root
+  (next bones are its children), 1 leaf (return to the last branch point), 2 branch (push the current
+  parent, become the parent), 3 branch-leaf; the game's animation code derives parents from these
+  (SkeletonParentsFromFlags; --models reports how often that equals the parent list - check it on
+  real files). Keyframes are parent-relative rotation (x, y, z, w), location, scale; time in seconds
+  (the add-on uses 24 fps); a parent's scale reaches the child's position but not its axes.
+  SporeGltf.cpp exports all this as .glb (Y up: (x, y, z) -> (x, z, -y)); checked against the add-on's
+  algorithm through Blender on synthetic data to 1e-6. Triangle winding is not documented: the
+  exporter reverses a mesh whose triangles mostly face away from its vertex normals and says so.
 - First creature in UE (user's screenshot): Pollination 0x251F774F.crt, 47 of 47 parts plus the
   approximate skin, stands upright on its feet with the default row-vector orientation; untextured.
 - Creature bodies: a .crt holds only rig blocks (ce_vertebra = instance 0xD05C53A3, limb blocks with
@@ -97,7 +107,7 @@ Start with `HANDOVER.md`: project history, the user's machine and paths, open ta
 
 ## Roadmap
 
-1. ~~`.prop` decoder~~  2. ~~textures~~, ~~rw4 meshes~~, ~~materials~~, skeletons; animations  3. ~~creation PNG decoder~~
+1. ~~`.prop` decoder~~  2. ~~textures~~, ~~rw4 meshes~~, ~~materials~~, ~~skeletons~~, ~~rw4 keyframe animations~~; creature `.animation` files  3. ~~creation PNG decoder~~
 4. skeleton → Control Rig  5. gameplay stages
 Ideas from the user to keep in mind: Dark Injection (Darkspore parts) re-integrated so its war
 parts fit the game's style and tie into Galactic Adventures (e.g. adventure equipment/epics).
